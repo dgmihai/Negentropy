@@ -2,6 +2,7 @@ package com.trajan.negentropy.view;
 
 import com.trajan.negentropy.controller.ViewController;
 import com.trajan.negentropy.data.entity.Task;
+import com.trajan.negentropy.grid.NonDistinctTreeGrid;
 import com.trajan.negentropy.view.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.view.util.ToggleButton;
 import com.vaadin.flow.component.Component;
@@ -26,6 +27,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import jakarta.annotation.security.PermitAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
@@ -43,7 +46,8 @@ import java.util.concurrent.TimeUnit;
 @PageTitle("Negentropy")
 @PermitAll
 public class ListView extends VerticalLayout {
-    private final TreeGrid<Task> grid;
+    private static final Logger logger = LoggerFactory.getLogger(ListView.class);
+    private final NonDistinctTreeGrid grid;
     public TextField filterText = new TextField();
     private TaskForm form;
     private Task draggedTask;
@@ -57,7 +61,7 @@ public class ListView extends VerticalLayout {
 
         addClassName("list-view");
         setSizeFull();
-        grid = new TreeGrid<>();
+        grid = new NonDistinctTreeGrid();
         configureGrid();
         configureForm();
         configureResize();
@@ -78,10 +82,10 @@ public class ListView extends VerticalLayout {
     private void configureGrid() {
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
         grid.addHierarchyColumn(Task::getName)
-                .setKey("name")
+                //.setKey("name")
                 .setHeader("Name")
                 .setSortable(false)
-                .setTextAlign(ColumnTextAlign.CENTER)
+                .setTextAlign(ColumnTextAlign.START)
                 .setAutoWidth(true);
         grid.addColumn(Task::getDescription)
                 .setKey("description")
@@ -126,12 +130,9 @@ public class ListView extends VerticalLayout {
         grid.addColumn(
             new ComponentRenderer<>(Button::new, (button, task) -> {
                 button.addClickListener(e -> {
-                    if(form.parent.getValue() != task) {
-                        form.parent.setValue(task);
-                    }
+                    form.instanceParent.setValue(task);
                 });
                 Icon icon = new Icon(VaadinIcon.PLUS);
-                //icon.setSize("20px");
                 button.addThemeVariants(ButtonVariant.LUMO_SMALL);
                 button.setIcon(icon);
             }))
@@ -175,7 +176,7 @@ public class ListView extends VerticalLayout {
             } else if (dropLocation == GridDropLocation.EMPTY) {
                 System.out.println(draggedTask.getName());
                 System.out.println("  " + targetTask.getName());
-                draggedTask.newParent(null);
+                draggedTask.setInstanceParent(null);
                 controller.saveTask(draggedTask);
                 update();
             }

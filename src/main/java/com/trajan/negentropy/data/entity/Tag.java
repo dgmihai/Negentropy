@@ -16,7 +16,6 @@ public class Tag extends AbstractEntity {
     @NotBlank
     private String name;
     @ManyToMany(
-            cascade = CascadeType.ALL,
             mappedBy = "tags",
             fetch = FetchType.EAGER)
     private Set<Task> tasks = new LinkedHashSet<>();

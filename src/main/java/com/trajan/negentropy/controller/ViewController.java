@@ -21,7 +21,7 @@ import java.util.List;
 public class ViewController {
     @Autowired
     private DataService service;
-
+    private List<Task> tasks = new ArrayList<>();
     private Filter textFilter;
 
     private Filter rootFilter = Filter.builder()
@@ -60,13 +60,13 @@ public class ViewController {
     @Transactional
     public void saveTask(Task task) {
         service.saveTask(task);
-        if (task.getAddToChildrenOf() != null) {
-            task.getAddToChildrenOf().getChildren().add(task);
-            service.saveTask(task.getAddToChildrenOf());
-        }
-        if (task.getRemoveFromChildrenOf() != null) {
-            task.getRemoveFromChildrenOf().getChildren().remove(task);
-            service.saveTask(task.getRemoveFromChildrenOf());
-        }
+//        if (task.getAddToChildrenOf() != null) {
+//            task.getAddToChildrenOf().getChildren().add(task);
+//            service.saveTask(task.getAddToChildrenOf());
+//        }
+//        if (task.getRemoveFromChildrenOf() != null) {
+//            task.getRemoveFromChildrenOf().getChildren().remove(task);
+//            service.saveTask(task.getRemoveFromChildrenOf());
+//        }
     }
 }

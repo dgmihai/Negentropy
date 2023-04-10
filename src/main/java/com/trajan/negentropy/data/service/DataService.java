@@ -4,6 +4,7 @@ import com.trajan.negentropy.data.entity.Tag;
 import com.trajan.negentropy.data.entity.Task;
 import com.trajan.negentropy.data.repository.Filter;
 import com.trajan.negentropy.data.repository.FilteredRepository;
+import com.trajan.negentropy.view.util.StackLog;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -29,11 +30,12 @@ public class DataService {
 
     public List<Task> findTasks(List<Filter> filters) {
         List<Task> tasks = repository.getTaskQueryResult(filters);
-        logger.debug("Fetched tasks with size: {}", tasks.size());
+        //StackLog.print(3);
+        logger.trace("  Fetched tasks with size: {}", tasks.size());
         return tasks;
     }
 
-    public Task getTask(int id) {
+    public Task getTask(Long id) {
         return repository.getTaskRepository().getReferenceById(id);
     }
 
@@ -47,13 +49,15 @@ public class DataService {
 
     @Transactional
     public void saveTask(Task task) {
-        logger.debug("== SAVING TASK ==");
-        task.log();
+        task.trace("== SAVING TASK ==");
+        StackLog.print(10);
         if (!entityManager.contains(task)) {
             task = entityManager.merge(task);
         } else {
             entityManager.persist(task);
         }
+        List<Task> parents = task.getParents();
+        parents.add(task);
         repository.getTaskRepository().save(task);
     }
 
@@ -67,7 +71,7 @@ public class DataService {
         return repository.getTagQueryResult(filters);
     }
 
-    public Tag getTag(int id) {
+    public Tag getTag(long id) {
         return repository.getTagRepository().getReferenceById(id);
     }
 
@@ -76,7 +80,7 @@ public class DataService {
     }
 
     public void saveTag(Tag tag) {
-        if (tag.getId() != null && !entityManager.contains(tag)) {
+        if (tag.getPk() != null && !entityManager.contains(tag)) {
             tag = entityManager.merge(tag);
         } else {
             entityManager.persist(tag);

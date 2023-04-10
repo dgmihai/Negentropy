@@ -21,14 +21,17 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.shared.Registration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TaskForm extends FormLayout {
+    private static final Logger logger = LoggerFactory.getLogger(TaskForm.class);
     TextField name = new TextField("Name");
     TextArea description = new TextArea("Description");
     // X priority = new X("Priority");
     TextField duration = new TextField("Estimated Duration");
-    ComboBox<Task> parent = new ComboBox<>("Parent");
+    ComboBox<Task> instanceParent = new ComboBox<>("Parent");
 
     Button save = new Button("Save");
     Button delete = new Button("Delete");
@@ -50,25 +53,25 @@ public class TaskForm extends FormLayout {
                 .withConverter(new DurationConverter())
                 .bind(Task::getDuration, Task::setDuration);
 
-        binder.forField(parent).bind(
-                task -> {
-                    if(!task.getParents().isEmpty()) {
-                        return task.getParents().get(0);
-                    } else {
-                        return null;
-                    }
-                },
-                (task, parent) -> {
-                    task.newParent(this.parent.getValue());
-                });
-        parent.setItemLabelGenerator(Task::getName);
-
+//        binder.forField(instanceParent).bind(
+//                task -> {
+//                    if(!task.getParents().isEmpty()) {
+//                        return task.getParents().get(0);
+//                    } else {
+//                        return null;
+//                    }
+//                },
+//                (task, parent) -> {
+//                    task.newParent(this.instanceParent.getValue());
+//                });
         binder.bindInstanceFields(this);
+        instanceParent.setItemLabelGenerator(Task::getName);
+
 
         add(    name,
                 duration,
                 description,
-                parent,
+                instanceParent,
                 createButtonsLayout());
     }
 
@@ -80,20 +83,20 @@ public class TaskForm extends FormLayout {
         } else {
             this.duration.setVisible(true);
         }
-        binder.setBean(task);
-
-        parent.setItems(controller.findTasks(Filter.builder()
-                .field(Task_.ID)
+        instanceParent.setItems(controller.findTasks(Filter.builder()
+                .field(Task_.PK)
                 .operator(QueryOperator.NOT_EQ)
-                .value(binder.getBean().getId())
+                .value(task.getPk())
                 .build()));
+        binder.setBean(task);
     }
 
     public void clear() {
         this.save.setText("Add");
         this.delete.setEnabled(false);
         binder.setBean(new Task());
-        parent.setItems(controller.findTasks());
+        logger.debug("Fetching tasks in TaskForm.clear");
+        instanceParent.setItems(controller.findTasks());
     }
 
     // Events
