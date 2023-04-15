@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server.repository;
+package com.trajan.negentropy.server.repository.filter;
 
 import lombok.Builder;
 import lombok.Getter;

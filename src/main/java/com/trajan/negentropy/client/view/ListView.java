@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.client.util.ToggleButton;
 import com.trajan.negentropy.client.controller.event.ViewEventPublisher;
-import com.trajan.negentropy.server.entity.TaskRelationship;
+import com.trajan.negentropy.server.entity.TaskNode;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dnd.DragSource;
 import com.vaadin.flow.component.dnd.DropTarget;
@@ -35,7 +35,7 @@ public class ListView extends VerticalLayout {
     private static final Logger logger = LoggerFactory.getLogger(ListView.class);
     private final ViewEventPublisher viewEventPublisher;
 
-    private final TreeGrid<TaskRelationship> treeGrid;
+    private final TreeGrid<TaskNode> treeGrid;
     private final TaskTreeContextMenu contextMenu;
     private final TaskInfoForm taskInfoForm;
 
@@ -45,7 +45,7 @@ public class ListView extends VerticalLayout {
         this.viewEventPublisher = viewEventPublisher;
 
         this.taskInfoForm = new TaskInfoForm(viewEventPublisher);
-        this.treeGrid = new TreeGrid<>(TaskRelationship.class);
+        this.treeGrid = new TreeGrid<>(TaskNode.class);
         this.contextMenu = new TaskTreeContextMenu(this);
 
         addClassName("list-view");
@@ -65,23 +65,23 @@ public class ListView extends VerticalLayout {
     private void initGridColumns() {
         treeGrid.removeAllColumns();
 
-        Grid.Column<TaskRelationship> titleColumn = treeGrid
+        Grid.Column<TaskNode> titleColumn = treeGrid
                 .addColumn(taskRelationship ->
-                    taskRelationship.getTaskInfo().getTitle())
+                    taskRelationship.getChild().getTitle())
                 .setHeader("Title")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
-        Grid.Column<TaskRelationship> descriptionColumn = treeGrid
+        Grid.Column<TaskNode> descriptionColumn = treeGrid
                 .addColumn(taskRelationship ->
-                        taskRelationship.getTaskInfo().getDescription())
+                        taskRelationship.getChild().getDescription())
                 .setHeader("Description")
                 .setAutoWidth(true)
                 .setFlexGrow(3);
 
-        Grid.Column<TaskRelationship> priorityColumn = treeGrid
+        Grid.Column<TaskNode> priorityColumn = treeGrid
                 .addColumn(taskRelationship ->
-                        taskRelationship.getTaskInfo().getPriority())
+                        taskRelationship.getChild().getPriority())
                 .setHeader("Priority")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -99,7 +99,7 @@ public class ListView extends VerticalLayout {
             timeButton.setIcon(VaadinIcon.CLOCK.create());
             treeGrid.getDataProvider().refreshAll();
         });
-        Grid.Column<TaskRelationship> durationColumn = treeGrid
+        Grid.Column<TaskNode> durationColumn = treeGrid
                 .addColumn(new TimeEstimateValueProvider(timeButton))
                 .setKey("time")
                 .setHeader(timeButton)
@@ -110,7 +110,7 @@ public class ListView extends VerticalLayout {
     private void configureEvents() {
         treeGrid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
-                taskInfoForm.setTaskInfoBean(event.getValue().getTaskInfo());
+                taskInfoForm.setTaskInfoBean(event.getValue().getChild());
             }
         });
 
@@ -160,7 +160,7 @@ public class ListView extends VerticalLayout {
 
         // create a drop target TreeGrid component
         DragSource<TaskInfoForm> gridDragSource = DragSource.create(taskInfoForm);
-        DropTarget<TreeGrid<TaskRelationship>> gridDropTarget = DropTarget.create(treeGrid);
+        DropTarget<TreeGrid<TaskNode>> gridDropTarget = DropTarget.create(treeGrid);
         treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
         treeGrid.setRowsDraggable(true);
     }
@@ -255,37 +255,33 @@ public class ListView extends VerticalLayout {
 //            }
 //        });
 
-    private static class TaskTreeContextMenu extends GridContextMenu<TaskRelationship> {
+    private static class TaskTreeContextMenu extends GridContextMenu<TaskNode> {
         public TaskTreeContextMenu(ListView listView) {
             super(listView.treeGrid);
 
-            List<GridMenuItem<TaskRelationship>> insertEntries = new ArrayList<>();
+            List<GridMenuItem<TaskNode>> insertEntries = new ArrayList<>();
 
             insertEntries.add(addItem("Insert before", e -> e.getItem().ifPresent(taskRelationship -> {
-                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-                        TaskRelationship.builder()
-                                .taskInfo(listView.taskInfoForm.getTaskInfoBean())
-                                .orderIndex(taskRelationship.getOrderIndex())
-                                .parentRelationship(taskRelationship.getParentRelationship())
-                                .build());
+//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
+//                        new TaskNode(
+//                                taskRelationship.getParent(),
+//                                listView.taskInfoForm.getTaskInfoBean(),
+//                                taskRelationship.getOrderIndex()));
             })));
 
             insertEntries.add(addItem("Insert after", e -> e.getItem().ifPresent(taskRelationship -> {
-                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-                        TaskRelationship.builder()
-                                .taskInfo(listView.taskInfoForm.getTaskInfoBean())
-                                .orderIndex(taskRelationship.getOrderIndex()+1)
-                                .parentRelationship(taskRelationship.getParentRelationship())
-                                .build());
+//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
+//                        new TaskNode(
+//                                taskRelationship.getParent(),
+//                                listView.taskInfoForm.getTaskInfoBean(),
+//                                taskRelationship.getOrderIndex() + 1));
             })));
 
             insertEntries.add(addItem("Insert as subtask", e -> e.getItem().ifPresent(taskRelationship -> {
-                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-                        TaskRelationship.builder()
-                                .taskInfo(listView.taskInfoForm.getTaskInfoBean())
-                                .orderIndex(-1)
-                                .parentRelationship(taskRelationship)
-                                .build());
+//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
+//                        new TaskNode(
+//                                taskRelationship,
+//                                listView.taskInfoForm.getTaskInfoBean()));
             })));
 
             add(new Hr());

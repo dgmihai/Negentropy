@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.vaadin.view;
 //
 //import com.trajan.negentropy.vaadin.controller.ViewController;
-//import com.trajan.negentropy.data.entity.old.Task;
+//import com.trajan.negentropy.data.entity.old.TaskInfo;
 //import com.trajan.negentropy.grid.NonDistinctTreeGrid;
 //import com.trajan.negentropy.vaadin.forms.TaskForm;
 //import com.trajan.negentropy.vaadin.util.TimeEstimateValueProvider;
@@ -51,7 +51,7 @@
 //    private final NonDistinctTreeGrid grid;
 //    public TextField filterText = new TextField();
 //    private TaskForm form;
-//    private Task draggedTask;
+//    private TaskInfo draggedTask;
 //    private FlexLayout content;
 //    private final ViewController controller;
 //
@@ -82,18 +82,18 @@
 //
 //    private void configureGrid() {
 //        grid.addThemeVariants(GridVariant.LUMO_COMPACT);
-//        grid.addHierarchyColumn(Task::getName)
+//        grid.addHierarchyColumn(TaskInfo::getName)
 //                //.setKey("name")
 //                .setHeader("Name")
 //                .setSortable(false)
 //                .setTextAlign(ColumnTextAlign.START)
 //                .setAutoWidth(true);
-//        grid.addColumn(Task::getDescription)
+//        grid.addColumn(TaskInfo::getDescription)
 //                .setKey("description")
 //                .setHeader("Description")
 //                .setAutoWidth(true);
 ////        grid.addColumn(
-////                new ComponentRenderer<>((ValueProvider<Task, Icon>) task -> {
+////                new ComponentRenderer<>((ValueProvider<TaskInfo, Icon>) task -> {
 ////                    if (task.isPassive()) {
 ////                        Icon icon = VaadinIcon.CHECK.create();
 ////                        icon.setColor("gray");
@@ -153,7 +153,7 @@
 //        grid.addDragStartListener(e ->
 //                draggedTask = e.getDraggedItems().get(0));
 //        grid.addDropListener(e -> {
-//            Task targetTask = e.getDropTargetItem().orElse(null);
+//            TaskInfo targetTask = e.getDropTargetItem().orElse(null);
 //            GridDropLocation dropLocation = e.getDropLocation();
 //            boolean droppedOntoSelf = draggedTask
 //                    .equals(targetTask);
@@ -205,7 +205,7 @@
 //        saveTask(event.getTask());
 //    }
 //
-//    private void saveTask(Task task) {
+//    private void saveTask(TaskInfo task) {
 //        controller.saveTask(task);
 //        update();
 //        form.clear();
@@ -215,7 +215,7 @@
 //        deleteTask(event.getTask());
 //    }
 //
-//    private void deleteTask(Task task) {
+//    private void deleteTask(TaskInfo task) {
 //        controller.getService().deleteTask(task);
 //        update();
 //        form.clear();
@@ -225,7 +225,7 @@
 //        List<String> columnKeys = Arrays.asList(
 //                "description",
 //                "passive");
-//        List<TreeGrid.Column<Task>> columns = new ArrayList<>();
+//        List<TreeGrid.Column<TaskInfo>> columns = new ArrayList<>();
 //        columnKeys.forEach( key -> {
 //            columns.add(grid.getColumnByKey(key));
 //        });
@@ -252,7 +252,7 @@
 //            update();
 //        });
 //
-//        Button addTaskButton = new Button("New Task");
+//        Button addTaskButton = new Button("New TaskInfo");
 //        addTaskButton.addClickListener(click -> addTask());
 //
 //        var toolbar = new HorizontalLayout(filterText, addTaskButton);
@@ -260,7 +260,7 @@
 //        return toolbar;
 //    }
 //
-//    public void editTask(Task task) {
+//    public void editTask(TaskInfo task) {
 //        if (task == null) {
 //            form.clear();
 //        } else {
@@ -274,10 +274,10 @@
 //    }
 //
 //    private void update() {
-//        grid.setItems(controller.findRootTasks(), Task::getChildren);
+//        grid.setItems(controller.findRootTasks(), TaskInfo::getChildren);
 //    }
 //
-//    private void expandRecursively(Task task) {
+//    private void expandRecursively(TaskInfo task) {
 ////        if (task.getParent() != null) {
 ////            if (task.getParent().equals(task)) {
 ////                System.out.println("AFUCK?");

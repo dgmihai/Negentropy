@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server.repository;
+package com.trajan.negentropy.server.repository.jpa;
 
 import com.trajan.negentropy.server.entity.Tag;
 import jakarta.transaction.Transactional;

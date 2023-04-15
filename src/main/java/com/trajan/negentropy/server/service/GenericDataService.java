@@ -1,18 +1,18 @@
 package com.trajan.negentropy.server.service;
 
 import com.trajan.negentropy.server.entity.AbstractEntity;
-import com.trajan.negentropy.server.repository.Filter;
+import com.trajan.negentropy.server.repository.filter.Filter;
+import jakarta.transaction.Transactional;
 
 import java.util.List;
 
+@Transactional
 public interface GenericDataService<T extends AbstractEntity> {
-    Response save(T entity);
+    T save(T entity);
 
     T findById(Long id);
 
     List<T> find(List<Filter> filters);
 
-    Response delete(T entity);
-
-    List<T> getAll();
+    T delete(T entity);
 }

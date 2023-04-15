@@ -1,7 +1,7 @@
 package com.trajan.negentropy.server.service;
 
 import com.trajan.negentropy.server.entity.Tag;
-import com.trajan.negentropy.server.repository.Filter;
+import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.FilteredTagRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -22,17 +22,18 @@ public class TagService implements GenericDataService<Tag> {
     }
 
     @Override
-    public Response save(Tag entity) {
-        try {
-            if (entity.getId() == null) {
-                filteredTagRepository.getTagRepository().save(entity);
-            } else {
-                filteredTagRepository.getTagRepository().saveAndFlush(entity);
-            }
-            return new Response();
-        } catch (Exception e) {
-            return new Response(e.getMessage());
-        }
+    public Tag save(Tag entity) {
+//        try {
+//            if (entity.getId() == null) {
+//                filteredTagRepository.getTagRepository().save(entity);
+//            } else {
+//                filteredTagRepository.getTagRepository().saveAndFlush(entity);
+//            }
+//            return new Response();
+//        } catch (Exception e) {
+//            return new Response(e.getMessage());
+//        }
+        return null;
     }
 
     @Override
@@ -46,17 +47,13 @@ public class TagService implements GenericDataService<Tag> {
     }
 
     @Override
-    public Response delete(Tag entity) {
-        try {
-            filteredTagRepository.getTagRepository().delete(entity);
-            return new Response();
-        } catch (Exception e) {
-            return new Response(e.getMessage());
-        }
-    }
-
-    @Override
-    public List<Tag> getAll() {
-        return filteredTagRepository.getTagRepository().findAll();
+    public Tag delete(Tag entity) {
+//        try {
+//            filteredTagRepository.getTagRepository().delete(entity);
+//            return new Response();
+//        } catch (Exception e) {
+//            return new Response(e.getMessage());
+//        }
+        return null;
     }
 }

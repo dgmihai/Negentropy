@@ -1,9 +1,9 @@
 package com.trajan.negentropy.server.repository;
 
-import com.trajan.negentropy.server.entity.Tag;
+import com.trajan.negentropy.server.entity.TaskNode;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.filter.GenericSpecificationProvider;
-import com.trajan.negentropy.server.repository.jpa.TagRepository;
+import com.trajan.negentropy.server.repository.jpa.TaskNodeRepository;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +15,16 @@ import java.util.List;
 @Getter
 @Repository
 @Transactional
-public class FilteredTagRepository extends GenericSpecificationProvider<Tag> {
+public class FilteredTaskNodeRepository extends GenericSpecificationProvider<TaskNode> {
     @Autowired
-    private TagRepository tagRepository;
+    private TaskNodeRepository taskNodeRepository;
 
-    public List<Tag> findByFilters(List<Filter> filters) {
+    public List<TaskNode> findByFilters(List<Filter> filters) {
         if (filters.size() > 0) {
-            Specification<Tag> spec = getSpecificationFromFilters(filters, Tag.class);
-            return tagRepository.findAll(spec);
+            Specification<TaskNode> spec = getSpecificationFromFilters(filters, TaskNode.class);
+            return taskNodeRepository.findAll(spec);
         } else {
-            return tagRepository.findAll();
+            return taskNodeRepository.findAll();
         }
     }
 }

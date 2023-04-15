@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.vaadin.forms;
 //
 //import com.trajan.negentropy.vaadin.controller.ViewController;
-//import com.trajan.negentropy.data.entity.old.Task;
+//import com.trajan.negentropy.data.entity.old.TaskInfo;
 //import com.trajan.negentropy.data.entity.Task_;
 //import com.trajan.negentropy.data.repository.Filter;
 //import com.trajan.negentropy.data.repository.QueryOperator;
@@ -31,13 +31,13 @@
 //    TextArea description = new TextArea("Description");
 //    // X priority = new X("Priority");
 //    TextField duration = new TextField("Estimated Duration");
-//    ComboBox<Task> instanceParent = new ComboBox<>("Parent");
+//    ComboBox<TaskInfo> instanceParent = new ComboBox<>("Parent");
 //
 //    Button save = new Button("Save");
 //    Button delete = new Button("Delete");
 //    Button close = new Button("Cancel");
 //
-//    Binder<Task> binder = new BeanValidationBinder<>(Task.class);
+//    Binder<TaskInfo> binder = new BeanValidationBinder<>(TaskInfo.class);
 //
 //    @Autowired
 //    private ViewController controller;
@@ -51,7 +51,7 @@
 //        duration.setPattern(DurationConverter.DURATION_PATTERN);
 //        binder.forField(duration)
 //                .withConverter(new DurationConverter())
-//                .bind(Task::getDuration, Task::setDuration);
+//                .bind(TaskInfo::getDuration, TaskInfo::setDuration);
 //
 ////        binder.forField(instanceParent).bind(
 ////                task -> {
@@ -65,7 +65,7 @@
 ////                    task.newParent(this.instanceParent.getValue());
 ////                });
 //        binder.bindInstanceFields(this);
-//        instanceParent.setItemLabelGenerator(Task::getName);
+//        instanceParent.setItemLabelGenerator(TaskInfo::getName);
 //
 //
 //        add(    name,
@@ -75,7 +75,7 @@
 //                createButtonsLayout());
 //    }
 //
-//    public void setTask(Task task) {
+//    public void setTask(TaskInfo task) {
 //        this.save.setText("Update");
 //        this.delete.setEnabled(true);
 //        if (task.getChildren().size() > 0) {
@@ -94,7 +94,7 @@
 //    public void clear() {
 //        this.save.setText("Add");
 //        this.delete.setEnabled(false);
-//        binder.setBean(new Task());
+//        binder.setBean(new TaskInfo());
 //        logger.debug("Fetching tasks in TaskForm.clear");
 //        instanceParent.setItems(controller.findTasks());
 //    }
@@ -126,25 +126,25 @@
 //    }
 //
 //    public static abstract class TaskFormEvent extends ComponentEvent<TaskForm> {
-//        private Task task;
+//        private TaskInfo task;
 //
-//        protected TaskFormEvent(TaskForm source, Task task) {
+//        protected TaskFormEvent(TaskForm source, TaskInfo task) {
 //            super(source, false);
 //            this.task = task;
 //        }
 //
-//        public Task getTask() {
+//        public TaskInfo getTask() {
 //            return task;
 //        }
 //    }
 //
 //    public static class SaveEvent extends TaskFormEvent {
-//        SaveEvent(TaskForm source, Task task) {
+//        SaveEvent(TaskForm source, TaskInfo task) {
 //            super(source, task);
 //        }
 //    }
 //    public static class DeleteEvent extends TaskFormEvent {
-//        DeleteEvent(TaskForm source, Task task) {
+//        DeleteEvent(TaskForm source, TaskInfo task) {
 //            super(source, task);
 //        }
 //

@@ -3,8 +3,8 @@ package com.trajan.negentropy.client.controller.event;
 import com.trajan.negentropy.client.view.ListView;
 import com.trajan.negentropy.client.view.TaskInfoForm;
 import com.trajan.negentropy.server.entity.TaskInfo;
-import com.trajan.negentropy.server.entity.TaskRelationship;
-import com.trajan.negentropy.server.repository.Filter;
+import com.trajan.negentropy.server.entity.TaskNode;
+import com.trajan.negentropy.server.repository.filter.Filter;
 import com.vaadin.flow.spring.annotation.UIScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,12 +34,12 @@ public class ViewEventPublisherImpl implements ViewEventPublisher {
     }
 
     @Override
-    public void publishListViewEvent_Save(ListView source, TaskRelationship data) {
+    public void publishListViewEvent_Save(ListView source, TaskNode data) {
         applicationEventPublisher.publishEvent(new ListViewEvent.SaveEvent(source, data));
     }
 
     @Override
-    public void publishListViewEvent_Delete(ListView source, TaskRelationship data) {
+    public void publishListViewEvent_Delete(ListView source, TaskNode data) {
         applicationEventPublisher.publishEvent(new ListViewEvent.RemoveEvent(source, data));
     }
 

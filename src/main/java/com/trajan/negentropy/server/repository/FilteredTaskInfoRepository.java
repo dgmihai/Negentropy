@@ -1,6 +1,9 @@
 package com.trajan.negentropy.server.repository;
 
 import com.trajan.negentropy.server.entity.TaskInfo;
+import com.trajan.negentropy.server.repository.filter.Filter;
+import com.trajan.negentropy.server.repository.filter.GenericSpecificationProvider;
+import com.trajan.negentropy.server.repository.jpa.TaskInfoRepository;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +15,7 @@ import java.util.List;
 @Getter
 @Repository
 @Transactional
-public class FilteredTaskInfoRepository implements GenericSpecificationProvider<TaskInfo> {
+public class FilteredTaskInfoRepository extends GenericSpecificationProvider<TaskInfo> {
     @Autowired
     private TaskInfoRepository taskInfoRepository;
 

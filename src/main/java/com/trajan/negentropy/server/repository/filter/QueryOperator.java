@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server.repository;
+package com.trajan.negentropy.server.repository.filter;
 
 public enum QueryOperator {
     GREATER_THAN,
