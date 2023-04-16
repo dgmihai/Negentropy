@@ -24,5 +24,5 @@ public class Tag extends AbstractEntity {
     @ToString.Exclude
     @ManyToMany(
             mappedBy = "tags")
-    private Set<TaskInfo> taskInfos = new LinkedHashSet<>();
+    private Set<Task> tasks = new LinkedHashSet<>();
 }

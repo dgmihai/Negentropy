@@ -1,10 +1,10 @@
 //package com.trajan.negentropy.vaadin.forms;
 //
 //import com.trajan.negentropy.vaadin.controller.ViewController;
-//import com.trajan.negentropy.data.entity.old.TaskInfo;
-//import com.trajan.negentropy.data.entity.Task_;
-//import com.trajan.negentropy.data.repository.Filter;
-//import com.trajan.negentropy.data.repository.QueryOperator;
+//import com.trajan.negentropy.dataTaskId.entity.old.Task;
+//import com.trajan.negentropy.dataTaskId.entity.Task_;
+//import com.trajan.negentropy.dataTaskId.repository.Filter;
+//import com.trajan.negentropy.dataTaskId.repository.QueryOperator;
 //import com.trajan.negentropy.vaadin.util.DurationConverter;
 //import com.vaadin.flow.component.Component;
 //import com.vaadin.flow.component.ComponentEvent;
@@ -17,9 +17,9 @@
 //import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 //import com.vaadin.flow.component.textfield.TextArea;
 //import com.vaadin.flow.component.textfield.TextField;
-//import com.vaadin.flow.data.binder.BeanValidationBinder;
-//import com.vaadin.flow.data.binder.Binder;
-//import com.vaadin.flow.data.value.ValueChangeMode;
+//import com.vaadin.flow.dataTaskId.binder.BeanValidationBinder;
+//import com.vaadin.flow.dataTaskId.binder.Binder;
+//import com.vaadin.flow.dataTaskId.value.ValueChangeMode;
 //import com.vaadin.flow.shared.Registration;
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
@@ -31,13 +31,13 @@
 //    TextArea description = new TextArea("Description");
 //    // X priority = new X("Priority");
 //    TextField duration = new TextField("Estimated Duration");
-//    ComboBox<TaskInfo> instanceParent = new ComboBox<>("Parent");
+//    ComboBox<Task> instanceParent = new ComboBox<>("Parent");
 //
 //    Button save = new Button("Save");
 //    Button delete = new Button("Delete");
 //    Button close = new Button("Cancel");
 //
-//    Binder<TaskInfo> binder = new BeanValidationBinder<>(TaskInfo.class);
+//    Binder<Task> binder = new BeanValidationBinder<>(Task.class);
 //
 //    @Autowired
 //    private ViewController controller;
@@ -51,7 +51,7 @@
 //        duration.setPattern(DurationConverter.DURATION_PATTERN);
 //        binder.forField(duration)
 //                .withConverter(new DurationConverter())
-//                .bind(TaskInfo::getDuration, TaskInfo::setDuration);
+//                .bind(Task::getDuration, Task::setDuration);
 //
 ////        binder.forField(instanceParent).bind(
 ////                task -> {
@@ -65,7 +65,7 @@
 ////                    task.newParent(this.instanceParent.getValue());
 ////                });
 //        binder.bindInstanceFields(this);
-//        instanceParent.setItemLabelGenerator(TaskInfo::getName);
+//        instanceParent.setItemLabelGenerator(Task::getName);
 //
 //
 //        add(    name,
@@ -75,7 +75,7 @@
 //                createButtonsLayout());
 //    }
 //
-//    public void setTask(TaskInfo task) {
+//    public void setTask(Task task) {
 //        this.save.setText("Update");
 //        this.delete.setEnabled(true);
 //        if (task.getChildren().size() > 0) {
@@ -94,7 +94,7 @@
 //    public void clear() {
 //        this.save.setText("Add");
 //        this.delete.setEnabled(false);
-//        binder.setBean(new TaskInfo());
+//        binder.setBean(new Task());
 //        logger.debug("Fetching tasks in TaskForm.clear");
 //        instanceParent.setItems(controller.findTasks());
 //    }
@@ -126,25 +126,25 @@
 //    }
 //
 //    public static abstract class TaskFormEvent extends ComponentEvent<TaskForm> {
-//        private TaskInfo task;
+//        private Task task;
 //
-//        protected TaskFormEvent(TaskForm source, TaskInfo task) {
+//        protected TaskFormEvent(TaskForm source, Task task) {
 //            super(source, false);
 //            this.task = task;
 //        }
 //
-//        public TaskInfo getTask() {
+//        public Task getTask() {
 //            return task;
 //        }
 //    }
 //
 //    public static class SaveEvent extends TaskFormEvent {
-//        SaveEvent(TaskForm source, TaskInfo task) {
+//        SaveEvent(TaskForm source, Task task) {
 //            super(source, task);
 //        }
 //    }
 //    public static class DeleteEvent extends TaskFormEvent {
-//        DeleteEvent(TaskForm source, TaskInfo task) {
+//        DeleteEvent(TaskForm source, Task task) {
 //            super(source, task);
 //        }
 //

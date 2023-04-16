@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -12,11 +11,11 @@ import java.util.Objects;
 @MappedSuperclass
 @AllArgsConstructor
 @RequiredArgsConstructor
-@ToString
 @Getter
+@SequenceGenerator(name = "entity_seq", sequenceName = "entity_seq")
 public abstract class AbstractEntity implements Serializable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "entity_seq")
     private Long id;
 
     @Version
@@ -36,5 +35,9 @@ public abstract class AbstractEntity implements Serializable {
     @Override
     public int hashCode() {
         return id.hashCode();
+    }
+
+    public String toString() {
+        return "id: " + id;
     }
 }

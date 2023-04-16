@@ -8,58 +8,51 @@ import org.slf4j.LoggerFactory;
 @Entity
 @Table(name = "task_nodes")
 @RequiredArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 public class TaskNode extends AbstractEntity {
     private static final Logger logger = LoggerFactory.getLogger(TaskNode.class);
 
-    @ManyToOne(
-            fetch = FetchType.EAGER,
-            cascade = CascadeType.MERGE)
+    @ManyToOne
     @JoinColumn(name = "parent_id")
-    private TaskInfo parent;
+    private Task parent;
 
-    @ManyToOne(
-            fetch = FetchType.EAGER,
-            cascade = CascadeType.MERGE)
-    @JoinColumn(name = "child_id")
-    private TaskInfo child;
+    @ManyToOne
+    @JoinColumn(name = "task_id")
+    private Task data;
 
-    @OneToOne(fetch = FetchType.EAGER,
-            cascade = {CascadeType.MERGE,
-                       CascadeType.PERSIST})
-    @JoinColumn(
-            name = "prev_node_id",
-            referencedColumnName = "id")
+    @ManyToOne(cascade = {CascadeType.ALL})
+    @JoinColumn(name = "prev_id")
     private TaskNode prev;
 
-    @OneToOne(fetch = FetchType.EAGER,
-            cascade = {CascadeType.MERGE,
-                       CascadeType.PERSIST})
-    @JoinColumn(
-            name = "next_node_id",
-            referencedColumnName = "id")
-    // This is treated as the source of truth in case of conflicts between this & prev
+    @ManyToOne(cascade = {CascadeType.ALL})
+    @JoinColumn(name = "next_id")
     private TaskNode next;
 
-    @Builder
-    public TaskNode(TaskInfo parent, TaskInfo child, TaskNode next) {
-        this.parent=parent;
-        this.child=child;
-        this.next=next;
+    public String toString() {
+        return "Node(" + super.toString() + ")";
     }
 
     public void log() {
-        log("TaskNode Logged::");
+        log("== TaskNode Logged::");
     }
 
     public void log(String prefix) {
-        logger.debug(prefix);
-        logger.debug("id=          {}", this.getId());
-        logger.debug("parent_id=   {}", this.getParent().getId());
-        logger.debug("parent_id=   {}", this.getParent().getId());
-        logger.debug("parent_title={}", this.getParent().getTitle());
-        logger.debug("child_id=    {}", this.getChild().getId());
-        logger.debug("child_title= {}", this.getChild().getTitle());
+        logger.info(prefix);
+        logger.info("ID:     " + (getId() == null ? "null" : getId()));
+        logger.info("Parent: " + (getParent() == null ? "null" : getParent().getId()));
+        logger.info("Child:  " + (getData() == null ? "null" : getData().getId()));
+        logger.info("Prev:   " + (getPrev() == null ? "null" : getPrev().getId()));
+        logger.info("Next:   " + (getNext() == null ? "null" : getNext().getId()));
+
+//        logger.debug(prefix);
+//        logger.debug("id=          {}", this.getId());
+//        logger.debug("parent_id=   {}", this.getParent().getId());
+//        logger.debug("parent_id=   {}", this.getParent().getId());
+//        //logger.debug("parent_title={}", this.getParent().getTitle());
+//        logger.debug("child_id=    {}", this.getData().getId());
+//        logger.debug("child_title= {}", this.getData().getTitle());
     }
 }

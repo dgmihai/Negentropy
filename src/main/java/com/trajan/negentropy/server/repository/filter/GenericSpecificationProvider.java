@@ -1,24 +1,25 @@
 package com.trajan.negentropy.server.repository.filter;
 
 import com.trajan.negentropy.server.entity.AbstractEntity;
-import com.trajan.negentropy.server.entity.TaskInfo;
+import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
+import com.trajan.negentropy.server.entity.Task_;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public class GenericSpecificationProvider<T extends AbstractEntity> {
+public interface GenericSpecificationProvider<T extends AbstractEntity> {
 
     // TODO: Better exception handling in lambda
-    public Specification<T> getSpecificationFromFilters(List<Filter> filters, Class<T> entityType) {
+
+    List<T> findByFilters(List<Filter> filters);
+
+    default Specification<T> getSpecificationFromFilters(List<Filter> filters, Class<T> entityType) {
         List<Filter> mutableList = new ArrayList<>(filters);
         Specification<T> specification = null;
         for (Filter input : filters) {
@@ -33,6 +34,30 @@ public class GenericSpecificationProvider<T extends AbstractEntity> {
 
     private Specification<T> createSpecification(Filter input, Class<T> entityType) {
             return switch (input.getOperator()) {
+                case EQ_TASK -> (root, query, criteriaBuilder) -> {
+                    if (root.get(input.getField()).getJavaType().equals(Task.class)) {
+                        return criteriaBuilder.equal(root.get(input.getField()).get(Task_.ID),
+                                getConversionFunction(Long.class).apply(input.getValue()));
+                    } else throw new IllegalArgumentException("Field is not of type Task");
+                };
+                case NOT_EQ_TASK -> (root, query, criteriaBuilder) -> {
+                    if (root.get(input.getField()).getJavaType().equals(Task.class)) {
+                        return criteriaBuilder.notEqual(root.get(input.getField()).get(Task_.ID),
+                        getConversionFunction(Long.class).apply(input.getValue()));
+                    } else throw new IllegalArgumentException("Field is not of type Task");
+                };
+                case EQ_TASK_NODE -> (root, query, criteriaBuilder) -> {
+                    if (root.get(input.getField()).getJavaType().equals(TaskNode.class)) {
+                        return criteriaBuilder.equal(root.get(input.getField()).get(Task_.ID),
+                                getConversionFunction(Long.class).apply(input.getValue()));
+                    } else throw new IllegalArgumentException("Field is not of type TaskNode");
+                };
+                case NOT_EQ_TASK_NODE -> (root, query, criteriaBuilder) -> {
+                    if (root.get(input.getField()).getJavaType().equals(TaskNode.class)) {
+                        return criteriaBuilder.notEqual(root.get(input.getField()).get(Task_.ID),
+                                getConversionFunction(Long.class).apply(input.getValue()));
+                    } else throw new IllegalArgumentException("Field is not of type TaskNode");
+                };
                 case EQUALS -> (root, query, criteriaBuilder) ->
                         criteriaBuilder.equal(root.get(input.getField()),
                                 castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
@@ -41,10 +66,16 @@ public class GenericSpecificationProvider<T extends AbstractEntity> {
                                 castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
                 case GREATER_THAN -> (root, query, criteriaBuilder) ->
                         criteriaBuilder.gt(root.get(input.getField()),
-                                (Long) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
                 case LESS_THAN -> (root, query, criteriaBuilder) ->
                         criteriaBuilder.lt(root.get(input.getField()),
-                                (Long) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                                (Number) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
+                case SHORTER_THAN -> ((root, query, criteriaBuilder) ->
+                        criteriaBuilder.lessThan(root.get(input.getField()),
+                                (Duration) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue())));
+                case LONGER_THAN -> (root, query, criteriaBuilder) ->
+                        criteriaBuilder.greaterThan(root.get(input.getField()),
+                                (Duration) castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));
                 case LIKE -> (root, query, criteriaBuilder) ->
                         criteriaBuilder.like(root.get(input.getField()), "%" + input.getValue() + "%");
                 case IN -> (root, query, criteriaBuilder) ->
@@ -65,6 +96,10 @@ public class GenericSpecificationProvider<T extends AbstractEntity> {
     private Object castToRequiredType(Class<?> fieldType, Object value) {
         if (value == null) {
             return null;
+        }
+
+        if (fieldType.equals(value.getClass())) {
+            return value;
         }
 
         Function<Object, ?> conversionFunction = getConversionFunction(fieldType);
@@ -88,11 +123,8 @@ public class GenericSpecificationProvider<T extends AbstractEntity> {
         conversionFunctions.put(float.class, obj -> Float.parseFloat(obj.toString()));
         conversionFunctions.put(Boolean.class, obj -> Boolean.parseBoolean(obj.toString()));
         conversionFunctions.put(boolean.class, obj -> Boolean.parseBoolean(obj.toString()));
-        conversionFunctions.put(LocalDate.class, obj -> LocalDate.parse(obj.toString()));
-        conversionFunctions.put(LocalDateTime.class, obj -> LocalDateTime.parse(obj.toString()));
-        conversionFunctions.put(LocalTime.class, obj -> LocalTime.parse(obj.toString()));
-        conversionFunctions.put(Duration.class, obj -> ((Duration) obj).toMillis());
-        conversionFunctions.put(TaskInfo.class, obj -> ((TaskInfo) obj).getId());
+        conversionFunctions.put(Duration.class, obj -> (Duration) obj);
+        conversionFunctions.put(Task.class, obj -> ((Task) obj).getId());
         conversionFunctions.put(TaskNode.class, obj -> ((TaskNode) obj).getId());
 
         return conversionFunctions.get(fieldType);

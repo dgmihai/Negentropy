@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.view;
 
 import com.trajan.negentropy.client.controller.event.ViewEventPublisher;
 import com.trajan.negentropy.client.util.DurationConverter;
-import com.trajan.negentropy.server.entity.TaskInfo;
+import com.trajan.negentropy.server.entity.Task;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -26,7 +26,7 @@ public class TaskInfoForm extends FormLayout {
     private final ViewEventPublisher viewEventPublisher;
 
     @Getter
-    private final Binder<TaskInfo> binder = new BeanValidationBinder<>(TaskInfo.class);
+    private final Binder<Task> binder = new BeanValidationBinder<>(Task.class);
 
     Button save = new Button("Save");
     Button delete = new Button("Delete");
@@ -92,7 +92,7 @@ public class TaskInfoForm extends FormLayout {
 
         binder.addValueChangeListener(e -> {
             save.setEnabled(binder.isValid());
-            delete.setEnabled(binder.getBean().getId() != null);
+//            delete.setEnabled(binder.getBean().getId() != null);
         });
     }
 
@@ -136,12 +136,12 @@ public class TaskInfoForm extends FormLayout {
         );
     }
 
-    public TaskInfo getTaskInfoBean() {
+    public Task getTaskInfoBean() {
         return binder.getBean();
     }
 
-    public void setTaskInfoBean(TaskInfo taskInfo) {
-        binder.setBean(Objects.requireNonNullElseGet(taskInfo, TaskInfo::new));
+    public void setTaskInfoBean(Task task) {
+        binder.setBean(Objects.requireNonNullElseGet(task, Task::new));
     }
 
     private void validateAndSave() {

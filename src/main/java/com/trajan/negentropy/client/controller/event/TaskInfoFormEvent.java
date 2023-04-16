@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.controller.event;
 
 import com.trajan.negentropy.client.view.TaskInfoForm;
-import com.trajan.negentropy.server.entity.TaskInfo;
+import com.trajan.negentropy.server.entity.Task;
 import com.vaadin.flow.spring.annotation.UIScope;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -13,23 +13,23 @@ import org.springframework.context.ApplicationEvent;
 public abstract class TaskInfoFormEvent extends ApplicationEvent {
     private static final Logger logger = LoggerFactory.getLogger(TaskInfoFormEvent.class);
 
-    protected TaskInfo data;
+    protected Task data;
     protected TaskInfoForm source;
 
-    public TaskInfoFormEvent(TaskInfoForm source, TaskInfo data) {
+    public TaskInfoFormEvent(TaskInfoForm source, Task data) {
         super(source);
         this.data = data;
     }
 
     public static class SaveEvent extends TaskInfoFormEvent {
-        public SaveEvent(TaskInfoForm source, TaskInfo data) {
+        public SaveEvent(TaskInfoForm source, Task data) {
             super(source, data);
             logger.debug("== {} ==", this.getClass());
         }
     }
 
     public static class DeleteEvent extends TaskInfoFormEvent {
-        public DeleteEvent(TaskInfoForm source, TaskInfo data) {
+        public DeleteEvent(TaskInfoForm source, Task data) {
             super(source, data);
             logger.debug("== {} ==", this.getClass());
         }

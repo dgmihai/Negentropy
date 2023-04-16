@@ -3,28 +3,23 @@ package com.trajan.negentropy.server.repository;
 import com.trajan.negentropy.server.entity.Tag;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.filter.GenericSpecificationProvider;
-import com.trajan.negentropy.server.repository.jpa.TagRepository;
 import jakarta.transaction.Transactional;
-import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Getter
-@Repository
+@Repository("tagRepository")
 @Transactional
-public class FilteredTagRepository extends GenericSpecificationProvider<Tag> {
-    @Autowired
-    private TagRepository tagRepository;
-
-    public List<Tag> findByFilters(List<Filter> filters) {
+public interface TagRepository extends JpaRepository<Tag, Long>, JpaSpecificationExecutor<Tag>, GenericSpecificationProvider<Tag> {
+    default List<Tag> findByFilters(List<Filter> filters) {
         if (filters.size() > 0) {
             Specification<Tag> spec = getSpecificationFromFilters(filters, Tag.class);
-            return tagRepository.findAll(spec);
+            return findAll(spec);
         } else {
-            return tagRepository.findAll();
+            return findAll();
         }
     }
 }

@@ -4,7 +4,7 @@
 //import com.trajan.negentropy.client.controller.event.TaskInfoFormEvent;
 //import com.trajan.negentropy.client.view.ListView;
 //import com.trajan.negentropy.client.view.TaskInfoForm;
-//import com.trajan.negentropy.server.entity.TaskInfo;
+//import com.trajan.negentropy.server.entity.Task;
 //import com.trajan.negentropy.server.entity.TaskNode;
 //import com.trajan.negentropy.server.service.TagService;
 //import com.trajan.negentropy.server.service.impl.TaskServiceImpl;
@@ -66,7 +66,7 @@
 //    @Transactional
 //    public void handleListViewEvent_Save(ListViewEvent.SaveEvent saveEvent) {
 //        TaskNode taskNode = saveEvent.getData();
-//        TaskInfo taskInfo = taskNode.getChild();
+//        Task taskInfo = taskNode.getChild();
 //        taskInfo.getNodes().add(taskNode);
 //
 //        listView.getStatus().setText(
@@ -81,7 +81,7 @@
 //    @Transactional
 //    public void handleListViewEvent_Remove(ListViewEvent.RemoveEvent removeEvent) {
 //        TaskNode taskRelationship = removeEvent.getData();
-//        TaskInfo taskInfo = taskRelationship.getChild();
+//        Task taskInfo = taskRelationship.getChild();
 //
 //        taskInfo.getNodes().remove(taskRelationship);
 //        listView.getStatus().setText(

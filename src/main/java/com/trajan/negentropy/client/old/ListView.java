@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.vaadin.view;
 //
 //import com.trajan.negentropy.vaadin.controller.ViewController;
-//import com.trajan.negentropy.data.entity.old.TaskInfo;
+//import com.trajan.negentropy.dataTaskId.entity.old.Task;
 //import com.trajan.negentropy.grid.NonDistinctTreeGrid;
 //import com.trajan.negentropy.vaadin.forms.TaskForm;
 //import com.trajan.negentropy.vaadin.util.TimeEstimateValueProvider;
@@ -22,8 +22,8 @@
 //import com.vaadin.flow.component.page.BrowserWindowResizeListener;
 //import com.vaadin.flow.component.textfield.TextField;
 //import com.vaadin.flow.component.treegrid.TreeGrid;
-//import com.vaadin.flow.data.renderer.ComponentRenderer;
-//import com.vaadin.flow.data.value.ValueChangeMode;
+//import com.vaadin.flow.dataTaskId.renderer.ComponentRenderer;
+//import com.vaadin.flow.dataTaskId.value.ValueChangeMode;
 //import com.vaadin.flow.router.PageTitle;
 //import com.vaadin.flow.router.Route;
 //import com.vaadin.flow.router.RouteAlias;
@@ -51,7 +51,7 @@
 //    private final NonDistinctTreeGrid grid;
 //    public TextField filterText = new TextField();
 //    private TaskForm form;
-//    private TaskInfo draggedTask;
+//    private Task draggedTask;
 //    private FlexLayout content;
 //    private final ViewController controller;
 //
@@ -82,18 +82,18 @@
 //
 //    private void configureGrid() {
 //        grid.addThemeVariants(GridVariant.LUMO_COMPACT);
-//        grid.addHierarchyColumn(TaskInfo::getName)
+//        grid.addHierarchyColumn(Task::getName)
 //                //.setKey("name")
 //                .setHeader("Name")
 //                .setSortable(false)
 //                .setTextAlign(ColumnTextAlign.START)
 //                .setAutoWidth(true);
-//        grid.addColumn(TaskInfo::getDescription)
+//        grid.addColumn(Task::getDescription)
 //                .setKey("description")
 //                .setHeader("Description")
 //                .setAutoWidth(true);
 ////        grid.addColumn(
-////                new ComponentRenderer<>((ValueProvider<TaskInfo, Icon>) task -> {
+////                new ComponentRenderer<>((ValueProvider<Task, Icon>) task -> {
 ////                    if (task.isPassive()) {
 ////                        Icon icon = VaadinIcon.CHECK.create();
 ////                        icon.setColor("gray");
@@ -153,7 +153,7 @@
 //        grid.addDragStartListener(e ->
 //                draggedTask = e.getDraggedItems().get(0));
 //        grid.addDropListener(e -> {
-//            TaskInfo targetTask = e.getDropTargetItem().orElse(null);
+//            Task targetTask = e.getDropTargetItem().orElse(null);
 //            GridDropLocation dropLocation = e.getDropLocation();
 //            boolean droppedOntoSelf = draggedTask
 //                    .equals(targetTask);
@@ -205,7 +205,7 @@
 //        saveTask(event.getTask());
 //    }
 //
-//    private void saveTask(TaskInfo task) {
+//    private void saveTask(Task task) {
 //        controller.saveTask(task);
 //        update();
 //        form.clear();
@@ -215,7 +215,7 @@
 //        deleteTask(event.getTask());
 //    }
 //
-//    private void deleteTask(TaskInfo task) {
+//    private void deleteTask(Task task) {
 //        controller.getService().deleteTask(task);
 //        update();
 //        form.clear();
@@ -225,7 +225,7 @@
 //        List<String> columnKeys = Arrays.asList(
 //                "description",
 //                "passive");
-//        List<TreeGrid.Column<TaskInfo>> columns = new ArrayList<>();
+//        List<TreeGrid.Column<Task>> columns = new ArrayList<>();
 //        columnKeys.forEach( key -> {
 //            columns.add(grid.getColumnByKey(key));
 //        });
@@ -252,7 +252,7 @@
 //            update();
 //        });
 //
-//        Button addTaskButton = new Button("New TaskInfo");
+//        Button addTaskButton = new Button("New Task");
 //        addTaskButton.addClickListener(click -> addTask());
 //
 //        var toolbar = new HorizontalLayout(filterText, addTaskButton);
@@ -260,7 +260,7 @@
 //        return toolbar;
 //    }
 //
-//    public void editTask(TaskInfo task) {
+//    public void editTask(Task task) {
 //        if (task == null) {
 //            form.clear();
 //        } else {
@@ -274,10 +274,10 @@
 //    }
 //
 //    private void update() {
-//        grid.setItems(controller.findRootTasks(), TaskInfo::getChildren);
+//        grid.setItems(controller.findRootTasks(), Task::getChildren);
 //    }
 //
-//    private void expandRecursively(TaskInfo task) {
+//    private void expandRecursively(Task task) {
 ////        if (task.getParent() != null) {
 ////            if (task.getParent().equals(task)) {
 ////                System.out.println("AFUCK?");

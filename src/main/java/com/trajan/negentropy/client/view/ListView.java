@@ -67,21 +67,21 @@ public class ListView extends VerticalLayout {
 
         Grid.Column<TaskNode> titleColumn = treeGrid
                 .addColumn(taskRelationship ->
-                    taskRelationship.getChild().getTitle())
+                    taskRelationship.getData().getTitle())
                 .setHeader("Title")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
         Grid.Column<TaskNode> descriptionColumn = treeGrid
                 .addColumn(taskRelationship ->
-                        taskRelationship.getChild().getDescription())
+                        taskRelationship.getData().getDescription())
                 .setHeader("Description")
                 .setAutoWidth(true)
                 .setFlexGrow(3);
 
         Grid.Column<TaskNode> priorityColumn = treeGrid
                 .addColumn(taskRelationship ->
-                        taskRelationship.getChild().getPriority())
+                        taskRelationship.getData().getPriority())
                 .setHeader("Priority")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -110,7 +110,7 @@ public class ListView extends VerticalLayout {
     private void configureEvents() {
         treeGrid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
-                taskInfoForm.setTaskInfoBean(event.getValue().getChild());
+                taskInfoForm.setTaskInfoBean(event.getValue().getData());
             }
         });
 
@@ -139,7 +139,7 @@ public class ListView extends VerticalLayout {
 //        switch (dataChangeEvent.getType()) {
 //            case ADD -> {
 //                if (dataChangeEvent.getData() != null ) {
-//                    if (dataChangeEvent.getData() instanceof TaskInfo taskInfo) {
+//                    if (dataChangeEvent.getData() instanceof Task taskInfo) {
 //                        handleAddNewTask(taskInfo);
 //                    } else if (dataChangeEvent.getData() instanceof TaskRelationship taskRelationship) {
 //                        handleAddRelationship();
@@ -165,34 +165,34 @@ public class ListView extends VerticalLayout {
         treeGrid.setRowsDraggable(true);
     }
 //        formDragSource.addDragStartListener(event -> {
-//            GridDropEvent<TaskInfo> gridDropEvent = new GridDropEvent<>(
+//            GridDropEvent<Task> gridDropEvent = new GridDropEvent<>(
 //                    treeGrid,
 //                    true,
-//                    new TaskInfo(),
+//                    new Task(),
 //                    GridDropLocation.ON_TOP,
 //                    event.);
 //        });
 
 //        formDragSource.addDragStartListener(event -> {
-//            GridDropEvent<TaskInfo> gridDropEvent = new GridDropEvent<>(treeGrid, true, null, "on-top", event.getDragData());
+//            GridDropEvent<Task> gridDropEvent = new GridDropEvent<>(treeGrid, true, null, "on-top", event.getDragData());
 //            formDragSource.setDragData(gridDropEvent);
 //        })
 //
 //        treeGrid.addDropListener(event -> {
-////            GridDragStartEvent<TaskInfo> gridDragStartEvent = new GridDragStartEvent<>();
+////            GridDragStartEvent<Task> gridDragStartEvent = new GridDragStartEvent<>();
 ////            fireEvent(ComponentEvent< GridDragStartEvent >)
 //            logger.debug("Dragging");
 //        });
 //
-////        // register a drop listener to add the TaskInfo bean to the grid
+////        // register a drop listener to add the Task bean to the grid
 //        gridDropTarget.addDropListener( event -> {
 //            logger.debug("Dragging");
 ////            TaskInfoForm taskInfoForm = (TaskInfoForm) event.getDragData().orElse(null);
-////            TaskInfo taskInfo = taskInfoForm.getBinder().getBean();
+////            Task taskInfo = taskInfoForm.getBinder().getBean();
 ////            event.getDropTargetRow();
 //                });
-////            event.getDragData().ifPresent( data -> {
-////                if (data instanceof TaskInfo taskInfo) {
+////            event.getDragData().ifPresent( dataTaskId -> {
+////                if (dataTaskId instanceof Task taskInfo) {
 ////                    fireEvent()
 ////                }
 ////        });
@@ -200,7 +200,7 @@ public class ListView extends VerticalLayout {
 
 //            TaskRelationship dropTarget = e.getDropTargetItem().orElse(null);
 //            GridDropLocation dropLocation = e.getDropLocation();
-//            TaskInfo taskInfo = e.getDataTransferData()
+//            Task taskInfo = e.getDataTransferData()
 //            boolean droppedOntoSelf = draggedTask
 //                    .equals(targetTask);
 //
@@ -243,8 +243,8 @@ public class ListView extends VerticalLayout {
 //
 //            TaskInfoForm sourceComponent = (TaskInfoForm) event.getDragSourceComponent().orElse(null);
 //            if (sourceComponent != null) {
-//                TaskInfo taskInfo = (TaskInfo) event.getDragData().get();
-//                // get the TaskInfo bean from the source component
+//                Task taskInfo = (Task) event.getDragData().get();
+//                // get the Task bean from the source component
 //                TaskRelationship dropRelationship = TaskRelationship.builder()
 //                        .orderIndex(0)
 //                        .taskInfo(sourceComponent.getTaskInfoBean())

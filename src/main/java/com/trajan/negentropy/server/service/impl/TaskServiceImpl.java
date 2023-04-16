@@ -1,188 +1,189 @@
 package com.trajan.negentropy.server.service.impl;
 
-import com.trajan.negentropy.server.entity.TaskInfo;
-import com.trajan.negentropy.server.entity.TaskInfo_;
+import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
-import com.trajan.negentropy.server.repository.FilteredTaskInfoRepository;
-import com.trajan.negentropy.server.repository.FilteredTaskNodeRepository;
+import com.trajan.negentropy.server.entity.TaskNode_;
+import com.trajan.negentropy.server.repository.TaskNodeRepository;
+import com.trajan.negentropy.server.repository.TaskRepository;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.filter.QueryOperator;
 import com.trajan.negentropy.server.service.TaskService;
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 @Service("taskService")
-@Transactional
 public class TaskServiceImpl implements TaskService {
     private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
-    private static final String ROOT = "_ROOT";
-    private final FilteredTaskInfoRepository filteredTaskInfoRepository;
-    private final FilteredTaskNodeRepository filteredTaskNodeRepository;
+    private final TaskRepository taskRepository;
+    private final TaskNodeRepository nodeRepository;
 
-    private Long rootId;
-
-    public TaskServiceImpl(FilteredTaskInfoRepository filteredTaskInfoRepository, FilteredTaskNodeRepository filteredTaskNodeRepository) {
-        this.filteredTaskInfoRepository = filteredTaskInfoRepository;
-        this.filteredTaskNodeRepository = filteredTaskNodeRepository;
+    public TaskServiceImpl(TaskRepository taskRepository, TaskNodeRepository nodeRepository) {
+        this.taskRepository = taskRepository;
+        this.nodeRepository = nodeRepository;
     }
 
-    public TaskInfo saveTaskInfo(TaskInfo taskInfo) {
-        TaskInfo ret = filteredTaskInfoRepository.getTaskInfoRepository().save(taskInfo);
-        logger.debug("Saved taskInfo: " + ret.getTitle());
-        return ret;
-    }
-
-    public TaskInfo getTaskInfoById(Long id) {
-        return filteredTaskInfoRepository.getTaskInfoRepository().getReferenceById(id);
-    }
-
-    public List<TaskInfo> findTaskInfos(List<Filter> filters) {
-        filters = new ArrayList<>(filters);
-        filters.add(Filter.builder()
-                .field(TaskInfo_.TITLE)
-                .operator(QueryOperator.NOT_EQ)
-                .value(ROOT)
-                .build());
-         return filteredTaskInfoRepository.findByFilters(filters);
-    }
-
-    public void deleteTaskInfo(TaskInfo taskInfo) {
-        if (taskInfo.getTitle().equals(ROOT)) {
-            throw new IllegalArgumentException("Cannot delete root TaskInfo.");
-        }
-        for (TaskNode child : taskInfo.getChildren()) {
-            deleteTaskNode(child);
-        }
-        for (TaskNode node : taskInfo.getNodes()) {
-            deleteTaskNode(node);
-        }
-        filteredTaskInfoRepository.getTaskInfoRepository().delete(taskInfo);
-    }
-
-    public TaskInfo getRootTaskInfo() {
-        TaskInfo rootInfo = null;
-        if (rootId != null) {
-            rootInfo = getTaskInfoById(rootId);
-        }
-        if (rootInfo == null || rootId == null) {
-            Filter rootFilter = Filter.builder()
-                    .field(TaskInfo_.TITLE)
-                    .operator(QueryOperator.EQUALS)
-                    .value(ROOT)
-                    .build();
-            List<TaskInfo> result = filteredTaskInfoRepository.findByFilters(List.of(rootFilter));
-            if (result.isEmpty()) {
-                logger.warn("No root relationship found! Creating one...");
-                TaskInfo rootTaskInfo = new TaskInfo();
-                rootTaskInfo.setTitle(ROOT);
-                return filteredTaskInfoRepository.getTaskInfoRepository().save(rootTaskInfo);
-            } else if (result.size() > 1) {
-                logger.error("MULTIPLE ROOT RELATIONSHIPS FOUND! Database malformed. Using first found...");
-            }
-            rootInfo = result.get(0);
-        }
-        return rootInfo;
-    }
-
-    public TaskNode saveTaskNode(TaskNode taskNode) throws IllegalArgumentException {
-        if (taskNode.getParent() == null) {
-            // We are adding this as a sibling of the root node
-            taskNode.setParent(getRootTaskInfo());
-        }
-        TaskNode prevNode = taskNode.getPrev();
-        TaskNode nextNode = taskNode.getNext();
-
-        // Case 1: Only the 'next' is specified
-        if (nextNode != null && prevNode == null) {
-            prevNode = nextNode.getPrev();
-            if (prevNode != null) {
-                taskNode.setPrev(prevNode);
-                prevNode.setNext(taskNode);
-            }
-        }
-        // Case 2: Both 'next' and 'prev' are specified
-        else if (nextNode != null) { // prevNode != null
-            prevNode.setNext(taskNode);
-            nextNode.setPrev(taskNode);
-        }
-        // Case 3: Neither 'next' nor 'prev' objects are specified
-        else if (prevNode == null) { // nextNode == null
-            // Check if parent has any children
-            if (!taskNode.getParent().getChildren().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Parent has existing children; new TaskNode should specify at least 'next'.");
-            }
-        }
-        // Invalid combination of arguments
-        else {
-            throw new IllegalArgumentException("Invalid combination of arguments");
-        }
-
-        List<TaskNode> changes = new LinkedList<>(Arrays.asList(
-                taskNode,
-                prevNode,
-                nextNode
-        ));
-
-        changes.removeAll(Collections.singleton(null));
-        // Verify all nodes have the same parent
-        for(TaskNode node : changes) {
-            if (node.getParent() != taskNode.getParent()) {
-                throw new IllegalArgumentException("Failed when saving TaskNode: associated nodes don't share the same parent..");
-            }
-        }
-
-        return filteredTaskNodeRepository.getTaskNodeRepository().saveAll(changes).get(0);
-    }
-
-    public TaskNode getTaskNodeById(Long id) {
-        return filteredTaskNodeRepository.getTaskNodeRepository().getReferenceById(id);
-    }
-
-    public List<TaskNode> findTaskNodes(List<Filter> filters) {
-        return filteredTaskNodeRepository.findByFilters(filters);
-    }
-
-    public void deleteTaskNode(TaskNode taskNode) throws IllegalArgumentException {
-        TaskNode prevNode = taskNode.getPrev();
-        TaskNode nextNode = taskNode.getNext();
-
-        if (prevNode == null && nextNode == null) {
-            // Nothing to update, return
-            return;
-        }
-
-        // Update prevNode's next or nextNode's prev accordingly
-        if (prevNode != null && nextNode == null) {
-            prevNode.setNext(null);
-        } else if (prevNode == null && nextNode != null) {
-            nextNode.setPrev(null);
+    @Override
+    @Transactional
+    public Task createTask(Task task) {
+        if (task.getId() == null) {
+            return taskRepository.save(task);
         } else {
-            prevNode.setNext(nextNode);
-            nextNode.setPrev(prevNode);
+            throw new IllegalArgumentException("Attempted to create a new Task object with existing ID.");
         }
+    }
 
-        List<TaskNode> changes = new LinkedList<>(Arrays.asList(prevNode, nextNode));
+    @Override
+    @Transactional
+    public Task updateTask(Task task) {
+        return taskRepository.save(task);
+    }
 
-        // Verify all nodes have the same parent
-        for (TaskNode node : changes) {
-            if (node != null) {
-                if (node.getParent() != taskNode.getParent()) {
-                    throw new IllegalArgumentException("Failed when deleting TaskNode: associated nodes don't share the same parent.");
+    @Override
+    public Optional<Task> getTask(long infoId) {
+        return taskRepository.findById(infoId);
+    }
+
+    @Override
+    public List<Task> findTasks(List<Filter> filters) {
+        filters = new ArrayList<>(filters);
+        return taskRepository.findByFilters(filters);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTask(long taskId) {
+        Task taskInfo = getTask(taskId).orElse(null);
+        if (taskInfo != null) {
+            for (TaskNode taskNode : getParentNodes(taskId)) {
+                unlinkTaskNode(taskNode);
+            }
+
+            taskRepository.deleteById(taskId);
+        }
+    }
+
+    @Override
+    public List<TaskNode> getChildNodes(long taskId) {
+        List<TaskNode> unorderedChildren = nodeRepository.findByFilters(List.of(Filter.builder()
+                .field(TaskNode_.PARENT)
+                .operator(QueryOperator.EQ_TASK)
+                .value(taskId)
+                .build()
+        ));
+        List<TaskNode> orderedChildren = new ArrayList<>();
+        if (!unorderedChildren.isEmpty()) {
+            TaskNode head = null;
+            for (TaskNode child : unorderedChildren) {
+                if (child.getPrev() == null) {
+                    head = child;
+                    break;
                 }
             }
+            if (head != null) {
+                TaskNode current = head;
+                while (current != null) {
+                    orderedChildren.add(current);
+                    current = current.getNext();
+                }
+            } else throw new RuntimeException("Fetched child nodes are malformed.");
+        }
+        return orderedChildren;
+    }
+
+    @Override
+    public Set<TaskNode> getParentNodes(long taskId) {
+        return new HashSet<>(nodeRepository.findByFilters(List.of(Filter.builder()
+                        .field(TaskNode_.DATA)
+                        .operator(QueryOperator.EQUALS)
+                        .value(taskId)
+                        .build()
+        )));
+    }
+
+    @Override
+    @Transactional
+    public TaskNode appendNodeTo(long childTaskId, long parentTaskId) {
+        TaskNode newNode = TaskNode.builder()
+                .data(getTask(childTaskId).orElseThrow())
+                .parent(getTask(parentTaskId).orElse(null))
+                .build();
+        List<TaskNode> children = new ArrayList<>();
+        if (getTask(parentTaskId).orElse(null) != null) {
+             children = getChildNodes(parentTaskId);
+        }
+        TaskNode prevNode = null;
+        if (!children.isEmpty()) {
+            prevNode = children.get(children.size() - 1);
+            newNode.setPrev(prevNode);
+            prevNode.setNext(newNode);
+        }
+        return nodeRepository.save(newNode);
+    }
+
+    @Override
+    @Transactional
+    public TaskNode insertNodeBefore(long taskId, long nextNodeId) {
+        TaskNode newNode = TaskNode.builder()
+                .data(getTask(taskId).orElseThrow())
+                .next(getNode(nextNodeId).orElse(null))
+                .build();
+        TaskNode nextNode = newNode.getNext();
+        if (nextNode != null) {
+            if (nextNode.getParent() != null) {
+                List<TaskNode> children = getChildNodes(nextNode.getParent().getId());
+                newNode.setParent(nextNode.getParent());
+                if (!children.isEmpty()) {
+                    int position = children.indexOf(nextNode);
+                    if (position > 0) {
+                        TaskNode prevNode = children.get(position - 1);
+                        newNode.setPrev(prevNode);
+                        prevNode.setNext(newNode);
+                    }
+                }
+            }
+            nextNode.setPrev(newNode);
+        }
+        return nodeRepository.save(newNode);
+   }
+
+    @Override
+    public Optional<TaskNode> getNode(long id) {
+        return nodeRepository.findById(id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteNode(long nodeId) {
+        Optional<TaskNode> taskNodeOptional = nodeRepository.findById(nodeId);
+        if (taskNodeOptional.isPresent()) {
+            TaskNode taskNode = taskNodeOptional.get();
+            unlinkTaskNode(taskNode);
+            nodeRepository.deleteById(nodeId);
+        }
+    }
+
+    private void linkTaskNodes(TaskNode first, TaskNode second) {
+        first.setNext(second);
+        second.setPrev(first);
+    }
+
+    private void unlinkTaskNode(TaskNode taskNode) {
+        TaskNode prev = taskNode.getPrev();
+        TaskNode next = taskNode.getNext();
+
+        if (prev != null) {
+            prev.setNext(next);
+            nodeRepository.save(prev);
         }
 
-        // Delete the taskNode and add it to the list of changes
-        filteredTaskNodeRepository.getTaskNodeRepository().delete(taskNode);
-        changes.add(taskNode);
-
-        // Save all changes
-        filteredTaskNodeRepository.getTaskNodeRepository().saveAll(changes);
+        if (next != null) {
+            next.setPrev(prev);
+            nodeRepository.save(next);
+        }
     }
 
 }

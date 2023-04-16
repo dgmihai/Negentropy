@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.controller.event;
 
 import com.trajan.negentropy.client.view.ListView;
 import com.trajan.negentropy.client.view.TaskInfoForm;
-import com.trajan.negentropy.server.entity.TaskInfo;
+import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.vaadin.flow.spring.annotation.UIScope;
@@ -19,12 +19,12 @@ public class ViewEventPublisherImpl implements ViewEventPublisher {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public void publishTaskInfoFormEvent_Save(TaskInfoForm source, TaskInfo data) {
+    public void publishTaskInfoFormEvent_Save(TaskInfoForm source, Task data) {
         applicationEventPublisher.publishEvent(new TaskInfoFormEvent.SaveEvent(source, data));
     }
 
     @Override
-    public void publishTaskInfoFormEvent_Delete(TaskInfoForm source, TaskInfo data) {
+    public void publishTaskInfoFormEvent_Delete(TaskInfoForm source, Task data) {
         applicationEventPublisher.publishEvent(new TaskInfoFormEvent.DeleteEvent(source, data));
     }
 

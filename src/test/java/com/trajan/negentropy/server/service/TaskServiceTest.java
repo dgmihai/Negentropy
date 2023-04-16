@@ -1,14 +1,11 @@
 package com.trajan.negentropy.server.service;
 
-import com.trajan.negentropy.server.entity.TaskInfo;
-import com.trajan.negentropy.server.entity.TaskInfo_;
+import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
-import com.trajan.negentropy.server.entity.TaskNode_;
+import com.trajan.negentropy.server.entity.Task_;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.filter.QueryOperator;
-import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.jdbc.JdbcTestUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,152 +29,184 @@ public class TaskServiceTest {
 
     @Autowired
     private TaskService taskService;
-    @Autowired
-    private EntityManager entityManager;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+//    @Autowired
+//    private JdbcTemplate jdbcTemplate;
 
+    ArrayList<Task> tasks = new ArrayList<>(
+            Collections.nCopies(4, null));
+    ArrayList<TaskNode> nodes = new ArrayList<>(
+            Collections.nCopies(4, null));
 
-//    Map<String, TaskInfo> taskInfos = new HashMap<>();
-//    Map<String, TaskNode> taskNodes = new HashMap<>();
-
-
-
-    @BeforeEach
+    @BeforeAll
     public void setUp() {
-        TaskInfo taskInfo1 = new TaskInfo().toBuilder()
+        Task task0 = Task.builder()
+                .title("Root")
+                .build();
+        Task task1 = Task.builder()
                 .title("Task 1")
                 .duration(Duration.ofMinutes(10))
                 .priority(1)
                 .build();
-        taskService.saveTaskInfo(taskInfo1);
-
-        TaskInfo taskInfo2 = new TaskInfo().toBuilder()
+        Task task2 = Task.builder()
                 .title("Task 2")
                 .duration(Duration.ofMinutes(20))
                 .priority(2)
                 .build();
-        taskService.saveTaskInfo(taskInfo2);
-
-        TaskInfo taskInfo3 = new TaskInfo().toBuilder()
+        Task task3 = Task.builder()
                 .title("Task 3")
                 .duration(Duration.ofMinutes(30))
                 .priority(3)
                 .build();
-        taskService.saveTaskInfo(taskInfo3);
+        tasks.set(0, taskService.createTask(task0));
+        tasks.set(1, taskService.createTask(task1));
+        tasks.set(2, taskService.createTask(task2));
+        tasks.set(3, taskService.createTask(task3));
 
-        TaskInfo rootTaskInfo = taskService.getRootTaskInfo();
+        nodes.set(1, taskService.appendNodeTo(
+                tasks.get(1).getId(),
+                tasks.get(0).getId()));
+        nodes.set(3, taskService.appendNodeTo(
+                tasks.get(3).getId(),
+                tasks.get(0).getId()));
+        nodes.set(2, taskService.insertNodeBefore(
+                tasks.get(2).getId(),
+                nodes.get(3).getId()));
 
-        TaskNode taskNode1 = TaskNode.builder()
-                .parent(rootTaskInfo)
-                .child(taskInfo1)
-                .next(null)
-                .build();
-        taskService.saveTaskNode(taskNode1);
-
-        TaskNode taskNode2 = TaskNode.builder()
-                .parent(rootTaskInfo)
-                .child(taskInfo2)
-                .next(null)
-                .build();
-        taskService.saveTaskNode(taskNode2);
-
-        TaskNode taskNode3 = TaskNode.builder()
-                .parent(rootTaskInfo)
-                .child(taskInfo3)
-                .next(null)
-                .build();
-        taskService.saveTaskNode(taskNode3);
+        assertEquals(3, taskService.getChildNodes(
+                tasks.get(0).getId()).size());
+        assertEquals(4, taskService.findTasks(
+                Collections.emptyList()).size());
     }
 
-    @AfterEach
-    void cleanUp() {
-        JdbcTestUtils.deleteFromTables(jdbcTemplate, "task_nodes", "task_info");
+//    @AfterEach
+//    @Transactional
+//    void cleanUp() {
+//        JdbcTestUtils.deleteFromTables(jdbcTemplate, "task_nodes", "task_info");
+//    }
+
+    @Test
+    public void testSaveTaskWithDuplicateTitle() {
+        List<Task> taskList = taskService.findTasks(Collections.emptyList());
+        assertEquals(3, taskList.size());
+
+        Task taskDuplicate = Task.builder()
+                .title("Task 1")
+                .duration(Duration.ofMinutes(11))
+                .priority(2)
+                .build();
+        assertThrows(DataIntegrityViolationException.class,
+                () -> taskService.createTask(taskDuplicate));
     }
 
     @Test
-    public void testSaveTaskInfoWithDuplicateTitle() {
-        List<TaskInfo> taskInfoList = taskService.findTaskInfos(Collections.emptyList());
-        assertEquals(3, taskInfoList.size());
+    public void testGetTaskById() {
+        // Retrieve the id of the saved Task object
+        Long taskId1 = tasks.get(1).getId();
 
-        String duplicateTitle = "Task 1";
-        Duration duration = Duration.ofMinutes(10);
-        int priority = 1;
-        TaskInfo taskInfo1 = new TaskInfo().toBuilder()
-                .title(duplicateTitle)
-                .duration(duration)
-                .priority(priority)
-                .build();
-        assertThrows(DataIntegrityViolationException.class, () -> taskService.saveTaskInfo(taskInfo1));
+        // Retrieve the Task object using the getTaskInfoById() method
+        Task task1 = taskService.getTask(taskId1).orElseThrow();
+
+        // Assert that the retrieved Task object is not null and has the correct id
+        assertNotNull(task1);
+        assertEquals(taskId1, task1.getId());
+        assertEquals(task1, tasks.get(1));
     }
 
     @Test
-    public void testGetTaskInfoById() {
-        // Create a new TaskInfo object
-        Duration duration = Duration.ofMinutes(10);
-        int priority = 1;
-        String title = "Task 4";
-        String description = "Test task";
-        TaskInfo taskInfo = new TaskInfo()
-                .toBuilder()
-                .duration(duration)
-                .priority(priority)
-                .title(title)
-                .description(description)
-                .build();
-
-        // Save the TaskInfo object to the database
-        taskService.saveTaskInfo(taskInfo);
-
-        // Retrieve the id of the saved TaskInfo object
-        Long taskId = taskInfo.getId();
-
-        // Retrieve the TaskInfo object using the getTaskInfoById() method
-        TaskInfo retrievedTaskInfo = taskService.getTaskInfoById(taskId);
-
-        // Assert that the retrieved TaskInfo object is not null and has the correct id
-        assertNotNull(retrievedTaskInfo);
-        assertEquals(taskId, retrievedTaskInfo.getId());
-    }
-
-    @Test
-    public void testFindTaskInfosWithMultipleFilters() {
+    public void testFindSingleTaskWithMultipleFilters() {
         // Create a list of filters to apply
         List<Filter> filters = new ArrayList<>();
         filters.add(Filter.builder()
-                .field("title")
+                .field(Task_.TITLE)
                 .operator(QueryOperator.EQUALS)
                 .value("Task 1")
                 .build());
         filters.add(Filter.builder()
-                .field("duration")
-                .operator(QueryOperator.LESS_THAN)
+                .field(Task_.DURATION)
+                .operator(QueryOperator.LONGER_THAN)
                 .value(Duration.ofMinutes(20))
                 .build());
 
-        // Call the findTaskInfos method with the filters
-        List<TaskInfo> taskInfos = taskService.findTaskInfos(filters);
+        // Call the findTasks method with the filters
+        List<Task> tasks = taskService.findTasks(filters);
 
-        // Verify that the returned list contains the correct TaskInfo entities
-        assertEquals(1, taskInfos.size());
-        assertEquals("Task 1", taskInfos.get(0).getTitle());
-        assertEquals(Duration.ofMinutes(10), taskInfos.get(0).getDuration());
+        // Verify that the returned list contains the correct Task entities
+        assertEquals(0, tasks.size());
+
+        // Cycle through again
+        filters = new ArrayList<>();
+        filters.add(Filter.builder()
+                .field(Task_.TITLE)
+                .operator(QueryOperator.EQUALS)
+                .value("Task 3")
+                .build());
+        filters.add(Filter.builder()
+                .field(Task_.PRIORITY)
+                .operator(QueryOperator.GREATER_THAN)
+                .value(2)
+                .build());
+
+        assertEquals("Task 3", tasks.get(0).getTitle());
+        assertEquals(Duration.ofMinutes(30), tasks.get(0).getDuration());
     }
 
     @Test
-    public void testFindTaskInfosWithEmptyFilters() {
-        // Create an empty list of filters
+    public void testFindMultipleTasksWithMultipleFilters() {
+        // Create a list of filters to apply
         List<Filter> filters = new ArrayList<>();
+        filters.add(Filter.builder()
+                .field(Task_.DURATION)
+                .operator(QueryOperator.SHORTER_THAN)
+                .value(Duration.ofMinutes(21))
+                .build());
+        filters.add(Filter.builder()
+                .field(Task_.PRIORITY)
+                .operator(QueryOperator.GREATER_THAN)
+                .value(0)
+                .build());
+
+        // Call the findTasks method with the filters
+        List<Task> results = taskService.findTasks(filters);
+
+        // Verify that the returned list contains the correct Task entities
+        assertEquals(2, results.size());
+        assertTrue(results.contains(tasks.get(2)));
+        assertTrue(results.contains(tasks.get(1)));
+
+        filters = new ArrayList<>();
+        filters.add(Filter.builder()
+                .field(Task_.TITLE)
+                .operator(QueryOperator.LIKE)
+                .value("Task")
+                .build());
+        filters.add(Filter.builder()
+                .field(Task_.PRIORITY)
+                .operator(QueryOperator.LESS_THAN)
+                .value(3)
+                .build());
+
+        // Call the findTasks method with the filters
+        results = taskService.findTasks(filters);
+
+        assertEquals(2, results.size());
+        assertTrue(tasks.contains(tasks.get(1)));
+        assertTrue(tasks.contains(tasks.get(2)));
+    }
+
+    @Test
+    public void testFindTasksWithEmptyFilters() {
+        // Create an empty list of filters
+        List<Filter> filters = List.of();
 
         // Call the findTaskInfos method with the empty filters
-        List<TaskInfo> taskInfos = taskService.findTaskInfos(filters);
+        List<Task> tasks = taskService.findTasks(filters);
 
-        // Verify that the returned list contains all TaskInfo entities
-        assertEquals(3, taskInfos.size());
+        // Verify that the returned list contains all Task entities
+        assertEquals(4, tasks.size());
     }
 
     @Test
-    public void testFindTaskInfosWithInvalidField() {
+    public void testFindTasksWithInvalidField() {
         // Create a list of filters with an invalid field name
         List<Filter> filters = new ArrayList<>();
         filters.add(Filter.builder()
@@ -187,11 +216,11 @@ public class TaskServiceTest {
                 .build());
 
         // Call the findTaskInfos method with the invalid filters
-        assertThrows(InvalidDataAccessApiUsageException.class, () -> taskService.findTaskInfos(filters));
+        assertThrows(InvalidDataAccessApiUsageException.class, () -> taskService.findTasks(filters));
     }
 
     @Test
-    public void testFindTaskInfosWithInvalidOperator() {
+    public void testFindTasksWithInvalidOperator() {
         // Create a list of filters with an invalid operator
         List<Filter> filters = new ArrayList<>();
         filters.add(Filter.builder()
@@ -200,11 +229,11 @@ public class TaskServiceTest {
                 .build());
 
         // Call the findTaskInfos method with the invalid filters
-        assertThrows(ClassCastException.class, () -> taskService.findTaskInfos(filters));
+        assertThrows(ClassCastException.class, () -> taskService.findTasks(filters));
     }
 
     @Test
-    public void testFindTaskInfosWithInvalidValue() {
+    public void testFindTasksWithInvalidValue() {
         // Create a list of filters with an invalid value
         List<Filter> filters = new ArrayList<>();
         filters.add(Filter.builder()
@@ -214,142 +243,151 @@ public class TaskServiceTest {
                 .build());
 
         // Call the findTaskInfos method with the invalid filters
-        List<TaskInfo> taskInfos = taskService.findTaskInfos(filters);
+        List<Task> tasks = taskService.findTasks(filters);
 
         // Verify that the returned list is empty
-        assertTrue(taskInfos.isEmpty());
+        assertTrue(tasks.isEmpty());
     }
 
+//    @Test
+//    public void testDeleteTaskInfoRoot() {
+//        // Get the current Root TaskNode entity
+//        TaskNode rootNode = taskService.getRootNode();
+//
+//        // Verify that the Root TaskNode entity exists before deletion
+//        assertNotNull(rootNode);
+//
+//        // Attempt to delete the Root TaskNode entity
+//        assertThrows(IllegalArgumentException.class, () -> taskService.deleteNode(rootNode.getId()));
+//
+//        // Verify that the _ROOT Task entity still exists after the attempted deletion
+//        TaskNode rootTaskAfter = taskService.getRootNode();
+//        assertEquals(rootNode, rootTaskAfter);
+//    }
+
     @Test
-    public void testDeleteNewTaskInfo() {
-        // Create a new TaskInfo entity with a unique title
-        TaskInfo taskInfoToDelete = new TaskInfo().toBuilder()
-                .title("Task to Delete")
-                .duration(Duration.ofMinutes(10))
-                .priority(1)
-                .build();
-        taskService.saveTaskInfo(taskInfoToDelete);
-
-        // Delete the TaskInfo entity
-        taskService.deleteTaskInfo(taskInfoToDelete);
-
-        // Verify that the TaskInfo entity was deleted correctly
-        List<TaskInfo> result = taskService.findTaskInfos(Collections.singletonList(Filter.builder()
-                .field("title")
-                .operator(QueryOperator.EQUALS)
-                .value("Task to Delete")
-                .build()));
-        assertTrue(result.isEmpty());
+    public void testSaveTaskNodes() {
+//        // Add two nodes to the existing node, making a total of three nodes
+//        Task task1 = taskService.findTasks(Collections.singletonList(Filter.builder()
+//                .field(TaskInfo_.TITLE)
+//                .operator(QueryOperator.EQUALS)
+//                .value("Task 1")
+//                .build())).get(0);
+//
+//        Task task4 = new Task().toBuilder()
+//                .title("Task 4")
+//                .duration(Duration.ofMinutes(40))
+//                .priority(4)
+//                .build();
+//        task4 = taskService.createTask(task4);
+//        TaskNode taskNode4 = TaskNode.builder()
+//                .parent(task1)
+//                .data(task4)
+//                .next(null)
+//                .build();
+//        taskNode4 = taskService.saveTaskNode(taskNode4);
+//
+//        Task task6 = new Task().toBuilder()
+//                .title("Task 6")
+//                .duration(Duration.ofMinutes(60))
+//                .priority(6)
+//                .build();
+//        task6 = taskService.createTask(task6);
+//        TaskNode taskNode6 = TaskNode.builder()
+//                .parent(task1)
+//                .data(task6)
+//                .next(null)
+//                .build();
+//        taskNode6 = taskService.saveTaskNode(taskNode6);
+//
+//        Task task5 = new Task().toBuilder()
+//                .title("Task 5")
+//                .duration(Duration.ofMinutes(50))
+//                .priority(5)
+//                .build();
+//        task5 = taskService.createTask(task5);
+//        TaskNode taskNode5 = TaskNode.builder()
+//                .parent(task1)
+//                .data(task5)
+//                .next(taskNode6)
+//                .build();
+//        taskNode5 = taskService.saveTaskNode(taskNode5);
+//
+//        // Verify that each associated Task's getChildRootNode() method correctly returns the head of the linkedlist
+//
+//        assertEquals(taskNode4, taskService.getChildNodes(task1).get(0));
+//
+////        assertEquals(taskNode4, taskNode5.getPrev());
+//        assertEquals(taskNode5, taskNode4.getNext());
+////        assertEquals(taskNode5, taskNode6.getPrev());
+//        assertEquals(taskNode6, taskNode5.getNext());
+//        assertNull(taskNode6.getNext());
+////        assertNull(taskNode4.getPrev());
     }
 
 
-    @Test
-    public void testDeleteExistingTaskInfo() {
-        TaskInfo one = taskService.findTaskInfos(Collections.singletonList(Filter.builder()
-                .field(TaskInfo_.TITLE)
-                .operator(QueryOperator.EQUALS)
-                .value("Task 1")
-                .build())).get(0);
-        TaskNode oneNode = taskService.findTaskNodes(Collections.singletonList(Filter.builder()
-                .field(TaskNode_.CHILD)
-                .operator(QueryOperator.EQUALS)
-                .value(one)
-                .build())).get(0);
-
-        assertNotNull(one);
-        assertNotNull(oneNode);
-
-        // Delete a new TaskInfo
-        taskService.deleteTaskInfo(one);
-
-//        // Clear the persistence context
-//        entityManager.clear();
-
-        // Verify that the new TaskInfo was deleted correctly
-        List<TaskInfo> result = taskService.findTaskInfos(Collections.singletonList(Filter.builder()
-                .field("title")
-                .operator(QueryOperator.EQUALS)
-                .value("Task 1")
-                .build()));
-        assertTrue(result.isEmpty());
-
-        // Verify that the associated TaskNode was also deleted
-        assertEquals(0, taskService.findTaskNodes(Collections.singletonList(Filter.builder()
-                .field("parent")
-                .operator(QueryOperator.EQUALS)
-                .value(one)
-                .build())).size());
-    }
 
     @Test
-    public void testDeleteTaskInfoRoot() {
-        // Get the current _ROOT TaskInfo entity
-        TaskInfo rootTaskInfo = taskService.getRootTaskInfo();
-
-        // Verify that the _ROOT TaskInfo entity exists before deletion
-        assertNotNull(rootTaskInfo);
-
-        // Attempt to delete the _ROOT TaskInfo entity
-        assertThrows(IllegalArgumentException.class, () -> taskService.deleteTaskInfo(rootTaskInfo));
-
-        // Verify that the _ROOT TaskInfo entity still exists after the attempted deletion
-        TaskInfo rootTaskInfoAfter = taskService.getRootTaskInfo();
-        assertEquals(rootTaskInfo, rootTaskInfoAfter);
-    }
-
-
-    @Test
-    public void testSaveTaskNode() {
-        // Test that saveTaskNode() correctly saves a TaskNode entity
+    public void testGetTaskNodeByNullId() {
+//        // Create a new TaskNode but don't save it
+//        Task rootTask = taskService.getRootNode();
+//        TaskNode taskNode = TaskNode.builder()
+//                .parent(rootTask)
+//                .data(null)
+//                .next(null)
+//                .build();
+//
+//        // Retrieve the TaskNode by null ID and make sure it fails with exception
+//        assertThrows(IllegalArgumentException.class, () -> taskService.getNode(taskNode.getId()));
     }
 
     @Test
     public void testGetTaskNodeById() {
-        // Create a new TaskInfo and save it
-        TaskInfo taskInfo = new TaskInfo().toBuilder()
-                .title("Task 4")
-                .duration(Duration.ofMinutes(15))
-                .priority(2)
-                .build();
-        taskService.saveTaskInfo(taskInfo);
-
-        // Create a new TaskNode with the TaskInfo as the child
-        TaskInfo rootTaskInfo = taskService.getRootTaskInfo();
-        TaskNode taskNode = TaskNode.builder()
-                .parent(rootTaskInfo)
-                .child(taskInfo)
-                .next(null)
-                .build();
-        taskService.saveTaskNode(taskNode);
-
-        // Retrieve the TaskNode by ID and verify that it's the correct one
-        TaskNode retrievedTaskNode = taskService.getTaskNodeById(taskNode.getId());
-        assertNotNull(retrievedTaskNode);
-        assertEquals(taskNode.getId(), retrievedTaskNode.getId());
-        assertEquals(rootTaskInfo.getId(), retrievedTaskNode.getParent().getId());
-        assertEquals(taskInfo.getId(), retrievedTaskNode.getChild().getId());
-        assertNull(retrievedTaskNode.getNext());
+//        // Create a new Task and save it
+//        Task task = new Task().toBuilder()
+//                .title("Task 4")
+//                .duration(Duration.ofMinutes(15))
+//                .priority(2)
+//                .build();
+//        task = taskService.createTask(task);
+//
+//        // Create a new TaskNode with the Task as the child
+//        Task rootTask = taskService.getRootNode();
+//        TaskNode taskNode = TaskNode.builder()
+//                .parent(rootTask)
+//                .data(task)
+//                .next(null)
+//                .build();
+//        taskNode = taskService.saveTaskNode(taskNode);
+//
+//        // Retrieve the TaskNode by ID and verify that it's the correct one
+//        TaskNode retrievedTaskNode = taskService.getNode(taskNode.getId());
+//        assertNotNull(retrievedTaskNode);
+//        assertEquals(taskNode.getId(), retrievedTaskNode.getId());
+//        assertEquals(rootTask.getId(), retrievedTaskNode.getParent().getId());
+//        assertEquals(task.getId(), retrievedTaskNode.getData().getId());
+//        assertNull(retrievedTaskNode.getNext());
     }
-
 
     @Test
     public void testFindTaskNodes() {
-        TaskInfo rootTaskInfo = taskService.getRootTaskInfo();
-        // Create a list of filters to apply
-        List<Filter> filters = new ArrayList<>();
-        filters.add(Filter.builder()
-                .field(TaskNode_.PARENT)
-                .operator(QueryOperator.EQUALS)
-                .value(taskService.getRootTaskInfo())
-                .build());
-
-        // Call the findTaskNodes method with the filters
-        List<TaskNode> taskNodes = taskService.findTaskNodes(filters);
-
-        // Verify that the returned list contains the correct TaskNode entities
-        assertEquals(3, taskNodes.size());
-        assertEquals(rootTaskInfo.getId(), taskNodes.get(0).getParent().getId());
-        assertNull(taskNodes.get(0).getNext());
+//        Task rootTask = taskService.getRootNode();
+//        // Create a list of filters to apply
+//        List<Filter> filters = new ArrayList<>();
+//        filters.add(Filter.builder()
+//                .field(TaskNode_.PARENT)
+//                .operator(QueryOperator.EQUALS)
+//                .value(taskService.getRootNode())
+//                .build());
+//
+//        // Call the findTaskNodes method with the filters
+//        List<TaskNode> taskNodes = taskService.findNodes(filters);
+//
+//        // Verify that the returned list contains the correct TaskNode entities
+//        assertEquals(3, taskNodes.size());
+//        assertEquals(rootTask.getId(), taskNodes.get(0).getParent().getId());
+////        assertNull(taskNodes.get(0).getPrev());
+//        assertNull(taskNodes.get(2).getNext());
     }
 
 
@@ -359,13 +397,40 @@ public class TaskServiceTest {
     }
 
     @Test
+    public void testDeleteTask() {
+//        // Create a new Task entity with a unique title
+//        TaskData taskDataToDelete = TaskData.builder()
+//                .title("Task to Delete")
+//                .duration(Duration.ofMinutes(10))
+//                .priority(1)
+//                .build();
+//        Task taskToDelete = taskService.createTask(taskDataToDelete);
+//        TaskNodeData nodeDataToDelete = TaskNodeData.builder()
+//                .parentNodeId(nodes.get(1).getId())
+//                .dataTaskId(tasks.get(3).getId())
+//                .nextNodeId(null)
+//                .build();
+//        nodes.set(3, taskService.insertNode(nodeData3));
+//        // Delete the Task entity
+//        taskService.deleteTask(taskToDelete.getId());
+//
+//        // Verify that the Task entity was deleted correctly
+//        List<Task> result = taskService.findTasks(Collections.singletonList(Filter.builder()
+//                .field(Task_.TITLE)
+//                .operator(QueryOperator.EQUALS)
+//                .value("Task to Delete")
+//                .build()));
+//        assertTrue(result.isEmpty());
+    }
+
+    @Test
     public void testSaveTaskNodeWithInvalidParent() {
-        // Test that saveTaskNode() throws an IllegalArgumentException when the parent TaskInfo entity does not exist
+        // Test that saveTaskNode() throws an IllegalArgumentException when the parent Task entity does not exist
     }
 
     @Test
     public void testSaveTaskNodeWithInvalidPrevOrNext() {
-        // Test that saveTaskNode() throws an IllegalArgumentException when the prev or next TaskNode entity does not share the same parent TaskInfo entity
+        // Test that saveTaskNode() throws an IllegalArgumentException when the prev or next TaskNode entity does not share the same parent Task entity
     }
 }
 

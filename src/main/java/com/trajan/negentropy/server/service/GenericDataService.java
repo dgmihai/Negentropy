@@ -8,7 +8,9 @@ import java.util.List;
 
 @Transactional
 public interface GenericDataService<T extends AbstractEntity> {
-    T save(T entity);
+    T create(T entity);
+
+    T update(T entity);
 
     T findById(Long id);
 

@@ -10,5 +10,11 @@ public enum QueryOperator {
     NULL,
     NOT_NULL,
     EMPTY,
-    NOT_EMPTY
+    NOT_EMPTY,
+    EQ_TASK,
+    NOT_EQ_TASK,
+    EQ_TASK_NODE,
+    NOT_EQ_TASK_NODE,
+    SHORTER_THAN,
+    LONGER_THAN
 }

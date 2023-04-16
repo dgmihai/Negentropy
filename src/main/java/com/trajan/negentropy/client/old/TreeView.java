@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.vaadin.view;
 //
-//import com.trajan.negentropy.data.entity.TaskInfo;
-//import com.trajan.negentropy.data.entity.TaskRelationship;
+//import com.trajan.negentropy.dataTaskId.entity.Task;
+//import com.trajan.negentropy.dataTaskId.entity.TaskRelationship;
 //import com.vaadin.flow.component.button.Button;
 //import com.vaadin.flow.component.grid.Grid;
 //import com.vaadin.flow.component.grid.dnd.GridDropMode;
@@ -26,8 +26,8 @@
 //    private List<Tag> tags;
 //    private Map<Tag, Button> tagButtons;
 //
-//    // Grid for single TaskInfo entry
-//    private Grid<TaskInfo> taskInfoGrid;
+//    // Grid for single Task entry
+//    private Grid<Task> taskInfoGrid;
 //    private TextField titleField;
 //    private NumberField priorityField;
 //    private TextField etaField;
@@ -42,7 +42,7 @@
 //        tags = new ArrayList<>();
 //        tagButtons = new HashMap<>();
 //
-//        // Initialize grid for single TaskInfo entry
+//        // Initialize grid for single Task entry
 //        taskInfoGrid = new Grid<>();
 //        titleField = new TextField();
 //        priorityField = new NumberField();
