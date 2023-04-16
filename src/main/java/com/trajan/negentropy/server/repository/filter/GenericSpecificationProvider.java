@@ -16,7 +16,6 @@ import java.util.function.Function;
 public interface GenericSpecificationProvider<T extends AbstractEntity> {
 
     // TODO: Better exception handling in lambda
-
     List<T> findByFilters(List<Filter> filters);
 
     default Specification<T> getSpecificationFromFilters(List<Filter> filters, Class<T> entityType) {
@@ -43,7 +42,7 @@ public interface GenericSpecificationProvider<T extends AbstractEntity> {
                 case NOT_EQ_TASK -> (root, query, criteriaBuilder) -> {
                     if (root.get(input.getField()).getJavaType().equals(Task.class)) {
                         return criteriaBuilder.notEqual(root.get(input.getField()).get(Task_.ID),
-                        getConversionFunction(Long.class).apply(input.getValue()));
+                            getConversionFunction(Long.class).apply(input.getValue()));
                     } else throw new IllegalArgumentException("Field is not of type Task");
                 };
                 case EQ_TASK_NODE -> (root, query, criteriaBuilder) -> {

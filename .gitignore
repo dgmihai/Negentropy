@@ -4,6 +4,8 @@
 .settings
 .project
 .classpath
+.backups/
+.test/
 .mvn/wrapper/maven-wrapper.jar
 
 *.iml

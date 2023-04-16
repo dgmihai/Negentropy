@@ -43,20 +43,18 @@ public interface TaskService {
      * @param taskId The ID of the Task entity to find.
      * @return The retrieved Task entity wrapped in an Optional.
      * @throws NoSuchElementException if a TaskNode with the associated ID does not exist.
-     * @throws IllegalArgumentException if provided ID is null
+     * @throws NullPointerException if provided ID is null
      * @see Task
      */
     Optional<Task> getTask(long taskId);
 
     /**
      * Finds a list of Task entities using a list of filters.
-     * </p>
-     * Will NOT include the root Task.
      *
      * @param filters the list of filters to apply.
      * @return a list of Task entities that match the given filters.
-     * @see Task
      * @see Filter
+     * @see Task
      */
     List<Task> findTasks(List<Filter> filters);
 
@@ -66,8 +64,8 @@ public interface TaskService {
      * WARNING: This also deletes all corresponding TaskNode entities.
      *
      * @param taskId The ID of the Task to be deleted.
-     * @see Task
      * @see Filter
+     * @see Task
      * @see TaskNode
      */
     void deleteTask(long taskId);
@@ -106,9 +104,10 @@ public interface TaskService {
      * </p>
      * Handles all ordering based on TaskNode.next.
      *
-     * @param taskId The ID of the Task this TaskNode refers to.
+     * @param childTaskId The ID of the Task this TaskNode refers to.
      * @param parentTaskId The ID of the intended parent Task.
      * @return The persisted TaskNode entity.
+     * @throws NoSuchElementException if a Task with the relevant ID does not exist.
      * @see TaskNode
      */
     @Transactional
@@ -122,6 +121,7 @@ public interface TaskService {
      * @param taskId The ID of the Task this TaskNode refers to.
      * @param nextNodeId The ID of the TaskNode that the new TaskNode will precede.
      * @return The persisted TaskNode entity.
+     * @throws NoSuchElementException if a Task with the relevant ID does not exist.
      * @see TaskNode
      */
     @Transactional
@@ -133,17 +133,28 @@ public interface TaskService {
      * @param nodeId The ID of the TaskNode entity to find.
      * @return The retrieved TaskNode entity wrapped in an Optional.
      * @throws NoSuchElementException if a TaskNodeNode with the associated ID does not exist.
-     * @throws IllegalArgumentException if provided ID is null
+     * @throws NullPointerException if provided ID is null
      * @see TaskNode
      */
     Optional<TaskNode> getNode(long nodeId);
 
     /**
+     * Finds a list of TaskNode entities using a list of filters.
+     * </p>
+     *
+     * @param filters the list of filters to apply.
+     * @return a list of Task entities that match the given filters.
+     * @see Filter
+     * @see TaskNode
+     */
+    List<TaskNode> findNodes(List<Filter> filters);
+
+    /**
      * Deletes a TaskNode entity.
      *
      * @param nodeId The ID of the TaskNode to be deleted.
-     * @see TaskNode
      * @see Filter
+     * @see TaskNode
      */
     void deleteNode(long nodeId);
 }

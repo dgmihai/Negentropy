@@ -14,11 +14,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,8 +31,6 @@ public class TaskServiceTest {
 
     @Autowired
     private TaskService taskService;
-//    @Autowired
-//    private JdbcTemplate jdbcTemplate;
 
     ArrayList<Task> tasks = new ArrayList<>(
             Collections.nCopies(4, null));
@@ -78,16 +78,10 @@ public class TaskServiceTest {
                 Collections.emptyList()).size());
     }
 
-//    @AfterEach
-//    @Transactional
-//    void cleanUp() {
-//        JdbcTestUtils.deleteFromTables(jdbcTemplate, "task_nodes", "task_info");
-//    }
-
     @Test
     public void testSaveTaskWithDuplicateTitle() {
         List<Task> taskList = taskService.findTasks(Collections.emptyList());
-        assertEquals(3, taskList.size());
+        assertEquals(4, taskList.size());
 
         Task taskDuplicate = Task.builder()
                 .title("Task 1")
@@ -128,10 +122,10 @@ public class TaskServiceTest {
                 .build());
 
         // Call the findTasks method with the filters
-        List<Task> tasks = taskService.findTasks(filters);
+        List<Task> results = taskService.findTasks(filters);
 
         // Verify that the returned list contains the correct Task entities
-        assertEquals(0, tasks.size());
+        assertEquals(0, results.size());
 
         // Cycle through again
         filters = new ArrayList<>();
@@ -146,8 +140,11 @@ public class TaskServiceTest {
                 .value(2)
                 .build());
 
-        assertEquals("Task 3", tasks.get(0).getTitle());
-        assertEquals(Duration.ofMinutes(30), tasks.get(0).getDuration());
+        // Fetch tasks with the new set of filters
+        results = taskService.findTasks(filters);
+
+        assertEquals("Task 3", results.get(0).getTitle());
+        assertEquals(Duration.ofMinutes(30), results.get(0).getDuration());
     }
 
     @Test
@@ -249,188 +246,121 @@ public class TaskServiceTest {
         assertTrue(tasks.isEmpty());
     }
 
-//    @Test
-//    public void testDeleteTaskInfoRoot() {
-//        // Get the current Root TaskNode entity
-//        TaskNode rootNode = taskService.getRootNode();
-//
-//        // Verify that the Root TaskNode entity exists before deletion
-//        assertNotNull(rootNode);
-//
-//        // Attempt to delete the Root TaskNode entity
-//        assertThrows(IllegalArgumentException.class, () -> taskService.deleteNode(rootNode.getId()));
-//
-//        // Verify that the _ROOT Task entity still exists after the attempted deletion
-//        TaskNode rootTaskAfter = taskService.getRootNode();
-//        assertEquals(rootNode, rootTaskAfter);
-//    }
-
     @Test
-    public void testSaveTaskNodes() {
-//        // Add two nodes to the existing node, making a total of three nodes
-//        Task task1 = taskService.findTasks(Collections.singletonList(Filter.builder()
-//                .field(TaskInfo_.TITLE)
-//                .operator(QueryOperator.EQUALS)
-//                .value("Task 1")
-//                .build())).get(0);
-//
-//        Task task4 = new Task().toBuilder()
-//                .title("Task 4")
-//                .duration(Duration.ofMinutes(40))
-//                .priority(4)
-//                .build();
-//        task4 = taskService.createTask(task4);
-//        TaskNode taskNode4 = TaskNode.builder()
-//                .parent(task1)
-//                .data(task4)
-//                .next(null)
-//                .build();
-//        taskNode4 = taskService.saveTaskNode(taskNode4);
-//
-//        Task task6 = new Task().toBuilder()
-//                .title("Task 6")
-//                .duration(Duration.ofMinutes(60))
-//                .priority(6)
-//                .build();
-//        task6 = taskService.createTask(task6);
-//        TaskNode taskNode6 = TaskNode.builder()
-//                .parent(task1)
-//                .data(task6)
-//                .next(null)
-//                .build();
-//        taskNode6 = taskService.saveTaskNode(taskNode6);
-//
-//        Task task5 = new Task().toBuilder()
-//                .title("Task 5")
-//                .duration(Duration.ofMinutes(50))
-//                .priority(5)
-//                .build();
-//        task5 = taskService.createTask(task5);
-//        TaskNode taskNode5 = TaskNode.builder()
-//                .parent(task1)
-//                .data(task5)
-//                .next(taskNode6)
-//                .build();
-//        taskNode5 = taskService.saveTaskNode(taskNode5);
-//
-//        // Verify that each associated Task's getChildRootNode() method correctly returns the head of the linkedlist
-//
-//        assertEquals(taskNode4, taskService.getChildNodes(task1).get(0));
-//
-////        assertEquals(taskNode4, taskNode5.getPrev());
-//        assertEquals(taskNode5, taskNode4.getNext());
-////        assertEquals(taskNode5, taskNode6.getPrev());
-//        assertEquals(taskNode6, taskNode5.getNext());
-//        assertNull(taskNode6.getNext());
-////        assertNull(taskNode4.getPrev());
-    }
+    @Transactional
+    public void testUpdateTask() {
+        // Get the task to update
+        Task two = tasks.get(2);
+        two.setTitle("Task 2 Updated");
+        two.setDescription("This task has been updated.");
 
+        two = taskService.updateTask(two);
 
+        // See if the relevant references have been updated
+        assertEquals("Task 2 Updated", tasks.get(2).getTitle());
+        assertEquals(tasks.get(2), two);
+        assertEquals(tasks.get(2).getTitle(), two.getTitle());
 
-    @Test
-    public void testGetTaskNodeByNullId() {
-//        // Create a new TaskNode but don't save it
-//        Task rootTask = taskService.getRootNode();
-//        TaskNode taskNode = TaskNode.builder()
-//                .parent(rootTask)
-//                .data(null)
-//                .next(null)
-//                .build();
-//
-//        // Retrieve the TaskNode by null ID and make sure it fails with exception
-//        assertThrows(IllegalArgumentException.class, () -> taskService.getNode(taskNode.getId()));
+        // Run a search for the other updated description field
+        List<Task> results = taskService.findTasks(List.of(Filter.builder()
+                .field(Task_.DESCRIPTION)
+                .operator(QueryOperator.LIKE)
+                .value("updated")
+                .build()));
+
+        // See if we retrieve the correct task
+        assertEquals(results.get(0).getTitle(), two.getTitle());
     }
 
     @Test
-    public void testGetTaskNodeById() {
-//        // Create a new Task and save it
-//        Task task = new Task().toBuilder()
-//                .title("Task 4")
-//                .duration(Duration.ofMinutes(15))
-//                .priority(2)
-//                .build();
-//        task = taskService.createTask(task);
-//
-//        // Create a new TaskNode with the Task as the child
-//        Task rootTask = taskService.getRootNode();
-//        TaskNode taskNode = TaskNode.builder()
-//                .parent(rootTask)
-//                .data(task)
-//                .next(null)
-//                .build();
-//        taskNode = taskService.saveTaskNode(taskNode);
-//
-//        // Retrieve the TaskNode by ID and verify that it's the correct one
-//        TaskNode retrievedTaskNode = taskService.getNode(taskNode.getId());
-//        assertNotNull(retrievedTaskNode);
-//        assertEquals(taskNode.getId(), retrievedTaskNode.getId());
-//        assertEquals(rootTask.getId(), retrievedTaskNode.getParent().getId());
-//        assertEquals(task.getId(), retrievedTaskNode.getData().getId());
-//        assertNull(retrievedTaskNode.getNext());
+    @Transactional
+    public void testDeleteTaskAndTaskNode() {
+        // Add two nodes to anthe existing node, making a total of three nodes
+
+        Task task4 = Task.builder()
+                .title("Task 4")
+                .duration(Duration.ofMinutes(40))
+                .priority(4)
+                .build();
+
+        Task task4_1 = Task.builder()
+                .title("Task 4_1")
+                .duration(Duration.ofMinutes(41))
+                .priority(1)
+                .build();
+        Task task4_2 = Task.builder()
+                .title("Task 4_2")
+                .duration(Duration.ofMinutes(42))
+                .priority(2)
+                .build();
+        Task task4_3 = Task.builder()
+                .title("Task 4_3")
+                .duration(Duration.ofMinutes(43))
+                .priority(3)
+                .build();
+        task4 = taskService.createTask(task4);
+        task4_1 = taskService.createTask(task4_1);
+        task4_2 = taskService.createTask(task4_2);
+        task4_3 = taskService.createTask(task4_3);
+
+        TaskNode taskNode4_1 = taskService.appendNodeTo(task4_1.getId(), task4.getId());
+        TaskNode taskNode4_3 = taskService.appendNodeTo(task4_3.getId(), task4.getId());
+        TaskNode taskNode4_2= taskService.insertNodeBefore(task4_2.getId(), taskNode4_3.getId());
+
+        // Verify that nodes added properly
+
+        // Call the findNodes to fine all children of Task4, unordered
+        List<TaskNode> results = taskService.getChildNodes(task4.getId());
+        assertEquals(3, results.size());
+
+        // Delete a taskNode, expecting the linked list to still be properly formed
+        taskService.deleteNode(taskNode4_2.getId());
+        results = taskService.getChildNodes(task4.getId());
+        assertEquals(2, results.size());
+        assertEquals(taskNode4_3, taskNode4_1.getNext());
+        assertEquals(taskNode4_1, taskNode4_3.getPrev());
+
+        // Delete a Task and expect all child tasks to be gone
+        taskService.deleteTask(task4.getId());
+        assertEquals(0, taskService.getChildNodes(task4.getId()).size());
+        assertEquals(3, taskService.findNodes(Collections.emptyList()).size());
+        assertEquals(4, taskService.findTasks(Collections.emptyList()).size());
     }
 
     @Test
-    public void testFindTaskNodes() {
-//        Task rootTask = taskService.getRootNode();
-//        // Create a list of filters to apply
-//        List<Filter> filters = new ArrayList<>();
-//        filters.add(Filter.builder()
-//                .field(TaskNode_.PARENT)
-//                .operator(QueryOperator.EQUALS)
-//                .value(taskService.getRootNode())
-//                .build());
-//
-//        // Call the findTaskNodes method with the filters
-//        List<TaskNode> taskNodes = taskService.findNodes(filters);
-//
-//        // Verify that the returned list contains the correct TaskNode entities
-//        assertEquals(3, taskNodes.size());
-//        assertEquals(rootTask.getId(), taskNodes.get(0).getParent().getId());
-////        assertNull(taskNodes.get(0).getPrev());
-//        assertNull(taskNodes.get(2).getNext());
-    }
+    public void testGetUnsavedTaskNode() {
+        // Create a new TaskNode but don't save it
+        TaskNode taskNode = TaskNode.builder()
+                .parent(null)
+                .data(null)
+                .next(null)
+                .build();
 
-
-    @Test
-    public void testDeleteTaskNode() {
-        // Test that deleteTaskNode() correctly deletes a TaskNode entity
+        // Retrieve the TaskNode by null ID and make sure it fails with exception
+        assertThrows(NullPointerException.class, () -> taskService.getNode(taskNode.getId()));
     }
 
     @Test
-    public void testDeleteTask() {
-//        // Create a new Task entity with a unique title
-//        TaskData taskDataToDelete = TaskData.builder()
-//                .title("Task to Delete")
-//                .duration(Duration.ofMinutes(10))
-//                .priority(1)
-//                .build();
-//        Task taskToDelete = taskService.createTask(taskDataToDelete);
-//        TaskNodeData nodeDataToDelete = TaskNodeData.builder()
-//                .parentNodeId(nodes.get(1).getId())
-//                .dataTaskId(tasks.get(3).getId())
-//                .nextNodeId(null)
-//                .build();
-//        nodes.set(3, taskService.insertNode(nodeData3));
-//        // Delete the Task entity
-//        taskService.deleteTask(taskToDelete.getId());
-//
-//        // Verify that the Task entity was deleted correctly
-//        List<Task> result = taskService.findTasks(Collections.singletonList(Filter.builder()
-//                .field(Task_.TITLE)
-//                .operator(QueryOperator.EQUALS)
-//                .value("Task to Delete")
-//                .build()));
-//        assertTrue(result.isEmpty());
+    public void testFindChildNodes() {
+        List<TaskNode> results = taskService.getChildNodes(tasks.get(0).getId());
+
+        // Verify that the returned list contains the correct TaskNode entities and is ordered
+        assertEquals(3, results.size());
+        assertNull(results.get(2).getNext());
+        assertNull(results.get(0).getPrev());
     }
 
     @Test
-    public void testSaveTaskNodeWithInvalidParent() {
-        // Test that saveTaskNode() throws an IllegalArgumentException when the parent Task entity does not exist
-    }
+    public void testSaveInvalidTaskNode() {
+        // Assert that saving a node with a bad parent ID throws
+        assertThrows(NoSuchElementException.class, () -> taskService.appendNodeTo(tasks.get(1).getId(), -1));
 
-    @Test
-    public void testSaveTaskNodeWithInvalidPrevOrNext() {
-        // Test that saveTaskNode() throws an IllegalArgumentException when the prev or next TaskNode entity does not share the same parent Task entity
+        // Assert that saving a node with a bad next node ID throws
+        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(tasks.get(1).getId(), -1));
+
+        // Assert that saving a node with a bad task data ID throws
+        assertThrows(NoSuchElementException.class, () -> taskService.appendNodeTo(-1, tasks.get(1).getId()));
+        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(-1, tasks.get(1).getId()));
     }
 }
 

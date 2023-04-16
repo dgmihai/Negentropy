@@ -23,11 +23,19 @@ public class TaskNode extends AbstractEntity {
     @JoinColumn(name = "task_id")
     private Task data;
 
-    @ManyToOne(cascade = {CascadeType.ALL})
+    @ManyToOne(cascade = {
+            CascadeType.MERGE,
+            CascadeType.PERSIST,
+            CascadeType.REFRESH,
+            CascadeType.DETACH})
     @JoinColumn(name = "prev_id")
     private TaskNode prev;
 
-    @ManyToOne(cascade = {CascadeType.ALL})
+    @ManyToOne(cascade = {
+            CascadeType.MERGE,
+            CascadeType.PERSIST,
+            CascadeType.REFRESH,
+            CascadeType.DETACH})
     @JoinColumn(name = "next_id")
     private TaskNode next;
 
@@ -46,13 +54,5 @@ public class TaskNode extends AbstractEntity {
         logger.info("Child:  " + (getData() == null ? "null" : getData().getId()));
         logger.info("Prev:   " + (getPrev() == null ? "null" : getPrev().getId()));
         logger.info("Next:   " + (getNext() == null ? "null" : getNext().getId()));
-
-//        logger.debug(prefix);
-//        logger.debug("id=          {}", this.getId());
-//        logger.debug("parent_id=   {}", this.getParent().getId());
-//        logger.debug("parent_id=   {}", this.getParent().getId());
-//        //logger.debug("parent_title={}", this.getParent().getTitle());
-//        logger.debug("child_id=    {}", this.getData().getId());
-//        logger.debug("child_title= {}", this.getData().getTitle());
     }
 }

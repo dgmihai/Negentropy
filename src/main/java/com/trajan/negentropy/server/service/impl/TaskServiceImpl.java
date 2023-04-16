@@ -49,8 +49,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<Task> findTasks(List<Filter> filters) {
-        filters = new ArrayList<>(filters);
-        return taskRepository.findByFilters(filters);
+        return taskRepository.findByFilters(new ArrayList<>(filters));
     }
 
     @Override
@@ -58,11 +57,26 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(long taskId) {
         Task taskInfo = getTask(taskId).orElse(null);
         if (taskInfo != null) {
+            List<Long> checkForPurge = new ArrayList<>();
             for (TaskNode taskNode : getParentNodes(taskId)) {
                 unlinkTaskNode(taskNode);
+                nodeRepository.delete(taskNode);
             }
-
+            for (TaskNode taskNode : getChildNodes(taskId)) {
+                checkForPurge.add(taskNode.getData().getId());
+                nodeRepository.delete(taskNode);
+            }
             taskRepository.deleteById(taskId);
+            purgeTasksIfOrphaned(checkForPurge);
+        }
+    }
+
+    @Transactional
+    private void purgeTasksIfOrphaned(List<Long> taskIds) {
+        for (Long taskId : taskIds) {
+            if(getParentNodes(taskId).isEmpty()) {
+                deleteTask(taskId);
+            }
         }
     }
 
@@ -98,7 +112,7 @@ public class TaskServiceImpl implements TaskService {
     public Set<TaskNode> getParentNodes(long taskId) {
         return new HashSet<>(nodeRepository.findByFilters(List.of(Filter.builder()
                         .field(TaskNode_.DATA)
-                        .operator(QueryOperator.EQUALS)
+                        .operator(QueryOperator.EQ_TASK)
                         .value(taskId)
                         .build()
         )));
@@ -109,15 +123,11 @@ public class TaskServiceImpl implements TaskService {
     public TaskNode appendNodeTo(long childTaskId, long parentTaskId) {
         TaskNode newNode = TaskNode.builder()
                 .data(getTask(childTaskId).orElseThrow())
-                .parent(getTask(parentTaskId).orElse(null))
+                .parent(getTask(parentTaskId).orElseThrow())
                 .build();
-        List<TaskNode> children = new ArrayList<>();
-        if (getTask(parentTaskId).orElse(null) != null) {
-             children = getChildNodes(parentTaskId);
-        }
-        TaskNode prevNode = null;
+        List<TaskNode> children = getChildNodes(parentTaskId);
         if (!children.isEmpty()) {
-            prevNode = children.get(children.size() - 1);
+            TaskNode prevNode = children.get(children.size() - 1);
             newNode.setPrev(prevNode);
             prevNode.setNext(newNode);
         }
@@ -129,7 +139,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskNode insertNodeBefore(long taskId, long nextNodeId) {
         TaskNode newNode = TaskNode.builder()
                 .data(getTask(taskId).orElseThrow())
-                .next(getNode(nextNodeId).orElse(null))
+                .next(getNode(nextNodeId).orElseThrow())
                 .build();
         TaskNode nextNode = newNode.getNext();
         if (nextNode != null) {
@@ -156,6 +166,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public List<TaskNode> findNodes(List<Filter> filters) {
+        return nodeRepository.findByFilters(new ArrayList<>(filters));
+    }
+
+    @Override
     @Transactional
     public void deleteNode(long nodeId) {
         Optional<TaskNode> taskNodeOptional = nodeRepository.findById(nodeId);
@@ -163,9 +178,11 @@ public class TaskServiceImpl implements TaskService {
             TaskNode taskNode = taskNodeOptional.get();
             unlinkTaskNode(taskNode);
             nodeRepository.deleteById(nodeId);
+            purgeTasksIfOrphaned(List.of(taskNode.getData().getId()));
         }
     }
 
+    // TODO: This is unused atm
     private void linkTaskNodes(TaskNode first, TaskNode second) {
         first.setNext(second);
         second.setPrev(first);
@@ -177,12 +194,10 @@ public class TaskServiceImpl implements TaskService {
 
         if (prev != null) {
             prev.setNext(next);
-            nodeRepository.save(prev);
         }
 
         if (next != null) {
             next.setPrev(prev);
-            nodeRepository.save(next);
         }
     }
 
