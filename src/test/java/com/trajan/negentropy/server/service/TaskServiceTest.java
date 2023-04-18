@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.util.Pair;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -38,6 +41,7 @@ public class TaskServiceTest {
             Collections.nCopies(4, null));
 
     @BeforeAll
+    @Transactional
     public void setUp() {
         Task task0 = Task.builder()
                 .title("Root")
@@ -57,24 +61,33 @@ public class TaskServiceTest {
                 .duration(Duration.ofMinutes(30))
                 .priority(3)
                 .build();
-        tasks.set(0, taskService.createTask(task0));
+        Pair<Task, TaskNode> resultPair = taskService.createTaskWithNode(task0);
+        tasks.set(0, resultPair.getFirst());
+        nodes.set(0, resultPair.getSecond());
         tasks.set(1, taskService.createTask(task1));
         tasks.set(2, taskService.createTask(task2));
         tasks.set(3, taskService.createTask(task3));
 
-        nodes.set(1, taskService.appendNodeTo(
+        nodes.set(1, taskService.insertNodeAsChildOf(
                 tasks.get(1).getId(),
                 tasks.get(0).getId()));
-        nodes.set(3, taskService.appendNodeTo(
+        nodes.set(3, taskService.insertNodeAfter(
                 tasks.get(3).getId(),
-                tasks.get(0).getId()));
+                nodes.get(1).getId()));
         nodes.set(2, taskService.insertNodeBefore(
                 tasks.get(2).getId(),
                 nodes.get(3).getId()));
 
-        assertEquals(3, taskService.getChildNodes(
-                tasks.get(0).getId()).size());
+        List<TaskNode> children = taskService.findChildNodes(
+                tasks.get(0).getId());
+
+        assertEquals(3, children.size());
+        assertEquals(nodes.get(1), children.get(0));
+        assertEquals(nodes.get(2), children.get(1));
+        assertEquals(nodes.get(3), children.get(2));
         assertEquals(4, taskService.findTasks(
+                Collections.emptyList()).size());
+        assertEquals(4, taskService.findAllNodes(
                 Collections.emptyList()).size());
     }
 
@@ -303,27 +316,29 @@ public class TaskServiceTest {
         task4_2 = taskService.createTask(task4_2);
         task4_3 = taskService.createTask(task4_3);
 
-        TaskNode taskNode4_1 = taskService.appendNodeTo(task4_1.getId(), task4.getId());
-        TaskNode taskNode4_3 = taskService.appendNodeTo(task4_3.getId(), task4.getId());
+        TaskNode taskNode4_1 = taskService.insertNodeAsChildOf(task4_1.getId(), task4.getId());
+        TaskNode taskNode4_3 = taskService.insertNodeAsChildOf(task4_3.getId(), task4.getId());
         TaskNode taskNode4_2= taskService.insertNodeBefore(task4_2.getId(), taskNode4_3.getId());
 
         // Verify that nodes added properly
 
         // Call the findNodes to fine all children of Task4, unordered
-        List<TaskNode> results = taskService.getChildNodes(task4.getId());
+        List<TaskNode> results = taskService.findChildNodes(task4.getId());
         assertEquals(3, results.size());
 
         // Delete a taskNode, expecting the linked list to still be properly formed
         taskService.deleteNode(taskNode4_2.getId());
-        results = taskService.getChildNodes(task4.getId());
+        results = taskService.findChildNodes(task4.getId());
         assertEquals(2, results.size());
         assertEquals(taskNode4_3, taskNode4_1.getNext());
         assertEquals(taskNode4_1, taskNode4_3.getPrev());
 
         // Delete a Task and expect all child tasks to be gone
         taskService.deleteTask(task4.getId());
-        assertEquals(0, taskService.getChildNodes(task4.getId()).size());
-        assertEquals(3, taskService.findNodes(Collections.emptyList()).size());
+        final long task4Id = task4.getId();
+        assertThrows(NoSuchElementException.class, () -> taskService.findChildNodes(task4Id));
+        assertEquals(1, taskService.findOrphanNodes().size());
+        assertEquals(4, taskService.findAllNodes(Collections.emptyList()).size());
         assertEquals(4, taskService.findTasks(Collections.emptyList()).size());
     }
 
@@ -331,8 +346,8 @@ public class TaskServiceTest {
     public void testGetUnsavedTaskNode() {
         // Create a new TaskNode but don't save it
         TaskNode taskNode = TaskNode.builder()
-                .parent(null)
-                .data(null)
+                .parentTask(null)
+                .referenceTask(null)
                 .next(null)
                 .build();
 
@@ -342,7 +357,7 @@ public class TaskServiceTest {
 
     @Test
     public void testFindChildNodes() {
-        List<TaskNode> results = taskService.getChildNodes(tasks.get(0).getId());
+        List<TaskNode> results = taskService.findChildNodes(tasks.get(0).getId());
 
         // Verify that the returned list contains the correct TaskNode entities and is ordered
         assertEquals(3, results.size());
@@ -353,13 +368,13 @@ public class TaskServiceTest {
     @Test
     public void testSaveInvalidTaskNode() {
         // Assert that saving a node with a bad parent ID throws
-        assertThrows(NoSuchElementException.class, () -> taskService.appendNodeTo(tasks.get(1).getId(), -1));
+        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeAsChildOf(tasks.get(1).getId(), -1));
 
         // Assert that saving a node with a bad next node ID throws
         assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(tasks.get(1).getId(), -1));
 
         // Assert that saving a node with a bad task data ID throws
-        assertThrows(NoSuchElementException.class, () -> taskService.appendNodeTo(-1, tasks.get(1).getId()));
+        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeAsChildOf(-1, tasks.get(1).getId()));
         assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(-1, tasks.get(1).getId()));
     }
 }

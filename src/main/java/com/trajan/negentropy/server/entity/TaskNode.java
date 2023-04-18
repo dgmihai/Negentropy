@@ -15,13 +15,17 @@ import org.slf4j.LoggerFactory;
 public class TaskNode extends AbstractEntity {
     private static final Logger logger = LoggerFactory.getLogger(TaskNode.class);
 
-    @ManyToOne
-    @JoinColumn(name = "parent_id")
-    private Task parent;
+//    @ManyToOne
+//    @JoinColumn(name = "parent_node_id")
+//    private TaskNode parentNode;
 
     @ManyToOne
-    @JoinColumn(name = "task_id")
-    private Task data;
+    @JoinColumn(name = "parent_task_id")
+    private Task parentTask;
+
+    @ManyToOne
+    @JoinColumn(name = "data_task_id")
+    private Task referenceTask;
 
     @ManyToOne(cascade = {
             CascadeType.MERGE,
@@ -50,8 +54,8 @@ public class TaskNode extends AbstractEntity {
     public void log(String prefix) {
         logger.info(prefix);
         logger.info("ID:     " + (getId() == null ? "null" : getId()));
-        logger.info("Parent: " + (getParent() == null ? "null" : getParent().getId()));
-        logger.info("Child:  " + (getData() == null ? "null" : getData().getId()));
+//        logger.info("Parent: " + (getParentNode() == null ? "null" : getParentNode().getId()));
+        logger.info("Child:  " + (getReferenceTask() == null ? "null" : getReferenceTask().getId()));
         logger.info("Prev:   " + (getPrev() == null ? "null" : getPrev().getId()));
         logger.info("Next:   " + (getNext() == null ? "null" : getNext().getId()));
     }

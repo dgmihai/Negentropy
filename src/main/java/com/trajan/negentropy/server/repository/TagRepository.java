@@ -14,7 +14,7 @@ import java.util.List;
 @Repository("tagRepository")
 @Transactional
 public interface TagRepository extends JpaRepository<Tag, Long>, JpaSpecificationExecutor<Tag>, GenericSpecificationProvider<Tag> {
-    default List<Tag> findByFilters(List<Filter> filters) {
+    default List<Tag> findAllFiltered(List<Filter> filters) {
         if (filters.size() > 0) {
             Specification<Tag> spec = getSpecificationFromFilters(filters, Tag.class);
             return findAll(spec);

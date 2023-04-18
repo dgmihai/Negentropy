@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.view;
 
-import com.trajan.negentropy.client.controller.event.ViewEventPublisher;
+import com.trajan.negentropy.client.presenter.ClientPresenter;
 import com.trajan.negentropy.client.util.DurationConverter;
 import com.trajan.negentropy.server.entity.Task;
 import com.vaadin.flow.component.Key;
@@ -19,12 +19,10 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-
 public class TaskInfoForm extends FormLayout {
     private static final Logger logger = LoggerFactory.getLogger(TaskInfoForm.class);
-    private final ViewEventPublisher viewEventPublisher;
 
+    ClientPresenter presenter;
     @Getter
     private final Binder<Task> binder = new BeanValidationBinder<>(Task.class);
 
@@ -37,18 +35,17 @@ public class TaskInfoForm extends FormLayout {
     TextField durationField = new TextField("Duration");
     TextArea descriptionArea = new TextArea("Notes");
 
-    public TaskInfoForm(ViewEventPublisher viewEventPublisher) {
-        this.viewEventPublisher = viewEventPublisher;
-        ;
+    public TaskInfoForm(ClientPresenter presenter) {
+        this.presenter = presenter;
         addClassName("Entry-form");
 
         configureFields();
         configureButtons();
         configureDragAndDrop();
         configureLayout();
-        // Layout
 
-        setTaskInfoBean(null);
+        binder.setBean(new Task());
+        presenter.initTaskInfoForm(this);
     }
 
     private void configureFields() {
@@ -85,22 +82,24 @@ public class TaskInfoForm extends FormLayout {
         save.addClickShortcut(Key.ENTER);
         close.addClickShortcut(Key.ESCAPE);
 
-        save.addClickListener(event -> validateAndSave());
-        delete.addClickListener(event -> viewEventPublisher.
-                publishTaskInfoFormEvent_Delete(this, binder.getBean()));
-//        //close.addClickListener(event -> fireEvent(new ClearEvent(this)));
+        save.addClickListener(e -> {
+            presenter.saveTask();
+            presenter.clearSelectedTask();
+        });
+        delete.addClickListener(e -> presenter.deleteTask(binder.getBean()));
+        close.addClickListener(e -> presenter.clearSelectedTask());
 
         binder.addValueChangeListener(e -> {
-            save.setEnabled(binder.isValid());
-//            delete.setEnabled(binder.getBean().getId() != null);
+            save.setEnabled(presenter.isValid());
+            delete.setEnabled(binder.getBean().getId() != null);
         });
     }
 
     private void configureDragAndDrop() {
         DragSource<TaskInfoForm> dragSource = DragSource.create(this);
-        dragSource.setDragData(this.getTaskInfoBean());
+        dragSource.setDragData(this.binder.getBean());
         binder.addValueChangeListener(e -> {
-            dragSource.setDraggable(binder.isValid());
+            dragSource.setDraggable(presenter.isValid());
         });
     }
 
@@ -110,8 +109,6 @@ public class TaskInfoForm extends FormLayout {
                 delete,
                 close);
         //buttonLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
-
-
 
         setResponsiveSteps(
                 new ResponsiveStep("0", 6),
@@ -134,19 +131,5 @@ public class TaskInfoForm extends FormLayout {
                 descriptionArea,
                 buttonLayout
         );
-    }
-
-    public Task getTaskInfoBean() {
-        return binder.getBean();
-    }
-
-    public void setTaskInfoBean(Task task) {
-        binder.setBean(Objects.requireNonNullElseGet(task, Task::new));
-    }
-
-    private void validateAndSave() {
-        if(binder.isValid()) {
-            viewEventPublisher.publishTaskInfoFormEvent_Save(this, binder.getBean());
-        }
     }
 }

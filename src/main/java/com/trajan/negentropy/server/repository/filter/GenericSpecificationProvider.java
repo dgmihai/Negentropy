@@ -3,8 +3,8 @@ package com.trajan.negentropy.server.repository.filter;
 import com.trajan.negentropy.server.entity.AbstractEntity;
 import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
-import com.trajan.negentropy.server.entity.Task_;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.repository.NoRepositoryBean;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -13,10 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+@NoRepositoryBean
 public interface GenericSpecificationProvider<T extends AbstractEntity> {
-
-    // TODO: Better exception handling in lambda
-    List<T> findByFilters(List<Filter> filters);
+    List<T> findAllFiltered(List<Filter> filters);
 
     default Specification<T> getSpecificationFromFilters(List<Filter> filters, Class<T> entityType) {
         List<Filter> mutableList = new ArrayList<>(filters);
@@ -33,30 +32,6 @@ public interface GenericSpecificationProvider<T extends AbstractEntity> {
 
     private Specification<T> createSpecification(Filter input, Class<T> entityType) {
             return switch (input.getOperator()) {
-                case EQ_TASK -> (root, query, criteriaBuilder) -> {
-                    if (root.get(input.getField()).getJavaType().equals(Task.class)) {
-                        return criteriaBuilder.equal(root.get(input.getField()).get(Task_.ID),
-                                getConversionFunction(Long.class).apply(input.getValue()));
-                    } else throw new IllegalArgumentException("Field is not of type Task");
-                };
-                case NOT_EQ_TASK -> (root, query, criteriaBuilder) -> {
-                    if (root.get(input.getField()).getJavaType().equals(Task.class)) {
-                        return criteriaBuilder.notEqual(root.get(input.getField()).get(Task_.ID),
-                            getConversionFunction(Long.class).apply(input.getValue()));
-                    } else throw new IllegalArgumentException("Field is not of type Task");
-                };
-                case EQ_TASK_NODE -> (root, query, criteriaBuilder) -> {
-                    if (root.get(input.getField()).getJavaType().equals(TaskNode.class)) {
-                        return criteriaBuilder.equal(root.get(input.getField()).get(Task_.ID),
-                                getConversionFunction(Long.class).apply(input.getValue()));
-                    } else throw new IllegalArgumentException("Field is not of type TaskNode");
-                };
-                case NOT_EQ_TASK_NODE -> (root, query, criteriaBuilder) -> {
-                    if (root.get(input.getField()).getJavaType().equals(TaskNode.class)) {
-                        return criteriaBuilder.notEqual(root.get(input.getField()).get(Task_.ID),
-                                getConversionFunction(Long.class).apply(input.getValue()));
-                    } else throw new IllegalArgumentException("Field is not of type TaskNode");
-                };
                 case EQUALS -> (root, query, criteriaBuilder) ->
                         criteriaBuilder.equal(root.get(input.getField()),
                                 castToRequiredType(root.get(input.getField()).getJavaType(), input.getValue()));

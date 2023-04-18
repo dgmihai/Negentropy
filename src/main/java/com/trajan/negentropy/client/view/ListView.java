@@ -1,10 +1,12 @@
 package com.trajan.negentropy.client.view;
 
 import com.trajan.negentropy.client.MainLayout;
+import com.trajan.negentropy.client.TaskEntry;
+import com.trajan.negentropy.client.presenter.ClientPresenter;
+import com.trajan.negentropy.client.presenter.Insert;
+import com.trajan.negentropy.client.util.NestedTaskTabs;
 import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.client.util.ToggleButton;
-import com.trajan.negentropy.client.controller.event.ViewEventPublisher;
-import com.trajan.negentropy.server.entity.TaskNode;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dnd.DragSource;
 import com.vaadin.flow.component.dnd.DropTarget;
@@ -13,7 +15,6 @@ import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.html.Hr;
-import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.treegrid.TreeGrid;
@@ -23,6 +24,7 @@ import com.vaadin.flow.router.RouteAlias;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,55 +35,54 @@ import java.util.List;
 @Getter
 public class ListView extends VerticalLayout {
     private static final Logger logger = LoggerFactory.getLogger(ListView.class);
-    private final ViewEventPublisher viewEventPublisher;
 
-    private final TreeGrid<TaskNode> treeGrid;
+    private final ClientPresenter presenter;
+
+    private final TreeGrid<TaskEntry> treeGrid;
     private final TaskTreeContextMenu contextMenu;
     private final TaskInfoForm taskInfoForm;
+    private final NestedTaskTabs nestedTabs;
 
-    private final Label status = new Label("HELLO!");
+    public ListView(@Autowired ClientPresenter presenter) {
+        this.presenter = presenter;
 
-    public ListView(ViewEventPublisher viewEventPublisher) {
-        this.viewEventPublisher = viewEventPublisher;
-
-        this.taskInfoForm = new TaskInfoForm(viewEventPublisher);
-        this.treeGrid = new TreeGrid<>(TaskNode.class);
+        this.taskInfoForm = new TaskInfoForm(presenter);
+        this.treeGrid = new TreeGrid<>(TaskEntry.class);
         this.contextMenu = new TaskTreeContextMenu(this);
+        this.nestedTabs = new NestedTaskTabs(presenter, this);
 
         addClassName("list-view");
         setSizeFull();
+
+        presenter.initListView(this);
 
         initGridColumns();
         configureEvents();
         configureDragAndDrop();
 
-        add(    taskInfoForm,
-                status,
+        add(taskInfoForm,
+                nestedTabs,
                 treeGrid);
-
-        viewEventPublisher.publishListViewEvent_Update(this, taskInfoForm, new ArrayList<>());
     }
 
     private void initGridColumns() {
-        treeGrid.removeAllColumns();
-
-        Grid.Column<TaskNode> titleColumn = treeGrid
-                .addColumn(taskRelationship ->
-                    taskRelationship.getData().getTitle())
+        Grid.Column<TaskEntry> titleColumn = treeGrid
+                .addHierarchyColumn(entry ->
+                        entry.node().getReferenceTask().getTitle())
                 .setHeader("Title")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
 
-        Grid.Column<TaskNode> descriptionColumn = treeGrid
-                .addColumn(taskRelationship ->
-                        taskRelationship.getData().getDescription())
+        Grid.Column<TaskEntry> descriptionColumn = treeGrid
+                .addColumn(entry ->
+                        entry.node().getReferenceTask().getDescription())
                 .setHeader("Description")
                 .setAutoWidth(true)
                 .setFlexGrow(3);
 
-        Grid.Column<TaskNode> priorityColumn = treeGrid
-                .addColumn(taskRelationship ->
-                        taskRelationship.getData().getPriority())
+        Grid.Column<TaskEntry> priorityColumn = treeGrid
+                .addColumn(entry ->
+                        entry.node().getReferenceTask().getPriority())
                 .setHeader("Priority")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -99,30 +100,36 @@ public class ListView extends VerticalLayout {
             timeButton.setIcon(VaadinIcon.CLOCK.create());
             treeGrid.getDataProvider().refreshAll();
         });
-        Grid.Column<TaskNode> durationColumn = treeGrid
+        Grid.Column<TaskEntry> durationColumn = treeGrid
                 .addColumn(new TimeEstimateValueProvider(timeButton))
-                .setKey("time")
                 .setHeader(timeButton)
                 .setAutoWidth(true);
         treeGrid.setSortableColumns();
     }
 
+
+
     private void configureEvents() {
         treeGrid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
-                taskInfoForm.setTaskInfoBean(event.getValue().getData());
+                presenter.setTaskBean(event.getValue().node().getReferenceTask());
             }
         });
+
+        treeGrid.addItemDoubleClickListener(e -> {
+            nestedTabs.onSelectNewRootEntry(e.getItem());
+        });
+
 
 
 //    public Registration addCloseListener(ComponentEventListener<ClearEvent> listener) {
 //        return addListener(ClearEvent.class, listener);
 //    }
 //        addDataChangeEventListener(this::handleDataChange);
-//        taskInfoForm.addSaveListener(e -> {
+//        taskForm.addSaveListener(e -> {
 //        });
-//        addDeleteListener(ComponentEventListener < TaskInfoEvent.Save > listener) {
-//            return addListener(TaskInfoEvent.Save.class, listener);
+//        addDeleteListener(ComponentEventListener < TaskEvent.Save > listener) {
+//            return addListener(TaskEvent.Save.class, listener);
 //        }
     }
 
@@ -139,9 +146,9 @@ public class ListView extends VerticalLayout {
 //        switch (dataChangeEvent.getType()) {
 //            case ADD -> {
 //                if (dataChangeEvent.getData() != null ) {
-//                    if (dataChangeEvent.getData() instanceof Task taskInfo) {
-//                        handleAddNewTask(taskInfo);
-//                    } else if (dataChangeEvent.getData() instanceof TaskRelationship taskRelationship) {
+//                    if (dataChangeEvent.getData() instanceof Task task) {
+//                        handleAddNewTask(task);
+//                    } else if (dataChangeEvent.getData() instanceof TaskNode node) {
 //                        handleAddRelationship();
 //                    }
 //                }
@@ -153,14 +160,14 @@ public class ListView extends VerticalLayout {
 
     private void configureDragAndDrop() {
         DragSource<TaskInfoForm> formDragSource = DragSource.configure(taskInfoForm);
-        //formDragSource.setDragData(taskInfoForm.getBinder().getBean());
+        //formDragSource.setDragData(taskForm.getBinder().getBean());
         taskInfoForm.getBinder().addValueChangeListener(e -> {
-            formDragSource.setDraggable(taskInfoForm.getBinder().isValid());
+            formDragSource.setDraggable(presenter.isValid());
         });
 
         // create a drop target TreeGrid component
         DragSource<TaskInfoForm> gridDragSource = DragSource.create(taskInfoForm);
-        DropTarget<TreeGrid<TaskNode>> gridDropTarget = DropTarget.create(treeGrid);
+        DropTarget<TreeGrid<TaskEntry>> gridDropTarget = DropTarget.create(treeGrid);
         treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
         treeGrid.setRowsDraggable(true);
     }
@@ -187,20 +194,20 @@ public class ListView extends VerticalLayout {
 ////        // register a drop listener to add the Task bean to the grid
 //        gridDropTarget.addDropListener( event -> {
 //            logger.debug("Dragging");
-////            TaskInfoForm taskInfoForm = (TaskInfoForm) event.getDragData().orElse(null);
-////            Task taskInfo = taskInfoForm.getBinder().getBean();
+////            TaskForm taskForm = (TaskForm) event.getDragData().orElse(null);
+////            Task task = taskForm.getBinder().getBean();
 ////            event.getDropTargetRow();
 //                });
 ////            event.getDragData().ifPresent( dataTaskId -> {
-////                if (dataTaskId instanceof Task taskInfo) {
+////                if (dataTaskId instanceof Task task) {
 ////                    fireEvent()
 ////                }
 ////        });
 
 
-//            TaskRelationship dropTarget = e.getDropTargetItem().orElse(null);
+//            TaskNode dropTarget = e.getDropTargetItem().orElse(null);
 //            GridDropLocation dropLocation = e.getDropLocation();
-//            Task taskInfo = e.getDataTransferData()
+//            Task task = e.getDataTransferData()
 //            boolean droppedOntoSelf = draggedTask
 //                    .equals(targetTask);
 //
@@ -241,61 +248,48 @@ public class ListView extends VerticalLayout {
 //
 //
 //
-//            TaskInfoForm sourceComponent = (TaskInfoForm) event.getDragSourceComponent().orElse(null);
+//            TaskForm sourceComponent = (TaskForm) event.getDragSourceComponent().orElse(null);
 //            if (sourceComponent != null) {
-//                Task taskInfo = (Task) event.getDragData().get();
+//                Task task = (Task) event.getDragData().get();
 //                // get the Task bean from the source component
-//                TaskRelationship dropRelationship = TaskRelationship.builder()
+//                TaskNode dropRelationship = TaskNode.builder()
 //                        .orderIndex(0)
-//                        .taskInfo(sourceComponent.getTaskInfoBean())
+//                        .task(sourceComponent.getTaskBean())
 //                        .parentRelationship(null)
 //                        .build();
-//                taskRelationshipService.save(dropRelationship);
+//                nodeService.save(dropRelationship);
 //                update();
 //            }
 //        });
 
-    private static class TaskTreeContextMenu extends GridContextMenu<TaskNode> {
+    private static class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {
         public TaskTreeContextMenu(ListView listView) {
             super(listView.treeGrid);
 
-            List<GridMenuItem<TaskNode>> insertEntries = new ArrayList<>();
+            List<GridMenuItem<TaskEntry>> insertEntries = new ArrayList<>();
 
-            insertEntries.add(addItem("Insert before", e -> e.getItem().ifPresent(taskRelationship -> {
-//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-//                        new TaskNode(
-//                                taskRelationship.getParent(),
-//                                listView.taskInfoForm.getTaskInfoBean(),
-//                                taskRelationship.getOrderIndex()));
-            })));
+            insertEntries.add(addItem("Insert before", e -> e.getItem().ifPresent(entry ->
+                    listView.presenter.insertTaskNode(Insert.BEFORE, entry.node())
+            )));
 
-            insertEntries.add(addItem("Insert after", e -> e.getItem().ifPresent(taskRelationship -> {
-//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-//                        new TaskNode(
-//                                taskRelationship.getParent(),
-//                                listView.taskInfoForm.getTaskInfoBean(),
-//                                taskRelationship.getOrderIndex() + 1));
-            })));
+            insertEntries.add(addItem("Insert after", e -> e.getItem().ifPresent(entry ->
+                    listView.presenter.insertTaskNode(Insert.AFTER, entry.node())
+            )));
 
-            insertEntries.add(addItem("Insert as subtask", e -> e.getItem().ifPresent(taskRelationship -> {
-//                listView.viewEventPublisher.publishListViewEvent_Save(listView,
-//                        new TaskNode(
-//                                taskRelationship,
-//                                listView.taskInfoForm.getTaskInfoBean()));
-            })));
+            insertEntries.add(addItem("Insert as subtask", e -> e.getItem().ifPresent(entry ->
+                    listView.presenter.insertTaskNode(Insert.AS_SUBTASK, entry.node())
+            )));
 
             add(new Hr());
 
-            addItem("Remove", e -> e.getItem().ifPresent(taskRelationship -> {
-                listView.viewEventPublisher.publishListViewEvent_Delete(listView, taskRelationship);
-            }));
+            addItem("Remove", e -> e.getItem().ifPresent(entry ->
+                listView.presenter.deleteNode(entry.node())
+            ));
 
             // Do not show context menu when header is clicked
-            setDynamicContentHandler(taskRelationship -> {
-                if (taskRelationship == null) {
-                    return false;
-                }
-                insertEntries.forEach(menuItem -> menuItem.setEnabled(listView.taskInfoForm.getBinder().isValid()));
+            setDynamicContentHandler(entry -> {
+                if (entry == null) return false;
+                insertEntries.forEach(menuItem -> menuItem.setEnabled(listView.presenter.isValid()));
                 return true;
             });
         }

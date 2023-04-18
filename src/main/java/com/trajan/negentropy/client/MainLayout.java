@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.view.ListView;
 import com.trajan.negentropy.client.view.DashboardView;
-import com.trajan.negentropy.client.view.RitualView;
+import com.trajan.negentropy.client.view.ListView;
+import com.trajan.negentropy.client.view.RoutineView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -15,13 +15,17 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.tabs.TabsVariant;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
+@UIScope
+@SpringComponent
 public class MainLayout extends AppLayout {
 
     public MainLayout() {
         createHeader();
-        //createDrawer();
+        createDrawer();
     }
 
     private void createHeader() {
@@ -46,7 +50,7 @@ public class MainLayout extends AppLayout {
         addToDrawer(new VerticalLayout(
                 new RouterLink("List", ListView.class),
                 new RouterLink("Dashboard", DashboardView.class),
-                new RouterLink("Ritual", RitualView.class)
+                new RouterLink("Routine", RoutineView.class)
         ));
     }
 

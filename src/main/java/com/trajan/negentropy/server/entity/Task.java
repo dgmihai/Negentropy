@@ -23,7 +23,6 @@ public class Task extends AbstractEntity {
     @NotEmpty(message = "Title is required")
     private String title;
 
-    @Column(columnDefinition = "TEXT")
     @Builder.Default
     private String description = "";
 
@@ -39,18 +38,6 @@ public class Task extends AbstractEntity {
             joinColumns = @JoinColumn(name = "taskInfo_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     private List<Tag> tags = new ArrayList<>();
-
-//    @OneToMany(
-//            mappedBy = "child",
-//            cascade = CascadeType.ALL,
-//            orphanRemoval = true)
-//    private List<TaskNode> parents;
-//
-//    @OneToMany(
-//            mappedBy = "parent",
-//            cascade = CascadeType.ALL,
-//            orphanRemoval = true)
-//    private List<TaskNode> children;
 
     public String toString() {
         return "Task(" + super.toString() + ", title: " + title + ")";

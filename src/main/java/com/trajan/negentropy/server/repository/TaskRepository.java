@@ -14,7 +14,7 @@ import java.util.List;
 @Repository("taskInfoRepository")
 @Transactional
 public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task>, GenericSpecificationProvider<Task> {
-    default List<Task> findByFilters(List<Filter> filters) {
+    default List<Task> findAllFiltered(List<Filter> filters) {
         if (filters.size() > 0) {
             Specification<Task> spec = getSpecificationFromFilters(filters, Task.class);
             return findAll(spec);

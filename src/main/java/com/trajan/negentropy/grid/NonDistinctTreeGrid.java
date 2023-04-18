@@ -1,10 +1,12 @@
 //package com.trajan.negentropy.grid;
 //
-//import com.trajan.negentropy.dataTaskId.entity.old.Task;
-//import com.vaadin.flow.component.treegrid.TreeGrid;
-//import com.vaadin.flow.dataTaskId.provider.hierarchy.TreeDataProvider;
 //
-//public class NonDistinctTreeGrid extends TreeGrid<Task> implements HasNonDistinctHierarchicalDataProvider {
+//import com.trajan.negentropy.client.TaskEntry;
+//import com.trajan.negentropy.server.entity.Task;
+//import com.vaadin.flow.component.treegrid.TreeGrid;
+//import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
+//
+//public class NonDistinctTreeGrid extends TreeGrid<TaskEntry> implements HasNonDistinctHierarchicalDataProvider {
 //    public NonDistinctTreeGrid() {
 //        super();
 //        setTreeData(new NonDistinctTreeData());

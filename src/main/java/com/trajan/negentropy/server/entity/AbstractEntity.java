@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 @MappedSuperclass
@@ -13,7 +12,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Getter
 @SequenceGenerator(name = "entity_seq", sequenceName = "entity_seq")
-public abstract class AbstractEntity implements Serializable {
+public abstract class AbstractEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "entity_seq")
     private Long id;

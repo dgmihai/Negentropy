@@ -6,6 +6,7 @@ package com.trajan.negentropy.server.service;
 import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
 import com.trajan.negentropy.server.repository.filter.Filter;
+import org.springframework.data.util.Pair;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -14,6 +15,19 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface TaskService {
+
+    /**
+     * Creates a new Task entity to persist along with a base associated TaskNode.
+     *
+     * @param task The Task to create the Task entity from.
+     * @return A springframework Pair containing The persisted Task and TaskNode entities..
+     * @throws IllegalArgumentException if the Task being created already has an assigned ID.
+     * @see Task
+     * @see TaskNode
+     */
+    @Transactional
+    Pair<Task, TaskNode> createTaskWithNode(Task task);
+
     /**
      * Creates a new Task entity to persist.
      * </p>
@@ -21,6 +35,7 @@ public interface TaskService {
      *
      * @param task The Task to create the Task entity from.
      * @return The persisted Task entity.
+     * @throws IllegalArgumentException if the Task being created already has an assigned ID.
      * @see Task
      * @see TaskNode
      */
@@ -81,6 +96,24 @@ public interface TaskService {
 //    TaskNode getRootNode();
 
     /**
+     * Retrieves the unordered list of TaskNode entities that have no parent Task.
+     *
+     * @return The list of TaskNode entities that have no parent Task associated with them.
+     * @see Task
+     * @see TaskNode
+     */
+    List<TaskNode> findOrphanNodes();
+
+    /**
+     * Retrieves the count of TaskNode entities that have no parent Task.
+     *
+     * @return The count of TaskNode entities that have no parent Task associated with them.
+     * @see Task
+     * @see TaskNode
+     */
+    int countOrphanNodes();
+
+    /**
      * Retrieves the ordered list of TaskNode entities that are children of the Task with the given ID.
      *
      * @param taskId The ID of the Task whose children are to be retrieved.
@@ -88,7 +121,30 @@ public interface TaskService {
      * @see Task
      * @see TaskNode
      */
-    List<TaskNode> getChildNodes(long taskId);
+    List<TaskNode> findChildNodes(long taskId);
+
+    /**
+     * Retrieves the count of TaskNode entities that are children of the Task with the given ID.
+     *
+     * @param taskId The ID of the Task whose children are to be counted.
+     * @return The count of TaskNode entities that are children of the Task.
+     * @see Task
+     * @see TaskNode
+     */
+    int countChildNodes(long taskId);
+
+    /**
+     * Retrieves the ordered list of TaskNode entities that are children of the Task with the given ID.
+     * </p>
+     * This also applies a set of filters to the TaskNodes retrieved, still in relative order.
+     *
+     * @param taskId The ID of the Task whose children are to be retrieved.
+     * @param filters the list of filters to apply.
+     * @return The list of TaskNode entities that are children of the Task.
+     * @see Task
+     * @see TaskNode
+     */
+    List<TaskNode> findChildNodesByFilter(long taskId, List<Filter> filters);
 
     /**
      * Retrieves the set of TaskNode entities that represent parents Tasks of the Task with the given ID.
@@ -97,12 +153,12 @@ public interface TaskService {
      * @return The set of parent TaskNodes entities of the Task with the given ID.
      * @see Task
      */
-    Set<TaskNode> getParentNodes(long taskId);
+    Set<TaskNode> getReferenceNodes(long taskId);
 
     /**
      * Appends a new TaskNode entity to a Task's children.
      * </p>
-     * Handles all ordering based on TaskNode.next.
+     * Appends to the end of parent's linked list of TaskNodes.
      *
      * @param childTaskId The ID of the Task this TaskNode refers to.
      * @param parentTaskId The ID of the intended parent Task.
@@ -111,12 +167,12 @@ public interface TaskService {
      * @see TaskNode
      */
     @Transactional
-    TaskNode appendNodeTo(long childTaskId, long parentTaskId);
+    TaskNode insertNodeAsChildOf(long childTaskId, long parentTaskId);
 
     /**
      * Inserts a new TaskNode entity before the specified TaskNode.
      * </p>
-     * Handles all ordering based on TaskNode.next.
+     * Handles all ordering based on the TaskNode doubly linked list.
      *
      * @param taskId The ID of the Task this TaskNode refers to.
      * @param nextNodeId The ID of the TaskNode that the new TaskNode will precede.
@@ -126,6 +182,33 @@ public interface TaskService {
      */
     @Transactional
     TaskNode insertNodeBefore(long taskId, long nextNodeId);
+
+    /**
+     * Inserts a new TaskNode entity after the specified TaskNode.
+     * </p>
+     * Handles all ordering based on the TaskNode doubly linked list.
+     *
+     * @param taskId The ID of the Task this TaskNode refers to.
+     * @param prevNodeId The ID of the TaskNode that the new TaskNode will succeed.
+     * @return The persisted TaskNode entity.
+     * @throws NoSuchElementException if a Task with the relevant ID does not exist.
+     * @see TaskNode
+     */
+    @Transactional
+    TaskNode insertNodeAfter(long taskId, long prevNodeId);
+
+    /**
+     * Inserts a new TaskNode entity with no specified parent.
+     * </p>
+     * This TaskNode starts with no relationships.
+     *
+     * @param taskId The ID of the Task this TaskNode refers to.
+     * @return The persisted TaskNode entity.
+     * @throws NoSuchElementException if a Task with the relevant ID does not exist.
+     * @see TaskNode
+     */
+    @Transactional
+    TaskNode insertOrphanNode(long taskId);
 
     /**
      * Retrieves a TaskNode object by its unique ID.
@@ -147,7 +230,7 @@ public interface TaskService {
      * @see Filter
      * @see TaskNode
      */
-    List<TaskNode> findNodes(List<Filter> filters);
+    List<TaskNode> findAllNodes(List<Filter> filters);
 
     /**
      * Deletes a TaskNode entity.
