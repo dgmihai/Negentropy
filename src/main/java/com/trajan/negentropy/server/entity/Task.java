@@ -28,8 +28,6 @@ public class Task extends AbstractEntity {
 
     private Duration duration = Duration.ZERO;
 
-    private Integer priority;
-
     @ManyToMany(
             cascade = CascadeType.REMOVE,
             fetch = FetchType.EAGER)
@@ -52,6 +50,5 @@ public class Task extends AbstractEntity {
         logger.debug("id=          {}", this.getId());
         logger.debug("title=       {}", this.getTitle());
         logger.debug("duration=    {}", this.getDuration());
-        logger.debug("priority=    {}", this.getPriority());
     }
 }

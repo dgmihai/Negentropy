@@ -1,10 +1,19 @@
 package com.trajan.negentropy.server.service;
 
+import com.trajan.negentropy.server.entity.Routine;
 import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
-import com.trajan.negentropy.server.entity.TaskSession;
-import com.trajan.negentropy.server.entity.TaskStatus;
-import com.trajan.negentropy.server.repository.TaskSessionRepository;
+import com.trajan.negentropy.server.entity.Task_;
+import com.trajan.negentropy.server.entity.status.RoutineStatus;
+import com.trajan.negentropy.server.repository.RoutineRepository;
+import com.trajan.negentropy.server.repository.RoutineStepRepository;
+import com.trajan.negentropy.server.repository.TaskNodeRepository;
+import com.trajan.negentropy.server.repository.TaskRepository;
+import com.trajan.negentropy.server.repository.filter.Filter;
+import com.trajan.negentropy.server.repository.filter.QueryOperator;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.hibernate.Session;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,226 +23,194 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Statement;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest
 public class RoutineServiceTest {
-
-    @Autowired
-    private TaskSessionRepository taskSessionRepository;
-
     @Autowired
     private TaskService taskService;
-
+    @Autowired
     private RoutineService routineService;
+    @Autowired
+    private TaskRepository taskRepository;
+    @Autowired
+    private TaskNodeRepository taskNodeRepository;
+    @Autowired
+    private RoutineRepository routineRepository;
+    @Autowired
+    private RoutineStepRepository stepRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @BeforeEach
     public void setUp() {
-        routineService = new RoutineServiceImpl(taskSessionRepository, taskService);
+        Task task0 = Task.builder()
+                .title("Root")
+                .duration(Duration.ofMinutes(5))
+                .build();
+        Task task1 = Task.builder()
+                .title("Task 1")
+                .duration(Duration.ofMinutes(1))
+                .build();
+        Task task2 = Task.builder()
+                .title("Task 2")
+                .duration(Duration.ofMinutes(2))
+                .build();
+        Task task3 = Task.builder()
+                .title("Task 3")
+                .duration(Duration.ofMinutes(3))
+                .build();
+
+        Pair<Task, TaskNode> result0 = taskService.createTaskWithNode(task0);
+        task0 = result0.getFirst();
+        TaskNode node0 = result0.getSecond();
+
+        task1 = taskService.createTask(task1);
+        task2 = taskService.createTask(task2);
+        task3 = taskService.createTask(task3);
+
+        taskService.createChildNode(task0.getId(), task1.getId(), 0);
+        taskService.createChildNode(task0.getId(), task2.getId(), 1);
+        taskService.createChildNode(task0.getId(), task3.getId(), 2);
     }
 
     @AfterEach
+    @Transactional
     public void tearDown() {
-        TaskSession activeTaskSession = routineService.getActiveTaskSession();
-        if (activeTaskSession != null) {
-            routineService.pauseTask(activeTaskSession.getId());
-        }
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(connection -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("SET REFERENTIAL_INTEGRITY FALSE");
+            }
+        });
+
+        //routineRepository.deleteAll();
+        //stepRepository.deleteAll();
+        taskNodeRepository.deleteAll();
+        taskRepository.deleteAll();
+
+
+        session.doWork(connection -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("SET REFERENTIAL_INTEGRITY TRUE");
+            }
+        });
     }
 
     @Test
-    public void testStartTask() {
-        Task task = Task.builder().title("Task 1").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
+    public void testInitRoutine() {
+        // Starting a routine with task0 as the root
+        Filter filter = Filter.builder()
+                .field(Task_.TITLE)
+                .operator(QueryOperator.EQUALS)
+                .value("Root")
+                .build();
+        Routine routine = routineService.initRoutine(taskService.findTasks(List.of(filter)).get(0).getId(), 0);
 
-        TaskSession taskSession = routineService.startTask(node.getId());
+        // Check if routine is not null and not completed
+        assertNotNull(routine);
+        assertEquals(RoutineStatus.INITIALIZED, routine.getStatus());
 
-        assertNotNull(taskSession);
-        assertEquals(TaskStatus.ACTIVE, taskSession.getStatus());
-        assertNotNull(taskSession.getStartTime());
-        assertNull(taskSession.getPauseTime());
-        assertEquals(Duration.ZERO, taskSession.getTotalPausedDuration());
+        // Check that the routine queue is properly populated
+        assertEquals("Task 1", routine.getQueue().get(0).getTitle());
+        assertEquals("Task 2", routine.getQueue().get(1).getTitle());
+        assertEquals("Task 3", routine.getQueue().get(2).getTitle());
+
+        // Check if the queue contains Task 2 and Task 3
+        List<String> queueTaskTitles = routine.getQueue().stream()
+                .map(Task::getTitle)
+                .toList();
+        assertEquals(3, queueTaskTitles.size());
+        assertTrue(queueTaskTitles.contains("Task 1"));
+        assertTrue(queueTaskTitles.contains("Task 2"));
+        assertTrue(queueTaskTitles.contains("Task 3"));
+
+        assertEquals(Duration.ofMinutes(6), routine.getEstimatedDuration());
     }
 
     @Test
-    public void testStartTaskWhenAnotherTaskIsActive() {
-        Task task1 = Task.builder().title("Task 101").build();
-        task1 = taskService.createTaskWithNode(task1).getFirst();
-        Pair<Task, TaskNode> result1 = taskService.createTaskWithNode(task1);
-        task1 = result1.getFirst();
-        TaskNode node1 = result1.getSecond();
+    public void testInitRoutineWithPriority() {
+        // Starting a routine with task0 as the root
+        Filter filter = Filter.builder()
+                .field(Task_.TITLE)
+                .operator(QueryOperator.EQUALS)
+                .value("Root")
+                .build();
+        Routine routine = routineService.initRoutine(taskService.findTasks(List.of(filter)).get(0).getId(), 2);
 
-        Task task2 = Task.builder().title("Task 102").build();
-        Pair<Task, TaskNode> result2 = taskService.createTaskWithNode(task2);
-        task2 = result2.getFirst();
-        TaskNode node2 = result2.getSecond();
+        // Check if routine is not null and not completed
+        assertNotNull(routine);
+        assertEquals(RoutineStatus.INITIALIZED, routine.getStatus());
 
-        long task2Id = task2.getId();
-        assertThrows(IllegalStateException.class, () -> routineService.startTask(task2Id));
+        // Check that the routine queue is properly populated
+        assertEquals("Task 3", routine.getQueue().get(0).getTitle());
 
-        TaskSession taskSession1 = taskSessionRepository.findByNodeId(task1.getId()).orElse(null);
-        assertNotNull(taskSession1);
-        assertEquals(TaskStatus.ACTIVE, taskSession1.getStatus());
+        // Check if the queue contains Task 2 and Task 3
+        List<String> queueTaskTitles = routine.getQueue().stream()
+                .map(Task::getTitle)
+                .toList();
+        assertEquals(1, queueTaskTitles.size());
+        assertFalse(queueTaskTitles.contains("Task 1"));
+        assertFalse(queueTaskTitles.contains("Task 2"));
+        assertTrue(queueTaskTitles.contains("Task 3"));
 
-        TaskSession taskSession2 = taskSessionRepository.findByNodeId(task2.getId()).orElse(null);
-        assertNull(taskSession2);
+        assertEquals(Duration.ofMinutes(3), routine.getEstimatedDuration());
     }
 
     @Test
-    public void testPauseTask() {
-        Task task = Task.builder().title("Task 2").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
+    public void testIterateThroughRoutine() {
+        // Starting a routine with task0 as the root
+        Filter filter = Filter.builder()
+                .field(Task_.TITLE)
+                .operator(QueryOperator.EQUALS)
+                .value("Root")
+                .build();
+        Routine routine = routineService.initRoutine(taskService.findTasks(List.of(filter)).get(0).getId(), 0);
+        routine = routineService.startRoutine(routine.getId());
 
-        TaskSession taskSession = routineService.startTask(node.getId());
-        routineService.pauseTask(taskSession.getId());
+        // Check if the routine is active
+        assertEquals(RoutineStatus.ACTIVE, routine.getStatus());
 
-        taskSession = taskSessionRepository.findByNodeId(taskSession.getId()).orElse(null);
-        assertNotNull(taskSession);
-        assertEquals(TaskStatus.PAUSED, taskSession.getStatus());
-        assertNotNull(taskSession.getPauseTime());
+        // Check if the current step is Task 1
+        assertEquals("Task 1", routine.getQueue().get(0).getTitle());
+        assertEquals("Task 1", routine.getSteps().get(0).getTask().getTitle());
+
+        // Complete the first step (Task 1) and start the next step (Task 2)
+        routine = routineService.completeStep(routine.getId());
+
+        // Verify the estimated duration has updated
+        assertEquals(Duration.ofMinutes(5), routine.getEstimatedDuration());
+
+        // Check if the current step is Task 2
+        assertEquals("Task 2", routine.getQueue().get(1).getTitle());
+        assertEquals("Task 2", routine.getSteps().get(1).getTask().getTitle());
+
+        // Complete the second step (Task 2)
+        routine = routineService.completeStep(routine.getId());
+
+        // Verify the estimated duration has updated
+        assertEquals(Duration.ofMinutes(3), routine.getEstimatedDuration());
+
+        // Check if the current step is Task 3
+        assertEquals("Task 3", routine.getQueue().get(2).getTitle());
+        assertEquals("Task 3", routine.getSteps().get(2).getTask().getTitle());
+
+        // Complete the third step (Task 3)
+        routine = routineService.completeStep(routine.getId());
+
+        // Verify the estimated duration has updated
+        assertEquals(Duration.ZERO, routine.getEstimatedDuration());
+
+        // Check if the routine is completed
+        assertEquals(RoutineStatus.COMPLETED, routine.getStatus());
     }
-
-    @Test
-    public void testResumeTask() {
-        Task task = Task.builder().title("Task 3").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
-
-        TaskSession taskSession = routineService.startTask(node.getId());
-        routineService.pauseTask(taskSession.getId());
-        routineService.resumeTask(taskSession.getId());
-
-        taskSession = taskSessionRepository.findByNodeId(node.getId()).orElse(null);
-        assertNotNull(taskSession);
-        assertEquals(TaskStatus.ACTIVE, taskSession.getStatus());
-        assertNull(taskSession.getPauseTime());
-    }
-
-    @Test
-    public void testResumeTaskWhenAnotherTaskIsActive() {
-        Task task1 = Task.builder().title("Task 103").build();
-        task1 = taskService.createTask(task1);
-        routineService.startTask(task1.getId());
-        routineService.pauseTask(task1.getId());
-
-        Task task2 = Task.builder().title("Task 104").build();
-        task2 = taskService.createTask(task2);
-        routineService.startTask(task2.getId());
-
-        long task1Id = task1.getId();
-        assertThrows(IllegalStateException.class, () -> routineService.resumeTask(task1Id));
-
-        TaskSession taskSession1 = taskSessionRepository.findByNodeId(task1.getId()).orElse(null);
-        assertNotNull(taskSession1);
-        assertEquals(TaskStatus.PAUSED, taskSession1.getStatus());
-
-        TaskSession taskSession2 = taskSessionRepository.findByNodeId(task2.getId()).orElse(null);
-        assertNotNull(taskSession2);
-        assertEquals(TaskStatus.ACTIVE, taskSession2.getStatus());
-    }
-
-    @Test
-    public void testCompleteTask() {
-        Task task = Task.builder().title("Task 4").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
-
-        routineService.startTask(node.getId());
-        routineService.completeTask(task.getId());
-
-        TaskSession taskSession = taskSessionRepository.findByNodeId(task.getId()).orElse(null);
-        assertNotNull(taskSession);
-        assertEquals(TaskStatus.COMPLETED, taskSession.getStatus());
-    }
-
-    @Test
-    public void testPauseNotRunningTask() {
-        Task task = Task.builder().title("Task 5").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
-
-        TaskSession taskSession = new TaskSession(node, TaskStatus.PAUSED, LocalDateTime.now(), null, Duration.ZERO);
-        taskSessionRepository.save(taskSession);
-
-        routineService.pauseTask(task.getId());
-
-        TaskSession updatedTaskSession = taskSessionRepository.findByNodeId(task.getId()).orElse(null);
-        assertNotNull(updatedTaskSession);
-        assertEquals(TaskStatus.PAUSED, updatedTaskSession.getStatus());
-    }
-
-    @Test
-    public void testResumeNotPausedTask() {
-        Task task = Task.builder().title("Task 6").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
-
-        TaskSession taskSession = new TaskSession(node, TaskStatus.ACTIVE, LocalDateTime.now(), null, Duration.ZERO);
-        taskSession = taskSessionRepository.save(taskSession);
-
-        long sessionId = taskSession.getId();
-        assertThrows(IllegalStateException.class, () -> routineService.resumeTask(sessionId));
-
-        TaskSession updatedTaskSession = taskSessionRepository.findByNodeId(node.getId()).orElse(null);
-        assertNotNull(updatedTaskSession);
-        assertEquals(TaskStatus.ACTIVE, updatedTaskSession.getStatus());
-    }
-
-    @Test
-    public void testCompleteNotRunningTask() {
-        Task task = Task.builder().title("Task 7").build();
-        Pair<Task, TaskNode> result = taskService.createTaskWithNode(task);
-        task = result.getFirst();
-        TaskNode node = result.getSecond();
-
-        TaskSession taskSession = new TaskSession(node, TaskStatus.PAUSED, LocalDateTime.now(), null, Duration.ZERO);
-        taskSessionRepository.save(taskSession);
-
-        routineService.completeTask(task.getId());
-
-        TaskSession updatedTaskSession = taskSessionRepository.findByNodeId(task.getId()).orElse(null);
-        assertNotNull(updatedTaskSession);
-        assertEquals(TaskStatus.COMPLETED, updatedTaskSession.getStatus());
-    }
-
-    @Test
-    public void testPauseNotInRepository() {
-        Task task = Task.builder().title("Task 8").build();
-        task = taskService.createTask(task);
-
-        long taskId = task.getId();
-        assertThrows(IllegalArgumentException.class, () -> routineService.pauseTask(taskId));
-    }
-
-    @Test
-    public void testResumeNotInRepository() {
-        Task task = Task.builder().title("Task 9").build();
-        task = taskService.createTask(task);
-
-        long taskId = task.getId();
-        assertThrows(IllegalArgumentException.class, () -> routineService.pauseTask(taskId));
-    }
-
-    @Test
-    public void testCompleteNotInRepository() {
-        Task task = Task.builder().title("Task 10").build();
-        task = taskService.createTask(task);
-
-        long taskId = task.getId();
-        assertThrows(IllegalArgumentException.class, () -> routineService.pauseTask(taskId));
-    }
-
 }

@@ -66,15 +66,19 @@ public class ClientPresenterImpl implements ClientPresenter {
             Task task = taskInfoForm.getBinder().getBean();
             if (task.getId() == null) task = taskService.createTaskWithNode(task).getFirst();
             switch (position) {
-                case AS_SUBTASK -> taskService.insertNodeAsChildOf(
+                // TODO: Priority
+                case AS_SUBTASK -> taskService.createChildNode(
                         task.getId(),
-                        node.getReferenceTask().getId());
-                case BEFORE -> taskService.insertNodeBefore(
+                        node.getReferenceTask().getId(),
+                        0);
+                case BEFORE -> taskService.createNodeBefore(
                         task.getId(),
-                        node.getId());
-                case AFTER -> taskService.insertNodeAfter(
+                        node.getId(),
+                        0);
+                case AFTER -> taskService.createNodeAfter(
                         task.getId(),
-                        node.getId());
+                        node.getId(),
+                        0);
                 default -> throw new IllegalArgumentException(
                         "Unknown insertion position: " + position);
             }

@@ -1,58 +1,104 @@
 package com.trajan.negentropy.server.service;
 
-import com.trajan.negentropy.server.entity.TaskSession;
+import com.trajan.negentropy.server.entity.Routine;
+import com.trajan.negentropy.server.entity.status.RoutineStatus;
+import com.trajan.negentropy.server.entity.status.TaskStatus;
+
+import java.util.List;
 
 public interface RoutineService {
     /**
-     * Starts a task and records the start time. If the task is already running or paused, this method does nothing.
+     * Starts a task and records the start time and records the active time.
+     * </p>
+     * If the task is already running or paused, this method does nothing.
      *
-     * @param nodeId The ID of the TaskNode to start.
-     * @return A new TaskSession object containing the created TaskSession.
+     * @param nodeId The ID of the TaskNode to start from.
+     * @param priority The minimum priority level of subtasks to include
+     * @return A new Routine object containing the created Routine.
      * @throws IllegalArgumentException If the task is not found by the TaskService.
      */
-    TaskSession startTask(long nodeId);
+    Routine initRoutine(long nodeId, int priority);
+
+    Routine recalculateRoutine(long routineId, int priority);
+
+    Routine startRoutine(long routineId);
 
     /**
-     * Pauses a running task and records the pause time. If the task is not running, this method does nothing.
+     * Completes the latest Step of a Routine and returns the next Step.
+     * </p>
+     * Calculates the elapsedActiveTime if the Task was ACTIVE.
      *
-     * @param sessionId The ID of the TaskSession to pause.
-     * @throws IllegalArgumentException If the TaskSession is not found .
+     * @param routineId The ID of the Routine.
+     * @return The updated Routine.
+     * @throws IllegalArgumentException If the Routine is not found by the RoutineService.
      */
-    void pauseTask(long sessionId);
+    Routine completeStep(long routineId);
 
     /**
-     * Resumes a paused task and updates the total paused duration. If the task is not paused, this method does nothing.
+     * Skips the latest Step of a Routine and returns the next Step.
+     * </p>
+     * Calculates the elapsedActiveTime if the Task was ACTIVE.
      *
-     * @param sessionId The ID of the TaskSession to resume.
-     * @throws IllegalArgumentException If the TaskSession is not founds.
+     * @param routineId The ID of the Routine.
+     * @return The updated Routine.
+     * @throws IllegalArgumentException If the Routine is not found by the RoutineService.
      */
-    void resumeTask(long sessionId);
+    Routine skipStep(long routineId);
 
     /**
-     * Marks a task as completed, regardless of its current status (running or paused).
-     * If the task is not in the active tasks, this method does nothing.
+     * Suspends the latest Step of a Routine and returns that same Step.
+     * </p>
+     * Calculates the elapsedActiveTime if the Task was ACTIVE.
      *
-     * @param sessionId The ID of the TaskSession to mark as completed.
-     * @throws IllegalArgumentException If the TaskSession is not found.
+     * @param routineId The ID of the Routine.
+     * @return The updated Routine.
+     * @throws IllegalArgumentException If the Routine is not found by the RoutineService.
      */
-    void completeTask(long sessionId);
+    Routine suspendStep(long routineId);
 
     /**
-     * Retrieves the current status, start time, pause time, and total paused duration of a task.
+     * Resumes the latest Step of a Routine, setting it to ACTIVE.
+     * </p>
+     *
+     * @param routineId The ID of the Routine.
+     * @return The updated Routine.
+     * @throws IllegalArgumentException If the Routine is not found by the RoutineService.
+     */
+    Routine resumeStep(long routineId);
+
+    /**
+     * Sets the TaskStatus of a particular RoutineStep.
+     * </p>
+     *
+     * @param routineStepId The ID of the RoutineStep.
+     * @return A new RoutineStep object containing the updated Step.
+     * @throws IllegalArgumentException If the Routine is not found by the RoutineService.
+     */
+    Routine setRoutineStepStatus(long routineStepId, TaskStatus status);
+
+    /**
+     * Retrieves the Routine entity using the provided ID.
      * If the task is not in the active tasks, this method throws an IllegalArgumentException.
      *
-     * @param sessionId The ID of the TaskSession to get session information for.
-     * @return An TaskSession object containing the requested information.
-     * @throws IllegalArgumentException If the TaskSession is not found.
+     * @param routineId The ID of the Routine to get session information for.
+     * @return A Routine object containing the requested information.
+     * @throws IllegalArgumentException If the Routine is not found.
      */
-    TaskSession getTaskSession(long sessionId);
+    Routine getRoutine(long routineId);
 
     /**
-     * Gets the currently active task across all sessions.
-     * If a task is already active, return that task; otherwise, return null.
+     * Gets all Routines with a particular status.
      *
-     * @return A TaskSession object if there's an active task, or null if no task is active.
+     * @param status The RoutineStatus to filter by.
+     * @return A List of Routine objects with the matching RoutineStatus.
      */
-    TaskSession getActiveTaskSession();
-}
+    List<Routine> findRoutinesByStatus(RoutineStatus status);
 
+    /**
+     * Checks to see if any RoutineSteps refer to a particular Task, referenced by ID.
+     *
+     * @return Returns 'true' if any RoutineStep refers to a particular Task, 'false' otherwise.
+     * @throws IllegalArgumentException If the Task is not found.
+     */
+    Boolean doesAnyRoutineStepReferToTask(long taskId);
+}

@@ -15,7 +15,7 @@ import java.util.*;
 
 @Service("taskService")
 public class TaskServiceImpl implements TaskService {
-    private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
     private final TaskRepository taskRepository;
     private final TaskNodeRepository nodeRepository;
 
@@ -28,7 +28,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public Pair<Task, TaskNode> createTaskWithNode(Task task) {
         task = createTask(task);
-        TaskNode node = insertOrphanNode(task.getId());
+        TaskNode node = createOrphanNode(task.getId());
         return Pair.of(task, node);
     }
 
@@ -68,7 +68,7 @@ public class TaskServiceImpl implements TaskService {
                 unlinkTaskNode(taskNode);
                 nodeRepository.delete(taskNode);
             }
-            for (TaskNode taskNode : findChildNodes(taskId)) {
+            for (TaskNode taskNode : getChildNodes(taskId)) {
                 checkForPurge.add(taskNode.getReferenceTask());
                 nodeRepository.delete(taskNode);
             }
@@ -87,7 +87,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskNode> findOrphanNodes() {
+    public List<TaskNode> getOrphanNodes() {
         return nodeRepository.findByParentTask(null);
     }
 
@@ -97,7 +97,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskNode> findChildNodes(long taskId) {
+    public List<TaskNode> getChildNodes(long taskId) {
           return nodeRepository.orderNodes(nodeRepository.findByParentTask(getTask(taskId).orElseThrow()));
     }
 
@@ -107,7 +107,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskNode> findChildNodesByFilter(long taskId, List<Filter> filters) {
+    public List<TaskNode> findChildNodes(long taskId, List<Filter> filters) {
         return nodeRepository.findByParentFiltered(getTask(taskId).orElseThrow(), filters);
     }
 
@@ -118,12 +118,13 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskNode insertNodeAsChildOf(long childTaskId, long parentTaskId) {
+    public TaskNode createChildNode(long parentTaskId, long childTaskId, int priority) {
         TaskNode newNode = TaskNode.builder()
                 .referenceTask(getTask(childTaskId).orElseThrow())
                 .parentTask(getTask(parentTaskId).orElseThrow())
+                .priority(priority)
                 .build();
-        List<TaskNode> children = findChildNodes(parentTaskId);
+        List<TaskNode> children = getChildNodes(parentTaskId);
         if (!children.isEmpty()) {
             TaskNode prevNode = children.get(children.size() - 1);
             newNode.setPrev(prevNode);
@@ -134,56 +135,63 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskNode insertNodeBefore(long taskId, long nextNodeId) {
+    public TaskNode createNodeBefore(long taskId, long nextNodeId, int priority) {
         TaskNode newNode = TaskNode.builder()
                 .referenceTask(getTask(taskId).orElseThrow())
                 .next(getNode(nextNodeId).orElseThrow())
+                .priority(priority)
                 .build();
         TaskNode nextNode = newNode.getNext();
         if (nextNode != null) {
-            linkNodes(newNode, nextNode);
-            nextNode.setPrev(newNode);
+            if (nextNode.getParentTask() != null) {
+                newNode.setParentTask(nextNode.getParentTask());
+                linkNodes(nextNode.getPrev(), newNode, nextNode);
+            } else {
+                //TODO: Behavior when trying to link to a node with no parent?
+            }
+        } else {
+            throw new IllegalArgumentException("Unable to create new node before id " + nextNodeId +
+                    ": id refers to no existing node.");
         }
         return nodeRepository.save(newNode);
     }
 
     @Override
     @Transactional
-    public TaskNode insertNodeAfter(long taskId, long prevNodeId) {
+    public TaskNode createNodeAfter(long taskId, long prevNodeId, int priority) {
         TaskNode newNode = TaskNode.builder()
                 .referenceTask(getTask(taskId).orElseThrow())
                 .prev(getNode(prevNodeId).orElseThrow())
+                .priority(priority)
                 .build();
         TaskNode prevNode = newNode.getPrev();
         if (prevNode != null) {
-            linkNodes(newNode, prevNode);
-            prevNode.setNext(newNode);
+            if (prevNode.getParentTask() != null) {
+                newNode.setParentTask(prevNode.getParentTask());
+                linkNodes(prevNode, newNode, prevNode.getNext());
+            } else {
+                //TODO: Behavior when trying to link to a node with no parent?
+            }
+        } else {
+            throw new IllegalArgumentException("Unable to create new node after id " + prevNodeId +
+                    ": id refers to no existing node.");
         }
         return nodeRepository.save(newNode);
     }
 
-
-    private void linkNodes(TaskNode newNode, TaskNode adjacentNode) {
-        if (adjacentNode.getParentTask() != null) {
-            List<TaskNode> children = findChildNodes(adjacentNode.getParentTask().getId());
-            newNode.setParentTask(adjacentNode.getParentTask());
-            if (!children.isEmpty()) {
-                int position = children.indexOf(adjacentNode);
-                if (position >= 0 && position < children.size() - 1) {
-                    TaskNode nextNode = children.get(position + 1);
-                    newNode.setNext(nextNode);
-                    nextNode.setPrev(newNode);
-                } else if (position > 0) {
-                    TaskNode prevNode = children.get(position - 1);
-                    newNode.setPrev(prevNode);
-                    prevNode.setNext(newNode);
-                }
-            }
+    private void linkNodes(TaskNode prev, TaskNode newNode, TaskNode next) {
+        newNode.setPrev(prev);
+        newNode.setNext(next);
+        if (next != null) {
+            next.setPrev(newNode);
+        }
+        if (prev != null) {
+            prev.setNext(newNode);
         }
     }
 
     @Override
-    public TaskNode insertOrphanNode(long taskId) {
+    public TaskNode createOrphanNode(long taskId) {
         return nodeRepository.save(TaskNode.builder()
                 .referenceTask(getTask(taskId).orElseThrow())
                 .build());

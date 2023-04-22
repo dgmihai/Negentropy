@@ -82,7 +82,7 @@ public class ListView extends VerticalLayout {
 
         Grid.Column<TaskEntry> priorityColumn = treeGrid
                 .addColumn(entry ->
-                        entry.node().getReferenceTask().getPriority())
+                        entry.node().getPriority())
                 .setHeader("Priority")
                 .setAutoWidth(true)
                 .setFlexGrow(0);

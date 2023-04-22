@@ -1,6 +1,7 @@
 package com.trajan.negentropy.server.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,20 +15,17 @@ import org.slf4j.LoggerFactory;
 @Setter
 public class TaskNode extends AbstractEntity {
     private static final Logger logger = LoggerFactory.getLogger(TaskNode.class);
-
-//    @ManyToOne
-//    @JoinColumn(name = "parent_node_id")
-//    private TaskNode parentNode;
-
     @ManyToOne
     @JoinColumn(name = "parent_task_id")
     private Task parentTask;
 
     @ManyToOne
     @JoinColumn(name = "data_task_id")
+    @NotNull
     private Task referenceTask;
 
-    @ManyToOne(cascade = {
+    @ManyToOne(fetch = FetchType.EAGER,
+            cascade = {
             CascadeType.MERGE,
             CascadeType.PERSIST,
             CascadeType.REFRESH,
@@ -35,7 +33,8 @@ public class TaskNode extends AbstractEntity {
     @JoinColumn(name = "prev_id")
     private TaskNode prev;
 
-    @ManyToOne(cascade = {
+    @ManyToOne(fetch = FetchType.EAGER,
+            cascade = {
             CascadeType.MERGE,
             CascadeType.PERSIST,
             CascadeType.REFRESH,
@@ -43,8 +42,11 @@ public class TaskNode extends AbstractEntity {
     @JoinColumn(name = "next_id")
     private TaskNode next;
 
+    @Builder.Default
+    private Integer priority = 0;
+
     public String toString() {
-        return "Node(" + super.toString() + ")";
+        return "Node(" + super.toString() + "," + referenceTask + ")";
     }
 
     public void log() {

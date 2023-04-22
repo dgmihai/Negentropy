@@ -56,9 +56,9 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
         TaskEntry parent = query.getParent();
         Stream<TaskNode> nodeStream;
         if (parent == null) nodeStream = (rootTask == null) ?
-                taskService.findOrphanNodes().stream() :
-                taskService.findChildNodes(rootTask.getId()).stream();
-        else nodeStream = taskService.findChildNodes(parent.node().getReferenceTask().getId()).stream();
+                taskService.getOrphanNodes().stream() :
+                taskService.getChildNodes(rootTask.getId()).stream();
+        else nodeStream = taskService.getChildNodes(parent.node().getReferenceTask().getId()).stream();
         return nodeStream
                 .skip(offset)
                 .limit(limit)

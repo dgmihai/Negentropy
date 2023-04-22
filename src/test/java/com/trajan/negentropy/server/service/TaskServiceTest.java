@@ -3,9 +3,15 @@ package com.trajan.negentropy.server.service;
 import com.trajan.negentropy.server.entity.Task;
 import com.trajan.negentropy.server.entity.TaskNode;
 import com.trajan.negentropy.server.entity.Task_;
+import com.trajan.negentropy.server.repository.TaskNodeRepository;
+import com.trajan.negentropy.server.repository.TaskRepository;
 import com.trajan.negentropy.server.repository.filter.Filter;
 import com.trajan.negentropy.server.repository.filter.QueryOperator;
-import org.junit.jupiter.api.BeforeAll;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.hibernate.Session;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +38,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 public class TaskServiceTest {
+    @Autowired
+    private TaskRepository taskRepository;
+    @Autowired
+    private TaskNodeRepository taskNodeRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     private TaskService taskService;
@@ -40,26 +54,28 @@ public class TaskServiceTest {
     ArrayList<TaskNode> nodes = new ArrayList<>(
             Collections.nCopies(4, null));
 
-    @BeforeAll
+    @BeforeEach
     @Transactional
     public void setUp() {
+        assertEquals(0, taskService.findTasks(
+                Collections.emptyList()).size());
+        assertEquals(0, taskService.findAllNodes(
+                Collections.emptyList()).size());
+
         Task task0 = Task.builder()
                 .title("Root")
                 .build();
         Task task1 = Task.builder()
                 .title("Task 1")
                 .duration(Duration.ofMinutes(10))
-                .priority(1)
                 .build();
         Task task2 = Task.builder()
                 .title("Task 2")
                 .duration(Duration.ofMinutes(20))
-                .priority(2)
                 .build();
         Task task3 = Task.builder()
                 .title("Task 3")
                 .duration(Duration.ofMinutes(30))
-                .priority(3)
                 .build();
         Pair<Task, TaskNode> resultPair = taskService.createTaskWithNode(task0);
         tasks.set(0, resultPair.getFirst());
@@ -68,27 +84,71 @@ public class TaskServiceTest {
         tasks.set(2, taskService.createTask(task2));
         tasks.set(3, taskService.createTask(task3));
 
-        nodes.set(1, taskService.insertNodeAsChildOf(
+        nodes.set(1, taskService.createChildNode(
+                tasks.get(0).getId(),
                 tasks.get(1).getId(),
-                tasks.get(0).getId()));
-        nodes.set(3, taskService.insertNodeAfter(
+                1));
+        nodes.set(3, taskService.createNodeAfter(
                 tasks.get(3).getId(),
-                nodes.get(1).getId()));
-        nodes.set(2, taskService.insertNodeBefore(
-                tasks.get(2).getId(),
-                nodes.get(3).getId()));
+                nodes.get(1).getId(),
+                3));
 
-        List<TaskNode> children = taskService.findChildNodes(
+        assertEquals(nodes.get(1), nodes.get(3).getPrev());
+        assertNull(nodes.get(1).getPrev());
+
+        nodes.set(1, taskService.getNode(nodes.get(1).getId()).orElseThrow());
+
+        assertNull(nodes.get(3).getNext());
+        assertEquals(nodes.get(3), nodes.get(1).getNext());
+
+        nodes.set(2, taskService.createNodeBefore(
+                tasks.get(2).getId(),
+                nodes.get(3).getId(),
+                2));
+
+        nodes.set(1, taskService.getNode(nodes.get(1).getId()).orElseThrow());
+        nodes.set(3, taskService.getNode(nodes.get(3).getId()).orElseThrow());
+
+        List<TaskNode> children = taskService.getChildNodes(
                 tasks.get(0).getId());
 
         assertEquals(3, children.size());
         assertEquals(nodes.get(1), children.get(0));
         assertEquals(nodes.get(2), children.get(1));
         assertEquals(nodes.get(3), children.get(2));
+
+        assertEquals(nodes.get(1), nodes.get(2).getPrev());
+        assertEquals(nodes.get(2), nodes.get(3).getPrev());
+        assertNull(nodes.get(1).getPrev());
+
+        assertNull(nodes.get(3).getNext());
+        assertEquals(nodes.get(2), nodes.get(1).getNext());
+        assertEquals(nodes.get(3), nodes.get(2).getNext());
+
         assertEquals(4, taskService.findTasks(
                 Collections.emptyList()).size());
         assertEquals(4, taskService.findAllNodes(
                 Collections.emptyList()).size());
+    }
+
+    @AfterEach
+    @Transactional
+    public void tearDown() {
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(connection -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("SET REFERENTIAL_INTEGRITY FALSE");
+            }
+        });
+
+        taskNodeRepository.deleteAll();
+        taskRepository.deleteAll();
+
+        session.doWork(connection -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("SET REFERENTIAL_INTEGRITY TRUE");
+            }
+        });
     }
 
     @Test
@@ -99,7 +159,6 @@ public class TaskServiceTest {
         Task taskDuplicate = Task.builder()
                 .title("Task 1")
                 .duration(Duration.ofMinutes(11))
-                .priority(2)
                 .build();
         assertThrows(DataIntegrityViolationException.class,
                 () -> taskService.createTask(taskDuplicate));
@@ -148,9 +207,9 @@ public class TaskServiceTest {
                 .value("Task 3")
                 .build());
         filters.add(Filter.builder()
-                .field(Task_.PRIORITY)
-                .operator(QueryOperator.GREATER_THAN)
-                .value(2)
+                .field(Task_.DURATION)
+                .operator(QueryOperator.SHORTER_THAN)
+                .value(Duration.ofDays(1))
                 .build());
 
         // Fetch tasks with the new set of filters
@@ -169,11 +228,12 @@ public class TaskServiceTest {
                 .operator(QueryOperator.SHORTER_THAN)
                 .value(Duration.ofMinutes(21))
                 .build());
-        filters.add(Filter.builder()
-                .field(Task_.PRIORITY)
-                .operator(QueryOperator.GREATER_THAN)
-                .value(0)
-                .build());
+        // TODO: Tag filter
+//        filters.add(Filter.builder()
+//                .field(Task_.PRIORITY)
+//                .operator(QueryOperator.GREATER_THAN)
+//                .value(0)
+//                .build());
 
         // Call the findTasks method with the filters
         List<Task> results = taskService.findTasks(filters);
@@ -189,16 +249,17 @@ public class TaskServiceTest {
                 .operator(QueryOperator.LIKE)
                 .value("Task")
                 .build());
-        filters.add(Filter.builder()
-                .field(Task_.PRIORITY)
-                .operator(QueryOperator.LESS_THAN)
-                .value(3)
-                .build());
+        // TODO: Tag filter
+//        filters.add(Filter.builder()
+//                .field(Task_.PRIORITY)
+//                .operator(QueryOperator.LESS_THAN)
+//                .value(3)
+//                .build());
 
         // Call the findTasks method with the filters
         results = taskService.findTasks(filters);
 
-        assertEquals(2, results.size());
+        assertEquals(3, results.size());
         assertTrue(tasks.contains(tasks.get(1)));
         assertTrue(tasks.contains(tasks.get(2)));
     }
@@ -260,7 +321,6 @@ public class TaskServiceTest {
     }
 
     @Test
-    @Transactional
     public void testUpdateTask() {
         // Get the task to update
         Task two = tasks.get(2);
@@ -286,58 +346,51 @@ public class TaskServiceTest {
     }
 
     @Test
-    @Transactional
     public void testDeleteTaskAndTaskNode() {
-        // Add two nodes to anthe existing node, making a total of three nodes
-
         Task task4 = Task.builder()
                 .title("Task 4")
                 .duration(Duration.ofMinutes(40))
-                .priority(4)
                 .build();
 
         Task task4_1 = Task.builder()
                 .title("Task 4_1")
                 .duration(Duration.ofMinutes(41))
-                .priority(1)
                 .build();
         Task task4_2 = Task.builder()
                 .title("Task 4_2")
                 .duration(Duration.ofMinutes(42))
-                .priority(2)
                 .build();
         Task task4_3 = Task.builder()
                 .title("Task 4_3")
                 .duration(Duration.ofMinutes(43))
-                .priority(3)
                 .build();
         task4 = taskService.createTask(task4);
         task4_1 = taskService.createTask(task4_1);
         task4_2 = taskService.createTask(task4_2);
         task4_3 = taskService.createTask(task4_3);
 
-        TaskNode taskNode4_1 = taskService.insertNodeAsChildOf(task4_1.getId(), task4.getId());
-        TaskNode taskNode4_3 = taskService.insertNodeAsChildOf(task4_3.getId(), task4.getId());
-        TaskNode taskNode4_2= taskService.insertNodeBefore(task4_2.getId(), taskNode4_3.getId());
+        TaskNode taskNode4_1 = taskService.createChildNode(task4.getId(), task4_1.getId(), 1);
+        TaskNode taskNode4_3 = taskService.createChildNode(task4.getId(), task4_3.getId(), 3);
+        TaskNode taskNode4_2= taskService.createNodeBefore(task4_2.getId(), taskNode4_3.getId(), 2);
 
         // Verify that nodes added properly
 
         // Call the findNodes to fine all children of Task4, unordered
-        List<TaskNode> results = taskService.findChildNodes(task4.getId());
+        List<TaskNode> results = taskService.getChildNodes(task4.getId());
         assertEquals(3, results.size());
 
         // Delete a taskNode, expecting the linked list to still be properly formed
         taskService.deleteNode(taskNode4_2.getId());
-        results = taskService.findChildNodes(task4.getId());
+        results = taskService.getChildNodes(task4.getId());
         assertEquals(2, results.size());
-        assertEquals(taskNode4_3, taskNode4_1.getNext());
-        assertEquals(taskNode4_1, taskNode4_3.getPrev());
+        assertEquals(taskNode4_3, taskService.getNode(taskNode4_1.getId()).orElseThrow().getNext());
+        assertEquals(taskNode4_1, taskService.getNode(taskNode4_3.getId()).orElseThrow().getPrev());
 
         // Delete a Task and expect all child tasks to be gone
         taskService.deleteTask(task4.getId());
         final long task4Id = task4.getId();
-        assertThrows(NoSuchElementException.class, () -> taskService.findChildNodes(task4Id));
-        assertEquals(1, taskService.findOrphanNodes().size());
+        assertThrows(NoSuchElementException.class, () -> taskService.getChildNodes(task4Id));
+        assertEquals(1, taskService.getOrphanNodes().size());
         assertEquals(4, taskService.findAllNodes(Collections.emptyList()).size());
         assertEquals(4, taskService.findTasks(Collections.emptyList()).size());
     }
@@ -357,7 +410,7 @@ public class TaskServiceTest {
 
     @Test
     public void testFindChildNodes() {
-        List<TaskNode> results = taskService.findChildNodes(tasks.get(0).getId());
+        List<TaskNode> results = taskService.getChildNodes(tasks.get(0).getId());
 
         // Verify that the returned list contains the correct TaskNode entities and is ordered
         assertEquals(3, results.size());
@@ -368,14 +421,43 @@ public class TaskServiceTest {
     @Test
     public void testSaveInvalidTaskNode() {
         // Assert that saving a node with a bad parent ID throws
-        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeAsChildOf(tasks.get(1).getId(), -1));
+        assertThrows(NoSuchElementException.class, () -> taskService.createChildNode(-1, tasks.get(1).getId(), 0));
 
         // Assert that saving a node with a bad next node ID throws
-        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(tasks.get(1).getId(), -1));
+        assertThrows(NoSuchElementException.class, () -> taskService.createNodeBefore(tasks.get(1).getId(), -1, 0));
 
         // Assert that saving a node with a bad task data ID throws
-        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeAsChildOf(-1, tasks.get(1).getId()));
-        assertThrows(NoSuchElementException.class, () -> taskService.insertNodeBefore(-1, tasks.get(1).getId()));
+        assertThrows(NoSuchElementException.class, () -> taskService.createChildNode(tasks.get(1).getId(), -1, 0));
+        assertThrows(NoSuchElementException.class, () -> taskService.createNodeBefore(-1, tasks.get(1).getId(), 0));
+    }
+
+    @Test
+    public void testCreateChildNodeAfterChildNode() {
+        Task parentTask = Task.builder()
+                .title("Parent task")
+                .description("Description of parent task")
+                .build();
+
+        Task childTask1 = Task.builder()
+                .title("Child Task 1")
+                .description("Description of Child Task 1")
+                .build();
+
+        Task childTask2 = Task.builder()
+                .title("Child Task 2")
+                .description("Description of Child Task 2")
+                .build();
+
+        Pair<Task, TaskNode> parent = taskService.createTaskWithNode(parentTask);
+        childTask1 = taskService.createTask(childTask1);
+        childTask2 = taskService.createTask(childTask2);
+        TaskNode childNode1 = taskService.createChildNode(parent.getFirst().getId(), childTask1.getId(), 0);
+        TaskNode childNode2 = taskService.createNodeAfter(childTask2.getId(), childNode1.getId(), 0);
+        childNode1 = taskService.getNode(childNode1.getId()).orElseThrow();
+
+        assertEquals(2, taskService.getChildNodes(parent.getFirst().getId()).size());
+        assertEquals(childNode2, childNode1.getNext());
+        assertEquals(childNode1, childNode2.getPrev());
     }
 }
 

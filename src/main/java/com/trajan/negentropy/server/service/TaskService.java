@@ -85,16 +85,6 @@ public interface TaskService {
      */
     void deleteTask(long taskId);
 
-//    /**
-//     * Retrieves the root TaskNode entity, creating it if necessary.
-//     * </p>
-//     * This is the base for all TaskNodes in the hierarchy tree.
-//     *
-//     * @return the root TaskNode entity.
-//     * @see TaskNode
-//     */
-//    TaskNode getRootNode();
-
     /**
      * Retrieves the unordered list of TaskNode entities that have no parent Task.
      *
@@ -102,7 +92,7 @@ public interface TaskService {
      * @see Task
      * @see TaskNode
      */
-    List<TaskNode> findOrphanNodes();
+    List<TaskNode> getOrphanNodes();
 
     /**
      * Retrieves the count of TaskNode entities that have no parent Task.
@@ -121,7 +111,7 @@ public interface TaskService {
      * @see Task
      * @see TaskNode
      */
-    List<TaskNode> findChildNodes(long taskId);
+    List<TaskNode> getChildNodes(long taskId);
 
     /**
      * Retrieves the count of TaskNode entities that are children of the Task with the given ID.
@@ -144,7 +134,7 @@ public interface TaskService {
      * @see Task
      * @see TaskNode
      */
-    List<TaskNode> findChildNodesByFilter(long taskId, List<Filter> filters);
+    List<TaskNode> findChildNodes(long taskId, List<Filter> filters);
 
     /**
      * Retrieves the set of TaskNode entities that represent parents Tasks of the Task with the given ID.
@@ -162,12 +152,13 @@ public interface TaskService {
      *
      * @param childTaskId The ID of the Task this TaskNode refers to.
      * @param parentTaskId The ID of the intended parent Task.
+     * @param priority The priority of the TaskNode.
      * @return The persisted TaskNode entity.
      * @throws NoSuchElementException if a Task with the relevant ID does not exist.
      * @see TaskNode
      */
     @Transactional
-    TaskNode insertNodeAsChildOf(long childTaskId, long parentTaskId);
+    TaskNode createChildNode(long parentTaskId, long childTaskId, int priority);
 
     /**
      * Inserts a new TaskNode entity before the specified TaskNode.
@@ -176,12 +167,13 @@ public interface TaskService {
      *
      * @param taskId The ID of the Task this TaskNode refers to.
      * @param nextNodeId The ID of the TaskNode that the new TaskNode will precede.
+     * @param priority The priority of the TaskNode.
      * @return The persisted TaskNode entity.
      * @throws NoSuchElementException if a Task with the relevant ID does not exist.
      * @see TaskNode
      */
     @Transactional
-    TaskNode insertNodeBefore(long taskId, long nextNodeId);
+    TaskNode createNodeBefore(long taskId, long nextNodeId, int priority);
 
     /**
      * Inserts a new TaskNode entity after the specified TaskNode.
@@ -190,12 +182,13 @@ public interface TaskService {
      *
      * @param taskId The ID of the Task this TaskNode refers to.
      * @param prevNodeId The ID of the TaskNode that the new TaskNode will succeed.
+     * @param priority The priority of the TaskNode.
      * @return The persisted TaskNode entity.
      * @throws NoSuchElementException if a Task with the relevant ID does not exist.
      * @see TaskNode
      */
     @Transactional
-    TaskNode insertNodeAfter(long taskId, long prevNodeId);
+    TaskNode createNodeAfter(long taskId, long prevNodeId, int priority);
 
     /**
      * Inserts a new TaskNode entity with no specified parent.
@@ -208,7 +201,7 @@ public interface TaskService {
      * @see TaskNode
      */
     @Transactional
-    TaskNode insertOrphanNode(long taskId);
+    TaskNode createOrphanNode(long taskId);
 
     /**
      * Retrieves a TaskNode object by its unique ID.
