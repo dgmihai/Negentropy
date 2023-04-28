@@ -13,7 +13,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  * Use the @PWA annotation make the application installable on phones, tablets
  * and some desktop browsers.
- *
  */
 
 @PWA(

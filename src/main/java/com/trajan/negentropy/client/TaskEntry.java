@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.server.entity.TaskNode;
+import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
 
 public record TaskEntry(
-        TaskNode node,
+        TaskLinkEntity node,
         TaskEntry parent
 ) { }
