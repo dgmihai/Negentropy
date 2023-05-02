@@ -2,14 +2,12 @@ package com.trajan.negentropy.server.backend;
 
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.backend.repository.filter.Filter;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -21,7 +19,6 @@ public interface TaskEntityQueryService {
 
     /**
      * Get a task by ID.
-     *
      * @param taskId The ID of the task to retrieve.
      * @return The matching TaskEntity.
      * @throws java.util.NoSuchElementException if no matching entity was found with that ID.
@@ -30,12 +27,11 @@ public interface TaskEntityQueryService {
 
     /**
      * Get a task link by ID.
-     *
      * @param linkId The ID of the task link to retrieve.
-     * @return The matching TaskLinkEntity.
+     * @return The matching TaskLink.
      * @throws java.util.NoSuchElementException if no matching entity was found with that ID.
      */
-    TaskLinkEntity getLink(long linkId);
+    TaskLink getLink(long linkId);
 
 
     /**
@@ -44,21 +40,21 @@ public interface TaskEntityQueryService {
      * @param tags A set of tags to filter the tasks.
      * @return A stream of tasks that meet the specified filters and tags.
      */
-    Stream<TaskEntity> findTasks(List<Filter> filters, Set<TagEntity> tags);
+    Stream<TaskEntity> findTasks(Iterable<Filter> filters, Iterable<TagEntity> tags);
 
     /**
      * Counts the child tasks of a task.
-     * @param parent The parent task.
+     * @param parentId The ID of parent task.
      * @return The number of child tasks.
      */
-    int countChildren(TaskEntity parent);
+    int getChildCount(Long parentId);
 
     /**
      * Checks if the task has children.
-     * @param parent The parent task.
+     * @param parentId The ID of parent task.
      * @return True if the task has children, otherwise false.
      */
-    boolean hasChildren(TaskEntity parent);
+    boolean hasChildren(long parentId);
 
     /**
      * Retrieves all the task links where a task is a child.
@@ -66,15 +62,23 @@ public interface TaskEntityQueryService {
      * @param child The child task.
      * @return A stream of TaskLink entities.
      */
-    Stream<TaskLinkEntity> getLinksByChild(TaskEntity child);
+    Stream<TaskLink> getLinksByChild(TaskEntity child);
 
     /**
      * Retrieves all the task links where a task is a parent.
      * The returned stream is unordered.
-     * @param child The child task.
+     * @param parent The parent task.
      * @return A stream of TaskLink entities.
      */
-    Stream<TaskLinkEntity> getLinksByParent(TaskEntity child);
+    Stream<TaskLink> getLinksByParent(TaskEntity parent);
+
+    /**
+     * Retrieves all the task links where a given task is a parent.
+     * The returned stream is unordered.
+     * @param parentId The id of the parent task.
+     * @return A stream of TaskLink entities.
+     */
+    Stream<TaskLink> getLinksByParentId(long parentId);
 
     /**
      * Checks if the task has parents.
@@ -99,7 +103,7 @@ public interface TaskEntityQueryService {
      * @param descendant The descendant task.
      * @return A stream of all ancestor TaskLink entities.
      */
-    Stream<TaskLinkEntity> getAncestorLinks(TaskEntity descendant);
+    Stream<TaskLink> getAncestorLinks(TaskEntity descendant);
 
     /**
      * Retrieves all ancestor tasks of a task ordered via depth-first search.
@@ -113,7 +117,7 @@ public interface TaskEntityQueryService {
      * @param ancestor The root, or ancestor task.
      * @return A stream of all descendant TaskLink entities.
      */
-    Stream<TaskLinkEntity> getDescendantLinks(TaskEntity ancestor);
+    Stream<TaskLink> getDescendantLinks(TaskEntity ancestor);
 
     /**
      * Retrieves the total duration of a task, including all descendants.

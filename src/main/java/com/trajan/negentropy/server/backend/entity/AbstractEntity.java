@@ -1,16 +1,15 @@
 package com.trajan.negentropy.server.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.Accessors;
-import lombok.experimental.SuperBuilder;
 
 import java.util.Objects;
 
 @MappedSuperclass
 @NoArgsConstructor
-@AllArgsConstructor
-@SuperBuilder(toBuilder = true)
 @Accessors(fluent = true)
 @Getter
 @Setter

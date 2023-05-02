@@ -1,7 +1,8 @@
 package com.trajan.negentropy.server.backend.repository;
 
+import com.google.common.collect.Iterables;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.filter.Filter;
 import com.trajan.negentropy.server.backend.repository.filter.GenericSpecificationProvider;
 import jakarta.transaction.Transactional;
@@ -22,7 +23,9 @@ import java.util.stream.Stream;
  */
 @Repository
 @Transactional
-public interface LinkRepository extends JpaRepository<TaskLinkEntity, Long>, JpaSpecificationExecutor<TaskLinkEntity>, GenericSpecificationProvider<TaskLinkEntity> {
+public interface LinkRepository extends JpaRepository<TaskLink, Long>,
+        JpaSpecificationExecutor<TaskLink>,
+        GenericSpecificationProvider<TaskLink> {
 
     /**
      * Finds all TaskLink entities matching the specified filters.
@@ -30,11 +33,12 @@ public interface LinkRepository extends JpaRepository<TaskLinkEntity, Long>, Jpa
      * @param filters A list of filters to be applied.
      * @return A list of TaskLink entities matching the filters.
      */
-    default List<TaskLinkEntity> findAllWithFilters(List<Filter> filters) {
-        if (filters == null || filters.isEmpty()) {
+    @Override
+    default List<TaskLink> findAllFiltered(Iterable<Filter> filters) {
+        if (filters == null || Iterables.isEmpty(filters)) {
             return findAll();
         } else {
-            Specification<TaskLinkEntity> spec = getSpecificationFromFilters(filters, TaskLinkEntity.class);
+            Specification<TaskLink> spec = getSpecificationFromFilters(filters, TaskLink.class);
             return new ArrayList<>(findAll(spec, Sort.unsorted()));
         }
     }
@@ -44,15 +48,30 @@ public interface LinkRepository extends JpaRepository<TaskLinkEntity, Long>, Jpa
      *
      * @return A list of orphan Task entities.
      */
-    List<TaskLinkEntity> findByParentIsNull();
+    List<TaskLink> findByParentIsNull();
 
     /**
-     * Checks if the task has any child task links or not.
+     * Checks if the task, given its ID, has any child task links or not.
      *
-     * @param parent The parent Task entity.
+     * @param parentId The ID of the parent Task entity.
      * @return A boolean value indicating whether the Task has child tasks represented through task links.
      */
-    boolean existsByParent(TaskEntity parent);
+    boolean existsByParentId(long parentId);
+
+    /**
+     * Counts the number of task links where a task is the parent.
+     *
+     * @param parentId The ID of parent Task entity.
+     * @return A count of links where the task with the given ID is a parent.
+     * */
+    int countByParentId(long parentId);
+
+    /**
+     * Counts the number of task links where the parent is null.
+     *
+     * @return A count of links that have a null parent taskt.
+     * */
+    int countByParentIsNull();
 
     /**
      * Checks if the task is a child to any other task.
@@ -69,17 +88,19 @@ public interface LinkRepository extends JpaRepository<TaskLinkEntity, Long>, Jpa
      * @param filters A list of filters to be applied.
      * @return A list of TaskLink entities that match the filters.
      */
-    default List<TaskLinkEntity> applyFilters(List<TaskLinkEntity> nodes, List<Filter> filters) {
+    default List<TaskLink> applyFilters(List<TaskLink> nodes, List<Filter> filters) {
         if (filters == null || filters.isEmpty()) {
             return nodes;
         } else {
-            Specification<TaskLinkEntity> spec = getSpecificationFromFilters(filters, TaskLinkEntity.class);
+            Specification<TaskLink> spec = getSpecificationFromFilters(filters, TaskLink.class);
             return new ArrayList<>(findAll(spec.and((root, query, builder) ->
                     builder.isTrue(builder.literal(true))), Sort.unsorted()));
         }
     }
 
-    Stream<TaskLinkEntity> findByParent(TaskEntity parent);
+    Stream<TaskLink> findByParentOrderByPositionAsc(TaskEntity parent);
 
-    Stream<TaskLinkEntity> findByChild(TaskEntity child);
+    Stream<TaskLink> findByParentIdOrderByPositionAsc(long parentId);
+
+    Stream<TaskLink> findByChild(TaskEntity child);
 }

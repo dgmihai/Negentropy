@@ -1,9 +1,9 @@
 package com.trajan.negentropy.server.task;
 
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.TaskEntityQueryService;
-import com.trajan.negentropy.server.entity.TaskEntity_;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskEntity;
+import com.trajan.negentropy.server.backend.entity.TaskEntity_;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.backend.repository.filter.Filter;
@@ -34,7 +34,7 @@ public class TaskEntityQueryServiceTest {
     @PersistenceContext private EntityManager entityManager;
 
     Map<String, TaskEntity> tasks = new HashMap<>();
-    Map<String, TaskLinkEntity> links = new HashMap<>();
+    Map<String, TaskLink> links = new HashMap<>();
 
     @BeforeEach
     void setUp() {
@@ -58,74 +58,64 @@ public class TaskEntityQueryServiceTest {
         // TODO: A null parent comes up weird in descendants/ancestors
         
         // Create TaskLink for each Task
-        TaskLinkEntity link1 = new TaskLinkEntity().toBuilder()
+        TaskLink link1 = new TaskLink()
                 .child(tasks.get("One"))
-                .parent(null)
-                .build();
+                .parent(null);
         links.put("One", link1);
 
-        TaskLinkEntity link2 = new TaskLinkEntity().toBuilder()
+        TaskLink link2 = new TaskLink()
                 .child(tasks.get("Two"))
-                .parent(null)
-                .build();
+                .parent(null);
         links.put("Two", link2);
 
-        TaskLinkEntity link3 = new TaskLinkEntity().toBuilder()
+        TaskLink link3 = new TaskLink()
                 .child(tasks.get("Three"))
-                .parent(null)
-                .build();
+                .parent(null);
         links.put("Three", link3);
 
-        TaskLinkEntity link4 = new TaskLinkEntity().toBuilder()
+        TaskLink link4 = new TaskLink()
                 .child(tasks.get("Four"))
-                .parent(null)
-                .build();
+                .parent(null);
         links.put("Four", link4);
 
-        TaskLinkEntity link21 = new TaskLinkEntity().toBuilder()
+        TaskLink link21 = new TaskLink()
                 .child(tasks.get("TwoOne"))
                 .parent(tasks.get("Two"))
-                .position(0)
-                .build();
+                .position(0);
         links.put("TwoOne", link21);
 
-        TaskLinkEntity link22 = new TaskLinkEntity().toBuilder()
+        TaskLink link22 = new TaskLink()
                 .child(tasks.get("TwoTwo"))
                 .parent(tasks.get("Two"))
-                .position(1)
-                .build();
+                .position(1);
         links.put("TwoTwo", link22);
 
-        TaskLinkEntity link23 = new TaskLinkEntity().toBuilder()
+        TaskLink link23 = new TaskLink()
                 .child(tasks.get("TwoThree"))
                 .parent(tasks.get("Two"))
-                .position(2)
-                .build();
+                .position(2);
         links.put("TwoThree", link23);
 
-        TaskLinkEntity link221 = new TaskLinkEntity().toBuilder()
+        TaskLink link221 = new TaskLink()
                 .child(tasks.get("TwoTwoOne"))
                 .parent(tasks.get("TwoTwo"))
-                .position(0)
-                .build();
+                .position(0);
         links.put("TwoTwoOne", link221);
 
-        TaskLinkEntity link222 = new TaskLinkEntity().toBuilder()
+        TaskLink link222 = new TaskLink()
                 .child(tasks.get("TwoTwoTwo"))
                 .parent(tasks.get("TwoTwo"))
-                .position(1)
-                .build();
+                .position(1);
         links.put("TwoTwoTwo", link222);
 
-        TaskLinkEntity link223 = new TaskLinkEntity().toBuilder()
+        TaskLink link223 = new TaskLink()
                 .child(tasks.get("TwoTwoThree"))
                 .parent(tasks.get("TwoTwo"))
-                .position(2)
-                .build();
+                .position(2);
         links.put("TwoTwoThree", link223);
 
         links.values().forEach(link -> {
-            TaskLinkEntity savedNode = linkRepository.save(link);
+            TaskLink savedNode = linkRepository.save(link);
             links.put(savedNode.child().name(), savedNode);
         });
     }
@@ -224,7 +214,7 @@ public class TaskEntityQueryServiceTest {
         parent = entityQueryService.getTask(parent.id());
 
         List<TaskEntity> children = parent.childLinks().stream()
-                .map(TaskLinkEntity::child)
+                .map(TaskLink::child)
                 .toList();
 
         assertEquals(3, children.size());
@@ -238,7 +228,7 @@ public class TaskEntityQueryServiceTest {
         parent = entityQueryService.getTask(parent.id());
 
         List<TaskEntity> children = parent.childLinks().stream()
-                .map(TaskLinkEntity::child)
+                .map(TaskLink::child)
                 .toList();
 
         assertEquals(0, children.size());
@@ -249,7 +239,7 @@ public class TaskEntityQueryServiceTest {
         TaskEntity parent = tasks.get("Two");
         parent = entityQueryService.getTask(parent.id());
 
-        int childCount = entityQueryService.countChildren(parent);
+        int childCount = entityQueryService.getChildCount(parent.id());
 
         assertEquals(3, childCount);
     }
@@ -259,7 +249,7 @@ public class TaskEntityQueryServiceTest {
         TaskEntity parent = tasks.get("One");
         parent = entityQueryService.getTask(parent.id());
 
-        int childCount = entityQueryService.countChildren(parent);
+        int childCount = entityQueryService.getChildCount(parent.id());
 
         assertEquals(0, childCount);
     }
@@ -269,7 +259,7 @@ public class TaskEntityQueryServiceTest {
         TaskEntity parent = tasks.get("Two");
         parent = entityQueryService.getTask(parent.id());
 
-        boolean hasChildren = entityQueryService.hasChildren(parent);
+        boolean hasChildren = entityQueryService.hasChildren(parent.id());
 
         assertTrue(hasChildren);
     }
@@ -279,7 +269,7 @@ public class TaskEntityQueryServiceTest {
         TaskEntity parent = tasks.get("One");
         parent = entityQueryService.getTask(parent.id());
 
-        boolean hasChildren = entityQueryService.hasChildren(parent);
+        boolean hasChildren = entityQueryService.hasChildren(parent.id());
 
         assertFalse(hasChildren);
     }
@@ -290,7 +280,7 @@ public class TaskEntityQueryServiceTest {
         child = entityQueryService.getTask(child.id());
 
         List<TaskEntity> parents = child.parentLinks().stream()
-                .map(TaskLinkEntity::parent)
+                .map(TaskLink::parent)
                 .toList();
 
         assertEquals(1, parents.size());
@@ -303,7 +293,7 @@ public class TaskEntityQueryServiceTest {
         child = entityQueryService.getTask(child.id());
 
         List<TaskEntity> parents = child.parentLinks().stream()
-                .map(TaskLinkEntity::parent)
+                .map(TaskLink::parent)
                 .toList();
 
         assertEquals(1, parents.size());
@@ -326,7 +316,7 @@ public class TaskEntityQueryServiceTest {
 
         boolean hasParents = entityQueryService.hasParents(child);
 
-        List<TaskLinkEntity> alllinks = linkRepository.findAll();
+        List<TaskLink> alllinks = linkRepository.findAll();
         assertFalse(hasParents);
     }
 

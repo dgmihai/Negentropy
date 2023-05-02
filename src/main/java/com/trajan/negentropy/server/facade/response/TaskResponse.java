@@ -8,14 +8,15 @@ import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
 @Getter
-public class TaskResponse {
-    private final Boolean success;
+public class TaskResponse extends Response {
     private final Task task;
-    private final String message;
 
     public TaskResponse(Boolean success, TaskEntity task, String message) {
-        this.success = success;
-        this.task = task != null ? EntityMapper.toDTO(task) : null;
-        this.message = message;
+        super(success, message);
+        if (task != null) {
+            this.task = EntityMapper.toDTO(task);
+        } else {
+            this.task = null;
+        }
     }
 }

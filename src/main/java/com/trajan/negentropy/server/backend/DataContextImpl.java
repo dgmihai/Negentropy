@@ -1,7 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import jakarta.transaction.Transactional;
@@ -37,7 +37,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskLinkEntity createLink(TaskLinkEntity fresh) {
+    public TaskLink createLink(TaskLink fresh) {
         if (!fresh.exists()) {
             return linkRepository.save(fresh);
         } else throw new IllegalArgumentException(
@@ -45,7 +45,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskLinkEntity updateLink(TaskLinkEntity fresh) {
+    public TaskLink updateLink(TaskLink fresh) {
         if (!fresh.exists()) {
             return linkRepository.save(fresh);
         } else throw new IllegalArgumentException(

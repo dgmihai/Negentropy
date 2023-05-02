@@ -1,11 +1,11 @@
 package com.trajan.negentropy.server.backend.repository.filter;
 
+import com.google.common.collect.Lists;
 import com.trajan.negentropy.server.backend.entity.AbstractEntity;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.repository.NoRepositoryBean;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,10 +13,10 @@ import java.util.function.Function;
 
 @NoRepositoryBean
 public interface GenericSpecificationProvider<T extends AbstractEntity> {
-    List<T> findAllWithFilters(List<Filter> filters);
+    List<T> findAllFiltered(Iterable<Filter> filters);
 
-    default Specification<T> getSpecificationFromFilters(List<Filter> filters, Class<T> entityType) {
-        List<Filter> mutableList = new ArrayList<>(filters);
+    default Specification<T> getSpecificationFromFilters(Iterable<Filter> filters, Class<T> entityType) {
+        List<Filter> mutableList = Lists.newArrayList(filters);
         Specification<T> specification = null;
         for (Filter input : filters) {
             if (specification == null) {

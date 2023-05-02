@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.repository;
 
+import com.google.common.collect.Iterables;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.repository.filter.Filter;
 import com.trajan.negentropy.server.backend.repository.filter.GenericSpecificationProvider;
@@ -13,9 +14,12 @@ import java.util.List;
 
 @Repository("tagRepository")
 @Transactional
-public interface TagRepository extends JpaRepository<TagEntity, Long>, JpaSpecificationExecutor<TagEntity>, GenericSpecificationProvider<TagEntity> {
-    default List<TagEntity> findAllWithFilters(List<Filter> filters) {
-        if (filters.size() > 0) {
+public interface TagRepository extends
+        JpaRepository<TagEntity, Long>,
+        JpaSpecificationExecutor<TagEntity>,
+        GenericSpecificationProvider<TagEntity> {
+    default List<TagEntity> findAllFiltered(Iterable<Filter> filters) {
+        if (!Iterables.isEmpty(filters)) {
             Specification<TagEntity> spec = getSpecificationFromFilters(filters, TagEntity.class);
             return findAll(spec);
         } else {

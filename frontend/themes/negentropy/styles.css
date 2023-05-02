@@ -1,9 +1,9 @@
 @media (max-width: 600px) {
   .list-view .toolbar,
   .list-view .contact-grid,
-  .description-column {
-    display: none;
-  }
+  vaadin-multi-select-combo-box.details {
+    display:none:
+   }
 }
 
 a[highlight] {

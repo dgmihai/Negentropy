@@ -1,9 +1,9 @@
 package com.trajan.negentropy.server.facade.model;
 
-public record TaskLink(
-        Long id,
+public record TaskNode(
+        LinkID linkId,
         int priority,
         Integer position,
-        Long parentId,
-        Long childId)
+        TaskID parentId,
+        TaskID childId)
 { }

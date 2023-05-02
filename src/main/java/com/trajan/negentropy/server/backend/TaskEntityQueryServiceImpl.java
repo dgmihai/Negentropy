@@ -1,29 +1,30 @@
 package com.trajan.negentropy.server.backend;
 
+import com.google.common.collect.Iterables;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.backend.repository.TimeEstimateRepository;
 import com.trajan.negentropy.server.backend.repository.filter.Filter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Service
+@Transactional
 public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
-    @Autowired
-    TaskRepository taskRepository;
+    @Autowired private TaskRepository taskRepository;
 
-    @Autowired
-    LinkRepository linkRepository;
+    @Autowired private LinkRepository linkRepository;
 
-    @Autowired
-    TimeEstimateRepository timeRepository;
+    @Autowired private TimeEstimateRepository timeRepository;
 
     @Override
     public TaskEntity getTask(long taskId) {
@@ -32,39 +33,46 @@ public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
     }
 
     @Override
-    public TaskLinkEntity getLink(long linkId) {
+    public TaskLink getLink(long linkId) {
         return linkRepository.findById(linkId).orElseThrow(() ->
                 new IllegalArgumentException("Failed to get link with id " + linkId +
                         " from repository."));
     }
 
     @Override
-    public Stream<TaskEntity> findTasks(List<Filter> filters, Set<TagEntity> tags) {
-        if (tags.isEmpty()) {
-            return taskRepository.findAllWithFilters(filters).stream();
+    public Stream<TaskEntity> findTasks(Iterable<Filter> filters, Iterable<TagEntity> tags) {
+        if (Iterables.isEmpty(tags)) {
+            return taskRepository.findAllFiltered(filters).stream();
         } else {
-            return taskRepository.findAllWithFiltersAndTags(filters, tags).stream().unordered();
+            return taskRepository.findAllFilteredAndTagged(filters, tags).stream().unordered();
         }
     }
 
     @Override
-    public int countChildren(TaskEntity parent) {
-        return parent.childLinks().size();
+    public int getChildCount(Long parentId) {
+        return parentId == null ?
+                linkRepository.countByParentIsNull() :
+                linkRepository.countByParentId(parentId);
     }
 
     @Override
-    public boolean hasChildren(TaskEntity parent) {
-        return linkRepository.existsByParent(parent);
+    public boolean hasChildren(long parentId) {
+        return linkRepository.existsByParentId(parentId);
     }
 
     @Override
-    public Stream<TaskLinkEntity> getLinksByChild(TaskEntity child) {
+    public Stream<TaskLink> getLinksByChild(TaskEntity child) {
         return linkRepository.findByChild(child);
     }
 
     @Override
-    public Stream<TaskLinkEntity> getLinksByParent(TaskEntity parent) {
-        return linkRepository.findByParent(parent);
+    public Stream<TaskLink> getLinksByParent(TaskEntity parent) {
+        return linkRepository.findByParentOrderByPositionAsc(parent);
+    }
+
+    @Override
+    public Stream<TaskLink> getLinksByParentId(long parentId) {
+        return linkRepository.findByParentIdOrderByPositionAsc(parentId);
     }
 
     @Override
@@ -73,8 +81,8 @@ public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
     }
 
     @Override
-    public Stream<TaskLinkEntity> getAncestorLinks(TaskEntity descendant) {
-        List<TaskLinkEntity> ancestors = new ArrayList<>();
+    public Stream<TaskLink> getAncestorLinks(TaskEntity descendant) {
+        List<TaskLink> ancestors = new ArrayList<>();
         this.collectAncestors(descendant, ancestors);
         return ancestors.stream().unordered();
     }
@@ -82,12 +90,12 @@ public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
     @Override
     public Stream<TaskEntity> getAncestors(TaskEntity descendant) {
         return this.getAncestorLinks(descendant)
-                .map(TaskLinkEntity::parent);
+                .map(TaskLink::parent);
     }
 
-    private void collectAncestors(TaskEntity child, List<TaskLinkEntity> ancestors) {
+    private void collectAncestors(TaskEntity child, List<TaskLink> ancestors) {
         if (child != null) {
-            for (TaskLinkEntity link : child.parentLinks()) {
+            for (TaskLink link : child.parentLinks()) {
                 ancestors.add(link);
                 collectAncestors(link.parent(), ancestors);
             }
@@ -97,19 +105,19 @@ public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
     @Override
     public Stream<TaskEntity> getDescendants(TaskEntity ancestor) {
         return this.getDescendantLinks(ancestor)
-                .map(TaskLinkEntity::child);
+                .map(TaskLink::child);
     }
 
     @Override
-    public Stream<TaskLinkEntity> getDescendantLinks(TaskEntity ancestor) {
-        List<TaskLinkEntity> descendants = new ArrayList<>();
+    public Stream<TaskLink> getDescendantLinks(TaskEntity ancestor) {
+        List<TaskLink> descendants = new ArrayList<>();
         this.collectDescendants(ancestor, descendants);
         return descendants.stream();
     }
 
-    private void collectDescendants(TaskEntity parent, List<TaskLinkEntity> descendants) {
+    private void collectDescendants(TaskEntity parent, List<TaskLink> descendants) {
         if (parent != null) {
-            for (TaskLinkEntity link : parent.childLinks()) {
+            for (TaskLink link : parent.childLinks()) {
                 descendants.add(link);
                 collectDescendants(link.child(), descendants);
             }
@@ -118,7 +126,9 @@ public class TaskEntityQueryServiceImpl implements TaskEntityQueryService {
 
     @Override
     public Duration getEstimatedTotalDuration(long taskId) {
-        return timeRepository.findOneByTaskId(taskId).duration();
+        // TODO: Implement
+        return Duration.ZERO;
+//        return timeRepository.findOneByTaskId(taskId).duration();
     }
 
 }

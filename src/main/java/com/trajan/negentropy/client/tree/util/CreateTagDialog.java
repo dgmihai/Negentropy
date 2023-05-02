@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.list.util;
+package com.trajan.negentropy.client.tree.util;
 
 
 import com.trajan.negentropy.server.backend.entity.TagEntity;
@@ -24,7 +24,7 @@ public class CreateTagDialog extends Dialog {
         VerticalLayout layout = new VerticalLayout();
 
         Label titleLabel = new Label("Create a new tag");
-        tagNameField = new TextField("TagEntity name");
+        tagNameField = new TextField("Tag name");
 
         layout.add(titleLabel, tagNameField);
 
@@ -34,7 +34,7 @@ public class CreateTagDialog extends Dialog {
     private void configureBinder() {
         binder = new Binder<>(TagEntity.class);
         binder.forField(tagNameField)
-                .withValidator(new StringLengthValidator("TagEntity name cannot be empty", 1, null))
+                .withValidator(new StringLengthValidator("Tag name cannot be empty", 1, null))
                 .bind(TagEntity::name, TagEntity::name);
     }
 

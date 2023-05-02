@@ -2,7 +2,7 @@
 //
 //import com.trajan.negentropy.client.TaskEntry;
 //import com.trajan.negentropy.client.list.util.Insert;
-//import com.trajan.negentropy.server.entity.TagEntity;
+//import com.trajan.negentropy.server.entity.Tag;
 //import com.trajan.negentropy.server.entity.Task;
 //import com.trajan.negentropy.server.entity.TaskLink;
 //import exclude.TaskService;
@@ -55,7 +55,7 @@
 //
 //    TaskService getTaskService();
 //
-//    List<TagEntity> findAllTags();
+//    List<Tag> findAllTags();
 //
-//    TagEntity createTag(TagEntity tag);
+//    Tag createTag(Tag tag);
 //}

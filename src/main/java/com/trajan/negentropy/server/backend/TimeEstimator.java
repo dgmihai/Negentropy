@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.server.service;
 //
 //import com.trajan.negentropy.server.entity.TaskEntity;
-//import com.trajan.negentropy.server.entity.TaskLinkEntity;
+//import com.trajan.negentropy.server.entity.TaskLink;
 //
 //import java.time.Duration;
 //
@@ -17,14 +17,14 @@
 //     *
 //     * @param node The newly created TaskLink.
 //     */
-//    void onLinkCreated(TaskLinkEntity node);
+//    void onLinkCreated(TaskLink node);
 //
 //    /**
 //     * Handles the deletion of a TaskLink, updating the time estimates for each ancestor.
 //     *
 //     * @param node The TaskLink to be deleted.
 //     */
-//    void onLinkDeleted(TaskLinkEntity node);
+//    void onLinkDeleted(TaskLink node);
 //
 //    /**
 //     * Handles the creation of a new Task, creating a new TimeEstimate for it.

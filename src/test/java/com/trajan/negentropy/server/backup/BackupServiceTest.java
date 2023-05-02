@@ -1,18 +1,19 @@
 package com.trajan.negentropy.server.backup;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.File;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-@ExtendWith(SpringExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class BackupServiceTest {
 
     @Autowired
@@ -25,7 +26,7 @@ public class BackupServiceTest {
 
         // get backup files
         List<File> backupFiles = BackupUtils.getBackupFileList(backupService.getBackupPath());
-        assertThat(backupFiles).isNotEmpty();
+        assertFalse(backupFiles.isEmpty());
 
         // perform restore
         backupService.restore(1);
@@ -38,6 +39,13 @@ public class BackupServiceTest {
 
         List<File> backupFiles = BackupUtils.getBackupFileList(backupService.getBackupPath());
         backupService.restore(backupFiles.size() + 1);
+    }
+
+    @AfterAll
+    public void tearDown() {
+        BackupUtils.deleteBackupFiles(backupService.getBackupPath(), 0);
+        assertTrue(BackupUtils.getBackupFileList(backupService.getBackupPath())
+                .isEmpty());
     }
 
 }

@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
-import lombok.experimental.SuperBuilder;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -15,8 +14,6 @@ import java.util.List;
 @Table(name = "routines")
 @AllArgsConstructor
 @NoArgsConstructor
-@SuperBuilder(toBuilder = true)
-@Builder(toBuilder = true)
 @Accessors(fluent = true)
 @Getter
 @Setter
@@ -36,7 +33,6 @@ public class Routine extends AbstractEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     private TaskEntity rootTask;
 
-    @Builder.Default
     private int currentIndex = 0;
 
     private Duration estimatedDuration = Duration.ZERO;

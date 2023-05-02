@@ -1,7 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLinkEntity;
+import com.trajan.negentropy.server.backend.entity.TaskLink;
 
 import java.util.Set;
 
@@ -33,7 +33,7 @@ public interface DataContext {
      * @param fresh The transient TaskLink object to be persisted.
      * @return The persisted TaskLink entity.
      */
-    TaskLinkEntity createLink(TaskLinkEntity fresh);
+    TaskLink createLink(TaskLink fresh);
 
     /**
      * Updates a detached TaskLink entity to the repository.
@@ -42,7 +42,7 @@ public interface DataContext {
      * @return The persisted TaskLink entity.
      */
     // TODO: Unused
-    TaskLinkEntity updateLink(TaskLinkEntity fresh);
+    TaskLink updateLink(TaskLink fresh);
 
     /**
      * Deletes a Task entity from the database.

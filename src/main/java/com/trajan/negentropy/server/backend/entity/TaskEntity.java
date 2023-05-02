@@ -2,15 +2,17 @@ package com.trajan.negentropy.server.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.Accessors;
-import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -19,7 +21,6 @@ import java.util.stream.Stream;
 @Table(name = "task_info")
 @RequiredArgsConstructor
 @AllArgsConstructor
-@SuperBuilder(toBuilder = true)
 @Accessors(fluent = true)
 @Getter
 @Setter
@@ -30,10 +31,8 @@ public class TaskEntity extends AbstractEntity {
     @NotEmpty(message = "Name is required")
     private String name;
 
-    @Builder.Default
     private String description = "";
 
-    @Builder.Default
     private Duration duration = Duration.ZERO;
 
     @OneToMany(
@@ -42,11 +41,10 @@ public class TaskEntity extends AbstractEntity {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     @OrderBy("position")
-    @Builder.Default
-    private List<TaskLinkEntity> childLinks = new ArrayList<>();
+    private List<TaskLink> childLinks = new ArrayList<>();
 
     public Stream<TaskEntity> children() {
-        return childLinks.stream().map(TaskLinkEntity::child);
+        return childLinks.stream().map(TaskLink::child);
     }
 
     @OneToMany(
@@ -54,11 +52,10 @@ public class TaskEntity extends AbstractEntity {
             mappedBy = "child",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
-    @Builder.Default
-    private List<TaskLinkEntity> parentLinks = new ArrayList<>();
+    private List<TaskLink> parentLinks = new ArrayList<>();
 
     public Stream<TaskEntity> parents() {
-        return parentLinks.stream().map(TaskLinkEntity::parent);
+        return parentLinks.stream().map(TaskLink::parent);
     }
 
     @ManyToMany(
@@ -66,10 +63,9 @@ public class TaskEntity extends AbstractEntity {
             fetch = FetchType.EAGER)
     @JoinTable(
             name = "taggings",
-            joinColumns = @JoinColumn(name = "taskInfo_id"),
+            joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
-    @Builder.Default
-    private Set<TagEntity> tags = new LinkedHashSet<>();
+    private Set<TagEntity> tags = new HashSet<>();
 
     public TaskEntity(String name) {
         this.name = name;

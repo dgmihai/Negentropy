@@ -1,6 +1,6 @@
-package com.trajan.negentropy.client.list.util;
+package com.trajan.negentropy.client.tree.util;
 
-import com.trajan.negentropy.client.TaskEntry;
+import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.vaadin.flow.component.tabs.Tab;
 import lombok.Getter;
 
@@ -9,7 +9,7 @@ public class TaskTab extends Tab {
     private final TaskEntry entry;
 
     public TaskTab(TaskEntry entry) {
-        super(entry.node().child().name());
+        super(entry.task().name());
         this.entry = entry;
     }
 }

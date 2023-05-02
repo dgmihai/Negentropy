@@ -3,7 +3,7 @@
 //import com.trajan.negentropy.client.TaskEntry;
 //import com.trajan.negentropy.client.list.util.Insert;
 //import com.trajan.negentropy.client.list.util.TaskEntryDataProvider;
-//import com.trajan.negentropy.server.entity.TagEntity;
+//import com.trajan.negentropy.server.entity.Tag;
 //import com.trajan.negentropy.server.entity.Task;
 //import com.trajan.negentropy.server.entity.TaskLink;
 //import com.trajan.negentropy.server.service.TagService;
@@ -195,12 +195,12 @@
 //    }
 //
 //    @Override
-//    public List<TagEntity> findAllTags() {
+//    public List<Tag> findAllTags() {
 //        return tagService.findAll();
 //    }
 //
 //    @Override
-//    public TagEntity createTag(TagEntity tag) {
+//    public Tag createTag(Tag tag) {
 //        taskForm.tagBox.setItems(tagService.findAll());
 //        return tagService.create(tag);
 //    }

@@ -1,23 +1,24 @@
 package com.trajan.negentropy.server.backend.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
-import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entity
 @Table(name = "task_links")
-@RequiredArgsConstructor
+@NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder(toBuilder = true)
 @Accessors(fluent = true)
 @Getter
 @Setter
-public class TaskLinkEntity extends AbstractEntity {
-    private static final Logger logger = LoggerFactory.getLogger(TaskLinkEntity.class);
+public class TaskLink extends AbstractEntity {
+    private static final Logger logger = LoggerFactory.getLogger(TaskLink.class);
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
@@ -28,10 +29,8 @@ public class TaskLinkEntity extends AbstractEntity {
     @NotNull
     private TaskEntity child;
 
-    @Builder.Default
     private Integer position = 0;
 
-    @Builder.Default
     private Integer priority = 0;
 
     public String toString() {

@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.server.service;
 //
 //import com.trajan.negentropy.server.entity.TaskEntity;
-//import com.trajan.negentropy.server.entity.TaskLinkEntity;
+//import com.trajan.negentropy.server.entity.TaskLink;
 //import com.trajan.negentropy.server.entity.TimeEstimate;
 //import com.trajan.negentropy.server.events.DataChangeEvent;
 //import com.trajan.negentropy.server.model.Task;
@@ -32,14 +32,14 @@
 //    TimeEstimateRepository timeEstimateRepository;
 //
 //    @Override
-//    public void onLinkCreated(TaskLinkEntity link) {
+//    public void onLinkCreated(TaskLink link) {
 //        logger.debug("Adding time estimate for each ancestor of new link " + link.child());
 //        Duration difference = timeEstimateRepository.findByTaskIdOrderByPriorityAsc(link.child().id()).get(0).duration();
 //        this.updateTaskTimeEstimateBy(link.parent(), difference);
 //    }
 //
 //    @Override
-//    public void onLinkDeleted(TaskLinkEntity link) {
+//    public void onLinkDeleted(TaskLink link) {
 //        logger.debug("Subtracting time estimate for each ancestor of deleted link " + link.child());
 //        Duration difference = timeEstimateRepository.findByTaskIdOrderByPriorityAsc(link.child().id()).get(0).duration();
 //        this.updateTaskTimeEstimateBy(link.parent(), difference.negated());
@@ -55,7 +55,7 @@
 //        logger.debug("New time estimate: " + estimate.duration());
 //    }
 //
-//    private void onLinksDeleted(Set<TaskLinkEntity> nodes) {
+//    private void onLinksDeleted(Set<TaskLink> nodes) {
 //        logger.debug("Adjusting time estimates for " + nodes.size() + " deleted nodes");
 //        nodes.forEach(this::onLinkDeleted);
 //    }
@@ -119,7 +119,7 @@
 //    }
 //
 //    @EventListener
-//    public void onLinkCreated(DataChangeEvent.Create<TaskLinkEntity> event) {
+//    public void onLinkCreated(DataChangeEvent.Create<TaskLink> event) {
 //        TaskEntity parent = event.created().parent();
 //        TaskEntity child = event.created().child();
 //
@@ -128,7 +128,7 @@
 //    }
 //
 //    @EventListener
-//    public void onLinkDeleted(DataChangeEvent.Delete<TaskLinkEntity> event) {
+//    public void onLinkDeleted(DataChangeEvent.Delete<TaskLink> event) {
 //        TaskEntity parent = event.deleted().parent();
 //        TaskEntity child = event.deleted().child();
 //
@@ -137,7 +137,7 @@
 //    }
 //
 //    @EventListener
-//    public void onLinkUpdated(DataChangeEvent.Update<TaskLink, TaskLinkEntity> event) {
+//    public void onLinkUpdated(DataChangeEvent.Update<TaskLink, TaskLink> event) {
 //        TaskEntity parent = event.updated().parent();
 //        TaskEntity child = event.updated().child();
 //    }

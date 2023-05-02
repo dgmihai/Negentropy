@@ -6,7 +6,7 @@
 //import com.trajan.negentropy.client.list.util.NestedTaskTabs;
 //import com.trajan.negentropy.client.util.TimeButton;
 //import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
-//import com.trajan.negentropy.server.entity.TagEntity;
+//import com.trajan.negentropy.server.entity.Tag;
 //import com.trajan.negentropy.server.entity.TaskLink;
 //import com.vaadin.flow.component.grid.Grid;
 //import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
@@ -79,7 +79,7 @@
 //
 //        Grid.Column<TaskEntry> tagColumn = treeGrid
 //                .addColumn(entry -> {
-//                    Set<TagEntity> tags = entry.link().getReferenceTask().getTags();
+//                    Set<Tag> tags = entry.link().getReferenceTask().getTags();
 //                    if (tags != null && !tags.isEmpty()) {
 //                        StringJoiner joiner = new StringJoiner(", ");
 //                        tags.forEach(tag -> joiner.add(tag.getName()));

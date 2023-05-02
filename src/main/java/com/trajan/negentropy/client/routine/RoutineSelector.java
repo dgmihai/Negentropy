@@ -3,7 +3,7 @@
 //
 //import com.trajan.negentropy.client.util.TimeButton;
 //import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
-//import com.trajan.negentropy.server.entity.TagEntity;
+//import com.trajan.negentropy.server.entity.Tag;
 //import com.trajan.negentropy.server.entity.Task;
 //import com.trajan.negentropy.server.entity.Task_;
 //import com.trajan.negentropy.server.repository.filter.Filter;
@@ -31,7 +31,7 @@
 //    TaskService taskService;
 //
 //    private TextField titleFilter = new TextField();
-//    private MultiSelectComboBox<TagEntity> tagBox = new MultiSelectComboBox<>();
+//    private MultiSelectComboBox<Tag> tagBox = new MultiSelectComboBox<>();
 //    private Grid<Task> taskGrid = new Grid<>();
 //    private Button startRoutineButton = new Button("Start Routine");
 //    private Checkbox onlyTasksWithETACheckbox = new Checkbox("Only display tasks with a time estimate?");
@@ -58,7 +58,7 @@
 //
 //        tagBox.setItems(tagService.findAll());
 //        tagBox.setPlaceholder("Filter by Tags");
-//        tagBox.setItemLabelGenerator(TagEntity::getName);
+//        tagBox.setItemLabelGenerator(Tag::getName);
 //        tagBox.addValueChangeListener(event -> this.refreshTaskGrid());
 //        tagBox.setWidthFull();
 //
@@ -68,7 +68,7 @@
 //                .setAutoWidth(true);
 //
 //        taskGrid.addColumn(task -> {
-//                    Set<TagEntity> tags = task.getTags();
+//                    Set<Tag> tags = task.getTags();
 //                    if (tags != null && !tags.isEmpty()) {
 //                        StringJoiner joiner = new StringJoiner(", ");
 //                        tags.forEach(tag -> joiner.add(tag.getName()));
@@ -116,7 +116,7 @@
 //                    .build());
 //        }
 //
-//        Set<TagEntity> tags = tagBox.getValue();
+//        Set<Tag> tags = tagBox.getValue();
 //        List<Task> tasks = tags.isEmpty() ? taskService.findTasks(filters) :
 //                taskService.findTasksByTag(filters, tags);
 //

@@ -1,7 +1,7 @@
 //package com.trajan.negentropy.server.service;
 //
 //import com.trajan.negentropy.server.facade.TaskUpdateService;
-//import com.trajan.negentropy.server.facade.response.LinkResponse;
+//import com.trajan.negentropy.server.facade.response.NodeResponse;
 //import com.trajan.negentropy.server.model.Task;
 //import com.trajan.negentropy.server.model.TaskLink;
 //import com.trajan.negentropy.server.repository.LinkRepository;
@@ -97,12 +97,12 @@
 //        // Create task hierarchy
 //        parentTask = updateService.addTaskAsRoot(parentTask).child();
 //        childTask1 = updateService.addTaskAsChild(parentTask.id(), childTask1).child();
-//        LinkResponse r2   = updateService.addTaskAsChild(parentTask.id(), childTask2);
+//        NodeResponse r2   = updateService.addTaskAsChild(parentTask.id(), childTask2);
 //        childTask2 = r2.child();
-//        LinkResponse r1_1 = updateService.addTaskAsChild(childTask1.id(), childTask1_1);
-//        LinkResponse r1_2 = updateService.addTaskAsChild(childTask1.id(), childTask1_2);
-//        LinkResponse r2_1 = updateService.addTaskAsChild(childTask2.id(), childTask2_1);
-//        LinkResponse r2_2 = updateService.addTaskAsChild(childTask2.id(), childTask2_2);
+//        NodeResponse r1_1 = updateService.addTaskAsChild(childTask1.id(), childTask1_1);
+//        NodeResponse r1_2 = updateService.addTaskAsChild(childTask1.id(), childTask1_2);
+//        NodeResponse r2_1 = updateService.addTaskAsChild(childTask2.id(), childTask2_1);
+//        NodeResponse r2_2 = updateService.addTaskAsChild(childTask2.id(), childTask2_2);
 //
 //        parentTask = r2.parent();
 //        childTask1 = r1_2.parent();
@@ -260,7 +260,7 @@
 //        assertEquals(Duration.ofHours(6), childTask2Estimate);
 //
 //        // Move childTask1_1 under childTask2
-//        LinkResponse response = updateService.addTaskAsChild(childTask2.id(), childTask1_1);
+//        NodeResponse response = updateService.addTaskAsChild(childTask2.id(), childTask1_1);
 //        childTask1_1 = response.child();
 //        childTask1_1.duration(Duration.ofHours(2));
 //        updateService.updateTask(childTask1_1);
