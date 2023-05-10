@@ -18,12 +18,8 @@ import java.util.stream.Collectors;
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
 public interface DataContext {
-//    void updateDuration(Duration difference, TaskEntity parent, TaskEntity child);
-
-    void addToTimeEstimateOfAllAncestors(Duration difference, TaskID descendantId);
-
-
-    void addToTimeEstimateOfTask(Duration difference, TaskID taskId);
+    void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId);
+    void addToTimeEstimateOfTask(Duration change, TaskID taskId);
 
     TaskEntity mergeTask(Task task);
 

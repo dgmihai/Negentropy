@@ -9,7 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "TAGS")
+@Table(name = "tags")
 @NoArgsConstructor
 @Accessors(fluent = true)
 @Getter

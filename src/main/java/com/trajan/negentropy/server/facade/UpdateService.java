@@ -84,4 +84,6 @@ public interface UpdateService {
      * @return A response containing the persisted tag.
      */
     TagResponse createTag(Tag tag);
+
+    void recalculateTimeEstimates();
 }

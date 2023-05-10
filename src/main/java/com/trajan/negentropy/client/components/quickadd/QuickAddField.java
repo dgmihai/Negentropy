@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.quickadd;
 
+import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.Key;
@@ -42,13 +43,17 @@ public class QuickAddField extends TextField {
         String input = this.getValue();
         logger.debug("QuickAdd input: " + input);
         if (!input.isBlank()) {
-            Task task = QuickAddParser.parse(input);
+            try {
+                Task task = QuickAddParser.parse(input);
 
-            Response response = onAction.apply(task);
-            if (response.success()) {
-                this.clear();
-            } else {
-                this.setErrorMessage(response.message());
+                Response response = onAction.apply(task);
+                if (response.success()) {
+                    this.clear();
+                } else {
+                    this.setErrorMessage(response.message());
+                }
+            } catch (QuickAddParser.ParseException e) {
+                NotificationError.show(e.getMessage());
             }
         }
     }

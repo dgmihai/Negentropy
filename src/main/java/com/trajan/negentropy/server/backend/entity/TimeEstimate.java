@@ -11,7 +11,7 @@ import lombok.experimental.Accessors;
 import java.time.Duration;
 
 @Entity
-@Table(name = "TASK_TIME_ESTIMATES")
+@Table(name = "task_time_estimates")
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)

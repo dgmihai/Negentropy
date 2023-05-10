@@ -202,4 +202,6 @@ public interface EntityQueryService {
     Duration calculateNetDuration(TaskID taskId, TaskFilter filter);
 
     int getLowestImportanceOfDescendants(TaskID ancestorId);
+
+    Stream<TaskLink> findLeafTaskLinks(TaskFilter filter);
 }

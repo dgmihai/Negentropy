@@ -45,4 +45,6 @@ public interface TreeViewPresenter {
     QueryService queryService();
 
     Response onQuickAdd(Task task);
+
+    void recalculateTimeEstimates();
 }

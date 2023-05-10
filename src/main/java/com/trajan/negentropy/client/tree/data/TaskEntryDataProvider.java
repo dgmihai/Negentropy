@@ -80,30 +80,30 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
                             parent,
                             node,
                             queryService.fetchTask(node.childId()),
-                            Duration.ZERO);
-//                            taskTimeEstimateMap.get(node.childId())); TODO: Implement
+                            queryService.fetchNetTimeDuration(node.childId()));
                     entriesByChildId.computeIfAbsent(
                             entry.task().id(), k -> new HashSet<>()).add(entry);
                     return entry;
                 });
     }
 
-    public void refreshMatchingItems(TaskID id) {
+    public void refreshMatchingItems(TaskID id, boolean ancestors) {
         Task task = queryService.fetchTask(id);
         for (TaskEntry entry : entriesByChildId.get(id)) {
             entry.task(task);
             this.refreshItem(entry);
+            if (ancestors) {
+                TaskEntry parent = entry.parent();
+                while (parent != null) {
+                    this.refreshItem(parent);
+                    parent = entry.parent();
+                }
+            }
         }
     }
 
     @Override
     public void refreshAll() {
         super.refreshAll();
-
-        TaskID baseID = baseEntry == null ?
-                null :
-                baseEntry.task().id();
-
-//        taskTimeEstimateMap = queryService.fetchTimeEstimateOfAllDescendants(baseID, filter);
     }
 }

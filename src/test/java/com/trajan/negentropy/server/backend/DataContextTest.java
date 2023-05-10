@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -260,7 +261,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .child(childTaskEntity)
                 .position(1));
 
-        assertThrows(IllegalArgumentException.class, () -> dataContext.mergeNode(
+        assertThrows(NoSuchElementException.class, () -> dataContext.mergeNode(
                 new TaskNodeDTO()
                         .parentId(ID.of(parentTaskEntity)).childId(ID.of(childTaskEntity)).position(4).importance(2)));
 

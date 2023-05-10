@@ -1,7 +1,6 @@
 package com.trajan.negentropy.client.components.quickadd;
 
 import com.trajan.negentropy.client.util.DurationConverter;
-import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.data.binder.Result;
@@ -16,7 +15,7 @@ public class QuickAddParser {
 
     public static String DELIMITER = "#";
 
-    public static Task parse(String input) {
+    public static Task parse(String input) throws ParseException {
         logger.debug("Parsing " + input);
         Task task = new Task(null)
                 .oneTime(true)
@@ -58,19 +57,23 @@ public class QuickAddParser {
                 case "dur" -> {
                     Result<Duration> result = DurationConverter.toModel(value);
                     if (result.isError()) {
-                        NotificationError.show("Invalid duration: " + value);
-                        return null;
+                        throw new ParseException("Invalid duration: " + value);
                     }
                     result.ifOk(task::duration);
                 }
                 case "rep" -> task.oneTime(false);
                 default -> {
-                    NotificationError.show("Invalid keyword specified: " + value);
-                    return null;
+                    throw new ParseException("Invalid keyword specified: " + value);
                 }
             }
         }
         return task;
+    }
+
+    public static class ParseException extends Exception{
+        public ParseException(String message) {
+            super(message);
+        }
     }
 }
 

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "TASKS")
+@Table(name = "tasks")
 @NoArgsConstructor
 @Accessors(fluent = true)
 @Getter
@@ -53,7 +53,7 @@ public class TaskEntity extends AbstractEntity {
     @ManyToMany(
             cascade = CascadeType.REMOVE)
     @JoinTable(
-            name = "TASK_TAGS",
+            name = "task_tags",
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     private Set<TagEntity> tags = new HashSet<>();

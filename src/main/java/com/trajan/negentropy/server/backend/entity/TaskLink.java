@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entity
-@Table(name = "TASK_LINKS")
+@Table(name = "task_links")
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)

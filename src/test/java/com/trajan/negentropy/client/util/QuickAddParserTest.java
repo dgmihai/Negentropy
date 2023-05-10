@@ -15,70 +15,90 @@ class QuickAddParserTest {
 
     @Test
     void testBasicInput() {
-        String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 120 #rep";
-        Task task = QuickAddParser.parse(input);
+        try {
+             String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 2m #rep";
+             Task task = QuickAddParser.parse(input);
 
-        assertEquals("TaskName", task.name());
-        assertEquals("TaskDescription", task.description());
-        assertEquals(Duration.ofSeconds(120), task.duration());
-        assertFalse(task.oneTime());
-        assertTrue(task.tags().contains(new Tag(null, "tag1")));
-        assertTrue(task.tags().contains(new Tag(null, "tag2")));
+             assertEquals("TaskName", task.name());
+             assertEquals("TaskDescription", task.description());
+             assertEquals(Duration.ofMinutes(2), task.duration());
+             assertFalse(task.oneTime());
+             assertTrue(task.tags().contains(new Tag(null, "tag1")));
+             assertTrue(task.tags().contains(new Tag(null, "tag2")));
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
     void testIncompleteInput() {
-        String input = "TaskName #desc TaskDescription";
-        Task task = QuickAddParser.parse(input);
+        try {
+            String input = "TaskName #desc TaskDescription";
+            Task task = QuickAddParser.parse(input);
 
-        assertEquals("TaskName", task.name());
-        assertEquals("TaskDescription", task.description());
-        assertTrue(task.duration().isZero());
-        assertTrue(task.oneTime());
-        assertTrue(task.tags().isEmpty());
+            assertEquals("TaskName", task.name());
+            assertEquals("TaskDescription", task.description());
+            assertTrue(task.duration().isZero());
+            assertTrue(task.oneTime());
+            assertTrue(task.tags().isEmpty());
+            } catch (Exception e) {
+                fail(e);
+            }
     }
 
     @Test
     void testOutOfOrderInput() {
-        String input = "TaskName #dur 120 #rep #desc TaskDescription #tag tag1, tag2";
-        Task task = QuickAddParser.parse(input);
+        try {
+            String input = "TaskName #dur 2m #rep #desc TaskDescription #tag tag1, tag2";
+            Task task = QuickAddParser.parse(input);
 
-        assertEquals("TaskName", task.name());
-        assertEquals("TaskDescription", task.description());
-        assertEquals(Duration.ofSeconds(120), task.duration());
-        assertFalse(task.oneTime());
-        assertTrue(task.tags().contains(new Tag(null, "tag1")));
-        assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertEquals("TaskName", task.name());
+            assertEquals("TaskDescription", task.description());
+            assertEquals(Duration.ofMinutes(2), task.duration());
+            assertFalse(task.oneTime());
+            assertTrue(task.tags().contains(new Tag(null, "tag1")));
+            assertTrue(task.tags().contains(new Tag(null, "tag2")));
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
     void testSpacesInNameAndDescription() {
-        String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 120 #rep";
-        Task task = QuickAddParser.parse(input);
+        try {
+            String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 2m #rep";
+            Task task = QuickAddParser.parse(input);
 
-        assertEquals("Task Name with Spaces", task.name());
-        assertEquals("Task Description with Spaces", task.description());
-        assertEquals(Duration.ofSeconds(120), task.duration());
-        assertFalse(task.oneTime());
-        assertTrue(task.tags().contains(new Tag(null, "tag1")));
-        assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertEquals("Task Name with Spaces", task.name());
+            assertEquals("Task Description with Spaces", task.description());
+            assertEquals(Duration.ofMinutes(2), task.duration());
+            assertFalse(task.oneTime());
+            assertTrue(task.tags().contains(new Tag(null, "tag1")));
+            assertTrue(task.tags().contains(new Tag(null, "tag2")));
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
     void testInvalidDuration() {
         String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur not_a_number #rep";
-        assertThrows(IllegalStateException.class, () -> QuickAddParser.parse(input));
+        assertThrows(QuickAddParser.ParseException.class, () -> QuickAddParser.parse(input));
     }
 
     @Test
     void testOnlyName() {
-        String input = "TaskName";
-        Task task = QuickAddParser.parse(input);
+        try {
+            String input = "TaskName";
+            Task task = QuickAddParser.parse(input);
 
-        assertEquals("TaskName", task.name());
-        assertTrue(task.description().isBlank());
-        assertTrue(task.duration().isZero());
-        assertTrue(task.oneTime());
-        assertTrue(task.tags().isEmpty());
+            assertEquals("TaskName", task.name());
+            assertTrue(task.description().isBlank());
+            assertTrue(task.duration().isZero());
+            assertTrue(task.oneTime());
+            assertTrue(task.tags().isEmpty());
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 }

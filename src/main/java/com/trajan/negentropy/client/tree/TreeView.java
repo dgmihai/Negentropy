@@ -5,10 +5,13 @@ import com.trajan.negentropy.client.components.quickadd.QuickAddField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.components.FilterLayout;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.PageTitle;
@@ -65,11 +68,18 @@ public class TreeView extends Div {
         form.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
+        Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
+        recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        recalculateTimeEstimates.addClickListener(e -> presenter.recalculateTimeEstimates());
+
+        HorizontalLayout options = new HorizontalLayout(recalculateTimeEstimates);
+
         tabSheet.setWidthFull();
         tabSheet.add(VaadinIcon.CLOSE_SMALL.create(), new Div());
         tabSheet.add("Quick Add", quickAddField);
         tabSheet.add("Search & Filter", filterDiv());
         tabSheet.add("Create New Task", form);
+        tabSheet.add("Options", options);
 
         taskTreeGrid.setSizeFull();
 

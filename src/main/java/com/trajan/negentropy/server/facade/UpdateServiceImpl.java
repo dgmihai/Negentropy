@@ -5,10 +5,12 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
+import com.trajan.negentropy.server.backend.repository.TimeEstimateRepository;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.LinkID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.NodeResponse;
@@ -21,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+
 @Service
 @Transactional
 public class UpdateServiceImpl implements UpdateService {
@@ -28,6 +32,7 @@ public class UpdateServiceImpl implements UpdateService {
 
     @Autowired private DataContext dataContext;
     @Autowired private EntityQueryService entityQueryService;
+    @Autowired private TimeEstimateRepository timeEstimateRepository;
 
     private final String OK = "OK";
 
@@ -131,5 +136,19 @@ public class UpdateServiceImpl implements UpdateService {
             e.printStackTrace();
             return new TagResponse(false, null, e.getMessage());
         }
+    }
+
+    @Override
+    public void recalculateTimeEstimates() {
+        timeEstimateRepository.findAll()
+                .forEach(estimate -> estimate.netDuration(Duration.ZERO));
+
+        entityQueryService.findTasks(null)
+                .forEach(task -> {
+                    Duration sum = entityQueryService.findDescendantTasks(ID.of(task), null)
+                            .map(TaskEntity::duration)
+                            .reduce(task.duration(), Duration::plus);
+                    task.timeEstimates().get(0).netDuration(sum);
+        });
     }
 }

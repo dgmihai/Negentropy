@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "ROUTINES")
+@Table(name = "routines")
 @NoArgsConstructor
 @Accessors(fluent = true)
 @Getter

@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ROUTINE_STEPS")
+@Table(name = "routine_steps")
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)

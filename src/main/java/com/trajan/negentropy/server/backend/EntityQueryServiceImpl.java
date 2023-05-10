@@ -270,4 +270,12 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 qTimeEstimate.task.id.eq(ancestorId.val())).orElseThrow()
                 .importance();
     }
+
+    @Override
+    public Stream<TaskLink> findLeafTaskLinks(TaskFilter filter) {
+        return StreamSupport.stream(linkRepository.findAll(
+                Q_LINK.child.childLinks.isEmpty()
+                        .and(this.filterLink(filter)))
+                .spliterator(), false);
+    }
 }

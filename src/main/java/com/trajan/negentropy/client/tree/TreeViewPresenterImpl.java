@@ -70,6 +70,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     private enum Refresh {
         NONE,
         SINGLE,
+        ANCESTORS,
         ALL
     }
 
@@ -95,14 +96,15 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     private <T> void handleRefresh (T input, Refresh refresh) {
+        boolean ancestors = refresh.equals(Refresh.ANCESTORS);
         switch (refresh) {
-            case SINGLE -> {
+            case SINGLE, ANCESTORS -> {
                 if (input instanceof Task t) {
-                    dataProvider.refreshMatchingItems(t.id());
+                    dataProvider.refreshMatchingItems(t.id(), ancestors);
                 } else if (input instanceof TaskEntry e) {
-                    dataProvider.refreshMatchingItems(e.task().id());
+                    dataProvider.refreshMatchingItems(e.task().id(), ancestors);
                 } else if (input instanceof TaskNode n) {
-                    dataProvider.refreshMatchingItems(n.childId());
+                    dataProvider.refreshMatchingItems(n.childId(), ancestors);
                 } else {
                     logger.warn("Item " + input +
                             " passed to process didn't match Task or TaskEntry or TaskNode");
@@ -111,14 +113,13 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
             case ALL -> dataProvider.refreshAll();
             default -> { }
         }
-
     }
 
     @Override
     public void updateNode(TaskEntry entry) {
         logger.debug("Updating node: " + entry);
         this.process(entry,
-                Refresh.SINGLE,
+                Refresh.ANCESTORS,
                 e -> updateService.updateNode(entry.node()));
     }
 
@@ -126,7 +127,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void deleteNode(TaskEntry entry) {
         logger.debug("Deleting node: " + entry);
         this.process(entry,
-                Refresh.ALL,
+                Refresh.ANCESTORS,
                 e -> updateService.deleteNode(e.node().linkId()));
     }
 
@@ -134,7 +135,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void updateTask(TaskEntry entry) {
         logger.debug("Updating task: " + entry);
         this.process(entry,
-                Refresh.SINGLE,
+                Refresh.ANCESTORS,
                 e -> updateService.updateTask(entry.task()));
     }
 
@@ -142,7 +143,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void updateEntry(TaskEntry entry) {
         logger.debug("Updating entry: " + entry);
         this.process(entry,
-                Refresh.SINGLE,
+                Refresh.ANCESTORS,
                 e -> updateService.updateNode(e.node()),
                 e -> updateService.updateTask(e.task()));
     }
@@ -207,7 +208,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
             if (response.success()) {
                 this.process(
                         response.task(),
-                        Refresh.ALL,
+                        Refresh.ANCESTORS,
                         t -> updateService.insertTaskNode(
                                 new TaskNodeDTO(
                                         parent.node().parentId(),
@@ -229,7 +230,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
             if (response.success()) {
                 this.process(
                         response.task(),
-                        Refresh.ALL,
+                        Refresh.ANCESTORS,
                         t -> updateService.insertTaskNode(
                                 new TaskNodeDTO(
                                         after.node().parentId(),
@@ -251,7 +252,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
             if (response.success()) {
                 this.process(
                         response.task(),
-                        Refresh.ALL,
+                        Refresh.ANCESTORS,
                         t -> updateService.insertTaskNode(
                                 new TaskNodeDTO(
                                         before.node().parentId(),
@@ -264,6 +265,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
 
     @Override
     public boolean isTaskFormValid() {
+        // TODO: Switch between whatever task provider is active
         return form.binder().isValid();
     }
 
@@ -327,5 +329,11 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
         task.tags(processedTags);
         logger.debug("Quick add : " + task);
         return this.addTaskAsChildOfBase(task);
+    }
+
+    @Override
+    public void recalculateTimeEstimates() {
+        updateService.recalculateTimeEstimates();
+        dataProvider.refreshAll();
     }
 }
