@@ -5,6 +5,7 @@ import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ public class QuickAddField extends TextField {
 
         this.onAction = onAction;
         this.setValueChangeMode(ValueChangeMode.EAGER);
+        this.addThemeVariants(TextFieldVariant.LUMO_SMALL);
 
         this.setHelperText("Format: name " +
                 QuickAddParser.DELIMITER + "desc description " +

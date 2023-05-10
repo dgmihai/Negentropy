@@ -47,7 +47,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void initTreeView(TreeView treeView) {
         this.view = treeView;
         this.form = view.form();
-        this.gridLayout = view.gridLayout();
+        this.gridLayout = view.taskTreeGrid();
 
         loadData();
     }

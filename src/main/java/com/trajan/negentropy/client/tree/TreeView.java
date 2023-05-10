@@ -6,11 +6,11 @@ import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.components.FilterLayout;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.component.dependency.Uses;
-import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -32,49 +32,50 @@ public class TreeView extends Div {
 
     private final QuickAddField quickAddField;
     private final FilterLayout filterDiv;
-    private final TaskTreeGrid gridLayout;
+    private final TaskTreeGrid taskTreeGrid;
     private final TaskFormLayout form;
 
     public TreeView(TreeViewPresenter presenter) {
         this.presenter = presenter;
 
-        this.gridLayout = new TaskTreeGrid(presenter);
+        this.taskTreeGrid = new TaskTreeGrid(presenter);
         this.presenter.initTreeView(this);
 
         this.addClassName("tree-view");
         this.setSizeFull();
 
+        TabSheet tabSheet = new TabSheet();
+
         this.quickAddField = new QuickAddField(presenter::onQuickAdd);
         quickAddField.setWidthFull();
 
-        gridLayout.setSizeFull();
-
         this.filterDiv = new FilterLayout(presenter);
-        Details filterDetails = new Details("Filter", filterDiv);
-        filterDetails.addThemeVariants(DetailsVariant.SMALL);
-        filterDetails.setWidthFull();
 
         this.form = new TaskFormLayout(presenter, new Task(null));
         form.binder().setBean(new Task(null));
-        Details formDetails = new Details("Create New Task", form);
-        formDetails.addThemeVariants(DetailsVariant.SMALL);
+
         form.onClear(() -> {
             form.binder().setBean(new Task(null));
-            formDetails.setOpened(false);
+            tabSheet.setSelectedIndex(0);
         });
         form.onSave(() -> {
             presenter.onTaskFormSave(form);
             form.binder().setBean(new Task(null));
         });
-        form.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM, LumoUtility.Padding.Vertical.SMALL,
+        form.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
-        formDetails.setWidthFull();
+
+        tabSheet.setWidthFull();
+        tabSheet.add(VaadinIcon.CLOSE_SMALL.create(), new Div());
+        tabSheet.add("Quick Add", quickAddField);
+        tabSheet.add("Search & Filter", filterDiv());
+        tabSheet.add("Create New Task", form);
+
+        taskTreeGrid.setSizeFull();
 
         VerticalLayout layout = new VerticalLayout(
-                quickAddField,
-                filterDetails,
-                formDetails,
-                gridLayout);
+                tabSheet,
+                taskTreeGrid);
 
         layout.setSizeFull();
         layout.setSpacing(false);

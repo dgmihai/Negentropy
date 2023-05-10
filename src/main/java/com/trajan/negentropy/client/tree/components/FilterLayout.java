@@ -4,8 +4,10 @@ import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.util.TagComboBox;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.persistence.criteria.Predicate;
 import lombok.Getter;
@@ -35,11 +37,13 @@ public class FilterLayout extends FormLayout {
     }
 
     private void configureFields() {
-        name = new TextField("Name");
-        name.setPlaceholder("Task name");
+        name = new TextField("Search By Name");
+        name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
 
-        tagsToExclude = new TagComboBox("Exclude Tags", presenter);
-        tagsToInclude = new TagComboBox("Include Tags", presenter);
+        tagsToExclude = new TagComboBox("Filter: Excluded Tags", presenter);
+        tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+        tagsToInclude = new TagComboBox("Filter: Include Tags", presenter);
+        tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
 
         resetBtn = new Button("Reset");
 

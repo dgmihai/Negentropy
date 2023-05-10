@@ -25,6 +25,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.TabsVariant;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -84,10 +85,14 @@ public class TaskTreeGrid extends VerticalLayout {
         configureDragAndDrop();
         configureSelection();
 
+        nestedTabs.addThemeVariants(TabsVariant.LUMO_SMALL);
+
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
         treeGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        treeGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
 
+        this.setPadding(false);
         this.add(
                 nestedTabs,
                 treeGrid);

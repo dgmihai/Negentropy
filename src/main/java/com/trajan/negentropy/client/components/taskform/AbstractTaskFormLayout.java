@@ -11,7 +11,9 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextAreaVariant;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -50,12 +52,11 @@ public abstract class AbstractTaskFormLayout extends FormLayout {
         nameField.setValueChangeMode(ValueChangeMode.EAGER);
 
         durationField = new TextField("Duration");
+        durationField.setHelperText("Format: 1h 2m 30s");
         durationField.setPattern(DurationConverter.DURATION_PATTERN);
 
         descriptionArea = new TextArea("Description");
         descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
-
-        durationField.setHelperText("Format: 1h 2m 30s");
 
         saveButton = new Button("Save");
         clearButton = new Button("Cancel");
@@ -88,6 +89,9 @@ public abstract class AbstractTaskFormLayout extends FormLayout {
     abstract void configureBindings();
 
     protected void configureLayout() {
+        nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         buttonLayout = new HorizontalLayout(
