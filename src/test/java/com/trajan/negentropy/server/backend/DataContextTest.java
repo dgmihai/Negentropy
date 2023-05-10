@@ -32,7 +32,7 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskEntityToDTO() {
-        TaskEntity taskEntity = dataContext.mergeTask(new TaskEntity()
+        TaskEntity taskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity()
                 .name("Task Name")
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120))
@@ -76,21 +76,21 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkToDTO() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink prevLink = dataContext.mergeLink(new TaskLink()
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(0));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
                 .position(1));
 
-        TaskLink nextLink = dataContext.mergeLink(new TaskLink()
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(2));
@@ -109,16 +109,16 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkToDTONoPrev() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
                 .position(0));
 
-        TaskLink nextLink = dataContext.mergeLink(new TaskLink()
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(1));
@@ -137,15 +137,15 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkToDTONoNext() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink prevLink = dataContext.mergeLink(new TaskLink()
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(0));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
@@ -165,7 +165,7 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskMerge() {
-        TaskEntity taskEntity = dataContext.mergeTask(new TaskEntity()
+        TaskEntity taskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity()
                 .name("Original Task Name")
                 .description("Original Task Description")
                 .duration(Duration.ofMinutes(120))
@@ -208,21 +208,21 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkMerge() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink prevLink = dataContext.mergeLink(new TaskLink()
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(0));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
                 .position(1));
 
-        TaskLink nextLink = dataContext.mergeLink(new TaskLink()
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(2));
@@ -247,15 +247,15 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkMergeInvalid() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink prevLink = dataContext.mergeLink(new TaskLink()
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(0));
 
-        TaskLink nextLink = dataContext.mergeLink(new TaskLink()
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(1));
@@ -269,15 +269,15 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkMergeNoNext() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink prevLink = dataContext.mergeLink(new TaskLink()
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(0));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
@@ -303,16 +303,16 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTaskLinkMergeNoPrev() {
-        TaskEntity parentTaskEntity = dataContext.mergeTask(new TaskEntity().name("Parent Task"));
-        TaskEntity childTaskEntity = dataContext.mergeTask(new TaskEntity().name("Child Task"));
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
-        TaskLink taskLink = dataContext.mergeLink(new TaskLink()
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
                 .position(0));
 
-        TaskLink nextLink = dataContext.mergeLink(new TaskLink()
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .position(1));

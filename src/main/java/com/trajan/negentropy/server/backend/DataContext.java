@@ -22,13 +22,11 @@ public interface DataContext {
 
     void addToTimeEstimateOfAllAncestors(Duration difference, TaskID descendantId);
 
-    TaskEntity mergeTask(TaskEntity taskEntity);
 
     void addToTimeEstimateOfTask(Duration difference, TaskID taskId);
 
     TaskEntity mergeTask(Task task);
 
-    TaskLink mergeLink(TaskLink link);
     TaskLink mergeNode(TaskNode node);
     TaskLink mergeNode(TaskNodeDTO node);
 
@@ -68,5 +66,6 @@ public interface DataContext {
                 tagEntity.name());
     }
 
-
+    TaskLink TESTONLY_mergeLink(TaskLink link);
+    TaskEntity TESTONLY_mergeTask(TaskEntity taskEntity);
 }

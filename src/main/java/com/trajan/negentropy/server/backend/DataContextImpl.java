@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
@@ -37,27 +38,22 @@ public class DataContextImpl implements DataContext {
     @Autowired private TagRepository tagRepository;
 
     @Override
-    public TaskEntity mergeTask(TaskEntity taskEntity) {
-        return taskRepository.save(taskEntity);
-    }
-
-    @Override
-    public void addToTimeEstimateOfAllAncestors(Duration difference, TaskID descendantId) {
+    public void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId) {
         entityQueryService.findAncestorLinks(descendantId, null)
                 .map(TaskLink::child)
                 .filter(Objects::nonNull)
                 .distinct()
                 .forEach(task -> {
-                    this.addToTimeEstimateOfTask(difference, ID.of(task));
+                    this.addToTimeEstimateOfTask(change, ID.of(task));
                 });
     }
 
     @Override
-    public void addToTimeEstimateOfTask(Duration difference, TaskID taskId) {
-        logger.trace("Adding to " + difference + " to " + entityQueryService.getTask(taskId));
+    public void addToTimeEstimateOfTask(Duration change, TaskID taskId) {
+        logger.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
         TimeEstimate timeEstimate = entityQueryService.getTimeEstimate(taskId);
         if (timeEstimate != null) {
-            timeEstimate.netDuration(timeEstimate.netDuration().plus(difference));
+            timeEstimate.netDuration(timeEstimate.netDuration().plus(change));
         }
     }
 
@@ -83,8 +79,8 @@ public class DataContextImpl implements DataContext {
             logger.debug("Merging to existing task: " + taskEntity.name());
 
             if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
-                Duration difference = taskEntity.duration().minus(task.duration());
-                this.addToTimeEstimateOfAllAncestors(difference, task.id());
+                Duration change = task.duration().minus(taskEntity.duration());
+                this.addToTimeEstimateOfAllAncestors(change, task.id());
             }
         }
 
@@ -105,11 +101,6 @@ public class DataContextImpl implements DataContext {
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities)
                 .oneTime(task.oneTime());
-    }
-
-    @Override
-    public TaskLink mergeLink(TaskLink link) {
-        return linkRepository.save(link);
     }
 
     @Override
@@ -162,17 +153,17 @@ public class DataContextImpl implements DataContext {
                 0 :
                 node.importance();;
 
-        TaskLink link =linkRepository.save(new TaskLink(
+        TaskLink link = linkRepository.save(new TaskLink(
                 parent,
                 child,
                 position,
                 importance));
 
         if (parent != null) {
-            Duration difference = child.duration();
+            Duration change = entityQueryService.getTimeEstimate(ID.of(child)).netDuration();
             TaskID parentId = ID.of(parent);
 
-            this.addToTimeEstimateOfAllAncestors(difference, parentId);
+            this.addToTimeEstimateOfAllAncestors(change, parentId);
             try {
                 parent.childLinks().add(link.position(), link);
             } catch (IndexOutOfBoundsException e) {
@@ -222,8 +213,22 @@ public class DataContextImpl implements DataContext {
 
         linkRepository.delete(link);
 
-        Duration difference = child.duration().negated();
+
+        Duration change = entityQueryService.getTimeEstimate(ID.of(child)).netDuration()
+            .negated();
         TaskID parentId = ID.of(parent);
-        this.addToTimeEstimateOfAllAncestors(difference, parentId);
+        this.addToTimeEstimateOfAllAncestors(change, parentId);
+    }
+
+    @Override
+    @VisibleForTesting
+    public TaskEntity TESTONLY_mergeTask(TaskEntity taskEntity) {
+        return taskRepository.save(taskEntity);
+    }
+
+    @Override
+    @VisibleForTesting
+    public TaskLink TESTONLY_mergeLink(TaskLink link) {
+        return linkRepository.save(link);
     }
 }
