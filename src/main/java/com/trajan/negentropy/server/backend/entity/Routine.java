@@ -3,7 +3,9 @@ package com.trajan.negentropy.server.backend.entity;
 import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.time.Duration;
@@ -11,29 +13,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "routines")
-@AllArgsConstructor
+@Table(name = "ROUTINES")
 @NoArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
 public class Routine extends AbstractEntity {
     @OneToMany(
+            fetch = FetchType.EAGER,
             mappedBy = "routine",
-            cascade = {
-            CascadeType.PERSIST,
-            CascadeType.MERGE,
-            CascadeType.REFRESH,
-            CascadeType.DETACH},
-            fetch = FetchType.EAGER)
-    @OrderColumn(name = "step_order")
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    @OrderColumn(name = "position")
     private List<RoutineStep> steps = new ArrayList<>();
 
-    @NotNull
     @ManyToOne(fetch = FetchType.EAGER)
+    @NotNull
     private TaskEntity rootTask;
 
-    private int currentIndex = 0;
+    @OneToOne(fetch = FetchType.EAGER)
+    private RoutineStep current;
 
     private Duration estimatedDuration = Duration.ZERO;
 

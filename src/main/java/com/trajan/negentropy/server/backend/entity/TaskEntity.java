@@ -2,9 +2,8 @@ package com.trajan.negentropy.server.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
@@ -15,12 +14,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 @Entity
-@Table(name = "task_info")
-@RequiredArgsConstructor
-@AllArgsConstructor
+@Table(name = "TASKS")
+@NoArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
@@ -31,59 +28,40 @@ public class TaskEntity extends AbstractEntity {
     @NotEmpty(message = "Name is required")
     private String name;
 
+    @Column(columnDefinition = "TEXT")
     private String description = "";
 
     private Duration duration = Duration.ZERO;
 
     @OneToMany(
-            fetch = FetchType.EAGER,
-            mappedBy = "parent",
+            mappedBy = "task",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
+    private List<TimeEstimate> timeEstimates = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "parent",
+            cascade = CascadeType.ALL)
     @OrderBy("position")
     private List<TaskLink> childLinks = new ArrayList<>();
 
-    public Stream<TaskEntity> children() {
-        return childLinks.stream().map(TaskLink::child);
-    }
-
     @OneToMany(
-            fetch = FetchType.EAGER,
             mappedBy = "child",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+            cascade = CascadeType.ALL)
     private List<TaskLink> parentLinks = new ArrayList<>();
 
-    public Stream<TaskEntity> parents() {
-        return parentLinks.stream().map(TaskLink::parent);
-    }
-
     @ManyToMany(
-            cascade = CascadeType.REMOVE,
-            fetch = FetchType.EAGER)
+            cascade = CascadeType.REMOVE)
     @JoinTable(
-            name = "taggings",
+            name = "TASK_TAGS",
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     private Set<TagEntity> tags = new HashSet<>();
 
-    public TaskEntity(String name) {
-        this.name = name;
-    }
+    private Boolean oneTime;
 
     @Override
     public String toString() {
-        return "TaskEntity(" + super.toString() + ", name: " + name + ")";
-    }
-
-    public void log() {
-        log("Task Logged::");
-    }
-
-    public void log(String prefix) {
-        logger.debug(prefix);
-        logger.debug("id=          {}", this.id());
-        logger.debug("title=       {}", this.name());
-        logger.debug("duration=    {}", this.duration());
+        return "TaskEntity[" + super.toString() + ", name=" + name + "]";
     }
 }

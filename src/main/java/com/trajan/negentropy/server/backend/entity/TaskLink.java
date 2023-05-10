@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entity
-@Table(name = "task_links")
+@Table(name = "TASK_LINKS")
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)
@@ -31,20 +31,9 @@ public class TaskLink extends AbstractEntity {
 
     private Integer position = 0;
 
-    private Integer priority = 0;
+    private Integer importance = 0;
 
     public String toString() {
-        return "LinkEntity(" + super.toString() + ", Parent" + parent + ", Child" + child + ")";
-    }
-
-    public void log() {
-        log("== TaskLink Logged::");
-    }
-
-    public void log(String prefix) {
-        logger.info(prefix);
-        logger.info("ID:     " + (id() == null ? "null" : id()));
-//        logger.info("Parent: " + (getParentNode() == null ? "null" : getParentNode().getId()));
-        logger.info("Child:  " + (child() == null ? "null" : child().id()));
+        return "LinkEntity[" + super.toString() + ", parent=" + parent + ", child=" + child + "]";
     }
 }

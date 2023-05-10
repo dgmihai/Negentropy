@@ -1,5 +1,6 @@
 package com.trajan.negentropy;
 
+import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
@@ -14,7 +15,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * Use the @PWA annotation make the application installable on phones, tablets
  * and some desktop browsers.
  */
-
 @PWA(
         name = "Negentropy",
         shortName = "Negentropy",
@@ -22,8 +22,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         offlineResources = { "./images/offline.png"}
 )
 @SpringBootApplication
-@EnableScheduling
+@NpmPackage(value = "@fontsource/pt-sans-narrow", version = "4.5.0")
 @Theme(value = "negentropy")
+@EnableScheduling
 public class Negentropy extends SpringBootServletInitializer implements AppShellConfigurator {
     public static void main(String[] args) {
         SpringApplication.run(Negentropy.class, args);

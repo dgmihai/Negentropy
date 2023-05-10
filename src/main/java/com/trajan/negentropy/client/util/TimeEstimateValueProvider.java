@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.util;
 
 import com.trajan.negentropy.client.tree.data.TaskEntry;
-import com.trajan.negentropy.server.facade.TaskQueryService;
+import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.function.ValueProvider;
 
@@ -13,12 +13,12 @@ import java.util.function.Supplier;
 
 public class TimeEstimateValueProvider<T> implements ValueProvider<T, String> {
 
-    private final TaskQueryService queryService;
+    private final QueryService queryService;
     private final Supplier<TimeFormat> timeFormatCallback;
     private final boolean netDuration;
 
     public TimeEstimateValueProvider(
-            TaskQueryService queryService, Supplier<TimeFormat> formatSupplier,
+            QueryService queryService, Supplier<TimeFormat> formatSupplier,
             boolean netDuration) {
         this.queryService = queryService;
         this.timeFormatCallback = formatSupplier;
@@ -40,11 +40,11 @@ public class TimeEstimateValueProvider<T> implements ValueProvider<T, String> {
         TimeFormat timeFormat = timeFormatCallback.get();
         Duration duration = task.duration();
         if (netDuration) {
-            int children = queryService.getChildCount(task.id());
+            int children = queryService.fetchChildCount(task.id(), null);
             if (children == 0) {
                 return "";
             }
-            duration = queryService.getEstimatedTotalDuration(task.id());
+            duration = queryService.fetchNetTimeDuration(task.id());
         }
         if (duration.isZero()) {
             return "-- -- --";

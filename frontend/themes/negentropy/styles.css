@@ -1,12 +1,31 @@
-@media (max-width: 600px) {
-  .list-view .toolbar,
-  .list-view .contact-grid,
-  vaadin-multi-select-combo-box.details {
-    display:none:
-   }
-}
+@import url('./main-layout.css');
+@import url('@fontsource/pt-sans-narrow/index.css');    html {
+      --lumo-primary-color: hsl(311, 46%, 30%);
+      --lumo-primary-color-50pct: hsla(311, 46%, 30%, 0.5);
+      --lumo-primary-color-10pct: hsla(311, 46%, 30%, 0.1);
+      --lumo-error-color: hsla(3, 100%, 38%, 0.72);
+      --lumo-error-color-50pct: hsla(3, 100%, 38%, 0.5);
+      --lumo-error-color-10pct: hsla(3, 100%, 38%, 0.1);
+      --lumo-primary-text-color: hsl(311, 46%, 30%);
+      --lumo-error-text-color: hsl(3, 100%, 28%);
+      --lumo-space-xl: 1.875rem;
+      --lumo-space-l: 1.25rem;
+      --lumo-space-m: 0.625rem;
+      --lumo-space-s: 0.3125rem;
+      --lumo-space-xs: 0.1875rem;
+      --lumo-size-xl: 3rem;
+      --lumo-size-l: 2.5rem;
+      --lumo-size-m: 2rem;
+      --lumo-size-s: 1.75rem;
+      --lumo-size-xs: 1.5rem;
+      --lumo-base-color: #fcfcfc;
+--lumo-font-family: PT Sans Narrow;
 
-a[highlight] {
-    font-weight: bold;
-    text-decoration: underline;
-}
+    }
+
+    [theme~="dark"] {
+      --lumo-primary-color: hsl(311, 46%, 30%);
+      --lumo-primary-color-50pct: hsla(311, 46%, 30%, 0.5);
+      --lumo-primary-color-10pct: hsla(311, 46%, 30%, 0.1);
+      --lumo-primary-text-color: hsl(311, 100%, 86%);
+    }

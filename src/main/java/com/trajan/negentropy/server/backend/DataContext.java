@@ -1,63 +1,72 @@
 package com.trajan.negentropy.server.backend;
 
+import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
+import com.trajan.negentropy.server.facade.model.Tag;
+import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.facade.model.id.ID;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
 
-import java.util.Set;
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
 public interface DataContext {
+//    void updateDuration(Duration difference, TaskEntity parent, TaskEntity child);
 
-    /**
-     * Merge a detached Task entity to persistence.
-     *
-     * @param fresh The Task object to be saved.
-     * @return The persisted Task entity.
-     */
-    // TODO: Unused
-    TaskEntity updateTask(TaskEntity fresh);
+    void addToTimeEstimateOfAllAncestors(Duration difference, TaskID descendantId);
 
-    /**
-     * Persists a transient, or new, Task entity.
-     *
-     * @param fresh The transient Task object to be persisted.
-     * @return The persisted Task entity.
-     */
-    TaskEntity createTask(TaskEntity fresh);
+    TaskEntity mergeTask(TaskEntity taskEntity);
 
-    /**
-     * Persists a transient, or new, TaskLink entity.
-     *
-     * @param fresh The transient TaskLink object to be persisted.
-     * @return The persisted TaskLink entity.
-     */
-    TaskLink createLink(TaskLink fresh);
+    void addToTimeEstimateOfTask(Duration difference, TaskID taskId);
 
-    /**
-     * Updates a detached TaskLink entity to the repository.
-     *
-     * @param fresh The detached TaskLink object to be saved.
-     * @return The persisted TaskLink entity.
-     */
-    // TODO: Unused
-    TaskLink updateLink(TaskLink fresh);
+    TaskEntity mergeTask(Task task);
 
-    /**
-     * Deletes a Task entity from the database.
-     * Does NOT automatically adjust time estimates.
-     *
-     * @param task The Task entity to be deleted.
-     */
-    // TODO: Unused
-    void deleteTask(TaskEntity task);
+    TaskLink mergeLink(TaskLink link);
+    TaskLink mergeNode(TaskNode node);
+    TaskLink mergeNode(TaskNodeDTO node);
 
-    /**
-     * Deletes a collection of Task entities from the database in a batch.
-     * Does NOT automatically adjust time estimates.
-     *
-     * @param tasks A set of Task entities to be deleted.
-     */
-    void deleteTasks(Set<TaskEntity> tasks);
+    TagEntity mergeTag(TagEntity tagEntity);
+    TagEntity mergeTag(Tag tag);
+
+    void deleteLink(TaskLink link);
+
+    static Task toDTO(TaskEntity taskEntity) {
+        return new Task(ID.of(taskEntity),
+                taskEntity.name(),
+                taskEntity.description(),
+                taskEntity.duration(),
+                taskEntity.tags().stream()
+                        .map(DataContext::toDTO)
+                        .collect(Collectors.toSet()),
+                taskEntity.oneTime());
+    }
+
+    static TaskNode toDTO(TaskLink link) {
+        TaskID parentId = ID.of(link.parent());
+        if (parentId != null) {
+            List<TaskLink> siblings = link.parent().childLinks();
+        }
+
+        return new TaskNode(
+                ID.of(link),
+                parentId,
+                ID.of(link.child()),
+                link.position(),
+                link.importance());
+    }
+
+    static Tag toDTO(TagEntity tagEntity) {
+        return new Tag(
+                ID.of(tagEntity),
+                tagEntity.name());
+    }
+
+
 }

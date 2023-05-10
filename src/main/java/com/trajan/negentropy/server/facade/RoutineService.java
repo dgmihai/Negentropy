@@ -14,7 +14,7 @@ public interface RoutineService {
      * If the task is already running or paused, this method does nothing.
      *
      * @param taskId The ID of the Task to create a Routine from.
-     * TODO: @param priority The minimum priority level of subtasks to include
+     * TODO: @param importance The minimum importance level of subtasks to include
      * @return A new Routine object containing the created Routine.
      * @throws IllegalArgumentException If the task is not found by the TaskService.
      */

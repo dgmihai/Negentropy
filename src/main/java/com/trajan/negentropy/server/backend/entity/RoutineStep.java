@@ -10,10 +10,9 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "steps")
-@AllArgsConstructor
+@Table(name = "ROUTINE_STEPS")
 @NoArgsConstructor
-@Builder
+@AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
@@ -22,24 +21,21 @@ public class RoutineStep extends AbstractEntity {
     @NotNull
     private TaskEntity task;
 
-    private LocalDateTime start;
-    private LocalDateTime finish;
-    private LocalDateTime lastResumed;
-    @Builder.Default
-    private Duration elapsedActiveTime = Duration.ZERO;
+    private LocalDateTime startTime;
+    private LocalDateTime finishTime;
+    private LocalDateTime suspendTime;
 
-    @ManyToOne(
-            fetch = FetchType.EAGER,
-            cascade = {
-            CascadeType.PERSIST,
-            CascadeType.MERGE,
-            CascadeType.REFRESH})
+    private Duration elapsedSuspendedTime = Duration.ZERO;
+
+    @ManyToOne
     @JoinColumn(name = "routine_id")
     private Routine routine;
 
     @Enumerated(EnumType.STRING)
     @NotNull
     private TaskStatus status;
+
+    private Integer position;
 
     public String toString() {
         return "Step(" + super.toString() + ", " + task + ")";

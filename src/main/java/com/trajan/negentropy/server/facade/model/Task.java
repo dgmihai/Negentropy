@@ -1,20 +1,17 @@
 package com.trajan.negentropy.server.facade.model;
 
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Set;
 
+@RequiredArgsConstructor
+@AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
-@RequiredArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Task {
     @EqualsAndHashCode.Include
@@ -22,10 +19,15 @@ public class Task {
     private String name;
     private String description;
     private Duration duration;
-    private Set<TagEntity> tags = new HashSet<>();
+    private Set<Tag> tags;
+    private boolean oneTime;
+
+    public Task() {
+        id = null;
+    }
 
     @Override
     public String toString() {
-        return "Task(" + id + ", name: " + name + ")";
+        return "Task[" + id + ", name: " + name + "]";
     }
 }

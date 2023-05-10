@@ -1,7 +1,7 @@
 package com.trajan.negentropy.server.facade.response;
 
+import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.facade.model.EntityMapper;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import lombok.Getter;
@@ -17,11 +17,11 @@ public class NodeResponse extends Response {
     public NodeResponse(Boolean success, TaskLink link, String message) {
         super(success, message);
         if (link != null) {
-            this.node = EntityMapper.toDTO(link);
+            this.node = DataContext.toDTO(link);
             this.parent = link.parent() != null ?
-                    EntityMapper.toDTO(link.parent()) :
+                    DataContext.toDTO(link.parent()) :
                     null;
-            this.child = EntityMapper.toDTO(link.child());
+            this.child = DataContext.toDTO(link.child());
         } else {
             this.node = null;
             this.parent = null;

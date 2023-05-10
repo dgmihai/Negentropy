@@ -1,9 +1,11 @@
 package com.trajan.negentropy.client.tree;
 
+import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.facade.TagService;
-import com.trajan.negentropy.server.facade.TaskQueryService;
+import com.trajan.negentropy.server.facade.QueryService;
+import com.trajan.negentropy.server.facade.model.Tag;
+import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.response.Response;
 
 public interface TreeViewPresenter {
     void initTreeView(TreeView treeView);
@@ -36,10 +38,11 @@ public interface TreeViewPresenter {
 
     boolean isTaskFormValid();
 
-    TagEntity createTag(TagEntity tag);
+    Tag createTag(Tag tag);
 
-    void onTaskFormSave();
+    void onTaskFormSave(TaskFormLayout form);
 
-    TagService tagService();
-    TaskQueryService queryService();
+    QueryService queryService();
+
+    Response onQuickAdd(Task task);
 }

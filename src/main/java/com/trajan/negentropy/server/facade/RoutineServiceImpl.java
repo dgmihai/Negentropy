@@ -94,11 +94,11 @@
 //
 //    @Override
 //    @Transactional
-//    public Routine recalculateRoutine(long routineId, int priority) {
+//    public Routine recalculateRoutine(long routineId, int importance) {
 //        Routine routine = routineRepository.findById(routineId)
 //                .orElseThrow(() -> new IllegalArgumentException("Routine not found with ID: + " + routineId));
 //
-//        routine.setPriority(priority);
+//        routine.setPriority(importance);
 //        routine.setQueue(new ArrayList<>());
 //
 //        dfs(routine.getRootTask(), routine);

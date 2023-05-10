@@ -1,15 +1,19 @@
 package com.trajan.negentropy.client.tree;
 
+import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.tree.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.util.NotificationError;
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.facade.TagService;
-import com.trajan.negentropy.server.facade.TaskQueryService;
-import com.trajan.negentropy.server.facade.TaskUpdateService;
+import com.trajan.negentropy.server.backend.TagService;
+import com.trajan.negentropy.server.facade.QueryService;
+import com.trajan.negentropy.server.facade.UpdateService;
+import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskID;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
+import com.trajan.negentropy.server.facade.response.TagResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
@@ -19,7 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 
 @UIScope
@@ -30,12 +35,12 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     private static final Logger logger = LoggerFactory.getLogger(TreeViewPresenterImpl.class);
 
     private TreeView view;
-    private TaskForm form;
-    private TreeGridLayout gridLayout;
+    private TaskFormLayout form;
+    private TaskTreeGrid gridLayout;
     private TaskEntryDataProvider dataProvider;
 
-    @Autowired private TaskQueryService queryService;
-    @Autowired private TaskUpdateService updateService;
+    @Autowired private QueryService queryService;
+    @Autowired private UpdateService updateService;
     @Autowired private TagService tagService;
 
     @Override
@@ -62,27 +67,17 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
         return dataProvider.getBaseEntry();
     }
 
-    private <T> void process(
-            T input,
-            Function<T, Response> updateFunction,
-            boolean fullRefresh) {
-
-        Response response = updateFunction.apply(input);
-        if (!response.success()) {
-            NotificationError.show(response.message());
-        }
-
-        if (!fullRefresh && input instanceof TaskEntry entry) {
-            dataProvider.refreshItem(entry);
-        } else {
-            dataProvider.refreshAll();
-        }
+    private enum Refresh {
+        NONE,
+        SINGLE,
+        ALL
     }
 
-    private <T> Response processSequentially(
+    @SafeVarargs
+    private <T> Response process(
             T input,
-            List<Function<T, Response>> updateFunctions,
-            boolean fullRefresh) {
+            Refresh refresh,
+            Function<T, Response>... updateFunctions) {
 
         Response response = new Response(false, "Function list was empty.");
 
@@ -94,85 +89,132 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
             }
         }
 
-        if (fullRefresh && input instanceof TaskEntry entry) {
-            this.loadData();
-            dataProvider.refreshItem(entry);
-        } else {
-            this.loadData();
+        this.handleRefresh(input, refresh);
+
+        return response;
+    }
+
+    private <T> void handleRefresh (T input, Refresh refresh) {
+        switch (refresh) {
+            case SINGLE -> {
+                if (input instanceof Task t) {
+                    dataProvider.refreshMatchingItems(t.id());
+                } else if (input instanceof TaskEntry e) {
+                    dataProvider.refreshMatchingItems(e.task().id());
+                } else if (input instanceof TaskNode n) {
+                    dataProvider.refreshMatchingItems(n.childId());
+                } else {
+                    logger.warn("Item " + input +
+                            " passed to process didn't match Task or TaskEntry or TaskNode");
+                }
+            }
+            case ALL -> dataProvider.refreshAll();
+            default -> { }
         }
-        return null;
+
     }
 
     @Override
     public void updateNode(TaskEntry entry) {
-        this.process(entry, e -> updateService.updateNode(entry.node()), false);
+        logger.debug("Updating node: " + entry);
+        this.process(entry,
+                Refresh.SINGLE,
+                e -> updateService.updateNode(entry.node()));
     }
 
     @Override
     public void deleteNode(TaskEntry entry) {
-        process(entry, e -> updateService.deleteNode(e.node().linkId()), true);
+        logger.debug("Deleting node: " + entry);
+        this.process(entry,
+                Refresh.ALL,
+                e -> updateService.deleteNode(e.node().linkId()));
     }
 
     @Override
     public void updateTask(TaskEntry entry) {
-        this.process(entry, e -> updateService.updateTask(entry.task()), false);
+        logger.debug("Updating task: " + entry);
+        this.process(entry,
+                Refresh.SINGLE,
+                e -> updateService.updateTask(entry.task()));
     }
 
     @Override
     public void updateEntry(TaskEntry entry) {
-        processSequentially(entry, List.of(
+        logger.debug("Updating entry: " + entry);
+        this.process(entry,
+                Refresh.SINGLE,
                 e -> updateService.updateNode(e.node()),
-                e -> updateService.updateTask(e.task())),
-                false);
+                e -> updateService.updateTask(e.task()));
     }
 
     @Override
     public void moveNodeToRoot(TaskEntry entry) {
-        processSequentially(entry, List.of(
-                e -> updateService.insertTaskAsRoot(e.task().id()),
-                e -> updateService.deleteNode(e.node().linkId())),
-                true);
+        logger.debug("Moving to root: " + entry);
+        this.process(entry,
+                Refresh.ALL,
+                e -> updateService.insertTaskNode(
+                        new TaskNodeDTO(entry.node())
+                                .parentId(null)
+                                .position(null)),
+                e -> updateService.deleteNode(e.node().linkId()));
     }
 
     @Override
     public void moveNodeInto(TaskEntry moved, TaskEntry target) {
-        processSequentially(moved, List.of(
-                m -> updateService.insertTaskAsChild(target.task().id(), m.task().id()),
-                m -> updateService.deleteNode(m.node().linkId())),
-                true);
+        logger.debug("Moving node: " + moved + " into " + target);
+        this.process(moved,
+                Refresh.ALL,
+                m -> updateService.insertTaskNode(
+                        new TaskNodeDTO(moved.node())
+                                .parentId(target.task().id())
+                                .position(null)),
+                m -> updateService.deleteNode(m.node().linkId()));
     }
 
     @Override
     public void moveNodeBefore(TaskEntry moved, TaskEntry target) {
-        processSequentially(moved, List.of(
-                        m -> updateService.insertTaskAsChildAt(
-                                target.node().position(),
-                                target.task().id(),
-                                m.task().id()),
-                        m -> updateService.deleteNode(m.node().linkId())),
-                true);
+        logger.debug("Moving node: " + moved + " before " + target);
+        this.process(moved,
+                Refresh.ALL,
+                m -> updateService.insertTaskNode(
+                        new TaskNodeDTO(m.node())
+                                .parentId(target.node().parentId())
+                                .position(target.node().position())),
+                m -> updateService.deleteNode(m.node().linkId()));
     }
 
     @Override
     public void moveNodeAfter(TaskEntry moved, TaskEntry target) {
-        processSequentially(moved, List.of(
-                        m -> updateService.insertTaskAsChildAt(
-                                target.node().position() + 1,
-                                target.task().id(),
-                                m.task().id()),
-                        m -> updateService.deleteNode(m.node().linkId())),
-                true);
+        logger.debug("Moving node: " + moved + " after " + target);
+        this.process(moved,
+                Refresh.ALL,
+                m -> updateService.insertTaskNode(
+                        new TaskNodeDTO(m.node())
+                                .parentId(target.node().parentId())
+                                .position(target.node().position() + 1)),
+                m -> updateService.deleteNode(m.node().linkId()));
     }
 
     @Override
     public void addTaskFromFormAsChild(TaskEntry parent) {
+        logger.debug("Creating task as a child of " + parent);
         if (form.binder().isValid()) {
             Task task = form.binder().getBean();
-            process(task,
-                    t -> updateService.insertTaskAsChild(
-                            parent.task().id(),
-                            t.id()),
-                    true);
+            TaskResponse response = (TaskResponse) this.process(
+                    task,
+                    Refresh.NONE,
+                    t -> updateService.createTask(t));
+            if (response.success()) {
+                this.process(
+                        response.task(),
+                        Refresh.ALL,
+                        t -> updateService.insertTaskNode(
+                                new TaskNodeDTO(
+                                        parent.node().parentId(),
+                                        t.id(),
+                                        null,
+                                        0)));
+            }
         }
     }
 
@@ -180,12 +222,21 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void addTaskFromFormBefore(TaskEntry after) {
         if (form.binder().isValid()) {
             Task task = form.binder().getBean();
-            process(task,
-                    t -> updateService.insertTaskAsChildAt(
-                            after.node().position(),
-                            after.node().parentId(),
-                            task.id()),
-                    true);
+            TaskResponse response = (TaskResponse) this.process(
+                    task,
+                    Refresh.NONE,
+                    t -> updateService.createTask(t));
+            if (response.success()) {
+                this.process(
+                        response.task(),
+                        Refresh.ALL,
+                        t -> updateService.insertTaskNode(
+                                new TaskNodeDTO(
+                                        after.node().parentId(),
+                                        t.id(),
+                                        after.node().position(),
+                                        null)));
+            }
         }
     }
 
@@ -193,12 +244,21 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void addTaskFromFormAfter(TaskEntry before) {
         if (form.binder().isValid()) {
             Task task = form.binder().getBean();
-            process(task,
-                    t -> updateService.insertTaskAsChildAt(
-                            before.node().position() + 1,
-                            before.node().parentId(),
-                            task.id()),
-                    true);
+            TaskResponse response = (TaskResponse) this.process(
+                    task,
+                    Refresh.NONE,
+                    t -> updateService.createTask(t));
+            if (response.success()) {
+                this.process(
+                        response.task(),
+                        Refresh.ALL,
+                        t -> updateService.insertTaskNode(
+                                new TaskNodeDTO(
+                                        before.node().parentId(),
+                                        t.id(),
+                                        before.node().position() + 1,
+                                        null)));
+            }
         }
     }
 
@@ -208,36 +268,64 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
-    public TagEntity createTag(TagEntity tag) {
-        //form.tagBox.setItems(tagService.findAll());
-        return tagService.create(tag);
+    public Tag createTag(Tag tag) {
+        TagResponse response = (TagResponse) this.process(
+                tag,
+                Refresh.NONE,
+                t -> updateService.createTag(tag));
+        return response.tag();
     }
 
     @Override
-    public void onTaskFormSave() {
+    public void onTaskFormSave(TaskFormLayout form) {
         if (form.binder().isValid()) {
             Task task = form.binder().getBean();
-            TaskID parentId = dataProvider.getBaseEntry() == null ?
-                    null :
-                    dataProvider.getBaseEntry().node().childId();
-            if (task.id() != null) {
-                processSequentially(
-                        task,
-                        List.of(
-                                t -> updateService.updateTask(t),
-                                t -> updateService.insertTaskAsChild(parentId, t.id())),
-                        true);
-            } else {
-                // TODO: Sequential processing carries through task if response contains it
-                TaskResponse response = updateService.createTask(task);
+            addTaskAsChildOfBase(task);
+        }
+    }
+
+    private Response addTaskAsChildOfBase(Task task) {
+        TaskID parentId = dataProvider.getBaseEntry() == null ?
+                null :
+                dataProvider.getBaseEntry().node().childId();
+        TaskResponse response = (TaskResponse) this.process(
+                task,
+                Refresh.NONE,
+                t -> updateService.createTask(t));
+        if (response.success()) {
+            this.process(
+                    response.task(),
+                    Refresh.ALL,
+                    t -> updateService.insertTaskNode(
+                            new TaskNodeDTO(
+                                    parentId,
+                                    t.id(),
+                                    null,
+                                    null)));
+        }
+        return response;
+    }
+
+    @Override
+    public Response onQuickAdd(Task task) {
+        Set<Tag> processedTags = new HashSet<>();
+        for (Tag tag : task.tags()) {
+            if (tag.id() == null) {
+                TagResponse response = (TagResponse) this.process(
+                        tag,
+                        Refresh.NONE,
+                        t -> updateService.createTag(tag));
                 if (response.success()) {
-                    task = response.task();
-                    process(
-                            task,
-                            t -> updateService.insertTaskAsChild(parentId, t.id()),
-                            true);
+                    processedTags.add(response.tag());
+                } else {
+                    return response;
                 }
             }
+
+            processedTags.add(queryService.fetchTag(tag.id())); // TODO: Filter
         }
+        task.tags(processedTags);
+        logger.debug("Quick add : " + task);
+        return this.addTaskAsChildOfBase(task);
     }
 }

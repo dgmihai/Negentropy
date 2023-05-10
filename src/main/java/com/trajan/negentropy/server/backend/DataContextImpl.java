@@ -1,87 +1,229 @@
 package com.trajan.negentropy.server.backend;
 
+import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
+import com.trajan.negentropy.server.backend.entity.TimeEstimate;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
+import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
-import jakarta.transaction.Transactional;
+import com.trajan.negentropy.server.facade.model.Tag;
+import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.facade.model.id.ID;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class DataContextImpl implements DataContext {
-    private static final Logger logger = LoggerFactory.getLogger(DataContext.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataContextImpl.class);
+
+    @Autowired private EntityQueryService entityQueryService;
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
+    @Autowired private TagRepository tagRepository;
 
     @Override
-    public TaskEntity updateTask(TaskEntity fresh) {
-        if (!fresh.exists()) {
-            return taskRepository.save(fresh);
-        } else throw new IllegalArgumentException(
-                "updateTask cannot be called for a task that does not exist in the repository");
+    public TaskEntity mergeTask(TaskEntity taskEntity) {
+        return taskRepository.save(taskEntity);
     }
 
     @Override
-    public TaskEntity createTask(TaskEntity fresh) {
-        if (!fresh.exists()) {
-            return taskRepository.save(fresh);
-        } else throw new IllegalArgumentException(
-                "createTask cannot be called for a task that already exists in the repository");
+    public void addToTimeEstimateOfAllAncestors(Duration difference, TaskID descendantId) {
+        entityQueryService.findAncestorLinks(descendantId, null)
+                .map(TaskLink::child)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(task -> {
+                    this.addToTimeEstimateOfTask(difference, ID.of(task));
+                });
     }
 
     @Override
-    public TaskLink createLink(TaskLink fresh) {
-        if (!fresh.exists()) {
-            return linkRepository.save(fresh);
-        } else throw new IllegalArgumentException(
-                "createLink cannot be called for a task link that already exists in the repository");
+    public void addToTimeEstimateOfTask(Duration difference, TaskID taskId) {
+        logger.trace("Adding to " + difference + " to " + entityQueryService.getTask(taskId));
+        TimeEstimate timeEstimate = entityQueryService.getTimeEstimate(taskId);
+        if (timeEstimate != null) {
+            timeEstimate.netDuration(timeEstimate.netDuration().plus(difference));
+        }
     }
 
     @Override
-    public TaskLink updateLink(TaskLink fresh) {
-        if (!fresh.exists()) {
-            return linkRepository.save(fresh);
-        } else throw new IllegalArgumentException(
-                "createLink cannot be called for a task that does not exist in the repository");
+    public TaskEntity mergeTask(Task task) {
+        TaskEntity taskEntity;
+
+        if (task.id() == null) {
+            if (task.name() == null) {
+                throw new IllegalArgumentException("New task must have a non-blank unique name");
+            }
+            logger.debug("Creating new task: " + task.name());
+
+            taskEntity = taskRepository.save(new TaskEntity()
+                    .name(task.name()));
+            taskEntity.timeEstimates().add(new TimeEstimate(
+                    taskEntity,
+                    0,
+                    Objects.requireNonNullElse(
+                            task.duration(), Duration.ZERO)));
+        } else {
+            taskEntity = entityQueryService.getTask(task.id());
+            logger.debug("Merging to existing task: " + taskEntity.name());
+
+            if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
+                Duration difference = taskEntity.duration().minus(task.duration());
+                this.addToTimeEstimateOfAllAncestors(difference, task.id());
+            }
+        }
+
+        Set<TagEntity> tagEntities = task.tags() == null ?
+                taskEntity.tags() :
+                task.tags().stream()
+                        .map(tag ->entityQueryService.getTag(tag.id()))
+                        .collect(Collectors.toSet());
+
+        return taskEntity
+                .name(Objects.requireNonNullElse(
+                        task.name(), taskEntity.name()))
+                .duration(Objects.requireNonNullElse(
+                        task.duration(), taskEntity.duration()))
+                .description(Objects.requireNonNullElse(
+                        task.description(), taskEntity.description()))
+                .childLinks(taskEntity.childLinks())
+                .parentLinks(taskEntity.parentLinks())
+                .tags(tagEntities)
+                .oneTime(task.oneTime());
     }
 
     @Override
-    public void deleteTask(TaskEntity task) {
-        //timeEstimator.onTaskDeleted(task);
-        //            Pair<Set<TaskLink>, Set<Task>> nodesWhereTaskIsAncestor = queryService.getDescendantNodes(task)
-//                    .unordered()
-//                    .collect(Collectors.teeing(
-//                            Collectors.toSet(),
-//                            Collectors.filtering(
-//                                    // TODO: queryService.isAncestor?
-//                                    link -> !queryService.hasParents(link.child()),
-//                                    Collectors.mapping(TaskLink::child, Collectors.toSet())),
-//                            Pair::of));
-//
-//            logger.debug("Deleting " + nodesWhereTaskIsAncestor.getFirst().size() +
-//                    " nodes along with " + nodesWhereTaskIsAncestor.getSecond().size() + " tasks");
-//            dataContext.deleteNodes(nodesWhereTaskIsAncestor.getFirst());
-//            dataContext.deleteTasks(nodesWhereTaskIsAncestor.getSecond());
-//
-//            Set<TaskLink> nodesWhereTaskIsChild = queryService.getAllReferenceNodes(task)
-//                    .collect(Collectors.toSet());
-//
-//
-//
-//            dataContext.deleteNodes(nodesWhereTaskIsChild);
-//            dataContext.deleteTask(task);
-        taskRepository.delete(task);
+    public TaskLink mergeLink(TaskLink link) {
+        return linkRepository.save(link);
     }
 
     @Override
-    public void deleteTasks(Set<TaskEntity> tasks) {
-        taskRepository.deleteAll(tasks);
+    public TaskLink mergeNode(TaskNode node) {
+        return entityQueryService.getLink(node.linkId())
+                .importance(node.importance());
+    }
+
+    @Override
+    public TaskLink mergeNode(TaskNodeDTO node) {
+        if (node.childId() == null) {
+            throw new IllegalArgumentException("Cannot provide a null child ID when merging a task node.");
+        }
+        TaskEntity child = entityQueryService.getTask(node.childId());
+        TaskEntity parent = node.parentId() == null ?
+                null:
+                entityQueryService.getTask(node.parentId());
+
+        if (child.equals(parent)) {
+            throw new IllegalArgumentException("Cannot add task as a child of self");
+        }
+
+        if (entityQueryService.findAncestorTasks(ID.of(parent), null)
+                .filter(Objects::nonNull)
+                .anyMatch(task -> task.equals(parent) || task.equals(child))) {
+            throw new IllegalArgumentException("Cannot create link between " + parent + " and " + child +
+                    "; would create cyclical hierarchy.");
+        }
+
+        Integer position = node.position();
+
+        logger.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
+
+        if (node.position() == null || node.position() == -1) {
+            position = parent == null ?
+                    entityQueryService.findChildCount(null, null) :
+                    parent.childLinks().size();
+        } else {
+            List<TaskLink> childLinks = parent == null ?
+                    entityQueryService.findChildLinks(null, null).toList() :
+                    parent.childLinks();
+            for (TaskLink childLink : childLinks) {
+                if (childLink.position() >= position) {
+                    childLink.position(childLink.position() + 1);
+                }
+            }
+        }
+
+        int importance = node.importance() == null ?
+                0 :
+                node.importance();;
+
+        TaskLink link =linkRepository.save(new TaskLink(
+                parent,
+                child,
+                position,
+                importance));
+
+        if (parent != null) {
+            Duration difference = child.duration();
+            TaskID parentId = ID.of(parent);
+
+            this.addToTimeEstimateOfAllAncestors(difference, parentId);
+            try {
+                parent.childLinks().add(link.position(), link);
+            } catch (IndexOutOfBoundsException e) {
+                throw new IllegalArgumentException("Specified position for inserting task link is invalid", e);
+            }
+        }
+
+        child.parentLinks().add(link);
+
+        return link;
+    }
+
+    @Override
+    public TagEntity mergeTag(TagEntity tagEntity) {
+        return tagRepository.save(tagEntity);
+    }
+
+    @Override
+    public TagEntity mergeTag(Tag tag) {
+        TagEntity tagEntity = tag.id() != null ?
+                entityQueryService.getTag(tag.id()) :
+                new TagEntity();
+
+        return this.mergeTag(tagEntity
+                .name(tag.name()));
+    }
+
+    @Override
+    public void deleteLink(TaskLink link) {
+        TaskEntity parent = link.parent();
+        TaskEntity child = link.child();
+
+        logger.debug("Deleting link " + link);
+
+        if (parent != null) {
+            parent.childLinks().remove(link);
+
+            for (TaskLink childLink : parent.childLinks()) {
+                if (childLink.position() > link.position()) {
+                    childLink.position(childLink.position() - 1);
+                }
+            }
+
+        }
+
+        child.parentLinks().remove(link);
+
+        linkRepository.delete(link);
+
+        Duration difference = child.duration().negated();
+        TaskID parentId = ID.of(parent);
+        this.addToTimeEstimateOfAllAncestors(difference, parentId);
     }
 }
