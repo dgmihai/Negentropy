@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree.components;
 
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
-import com.trajan.negentropy.client.util.TagComboBox;
+import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;

@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
-import com.trajan.negentropy.client.util.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.DurationConverter;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -66,9 +66,9 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
                         entry -> entry.task().description(),
                         (entry, description) -> entry.task().description(description));
 
-        tagComboBox = new CustomValueTagComboBox("Tags", presenter, tag ->{
-            binder.getBean().task().tags().add(tag);
-        });
+        tagComboBox = new CustomValueTagComboBox(presenter, tag ->
+                binder.getBean().task().tags().add(tag));
+        tagComboBox.setPlaceholder("Tags");
 
         binder.forField(tagComboBox)
                 .bind(

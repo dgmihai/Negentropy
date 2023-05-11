@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
-import com.trajan.negentropy.client.util.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.DurationConverter;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -48,14 +48,17 @@ public abstract class AbstractTaskFormLayout extends FormLayout {
     }
 
     protected void configureFields() {
-        nameField = new TextField("Name");
+        nameField = new TextField();
+        nameField.setPlaceholder("Name*");
         nameField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        durationField = new TextField("Duration");
+        durationField = new TextField();
+        durationField.setPlaceholder("Duration");
         durationField.setHelperText("Format: 1h 2m 30s");
         durationField.setPattern(DurationConverter.DURATION_PATTERN);
 
-        descriptionArea = new TextArea("Description");
+        descriptionArea = new TextArea();
+        descriptionArea.setPlaceholder("Description");
         descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
         saveButton = new Button("Save");

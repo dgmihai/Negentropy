@@ -41,26 +41,24 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     private Map<TaskID, Duration> cachedNetDurations = new HashMap<>();
     private TaskFilter activeFilter = new TaskFilter();
-//
-//    @PostConstruct
-//    public void init() {
-//        queryFactory = new JPAQueryFactory(em);
-//    }
 
     @Override
     public TaskEntity getTask(TaskID taskId) {
+        logger.debug("getTask");
         return taskRepository.findById(taskId.val()).orElseThrow(
                 () -> new NoSuchElementException("Failed to get task with ID: " + taskId));
     }
 
     @Override
     public TaskLink getLink(LinkID linkId) {
+        logger.debug("getLink");
         return linkRepository.findById(linkId.val()).orElseThrow(
                 () -> new NoSuchElementException("Failed to get link with ID: " + linkId));
     }
 
     @Override
     public TagEntity getTag(TagID tagId) {
+        logger.debug("getTag");
         return tagRepository.findById(tagId.val()).orElseThrow(
                 () -> new NoSuchElementException("Failed to get tag with ID: " + tagId));
     }

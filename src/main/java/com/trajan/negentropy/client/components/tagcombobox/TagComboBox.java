@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.util;
+package com.trajan.negentropy.client.components.tagcombobox;
 
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.server.facade.model.Tag;

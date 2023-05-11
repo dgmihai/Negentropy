@@ -98,7 +98,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
                 TaskEntry parent = entry.parent();
                 while (parent != null) {
                     this.refreshItem(parent);
-                    parent = entry.parent();
+                    parent = parent.parent();
                 }
             }
         }
