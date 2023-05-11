@@ -59,7 +59,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public boolean hasChildren(TaskID parentTaskId, TaskFilter filter) {
-        return entityQueryService.hasChildren(parentTaskId, null);
+        return entityQueryService.hasChildren(parentTaskId, filter);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter) {
-        return entityQueryService.findChildLinks(parentTaskId, null)
+        return entityQueryService.findChildLinks(parentTaskId, filter)
                 .map(DataContext::toDTO);
     }
 
@@ -90,7 +90,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskFilter filter) {
-        return entityQueryService.findChildLinks(null, null)
+        return entityQueryService.findChildLinks(null, filter)
                 .map(DataContext::toDTO);
     }
 

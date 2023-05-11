@@ -204,4 +204,6 @@ public interface EntityQueryService {
     int getLowestImportanceOfDescendants(TaskID ancestorId);
 
     Stream<TaskLink> findLeafTaskLinks(TaskFilter filter);
+
+    Stream<TaskEntity> findOrphanedTasks();
 }

@@ -1,9 +1,9 @@
 package com.trajan.negentropy.client.tree.data;
 
 import com.trajan.negentropy.server.facade.QueryService;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
@@ -12,11 +12,7 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 @UIScope
@@ -25,13 +21,15 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     private final QueryService queryService;
 
+    @Getter
     private final Map<TaskID, Set<TaskEntry>> entriesByChildId = new HashMap<>();
-//    private Map<TaskID, Duration> taskTimeEstimateMap; TODO: Implement
+    @Getter
+    private final List<TaskEntry> taskEntries = new ArrayList<>();
 
     @Getter
     private TaskEntry baseEntry = null;
     @Getter
-    private TaskFilter filter = new TaskFilter();
+    private TaskFilter activeFilter = new TaskFilter();
 
     public TaskEntryDataProvider(QueryService queryService) {
         this.queryService = queryService;
@@ -46,17 +44,17 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
         if (query.getParent() == null) {
             if (baseEntry == null) {
-                return queryService.fetchRootCount(filter);
+                return queryService.fetchRootCount(activeFilter);
             } else {
-                return queryService.fetchChildCount(baseEntry.task().id(), filter);
+                return queryService.fetchChildCount(baseEntry.task().id(), activeFilter);
             }
         }
-        return queryService.fetchChildCount(query.getParent().task().id(), filter);
+        return queryService.fetchChildCount(query.getParent().task().id(), activeFilter);
     }
 
     @Override
     public boolean hasChildren(TaskEntry taskEntry) {
-        return queryService.hasChildren(taskEntry.task().id(), filter);
+        return taskEntry.hasChildren();
     }
 
     @Override
@@ -65,24 +63,28 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
         TaskEntry parent = query.getParent();
         Stream<TaskNode> nodeStream;
-        Map<TaskID, Duration> taskTimeEstimates;
         if (parent == null) {
             nodeStream = (baseEntry == null) ?
-                    queryService.fetchRootNodes(filter) :
-                    queryService.fetchChildNodes(baseEntry.task().id(), filter);
+                    queryService.fetchRootNodes(activeFilter) :
+                    queryService.fetchChildNodes(baseEntry.task().id(), activeFilter);
         } else {
-            nodeStream = queryService.fetchChildNodes(parent.task().id(), filter);
+            nodeStream = queryService.fetchChildNodes(parent.task().id(), activeFilter);
         }
 
         return nodeStream
                 .map(node -> {
+                    Task task = queryService.fetchTask(node.childId());
+                    boolean hasChildren = queryService.hasChildren(task.id(), activeFilter);
+
                     TaskEntry entry = new TaskEntry(
                             parent,
                             node,
-                            queryService.fetchTask(node.childId()),
-                            queryService.fetchNetTimeDuration(node.childId()));
+                            task,
+                            queryService.fetchNetTimeDuration(node.childId()),
+                            hasChildren);
                     entriesByChildId.computeIfAbsent(
                             entry.task().id(), k -> new HashSet<>()).add(entry);
+                    taskEntries.add(entry);
                     return entry;
                 });
     }

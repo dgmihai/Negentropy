@@ -11,6 +11,8 @@ import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.LinkID;
 import com.trajan.negentropy.server.facade.model.id.TagID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.querydsl.QSort;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ import java.util.stream.StreamSupport;
 @Service("entityQueryService")
 @Transactional
 public class EntityQueryServiceImpl implements EntityQueryService {
+    private static final Logger logger = LoggerFactory.getLogger(EntityQueryServiceImpl.class);
+
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
     @Autowired private TimeEstimateRepository timeEstimateRepository;
@@ -99,6 +103,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskEntity> findTasks(TaskFilter filter) {
+        logger.debug("findTasks");
         return StreamSupport.stream(taskRepository.findAll(this.filterTask(filter, Q_TASK))
                         .spliterator(), false);
     }
@@ -119,16 +124,19 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public int findChildCount(TaskID parentId, TaskFilter filter) {
+        logger.debug("findChildCount");
         return (int) linkRepository.count(byParent(parentId, filter));
     }
 
     @Override
     public boolean hasChildren(TaskID parentId, TaskFilter filter) {
+        logger.debug("hasChildren");
         return linkRepository.exists(byParent(parentId, filter));
     }
 
     @Override
     public Stream<TaskLink> findChildLinks(TaskID parentId, TaskFilter filter) {
+        logger.debug("findChildLinks");
         QSort sort = new QSort(Q_LINK.position.asc());
         return StreamSupport.stream(linkRepository.findAll(byParent(parentId, filter), sort)
                 .spliterator(), false);
@@ -136,11 +144,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskEntity> findChildTasks(TaskID parentId, TaskFilter filter) {
+        logger.debug("findChildTasks");
         return this.findChildLinks(parentId, filter).map(TaskLink::child);
     }
 
     @Override
     public Stream<TaskLink> findParentLinks(TaskID childId, TaskFilter filter) {
+        logger.debug("findParentLinks");
         QSort sort = new QSort(Q_LINK.position.asc());
         return StreamSupport.stream(linkRepository.findAll(byChild(childId, filter), sort)
                 .spliterator(), false);
@@ -148,11 +158,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskEntity> findParentTasks(TaskID childId, TaskFilter filter) {
+        logger.debug("findParentTasks");
         return this.findParentLinks(childId, filter).map(TaskLink::parent);
     }
 
     @Override
     public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
+        logger.debug("findAncestorLinks");
         return dfs(descendantId, filter,
                 this::findParentLinks,
                 link -> ID.of(link.parent()))
@@ -161,11 +173,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskEntity> findAncestorTasks(TaskID descendantId, TaskFilter filter) {
+        logger.debug("findAncestorTasks");
         return this.findAncestorLinks(descendantId, filter).map(TaskLink::parent);
     }
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter) {
+        logger.debug("findDescendantLinks");
         return dfs(ancestorId, filter,
                 this::findChildLinks,
                 link -> ID.of(link.child()))
@@ -174,6 +188,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskFilter filter) {
+        logger.debug("findDescendantTasks");
         return this.findDescendantLinks(ancestorId, filter).map(TaskLink::child);
     }
 
@@ -199,30 +214,37 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public TimeEstimate getTimeEstimate(TaskID taskId) {
+        logger.debug("getTimeEstimate");
         // TODO: Implement importance in time estimate caching
         return this.getTimeEstimate(taskId, 0);
     }
 
     @Override
     public TimeEstimate getTimeEstimate(TaskID taskId, int importance) {
-        QTimeEstimate qTimeEstimate = QTimeEstimate.timeEstimate;
-        return timeEstimateRepository.findOne(
-                qTimeEstimate.task.id.eq(taskId.val())
-                        .and(qTimeEstimate.importance.eq(importance))).orElseThrow();
+        logger.debug("getTimeEstimate");
+        TaskEntity task = this.getTask(taskId);
+        return task.timeEstimates().stream()
+                .filter(
+                timeEstimate -> importance == timeEstimate.importance())
+                .findFirst()
+                .orElseThrow();
     }
 
     @Override
     public Stream<TimeEstimate> getTimeEstimatesWithImportanceThreshold(TaskID taskId, int importanceDifference) {
-        QTimeEstimate qTimeEstimate = QTimeEstimate.timeEstimate;
+        logger.debug("getTimeEstimatesWithImportanceThreshold");
+        TaskEntity task = this.getTask(taskId);
         int lowestImportance = this.getLowestImportanceOfDescendants(taskId);
-        return StreamSupport.stream(timeEstimateRepository.findAll(
-                qTimeEstimate.task.id.eq(taskId.val())
-                        .and(qTimeEstimate.importance.loe(lowestImportance - importanceDifference)))
-                .spliterator(), false);
+        return task.timeEstimates().stream()
+                .filter(timeEstimate -> {
+                    int difference = lowestImportance - importanceDifference;
+                    return timeEstimate.importance() <= difference;
+                });
     }
 
     @Override
     public Duration calculateNetDuration(TaskID taskId, TaskFilter filter) {
+        logger.debug("calculateNetDuration");
         if (filter.name().isBlank() && filter.includedTagIds().isEmpty() && filter.excludedTagIds().isEmpty()) {
             return getTimeEstimate(taskId, filter.importanceThreshold()).netDuration();
         }
@@ -264,6 +286,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
+        logger.debug("getLowestImportanceOfDescendants");
         QTimeEstimate qTimeEstimate = QTimeEstimate.timeEstimate;
         QSort sort = new QSort(qTimeEstimate.importance.desc());
         return timeEstimateRepository.findOne(
@@ -273,9 +296,19 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findLeafTaskLinks(TaskFilter filter) {
+        logger.debug("findLeafTaskLinks");
         return StreamSupport.stream(linkRepository.findAll(
                 Q_LINK.child.childLinks.isEmpty()
                         .and(this.filterLink(filter)))
+                .spliterator(), false);
+    }
+
+    @Override
+    public Stream<TaskEntity> findOrphanedTasks() {
+        logger.debug("findOrphanedTasks");
+        QTaskEntity qTask = QTaskEntity.taskEntity;
+        return StreamSupport.stream(taskRepository.findAll(
+                qTask.parentLinks.isEmpty())
                 .spliterator(), false);
     }
 }

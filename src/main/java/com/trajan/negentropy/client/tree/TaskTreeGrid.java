@@ -1,17 +1,21 @@
 package com.trajan.negentropy.client.tree;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
+import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.util.TagComboBox;
 import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -54,18 +58,14 @@ public class TaskTreeGrid extends VerticalLayout {
     private Grid.Column<TaskEntry> nameColumn;
     private Grid.Column<TaskEntry> tagColumn;
     private Grid.Column<TaskEntry> descriptionColumn;
-    private Grid.Column<TaskEntry> stepDurationColumn;
-    private Grid.Column<TaskEntry> netDurationColumn;
+    private Grid.Column<TaskEntry> taskDurationColumn;
+    private Grid.Column<TaskEntry> timeEstimateColumn;
     private Grid.Column<TaskEntry> editColumn;
     private Grid.Column<TaskEntry> deleteColumn;
 
     private TaskEntry draggedItem;
 
-    private Registration resizeListener;
-
-    private final String ICON_SIZE = "16px";
-    private final int BREAKPOINT_PX = 600;
-    private final String DURATION_COL_WIDTH = "80px";
+    private final String DURATION_COL_WIDTH = "50px";
     private final String ICON_COL_WIDTH = "30px";
 
     private Editor<TaskEntry> editor;
@@ -98,54 +98,6 @@ public class TaskTreeGrid extends VerticalLayout {
                 treeGrid);
     }
 
-    @Override
-    protected void onAttach(AttachEvent attachEvent) {
-        super.onAttach(attachEvent);
-
-        getUI().ifPresent(ui -> resizeListener = ui.getPage().addBrowserWindowResizeListener(event -> {
-            tagColumn.setVisible(event.getWidth() > BREAKPOINT_PX);
-        }));
-
-        getUI().ifPresent(ui -> ui.getPage().retrieveExtendedClientDetails(receiver -> {
-            int browserWidth = receiver.getBodyClientWidth();
-            tagColumn.setVisible(browserWidth > BREAKPOINT_PX);
-        }));
-    }
-
-    private ComponentRenderer<Component, TaskEntry> inlineButtonRenderer(VaadinIcon icon, String color) {
-        return new ComponentRenderer<>(entry -> {
-            Icon i = icon.create();
-            i.setSize(ICON_SIZE);
-            i.setColor(color);
-            return i;
-        });
-    }
-
-    private Component inlineButton(VaadinIcon icon, String color, Runnable onClick) {
-            Div div = new Div();
-            Icon i = icon.create();
-            i.setSize(ICON_SIZE);
-            i.setColor(color);
-            i.addClickListener(e -> onClick.run());
-            div.add(i);
-            return div;
-    }
-
-    private ComponentRenderer<Component, TaskEntry> inlineButtonRenderer(
-            VaadinIcon icon, String color, Consumer<TaskEntry> onClick, Predicate<TaskEntry> isVisible) {
-        return new ComponentRenderer<>(entry -> {
-            Div div = new Div();
-            if(isVisible.test(entry)) {
-                Icon i = icon.create();
-                i.setSize(ICON_SIZE);
-                i.setColor(color);
-                i.addClickListener(e -> onClick.accept(entry));
-                div.add(i);
-            }
-            return div;
-        });
-    }
-
     private ComponentRenderer<Component, TaskEntry> inlineButtonRenderer(
             VaadinIcon iconWhenTrue, VaadinIcon iconWhenFalse,
             Consumer<TaskEntry> onClick,
@@ -154,12 +106,8 @@ public class TaskTreeGrid extends VerticalLayout {
         return new ComponentRenderer<>(entry -> {
             Div div = new Div();
             if (isVisible.test(entry)) {
-                Icon iconA = iconWhenTrue.create();
-                Icon iconB = iconWhenFalse.create();
-                iconA.setSize(ICON_SIZE);
-                iconA.setColor(LumoUtility.TextColor.PRIMARY_CONTRAST);
-                iconB.setSize(ICON_SIZE);
-                iconB.setColor(LumoUtility.TextColor.PRIMARY_CONTRAST);
+                InlineIconButton iconA = new InlineIconButton(iconWhenTrue.create());
+                InlineIconButton iconB = new InlineIconButton(iconWhenFalse.create());
 
                 iconA.setVisible(!iconSwap.test(entry));
                 iconB.setVisible(iconSwap.test(entry));
@@ -181,8 +129,10 @@ public class TaskTreeGrid extends VerticalLayout {
     private void initReadColumns() {
         nameColumn = treeGrid.addHierarchyColumn(
                         entry -> entry.task().name())
+                .setKey("name")
                 .setHeader("Name")
-                .setAutoWidth(true)
+                .setWidth("150px")
+                .setFrozen(true)
                 .setFlexGrow(1);
 
         tagColumn = treeGrid.addComponentColumn(
@@ -196,22 +146,25 @@ public class TaskTreeGrid extends VerticalLayout {
                     tagComboBox.setValue(entry.task().tags());
                     return tagComboBox;
                 })
+                .setKey("tags")
                 .setHeader("Tags")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
         tagColumn.setClassName("tag-column");
 
         Icon descriptionColumnHeaderIcon = VaadinIcon.NOTEBOOK.create();
-        descriptionColumnHeaderIcon.setSize(ICON_SIZE);
+        descriptionColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
+        descriptionColumnHeaderIcon.addClassName("unselected-color-icon");
         descriptionColumn = treeGrid.addColumn(
                 this.inlineButtonRenderer(VaadinIcon.EYE, VaadinIcon.EYE_SLASH,
                         entry -> {
-                    treeGrid.setDetailsVisible(
-                            entry,
-                            !treeGrid.isDetailsVisible(entry));
-                    },
+                            treeGrid.setDetailsVisible(
+                                    entry,
+                                    !treeGrid.isDetailsVisible(entry));
+                        },
                         entry -> !entry.task().description().isBlank(),
                         treeGrid::isDetailsVisible))
+                .setKey("description")
                 .setHeader(descriptionColumnHeaderIcon)
                 .setAutoWidth(true)
                 .setFlexGrow(0)
@@ -224,64 +177,81 @@ public class TaskTreeGrid extends VerticalLayout {
 //                .setAutoWidth(true)
 //                .setFlexGrow(0);
 
-        Icon stepDurationColumnHeaderIcon = VaadinIcon.CLOCK.create();
-        stepDurationColumnHeaderIcon.setSize(ICON_SIZE);
-        stepDurationColumn = treeGrid.addColumn(
+        Icon durationColumnHeaderIcon = VaadinIcon.CLOCK.create();
+        durationColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
+        durationColumnHeaderIcon.addClassNames("unselected-color-icon");
+        taskDurationColumn = treeGrid.addColumn(
                         new TimeEstimateValueProvider<>(
                                 presenter.queryService(),
                                 () -> TimeFormat.DURATION,
                                 false))
-                .setHeader(stepDurationColumnHeaderIcon)
+                .setKey("duration")
+                .setHeader(durationColumnHeaderIcon)
                 .setWidth(DURATION_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
         Icon clock = VaadinIcon.CLOCK.create();
-        clock.setSize(ICON_SIZE);
+        clock.setSize(K.INLINE_ICON_SIZE);
+        clock.addClassNames("unselected-color-icon");
+
         Icon tree = VaadinIcon.FILE_TREE_SUB.create();
-        tree.setSize(ICON_SIZE);
-        HorizontalLayout netDurationColumnHeader = new HorizontalLayout(tree, clock);
-        netDurationColumnHeader.setSpacing(false);
-        netDurationColumnHeader.setJustifyContentMode(JustifyContentMode.CENTER);
-        netDurationColumnHeader.setWidth(DURATION_COL_WIDTH);
-        netDurationColumn = treeGrid.addColumn(
+        tree.setSize(K.INLINE_ICON_SIZE);
+        tree.addClassNames("unselected-color-icon");
+
+        HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(tree, clock);
+        timeEstimateColumnHeader.setSpacing(false);
+        timeEstimateColumnHeader.setJustifyContentMode(JustifyContentMode.CENTER);
+        timeEstimateColumnHeader.setSizeFull();
+        timeEstimateColumn = treeGrid.addColumn(
                         new TimeEstimateValueProvider<>(
                                 presenter.queryService(),
                                 () -> TimeFormat.DURATION,
                                 true))
-                .setHeader(netDurationColumnHeader)
+                .setKey("time estimate")
+                .setHeader(timeEstimateColumnHeader)
                 .setWidth(DURATION_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-        editColumn = treeGrid.addColumn(this.inlineButtonRenderer(
-                    VaadinIcon.EDIT,
-                    LumoUtility.TextColor.PRIMARY_CONTRAST,
-                    entry -> {
-                        if (editor.isOpen()) {
-                            editor.cancel();
-                        }
-                        editor.editItem(entry);
-                        treeGrid.setDetailsVisible(entry, true);
-                    },
-                    entry -> true))
+
+        editColumn = treeGrid.addColumn(
+                new ComponentRenderer<>(entry -> new InlineIconButton(
+                        VaadinIcon.EDIT.create(),
+                        () -> {
+                            if (editor.isOpen()) {
+                                editor.cancel();
+                            }
+                            editor.editItem(entry);
+                            treeGrid.setDetailsVisible(entry, true);
+                        }))
+                )
+                .setKey("edit")
                 .setWidth(ICON_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
         deleteColumn = treeGrid.addColumn(
-                this.inlineButtonRenderer(
-                        VaadinIcon.TRASH,
-                        "red",
-                        presenter::deleteNode,
-                        entry -> !presenter.queryService().hasChildren(entry.task().id(), null)
-                ))
+                new ComponentRenderer<Component, TaskEntry>(entry -> {
+                    Div div = new Div();
+                    if(!entry.hasChildren()) {
+                        InlineIconButton iconButton = new InlineIconButton(VaadinIcon.TRASH.create());
+                        iconButton.getIcon().addClassName("error-color-icon");
+                        iconButton.addClickListener(event -> presenter.deleteNode(entry));
+                        div.add(iconButton);
+                    }
+                    return div;
+                }))
+                .setKey("delete")
                 .setWidth(ICON_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-        editColumn.setHeader(inlineButton(VaadinIcon.TRASH, "red",
-                () -> deleteColumn.setVisible(!deleteColumn().isVisible())));
+
+        InlineIconButton trashIconButton = new InlineIconButton(VaadinIcon.TRASH.create());
+        trashIconButton.getIcon().addClassName("error-color-icon");
+        trashIconButton.addClickListener(event -> deleteColumn.setVisible(!deleteColumn().isVisible()));
+        editColumn.setHeader(trashIconButton);
         deleteColumn.setVisible(false);
 
         treeGrid.setSortableColumns();
@@ -349,7 +319,7 @@ public class TaskTreeGrid extends VerticalLayout {
         editor.setBuffered(true);
 
         Icon check = VaadinIcon.CHECK.create();
-        check.setColor("blue");
+        check.addClassNames("primary-color-icon");
         check.addClickListener(e -> editor.save());
 
         AtomicReference<Optional<Registration>> enterListener = new AtomicReference<>(Optional.empty());
@@ -452,6 +422,39 @@ public class TaskTreeGrid extends VerticalLayout {
                     return true;
                 }
             });
+        }
+    }
+
+    public Button visibilityMenu() {
+        Button menuButton = new Button("Column", VaadinIcon.EYE.create());
+        menuButton.setIconAfterText(false);
+        ColumnVisibilityToggleMenu columnVisibilityToggleMenu = new ColumnVisibilityToggleMenu(
+                menuButton);
+        columnVisibilityToggleMenu.addColumnToggleItem("Tags",
+                tagColumn);
+        columnVisibilityToggleMenu.addColumnToggleItem("Description",
+                descriptionColumn);
+        columnVisibilityToggleMenu.addColumnToggleItem("Task Duration",
+                taskDurationColumn);
+        columnVisibilityToggleMenu.addColumnToggleItem("Total Time Estimate",
+                timeEstimateColumn);
+        columnVisibilityToggleMenu.addColumnToggleItem("Edit",
+                editColumn);
+
+        return menuButton;
+    }
+
+    private static class ColumnVisibilityToggleMenu extends ContextMenu {
+        public ColumnVisibilityToggleMenu(Component target) {
+            super(target);
+            this.setOpenOnClick(true);
+        }
+
+        void addColumnToggleItem(String label, Grid.Column<TaskEntry> column) {
+            MenuItem menuItem = this.addItem(label, e ->
+                    column.setVisible(e.getSource().isChecked()));
+            menuItem.setCheckable(true);
+            menuItem.setChecked(column.isVisible());
         }
     }
 }

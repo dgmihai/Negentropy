@@ -2,19 +2,19 @@ package com.trajan.negentropy.client.tree.components;
 
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.util.TagComboBox;
+import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import jakarta.persistence.criteria.Predicate;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @Getter
@@ -39,11 +39,29 @@ public class FilterLayout extends FormLayout {
     private void configureFields() {
         name = new TextField("Search By Name");
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        name.setValueChangeMode(ValueChangeMode.EAGER);
+        name.addValueChangeListener(event -> {
+            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            filter.name(name.getValue());
+        });
 
         tagsToExclude = new TagComboBox("Filter: Excluded Tags", presenter);
         tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+        tagsToExclude.addValueChangeListener(event -> {
+            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            filter.excludedTagIds(tagsToExclude.getValue().stream()
+                    .map(Tag::id)
+                    .collect(Collectors.toSet()));
+        });
+
         tagsToInclude = new TagComboBox("Filter: Include Tags", presenter);
         tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+        tagsToInclude.addValueChangeListener(event -> {
+            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            filter.includedTagIds(tagsToInclude.getValue().stream()
+                    .map(Tag::id)
+                    .collect(Collectors.toSet()));
+        });
 
         resetBtn = new Button("Reset");
 
@@ -69,59 +87,5 @@ public class FilterLayout extends FormLayout {
                 new ResponsiveStep("1200px", 4));
 
         this.setWidthFull();
-    }
-
-    public TaskFilter getTaskFilter() {
-        List<Predicate> predicates = new ArrayList<>();
-
-        TaskFilter filter = new TaskFilter();
-
-        if (!name.isEmpty()) {
-            filter.name(name.getValue());
-        }
-
-        if (!tagsToInclude.isEmpty()) {
-//            filter.includedTags(tagsToInclude.getValue());
-        }
-
-        if (!tagsToExclude.isEmpty()) {
-//            filter.excludedTags(tagsToExclude.getValue());
-        }
-
-        return filter;
-//            String lowerCaseFilter = name.getValue().toLowerCase();
-//            Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get(TaskEntity_.NAME)),
-//                    lowerCaseFilter + "%");
-//            predicates.add(criteriaBuilder.and(nameMatch));
-//        }
-
-//        if (!name.isEmpty()) {
-//            String lowerCaseFilter = name.getValue().toLowerCase();
-//            Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get(TaskEntity_.NAME)),
-//                    lowerCaseFilter + "%");
-//            predicates.add(criteriaBuilder.and(nameMatch));
-//        }
-//
-//        if (!tagsToExclude.isEmpty()) {
-//            String databaseColumn = TaskEntity_.TAGS;
-//            List<Predicate> tagExclusionPredicates = new ArrayList<>();
-//            for (Tag tag : tagsToExclude.getValue()) {
-//                tagExclusionPredicates
-//                        .add(criteriaBuilder.notEqual(criteriaBuilder.literal(tag), root.get(databaseColumn)));
-//            }
-//            predicates.add(criteriaBuilder.and(tagExclusionPredicates.toArray(Predicate[]::new)));
-//        }
-//
-//        if (!tagsToInclude.isEmpty()) {
-//            String databaseColumn = TaskEntity_.TAGS;
-//            List<Predicate> tagInclusionPredicates = new ArrayList<>();
-//            for (Tag tag : tagsToExclude.getValue()) {
-//                tagInclusionPredicates
-//                        .add(criteriaBuilder.equal(criteriaBuilder.literal(tag), root.get(databaseColumn)));
-//            }
-//            predicates.add(criteriaBuilder.and(tagInclusionPredicates.toArray(Predicate[]::new)));
-//        }
-//
-//        return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
 }

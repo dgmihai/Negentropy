@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.tree;
 
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
+import com.trajan.negentropy.client.tree.data.TaskEntryDataProvider;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -47,4 +48,6 @@ public interface TreeViewPresenter {
     Response onQuickAdd(Task task);
 
     void recalculateTimeEstimates();
+
+    TaskEntryDataProvider dataProvider();
 }

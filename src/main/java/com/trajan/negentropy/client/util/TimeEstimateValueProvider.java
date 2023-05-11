@@ -40,10 +40,6 @@ public class TimeEstimateValueProvider<T> implements ValueProvider<T, String> {
         TimeFormat timeFormat = timeFormatCallback.get();
         Duration duration = task.duration();
         if (netDuration) {
-            int children = queryService.fetchChildCount(task.id(), null);
-            if (children == 0) {
-                return "";
-            }
             duration = queryService.fetchNetTimeDuration(task.id());
         }
         if (duration.isZero()) {

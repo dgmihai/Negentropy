@@ -21,4 +21,5 @@ public class TaskEntry {
     private TaskNode node;
     private Task task;
     private Duration netDuration;
+    private boolean hasChildren;
 }
