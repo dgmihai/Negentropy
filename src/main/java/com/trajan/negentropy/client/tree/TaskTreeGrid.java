@@ -5,9 +5,11 @@ import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
+import com.trajan.negentropy.client.util.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.TagComboBox;
 import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.client.util.TimeFormat;
+import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
@@ -89,9 +91,9 @@ public class TaskTreeGrid extends VerticalLayout {
 
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
-        treeGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
-        treeGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
-
+        treeGrid.addThemeVariants(
+                GridVariant.LUMO_COMPACT,
+                GridVariant.LUMO_COLUMN_BORDERS);
         this.setPadding(false);
         this.add(
                 nestedTabs,
@@ -137,18 +139,21 @@ public class TaskTreeGrid extends VerticalLayout {
 
         tagColumn = treeGrid.addComponentColumn(
                 entry -> {
-                    TagComboBox tagComboBox = new TagComboBox(presenter);
-                    tagComboBox.setReadOnly(true);
+                    TagComboBox tagComboBox = new CustomValueTagComboBox(presenter);
                     tagComboBox.setWidthFull();
-                    tagComboBox.setClassName("grid-row");
+                    tagComboBox.setClassName("grid-combo-box");
                     tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
                     tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
                     tagComboBox.setValue(entry.task().tags());
+                    tagComboBox.addValueChangeListener(event -> {
+                        Task task = new Task(entry.task().id())
+                                .tags(event.getValue());
+                        presenter.updateTask(task);
+                    });
                     return tagComboBox;
                 })
                 .setKey("tags")
                 .setHeader("Tags")
-                .setAutoWidth(true)
                 .setFlexGrow(1);
         tagColumn.setClassName("tag-column");
 
@@ -251,7 +256,7 @@ public class TaskTreeGrid extends VerticalLayout {
         InlineIconButton trashIconButton = new InlineIconButton(VaadinIcon.TRASH.create());
         trashIconButton.getIcon().addClassName("error-color-icon");
         trashIconButton.addClickListener(event -> deleteColumn.setVisible(!deleteColumn().isVisible()));
-        editColumn.setHeader(trashIconButton);
+        editColumn.setHeader(new Div(trashIconButton));
         deleteColumn.setVisible(false);
 
         treeGrid.setSortableColumns();

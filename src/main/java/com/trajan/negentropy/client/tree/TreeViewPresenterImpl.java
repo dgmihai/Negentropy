@@ -132,6 +132,14 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
+    public void updateTask(Task task) {
+        logger.debug("Updating task: " + task);
+        this.process(task,
+                Refresh.SINGLE,
+                e -> updateService.updateTask(task));
+    }
+
+    @Override
     public void updateTask(TaskEntry entry) {
         logger.debug("Updating task: " + entry);
         this.process(entry,

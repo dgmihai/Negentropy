@@ -22,10 +22,22 @@ vaadin-scroller[slot="drawer"] {
 
 .unselected-color-icon {
     fill:
-      var(--lumo-contrast-60pct);
+      var(--lumo-secondary-text-color);
 }
 
 .error-color-icon {
     fill:
     var(--lumo-error-color);
+}
+
+vaadin-multi-select-combo-box-chip {
+    background-color:
+    var(--lumo-primary-color-10pct);
+  color:
+    var(--lumo-contrast);
+}
+
+vaadin-multi-select-combo-box.grid-combo-box::part(input-field) {
+  background-color:
+    var(--lumo-base-color);
 }

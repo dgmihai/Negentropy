@@ -9,7 +9,12 @@ import java.util.function.Consumer;
 
 public class CustomValueTagComboBox extends TagComboBox {
 
-    protected Consumer<Tag> onCustomValueSet;
+    protected Consumer<Tag> onCustomValueSet = tag -> {};
+
+    public CustomValueTagComboBox(TreeViewPresenter presenter) {
+        super(presenter);
+        init();
+    }
 
     public CustomValueTagComboBox(TreeViewPresenter presenter, Consumer<Tag> onCustomValueSet) {
         super(presenter);

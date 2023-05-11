@@ -19,6 +19,8 @@ public interface TreeViewPresenter {
 
     void deleteNode(TaskEntry entry);
 
+    void updateTask(Task task);
+
     void updateTask(TaskEntry entry);
 
     void updateEntry(TaskEntry entry);

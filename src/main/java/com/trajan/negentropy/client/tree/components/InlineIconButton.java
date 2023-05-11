@@ -7,7 +7,6 @@ import com.vaadin.flow.component.icon.Icon;
 public class InlineIconButton extends Button {
     public InlineIconButton(Icon icon) {
         super(icon);
-
         this.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
     }
 
