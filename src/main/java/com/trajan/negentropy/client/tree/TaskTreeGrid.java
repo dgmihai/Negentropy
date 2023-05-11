@@ -1,16 +1,16 @@
 package com.trajan.negentropy.client.tree;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
-import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
+import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TimeEstimateValueProvider;
 import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -35,6 +35,8 @@ import com.vaadin.flow.component.tabs.TabsVariant;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.server.WebBrowser;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
@@ -42,7 +44,12 @@ import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -71,7 +78,6 @@ public class TaskTreeGrid extends VerticalLayout {
     private final String ICON_COL_WIDTH = "30px";
 
     private Editor<TaskEntry> editor;
-    private TaskEntryFormLayout form;
 
     public TaskTreeGrid(TreeViewPresenter presenter) {
         this.presenter = presenter;
@@ -272,7 +278,7 @@ public class TaskTreeGrid extends VerticalLayout {
                 TaskEntryFormLayout form = new TaskEntryFormLayout(presenter, entry);
                 form.addClassNames(LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.NONE,
                         LumoUtility.BoxSizing.BORDER);
-                form.onClear(() -> editor.closeEditor());
+                form.onClear(() -> editor.cancel());
                 form.onSave(() -> editor.save());
 
                 editor.setBinder(form.binder());
@@ -345,6 +351,9 @@ public class TaskTreeGrid extends VerticalLayout {
             escapeListener.set(Optional.of(Shortcuts.addShortcutListener(treeGrid,
                     editor::cancel,
                     Key.ESCAPE)));
+            if (e.getItem().task().description().isBlank()) {
+                treeGrid.setDetailsVisible(e.getItem(), false);
+            }
         });
 
         editColumn.setEditorComponent(check);
@@ -362,35 +371,69 @@ public class TaskTreeGrid extends VerticalLayout {
         treeGrid.addDropListener(event -> {
             logger.debug("Dropped onto " + event.getDropTargetItem().orElseThrow().task().name());
             if (event.getDropTargetItem().isPresent()) {
-                TaskNode target = event.getDropTargetItem().get().node();
-                switch (event.getDropLocation()) {
-                    case ABOVE -> {
-                        presenter.moveNodeBefore(
+                TaskEntry target = event.getDropTargetItem().get();
+                if (!draggedItem.equals(target)) {
+                    switch (event.getDropLocation()) {
+                        case ABOVE -> {
+                            presenter.moveNodeBefore(
+                                    draggedItem,
+                                    target);
+                        }
+                        case BELOW -> {
+                            presenter.moveNodeAfter(
+                                    draggedItem,
+                                    target);
+                        }
+                        case ON_TOP -> presenter.moveNodeInto(
                                 draggedItem,
-                                event.getDropTargetItem().get());
+                                target);
                     }
-                    case BELOW -> {
-                        presenter.moveNodeAfter(
-                                draggedItem,
-                                event.getDropTargetItem().get());
-                    }
-                    case ON_TOP -> presenter.moveNodeInto(
-                            draggedItem,
-                            event.getDropTargetItem().get());
+                } else {
+                    NotificationError.show("Cannot move item onto itself");
                 }
             }
+            draggedItem = null;
         });
     }
-    
+
+    private boolean isIOS() {
+        WebBrowser webBrowser = VaadinSession.getCurrent().getBrowser();
+        return webBrowser.isIPhone();
+    }
+
     private void configureSelection() {
-        // TODO: Selection mode versatility
         treeGrid.setSelectionMode(Grid.SelectionMode.NONE);
 
-        treeGrid.addItemDoubleClickListener(e -> {
-            if (e.getItem() != null) {
-                nestedTabs.onSelectNewRootEntry(e.getItem());
-            }
-        });
+        if (this.isIOS()) {
+            final AtomicReference<LocalDateTime> firstClickTime = new AtomicReference<>();
+            final AtomicBoolean waitingSecondClick = new AtomicBoolean(false);
+
+            treeGrid.addItemClickListener(e -> {
+                if (!waitingSecondClick.get()) {
+                    firstClickTime.set(LocalDateTime.now());
+                    waitingSecondClick.set(true);
+
+                    ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+                    executor.schedule(() -> waitingSecondClick.set(false), 300, TimeUnit.MILLISECONDS);
+
+                    executor.shutdown();
+                } else {
+                    waitingSecondClick.set(false);
+
+                    if (LocalDateTime.now().compareTo(firstClickTime.get()) < 300) {
+                        if (e.getItem() != null) {
+                            nestedTabs.onSelectNewRootEntry(e.getItem());
+                        }
+                    }
+                }
+            });
+        } else {
+            treeGrid.addItemDoubleClickListener(e -> {
+                if (e.getItem() != null) {
+                    nestedTabs.onSelectNewRootEntry(e.getItem());
+                }
+            });
+        }
     }
 
     private class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {

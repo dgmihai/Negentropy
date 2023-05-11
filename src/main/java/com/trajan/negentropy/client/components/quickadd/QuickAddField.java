@@ -28,7 +28,8 @@ public class QuickAddField extends TextField {
                 QuickAddParser.DELIMITER + "desc description " +
                 QuickAddParser.DELIMITER + "tag tag1, tag2,... " +
                 QuickAddParser.DELIMITER + "dur seconds, " +
-                QuickAddParser.DELIMITER + "rep(eating)");
+                QuickAddParser.DELIMITER + "rep(eating)" +
+                QuickAddParser.DELIMITER + "top");
 
         Shortcuts.addShortcutListener(this,
                 this::apply,

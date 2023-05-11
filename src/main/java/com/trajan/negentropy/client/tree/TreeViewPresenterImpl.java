@@ -127,7 +127,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public void deleteNode(TaskEntry entry) {
         logger.debug("Deleting node: " + entry);
         this.process(entry,
-                Refresh.ANCESTORS,
+                Refresh.ALL,
                 e -> updateService.deleteNode(e.node().linkId()));
     }
 

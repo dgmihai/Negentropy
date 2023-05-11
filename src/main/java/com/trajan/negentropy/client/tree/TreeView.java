@@ -15,6 +15,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.router.PageTitle;
@@ -78,6 +79,11 @@ public class TreeView extends Div {
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
         recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         recalculateTimeEstimates.addClickListener(e -> presenter.recalculateTimeEstimates());
+
+        // TODO: Not yet implemented, option to move or add on drag
+        Select<String> dragSettings = new Select<>();
+        dragSettings.add("Move on drag");
+        dragSettings.add("Add on drag");
 
         this.options = new HorizontalLayout(
                 recalculateTimeEstimates,

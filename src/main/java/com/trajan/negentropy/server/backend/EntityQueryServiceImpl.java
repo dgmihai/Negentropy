@@ -76,15 +76,15 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     private BooleanBuilder filterTask(TaskFilter filter, QTaskEntity qTask) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
-            if (!filter.name().isBlank()) {
+            if (filter.name() != null && !filter.name().isBlank()) {
                 builder.and(qTask.name.lower().contains(filter.name().toLowerCase()));
             }
-            if (!filter.includedTagIds().isEmpty()) {
+            if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
                 filter.includedTagIds().stream()
                         .map(this::getTag)
                         .forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity)));
             }
-            if (!filter.excludedTagIds().isEmpty()) {
+            if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
                 filter.excludedTagIds().stream()
                         .map(this::getTag)
                         .forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity).not()));

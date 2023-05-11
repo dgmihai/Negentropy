@@ -35,7 +35,8 @@ public class QuickAddParser {
             String keyword = "";
             String value = "";
 
-            if (!keywordAndValue.equals("rep")) {
+            // TODO: Top for placing at front instead of at back
+            if (!keywordAndValue.equals("rep") && !keywordAndValue.equals("top")) {
                 int firstSpaceIndex = keywordAndValue.indexOf(' ');
                 if (firstSpaceIndex == -1) {
                     continue;
@@ -62,9 +63,8 @@ public class QuickAddParser {
                     result.ifOk(task::duration);
                 }
                 case "rep" -> task.oneTime(false);
-                default -> {
-                    throw new ParseException("Invalid keyword specified: " + value);
-                }
+                default -> throw new ParseException("Invalid keyword specified: " + value);
+
             }
         }
         return task;
