@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client.tree;
 
-import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.tree.data.TaskEntryDataProvider;
+import com.trajan.negentropy.client.util.TaskProvider;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -11,18 +11,14 @@ import com.trajan.negentropy.server.facade.response.Response;
 public interface TreeViewPresenter {
     void initTreeView(TreeView treeView);
 
-    void setBaseEntry(TaskEntry entry);
-
     TaskEntry getBaseEntry();
-
-    void updateNode(TaskEntry entry);
+    void setBaseEntry(TaskEntry entry);
 
     void deleteNode(TaskEntry entry);
 
+    void updateNode(TaskEntry entry);
     void updateTask(Task task);
-
     void updateTask(TaskEntry entry);
-
     void updateEntry(TaskEntry entry);
 
     void moveNodeToRoot(TaskEntry entry);
@@ -30,26 +26,30 @@ public interface TreeViewPresenter {
     void moveNodeInto(TaskEntry moved, TaskEntry target);
 
     void moveNodeBefore(TaskEntry moved, TaskEntry target);
-
     void moveNodeAfter(TaskEntry moved, TaskEntry target);
 
-    void addTaskFromFormAsChild(TaskEntry parent);
+    TaskProvider activeTaskProvider();
+    void activeTaskProvider(TaskProvider activeTaskProvider);
 
-    void addTaskFromFormBefore(TaskEntry after);
+    Response addTaskFromProvider(TaskProvider taskProvider);
 
-    void addTaskFromFormAfter(TaskEntry before);
+    Response addTaskFromActiveProvider();
 
-    boolean isTaskFormValid();
+    Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent);
+    Response addTaskFromActiveProviderAsChild(TaskEntry parent);
+
+    Response addTaskFromProviderBefore(TaskProvider taskProvider, TaskEntry after);
+    Response addTaskFromActiveProviderBefore(TaskEntry after);
+
+    Response addTaskFromProviderAfter(TaskProvider taskProvider, TaskEntry before);
+    Response addTaskFromActiveProviderAfter(TaskEntry before);
 
     Tag createTag(Tag tag);
 
-    void onTaskFormSave(TaskFormLayout form);
-
     QueryService queryService();
-
-    Response onQuickAdd(Task task);
 
     void recalculateTimeEstimates();
 
     TaskEntryDataProvider dataProvider();
+
 }

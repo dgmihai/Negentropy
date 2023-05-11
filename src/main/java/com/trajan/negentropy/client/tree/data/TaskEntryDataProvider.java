@@ -91,16 +91,20 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     public void refreshMatchingItems(TaskID id, boolean ancestors) {
         Task task = queryService.fetchTask(id);
-        for (TaskEntry entry : entriesByChildId.get(id)) {
-            entry.task(task);
-            this.refreshItem(entry);
-            if (ancestors) {
-                TaskEntry parent = entry.parent();
-                while (parent != null) {
-                    this.refreshItem(parent);
-                    parent = parent.parent();
+        if (entriesByChildId.containsKey(id)) {
+            for (TaskEntry entry : entriesByChildId.get(id)) {
+                entry.task(task);
+                this.refreshItem(entry);
+                if (ancestors) {
+                    TaskEntry parent = entry.parent();
+                    while (parent != null) {
+                        this.refreshItem(parent);
+                        parent = parent.parent();
+                    }
                 }
             }
+        } else {
+            logger.error("Task entries do not contain key " + id);
         }
     }
 

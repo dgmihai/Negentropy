@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.components.quickadd.QuickAddField;
+import com.trajan.negentropy.client.components.quickadd.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.components.FilterLayout;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -16,6 +16,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.router.PageTitle;
@@ -37,10 +38,10 @@ public class TreeView extends Div {
     private static final Logger logger = LoggerFactory.getLogger(TreeView.class);
     private final TreeViewPresenter presenter;
 
-    private final QuickAddField quickAddField;
+    private final QuickCreateField quickAddField;
     private final FilterLayout filterDiv;
     private final TaskTreeGrid taskTreeGrid;
-    private final TaskFormLayout form;
+    private final TaskFormLayout createTaskForm;
     private final HorizontalLayout options;
     private TabSheet tabSheet;
 
@@ -57,23 +58,24 @@ public class TreeView extends Div {
 
         this.tabSheet = new TabSheet();
 
-        this.quickAddField = new QuickAddField(presenter::onQuickAdd);
+        this.quickAddField = new QuickCreateField();
+        quickAddField.onAction(task -> presenter.addTaskFromProvider(quickAddField));
         quickAddField.setWidthFull();
 
         this.filterDiv = new FilterLayout(presenter);
 
-        this.form = new TaskFormLayout(presenter, new Task(null));
-        form.binder().setBean(new Task(null));
+        this.createTaskForm = new TaskFormLayout(presenter, new Task(null));
+        createTaskForm.binder().setBean(new Task(null));
 
-        form.onClear(() -> {
-            form.binder().setBean(new Task(null));
+        createTaskForm.onClear(() -> {
+            createTaskForm.binder().setBean(new Task(null));
             tabSheet.setSelectedIndex(0);
         });
-        form.onSave(() -> {
-            presenter.onTaskFormSave(form);
-            form.binder().setBean(new Task(null));
+        createTaskForm.onSave(() -> {
+            presenter.addTaskFromProvider(createTaskForm);
+            createTaskForm.binder().setBean(new Task(null));
         });
-        form.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+        createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
@@ -109,18 +111,42 @@ public class TreeView extends Div {
     }
 
     private void initTabSheet(int browserWidth) {
+        Tab close;
+        Tab quickAdd;
+        Tab searchAndFilter;
+        Tab createNewTask ;
+        Tab options;
+
         if (browserWidth > BREAKPOINT_PX) {
-            tabSheet.add(VaadinIcon.CLOSE_SMALL.create(), new Div());
-            tabSheet.add("Quick Add", quickAddField);
-            tabSheet.add("Search & Filter", filterDiv());
-            tabSheet.add("Create New Task", form);
-            tabSheet.add("Options", options);
+            close = new Tab(VaadinIcon.CLOSE_SMALL.create());
+            quickAdd = new Tab("Quick Add");
+            searchAndFilter = new Tab("Search & Filter");
+            createNewTask = new Tab("Create New Task");
+            options = new Tab("Options");
         } else {
-            tabSheet.add(VaadinIcon.CLOSE.create(), new Div());
-            tabSheet.add(VaadinIcon.BOLT.create(), quickAddField);
-            tabSheet.add(VaadinIcon.SEARCH.create(), filterDiv());
-            tabSheet.add(VaadinIcon.FILE_ADD.create(), form);
-            tabSheet.add(VaadinIcon.COG.create(), options);
+            close = new Tab(VaadinIcon.CLOSE.create());
+            quickAdd = new Tab(VaadinIcon.BOLT.create());
+            searchAndFilter = new Tab(VaadinIcon.SEARCH.create());
+            createNewTask = new Tab(VaadinIcon.FILE_ADD.create());
+            options = new Tab(VaadinIcon.COG.create());
         }
+
+        tabSheet.add(close, new Div());
+        tabSheet.add(quickAdd, quickAddField);
+        tabSheet.add(searchAndFilter, filterDiv());
+        tabSheet.add(createNewTask, createTaskForm);
+        tabSheet.add(options, options);
+
+        tabSheet.addSelectedChangeListener(event -> {
+            Tab openedTab = event.getSelectedTab();
+
+            if (openedTab.equals(quickAdd)) {
+                presenter.activeTaskProvider(quickAddField);
+            } else if (openedTab.equals(createNewTask)) {
+                presenter.activeTaskProvider(createTaskForm);
+            } else {
+                presenter.activeTaskProvider(null);
+            }
+        });
     }
 }

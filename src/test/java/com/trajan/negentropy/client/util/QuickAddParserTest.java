@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.util;
 
-import com.trajan.negentropy.client.components.quickadd.QuickAddParser;
+import com.trajan.negentropy.client.components.quickadd.QuickCreateParser;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ class QuickAddParserTest {
     void testBasicInput() {
         try {
              String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 2m #rep";
-             Task task = QuickAddParser.parse(input);
+             Task task = QuickCreateParser.parse(input);
 
              assertEquals("TaskName", task.name());
              assertEquals("TaskDescription", task.description());
@@ -34,7 +34,7 @@ class QuickAddParserTest {
     void testIncompleteInput() {
         try {
             String input = "TaskName #desc TaskDescription";
-            Task task = QuickAddParser.parse(input);
+            Task task = QuickCreateParser.parse(input);
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
@@ -50,7 +50,7 @@ class QuickAddParserTest {
     void testOutOfOrderInput() {
         try {
             String input = "TaskName #dur 2m #rep #desc TaskDescription #tag tag1, tag2";
-            Task task = QuickAddParser.parse(input);
+            Task task = QuickCreateParser.parse(input);
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
@@ -67,7 +67,7 @@ class QuickAddParserTest {
     void testSpacesInNameAndDescription() {
         try {
             String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 2m #rep";
-            Task task = QuickAddParser.parse(input);
+            Task task = QuickCreateParser.parse(input);
 
             assertEquals("Task Name with Spaces", task.name());
             assertEquals("Task Description with Spaces", task.description());
@@ -83,14 +83,14 @@ class QuickAddParserTest {
     @Test
     void testInvalidDuration() {
         String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur not_a_number #rep";
-        assertThrows(QuickAddParser.ParseException.class, () -> QuickAddParser.parse(input));
+        assertThrows(QuickCreateParser.ParseException.class, () -> QuickCreateParser.parse(input));
     }
 
     @Test
     void testOnlyName() {
         try {
             String input = "TaskName";
-            Task task = QuickAddParser.parse(input);
+            Task task = QuickCreateParser.parse(input);
 
             assertEquals("TaskName", task.name());
             assertTrue(task.description().isBlank());

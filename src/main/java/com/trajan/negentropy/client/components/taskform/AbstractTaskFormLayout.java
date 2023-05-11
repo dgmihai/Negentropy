@@ -1,8 +1,9 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.util.TaskProvider;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
@@ -21,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Accessors(fluent = true)
-public abstract class AbstractTaskFormLayout extends FormLayout {
+public abstract class AbstractTaskFormLayout extends FormLayout implements TaskProvider {
     private static final Logger logger = LoggerFactory.getLogger(TaskFormLayout.class);
 
     protected final TreeViewPresenter presenter;
@@ -86,7 +87,6 @@ public abstract class AbstractTaskFormLayout extends FormLayout {
         clearButton.addClickListener(e -> onClear.run());
     }
 
-
     abstract boolean isValid();
 
     abstract void configureBindings();
@@ -103,6 +103,8 @@ public abstract class AbstractTaskFormLayout extends FormLayout {
 
         buttonLayout.setWidthFull();
         buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+
+        tagComboBox.setPlaceholder("Tags");
 
         setColspan(descriptionArea, 2);
         setColspan(buttonLayout, 2);

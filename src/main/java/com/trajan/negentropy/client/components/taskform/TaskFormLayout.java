@@ -3,11 +3,15 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.util.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+
+import java.util.Optional;
 
 @Accessors(fluent = true)
 public class TaskFormLayout extends AbstractTaskFormLayout {
@@ -49,7 +53,6 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         tagComboBox = new CustomValueTagComboBox(presenter, tag ->{
             binder.getBean().tags().add(tag);
         });
-        tagComboBox.setPlaceholder("Tags");
 
         binder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);
@@ -58,5 +61,19 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         binder.addValueChangeListener(e -> {
             saveButton.setEnabled(binder.isValid());
         });
+    }
+
+    @Override
+    public Response hasValidTask() {
+        return new Response(binder.isValid(), "Task in form is invalid");
+    }
+
+    @Override
+    public Optional<Task> getTask() throws TaskProviderException {
+        if (hasValidTask().success()) {
+            return Optional.of(binder.getBean());
+        } else {
+            return Optional.empty();
+        }
     }
 }

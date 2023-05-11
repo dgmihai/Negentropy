@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.HashSet;
 
-public class QuickAddParser {
-    private static final Logger logger = LoggerFactory.getLogger(QuickAddParser.class);
+public class QuickCreateParser {
+    private static final Logger logger = LoggerFactory.getLogger(QuickCreateParser.class);
 
     public static String DELIMITER = "#";
 

@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.tree.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.TaskProvider;
 import com.trajan.negentropy.server.backend.TagService;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.UpdateService;
@@ -11,7 +12,6 @@ import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.TagResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @UIScope
@@ -39,6 +40,8 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     private TaskTreeGrid gridLayout;
     private TaskEntryDataProvider dataProvider;
 
+    private TaskProvider activeTaskProvider;
+
     @Autowired private QueryService queryService;
     @Autowired private UpdateService updateService;
     @Autowired private TagService tagService;
@@ -46,7 +49,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     @Override
     public void initTreeView(TreeView treeView) {
         this.view = treeView;
-        this.form = view.form();
+        this.form = view.createTaskForm();
         this.gridLayout = view.taskTreeGrid();
 
         loadData();
@@ -59,12 +62,13 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
-    public void setBaseEntry(TaskEntry entry) {
-        dataProvider.setBaseEntry(entry);
-    }
-
     public TaskEntry getBaseEntry() {
         return dataProvider.getBaseEntry();
+    }
+
+    @Override
+    public void setBaseEntry(TaskEntry entry) {
+        dataProvider.setBaseEntry(entry);
     }
 
     private enum Refresh {
@@ -205,76 +209,122 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
-    public void addTaskFromFormAsChild(TaskEntry parent) {
+    public void activeTaskProvider(TaskProvider activeTaskProvider) {
+        this.activeTaskProvider = activeTaskProvider;
+    }
+
+    private Response addTaskDTO(TaskProvider taskProvider, TaskNodeDTO taskDTO) {
+        Response validTaskResponse = taskProvider.hasValidTask();
+        if (validTaskResponse.success()) {
+            try {
+                Task task = taskProvider.getTask().orElseThrow();
+
+                task = this.processTags(task);
+                if (task == null) {
+                    throw new RuntimeException("Failed to process tags in new task");
+                }
+
+                TaskResponse response = (TaskResponse) this.process(
+                        task,
+                        Refresh.NONE,
+                        t -> updateService.createTask(t));
+
+                if (response.success()) {
+                    this.process(
+                            response.task(),
+                            Refresh.ALL,
+                            t -> updateService.insertTaskNode(
+                                    taskDTO.childId(t.id())));
+                } else {
+                    NotificationError.show(response.message());
+                }
+
+                return response;
+            } catch (Exception e) {
+                NotificationError.show(e);
+            }
+        } else {
+            NotificationError.show(validTaskResponse.message());
+        }
+        return validTaskResponse;
+    }
+
+    private Response tryFunctionWithActiveProvider(Function<TaskProvider, Response> function) {
+        if (activeTaskProvider != null) {
+            return function.apply(activeTaskProvider);
+        } else {
+            throw new RuntimeException("No task to add - " +
+                    "open either Quick Create, or Create New Task, or start editing a task");
+        }
+    }
+
+    private Response tryBiFunctionWithActiveProvider(BiFunction<TaskProvider, TaskEntry, Response> biFunction,
+                                                     TaskEntry entry) {
+        if (activeTaskProvider != null) {
+            return biFunction.apply(activeTaskProvider, entry);
+        } else {
+            throw new RuntimeException("No task to add - " +
+                    "open either Quick Create, or Create New Task, or start editing a task");
+        }
+    }
+
+    @Override
+    public Response addTaskFromProvider(TaskProvider taskProvider) {
+        TaskEntry parent = dataProvider.getBaseEntry() == null ?
+                null :
+                dataProvider.getBaseEntry();
+        return this.addTaskFromProviderAsChild(taskProvider, parent);
+    }
+
+    @Override
+    public Response addTaskFromActiveProvider() {
+        return tryFunctionWithActiveProvider(this::addTaskFromProvider);
+    }
+
+    @Override
+    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
         logger.debug("Creating task as a child of " + parent);
-        if (form.binder().isValid()) {
-            Task task = form.binder().getBean();
-            TaskResponse response = (TaskResponse) this.process(
-                    task,
-                    Refresh.NONE,
-                    t -> updateService.createTask(t));
-            if (response.success()) {
-                this.process(
-                        response.task(),
-                        Refresh.ANCESTORS,
-                        t -> updateService.insertTaskNode(
-                                new TaskNodeDTO(
-                                        parent.node().parentId(),
-                                        t.id(),
-                                        null,
-                                        0)));
-            }
-        }
+        TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
+                parent.node().parentId(),
+                null,
+                null,
+                0);
+        return this.addTaskDTO(taskProvider, taskNodeDTO);
     }
 
     @Override
-    public void addTaskFromFormBefore(TaskEntry after) {
-        if (form.binder().isValid()) {
-            Task task = form.binder().getBean();
-            TaskResponse response = (TaskResponse) this.process(
-                    task,
-                    Refresh.NONE,
-                    t -> updateService.createTask(t));
-            if (response.success()) {
-                this.process(
-                        response.task(),
-                        Refresh.ANCESTORS,
-                        t -> updateService.insertTaskNode(
-                                new TaskNodeDTO(
-                                        after.node().parentId(),
-                                        t.id(),
-                                        after.node().position(),
-                                        null)));
-            }
-        }
+    public Response addTaskFromActiveProviderAsChild(TaskEntry parent) {
+        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderAsChild, parent);
     }
 
     @Override
-    public void addTaskFromFormAfter(TaskEntry before) {
-        if (form.binder().isValid()) {
-            Task task = form.binder().getBean();
-            TaskResponse response = (TaskResponse) this.process(
-                    task,
-                    Refresh.NONE,
-                    t -> updateService.createTask(t));
-            if (response.success()) {
-                this.process(
-                        response.task(),
-                        Refresh.ANCESTORS,
-                        t -> updateService.insertTaskNode(
-                                new TaskNodeDTO(
-                                        before.node().parentId(),
-                                        t.id(),
-                                        before.node().position() + 1,
-                                        null)));
-            }
-        }
+    public Response addTaskFromProviderBefore(TaskProvider taskProvider, TaskEntry next) {
+        TaskNodeDTO taskDTO = new TaskNodeDTO(
+                next.node().parentId(),
+                null,
+                next.node().position(),
+                null);
+        return this.addTaskDTO(taskProvider, taskDTO);
     }
 
     @Override
-    public boolean isTaskFormValid() {
-        // TODO: Switch between whatever task provider is active
-        return form.binder().isValid();
+    public Response addTaskFromActiveProviderBefore(TaskEntry after) {
+        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderBefore, after);
+    }
+
+    @Override
+    public Response addTaskFromProviderAfter(TaskProvider taskProvider, TaskEntry prev) {
+        TaskNodeDTO taskDTO = new TaskNodeDTO(
+                prev.node().parentId(),
+                null,
+                prev.node().position() + 1,
+                null);
+        return this.addTaskDTO(taskProvider, taskDTO);
+    }
+
+    @Override
+    public Response addTaskFromActiveProviderAfter(TaskEntry before) {
+        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderBefore, before);
     }
 
     @Override
@@ -286,38 +336,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
         return response.tag();
     }
 
-    @Override
-    public void onTaskFormSave(TaskFormLayout form) {
-        if (form.binder().isValid()) {
-            Task task = form.binder().getBean();
-            addTaskAsChildOfBase(task);
-        }
-    }
-
-    private Response addTaskAsChildOfBase(Task task) {
-        TaskID parentId = dataProvider.getBaseEntry() == null ?
-                null :
-                dataProvider.getBaseEntry().node().childId();
-        TaskResponse response = (TaskResponse) this.process(
-                task,
-                Refresh.NONE,
-                t -> updateService.createTask(t));
-        if (response.success()) {
-            this.process(
-                    response.task(),
-                    Refresh.ALL,
-                    t -> updateService.insertTaskNode(
-                            new TaskNodeDTO(
-                                    parentId,
-                                    t.id(),
-                                    null,
-                                    null)));
-        }
-        return response;
-    }
-
-    @Override
-    public Response onQuickAdd(Task task) {
+    private Task processTags(Task task ) {
         Set<Tag> processedTags = new HashSet<>();
         for (Tag tag : task.tags()) {
             if (tag.id() == null) {
@@ -328,15 +347,13 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
                 if (response.success()) {
                     processedTags.add(response.tag());
                 } else {
-                    return response;
+                    return null;
                 }
             }
 
             processedTags.add(queryService.fetchTag(tag.id())); // TODO: Filter
         }
-        task.tags(processedTags);
-        logger.debug("Quick add : " + task);
-        return this.addTaskAsChildOfBase(task);
+        return task.tags(processedTags);
     }
 
     @Override

@@ -441,16 +441,22 @@ public class TaskTreeGrid extends VerticalLayout {
         public TaskTreeContextMenu(TreeGrid<TaskEntry> grid) {
             super(grid);
 
-            GridMenuItem<TaskEntry> insertBefore = addItem("Insert before", e -> e.getItem().ifPresent(
-                    presenter::addTaskFromFormBefore
+            GridMenuItem<TaskEntry> name = addItem("");
+            name.setEnabled(false);
+            name.addClassName("primary-color");
+
+            add(new Hr());
+
+            GridMenuItem<TaskEntry> insertBefore = addItem("Add before", e -> e.getItem().ifPresent(
+                    presenter::addTaskFromActiveProviderBefore
             ));
 
-            GridMenuItem<TaskEntry> insertAfter = addItem("Insert after", e -> e.getItem().ifPresent(
-                    presenter::addTaskFromFormAfter
+            GridMenuItem<TaskEntry> insertAfter = addItem("Add after", e -> e.getItem().ifPresent(
+                    presenter::addTaskFromActiveProviderAfter
             ));
 
-            GridMenuItem<TaskEntry> insertAsSubtask = addItem("Insert as subtask", e -> e.getItem().ifPresent(
-                    presenter::addTaskFromFormAsChild
+            GridMenuItem<TaskEntry> insertAsSubtask = addItem("Add as subtask", e -> e.getItem().ifPresent(
+                    presenter::addTaskFromActiveProviderAsChild
             ));
 
             add(new Hr());
@@ -459,14 +465,30 @@ public class TaskTreeGrid extends VerticalLayout {
                     presenter::deleteNode
             ));
 
-            // Do not show context menu when header  is clicked
+            // Do not show context menu when header is clicked
             setDynamicContentHandler(entry -> {
                 if (entry == null) {
                     return false;
                 } else {
-                    insertBefore.setEnabled(presenter.isTaskFormValid() && entry.node().parentId() != null);
-                    insertAfter.setEnabled(presenter.isTaskFormValid() && entry.node().parentId() != null);
-                    insertAsSubtask.setEnabled(presenter.isTaskFormValid());
+                    boolean hasActiveTaskProvider =
+                            presenter.activeTaskProvider() != null
+                                    && presenter.activeTaskProvider().hasValidTask().success();
+
+                    if (hasActiveTaskProvider) {
+                        try {
+                            presenter.activeTaskProvider().getTask().ifPresentOrElse(
+                                    task -> name.setText(task.name()), () -> {
+                                    });
+                        } catch (Exception e) {
+                            NotificationError.show(e);
+                        }
+                    } else {
+                        name.setText("No valid task");
+                    }
+
+                    insertBefore.setEnabled(hasActiveTaskProvider);
+                    insertAfter.setEnabled(hasActiveTaskProvider);
+                    insertAsSubtask.setEnabled(hasActiveTaskProvider);
                     return true;
                 }
             });

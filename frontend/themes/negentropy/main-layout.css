@@ -15,6 +15,11 @@ vaadin-scroller[slot="drawer"] {
   display: none;
 }
 
+.primary-color {
+    color:
+      var(--lumo-primary-color);
+}
+
 .primary-color-icon {
     fill:
       var(--lumo-primary-color);
