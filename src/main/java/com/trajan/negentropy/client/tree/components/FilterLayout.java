@@ -43,6 +43,7 @@ public class FilterLayout extends FormLayout {
         name.addValueChangeListener(event -> {
             TaskFilter filter = presenter.dataProvider().getActiveFilter();
             filter.name(name.getValue());
+            presenter.dataProvider().refreshAll();
         });
 
         tagsToExclude = new TagComboBox("Filter: Excluded Tags", presenter);
@@ -52,6 +53,7 @@ public class FilterLayout extends FormLayout {
             filter.excludedTagIds(tagsToExclude.getValue().stream()
                     .map(Tag::id)
                     .collect(Collectors.toSet()));
+            presenter.dataProvider().refreshAll();
         });
 
         tagsToInclude = new TagComboBox("Filter: Include Tags", presenter);
@@ -61,6 +63,7 @@ public class FilterLayout extends FormLayout {
             filter.includedTagIds(tagsToInclude.getValue().stream()
                     .map(Tag::id)
                     .collect(Collectors.toSet()));
+            presenter.dataProvider().refreshAll();
         });
 
         resetBtn = new Button("Reset");
