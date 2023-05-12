@@ -225,7 +225,6 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-
         editColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> new InlineIconButton(
                         VaadinIcon.EDIT.create(),

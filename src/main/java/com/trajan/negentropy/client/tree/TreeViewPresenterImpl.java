@@ -56,7 +56,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     private void loadData() {
-        logger.debug("Refreshed task nodes.");
+        logger.debug("Refreshed task nodes");
         this.dataProvider = new TaskEntryDataProvider(queryService);
         gridLayout.treeGrid().setDataProvider(dataProvider);
     }

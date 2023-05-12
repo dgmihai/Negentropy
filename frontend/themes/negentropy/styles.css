@@ -25,6 +25,8 @@
 --negentropy-color-b: hsl(57, 100%, 100%);
 --negentropy-color-c: hsl(157, 100%, 100%);
 --negentropy-color-d: hsl(260, 100%, 100%);
+
+--vaadin-multi-select-combo-box-input-min-width: 1em;
     }
 
     [theme~="dark"] {

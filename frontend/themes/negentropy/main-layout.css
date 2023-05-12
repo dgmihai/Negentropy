@@ -46,3 +46,7 @@ vaadin-multi-select-combo-box.grid-combo-box::part(input-field) {
   background-color:
     var(--lumo-base-color);
 }
+
+vaadin-multi-select-combo-box[opened] > input {
+  width:4em
+}

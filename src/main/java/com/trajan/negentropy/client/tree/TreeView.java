@@ -69,12 +69,12 @@ public class TreeView extends Div {
 
         createTaskForm.onClear(() -> {
             createTaskForm.binder().setBean(new Task(null));
-            tabSheet.setSelectedIndex(0);
         });
         createTaskForm.onSave(() -> {
             presenter.addTaskFromProvider(createTaskForm);
             createTaskForm.binder().setBean(new Task(null));
         });
+
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
@@ -92,9 +92,8 @@ public class TreeView extends Div {
                 taskTreeGrid.visibilityMenu());
         options.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
-        UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver -> {
-            initTabSheet(receiver.getScreenWidth());
-        });
+        UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver ->
+                initTabSheet(receiver.getScreenWidth()));
 
         tabSheet.setWidthFull();
 
@@ -111,38 +110,38 @@ public class TreeView extends Div {
     }
 
     private void initTabSheet(int browserWidth) {
-        Tab close;
-        Tab quickAdd;
-        Tab searchAndFilter;
-        Tab createNewTask ;
-        Tab options;
+        Tab closeTab;
+        Tab quickCreateTab;
+        Tab searchAndFilterTab;
+        Tab createNewTaskTab;
+        Tab optionsTab;
 
         if (browserWidth > BREAKPOINT_PX) {
-            close = new Tab(VaadinIcon.CLOSE_SMALL.create());
-            quickAdd = new Tab("Quick Add");
-            searchAndFilter = new Tab("Search & Filter");
-            createNewTask = new Tab("Create New Task");
-            options = new Tab("Options");
+            closeTab = new Tab(VaadinIcon.CLOSE_SMALL.create());
+            quickCreateTab = new Tab("Quick Add");
+            searchAndFilterTab = new Tab("Search & Filter");
+            createNewTaskTab = new Tab("Create New Task");
+            optionsTab = new Tab("Options");
         } else {
-            close = new Tab(VaadinIcon.CLOSE.create());
-            quickAdd = new Tab(VaadinIcon.BOLT.create());
-            searchAndFilter = new Tab(VaadinIcon.SEARCH.create());
-            createNewTask = new Tab(VaadinIcon.FILE_ADD.create());
-            options = new Tab(VaadinIcon.COG.create());
+            closeTab = new Tab(VaadinIcon.CLOSE.create());
+            quickCreateTab = new Tab(VaadinIcon.BOLT.create());
+            searchAndFilterTab = new Tab(VaadinIcon.SEARCH.create());
+            createNewTaskTab = new Tab(VaadinIcon.FILE_ADD.create());
+            optionsTab = new Tab(VaadinIcon.COG.create());
         }
 
-        tabSheet.add(close, new Div());
-        tabSheet.add(quickAdd, quickAddField);
-        tabSheet.add(searchAndFilter, filterDiv());
-        tabSheet.add(createNewTask, createTaskForm);
-        tabSheet.add(options, options);
+        tabSheet.add(closeTab, new Div());
+        tabSheet.add(quickCreateTab, this.quickAddField);
+        tabSheet.add(searchAndFilterTab, this.filterDiv);
+        tabSheet.add(createNewTaskTab, this.createTaskForm);
+        tabSheet.add(optionsTab, this.options);
 
         tabSheet.addSelectedChangeListener(event -> {
             Tab openedTab = event.getSelectedTab();
 
-            if (openedTab.equals(quickAdd)) {
+            if (openedTab.equals(quickCreateTab)) {
                 presenter.activeTaskProvider(quickAddField);
-            } else if (openedTab.equals(createNewTask)) {
+            } else if (openedTab.equals(createNewTaskTab)) {
                 presenter.activeTaskProvider(createTaskForm);
             } else {
                 presenter.activeTaskProvider(null);
