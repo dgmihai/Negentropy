@@ -5,6 +5,7 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
+import com.trajan.negentropy.client.tree.components.InlineIconToggleButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.util.NotificationError;
@@ -14,10 +15,9 @@ import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
-import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -29,6 +29,8 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabsVariant;
@@ -45,6 +47,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -79,10 +83,19 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private Editor<TaskEntry> editor;
 
+    private static final String COLUMN_KEY_NAME = "Name";
+    private static final String COLUMN_KEY_TAGS = "Tags";
+    private static final String COLUMN_KEY_DESCRIPTION = "Description";
+    private static final String COLUMN_KEY_DURATION = "Task Duration";
+    private static final String COLUMN_KEY_TIME_ESTIMATE = "Net Time Estimate";
+    private static final String COLUMN_KEY_EDIT = "Edit";
+    private static final String COLUMN_KEY_DELETE = "Delete";
+
     public TaskTreeGrid(TreeViewPresenter presenter) {
         this.presenter = presenter;
         
         this.treeGrid = new TreeGrid<>(TaskEntry.class);
+
         this.nestedTabs = new NestedTaskTabs(presenter);
         new TaskTreeContextMenu(treeGrid);
         this.editor = treeGrid.getEditor();
@@ -101,8 +114,15 @@ public class TaskTreeGrid extends VerticalLayout {
                 GridVariant.LUMO_COMPACT,
                 GridVariant.LUMO_COLUMN_BORDERS);
         this.setPadding(false);
-        this.add(
+
+        HorizontalLayout toolbar = new HorizontalLayout(
                 nestedTabs,
+                visibilityMenu());
+        toolbar.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        toolbar.setWidthFull();
+
+        this.add(
+                toolbar,
                 treeGrid);
     }
 
@@ -137,8 +157,8 @@ public class TaskTreeGrid extends VerticalLayout {
     private void initReadColumns() {
         nameColumn = treeGrid.addHierarchyColumn(
                         entry -> entry.task().name())
-                .setKey("name")
-                .setHeader("Name")
+                .setKey(COLUMN_KEY_NAME)
+                .setHeader(COLUMN_KEY_NAME)
                 .setWidth("150px")
                 .setFrozen(true)
                 .setFlexGrow(1);
@@ -158,8 +178,8 @@ public class TaskTreeGrid extends VerticalLayout {
                     });
                     return tagComboBox;
                 })
-                .setKey("tags")
-                .setHeader("Tags")
+                .setKey(COLUMN_KEY_TAGS)
+                .setHeader(COLUMN_KEY_TAGS)
                 .setFlexGrow(1);
         tagColumn.setClassName("tag-column");
 
@@ -175,7 +195,7 @@ public class TaskTreeGrid extends VerticalLayout {
                         },
                         entry -> !entry.task().description().isBlank(),
                         treeGrid::isDetailsVisible))
-                .setKey("description")
+                .setKey(COLUMN_KEY_DESCRIPTION)
                 .setHeader(descriptionColumnHeaderIcon)
                 .setAutoWidth(true)
                 .setFlexGrow(0)
@@ -196,7 +216,7 @@ public class TaskTreeGrid extends VerticalLayout {
                                 presenter.queryService(),
                                 () -> TimeFormat.DURATION,
                                 false))
-                .setKey("duration")
+                .setKey(COLUMN_KEY_DURATION)
                 .setHeader(durationColumnHeaderIcon)
                 .setWidth(DURATION_COL_WIDTH)
                 .setFlexGrow(0)
@@ -219,7 +239,7 @@ public class TaskTreeGrid extends VerticalLayout {
                                 presenter.queryService(),
                                 () -> TimeFormat.DURATION,
                                 true))
-                .setKey("time estimate")
+                .setKey(COLUMN_KEY_TIME_ESTIMATE)
                 .setHeader(timeEstimateColumnHeader)
                 .setWidth(DURATION_COL_WIDTH)
                 .setFlexGrow(0)
@@ -236,11 +256,21 @@ public class TaskTreeGrid extends VerticalLayout {
                             treeGrid.setDetailsVisible(entry, true);
                         }))
                 )
-                .setKey("edit")
+                .setKey(COLUMN_KEY_EDIT)
                 .setWidth(ICON_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
+        List<InlineIconButton> deleteIcons = new ArrayList<>();
+        InlineIconToggleButton trashIconButton = new InlineIconToggleButton(
+                VaadinIcon.EYE_SLASH.create(),
+                VaadinIcon.TRASH.create());
+        trashIconButton.onToggle(
+                () -> {
+                    deleteIcons.forEach(icon -> icon.setVisible(trashIconButton.activated()));
+                });
+        trashIconButton.activatedIcon().addClassName("error-color-icon");
+        trashIconButton.deactivatedIcon().addClassName("error-color-icon");
         deleteColumn = treeGrid.addColumn(
                 new ComponentRenderer<Component, TaskEntry>(entry -> {
                     Div div = new Div();
@@ -248,21 +278,17 @@ public class TaskTreeGrid extends VerticalLayout {
                         InlineIconButton iconButton = new InlineIconButton(VaadinIcon.TRASH.create());
                         iconButton.getIcon().addClassName("error-color-icon");
                         iconButton.addClickListener(event -> presenter.deleteNode(entry));
+                        deleteIcons.add(iconButton);
                         div.add(iconButton);
+                        iconButton.setVisible(false);
                     }
                     return div;
                 }))
-                .setKey("delete")
+                .setKey(COLUMN_KEY_DELETE)
+                .setHeader(new Div(trashIconButton))
                 .setWidth(ICON_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
-
-
-        InlineIconButton trashIconButton = new InlineIconButton(VaadinIcon.TRASH.create());
-        trashIconButton.getIcon().addClassName("error-color-icon");
-        trashIconButton.addClickListener(event -> deleteColumn.setVisible(!deleteColumn().isVisible()));
-        editColumn.setHeader(new Div(trashIconButton));
-        deleteColumn.setVisible(false);
 
         treeGrid.setSortableColumns();
     }
@@ -407,19 +433,21 @@ public class TaskTreeGrid extends VerticalLayout {
             final AtomicReference<LocalDateTime> firstClickTime = new AtomicReference<>();
             final AtomicBoolean waitingSecondClick = new AtomicBoolean(false);
 
+            int millisecondInterval = 500;
+
             treeGrid.addItemClickListener(e -> {
                 if (!waitingSecondClick.get()) {
                     firstClickTime.set(LocalDateTime.now());
                     waitingSecondClick.set(true);
 
                     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-                    executor.schedule(() -> waitingSecondClick.set(false), 300, TimeUnit.MILLISECONDS);
+                    executor.schedule(() -> waitingSecondClick.set(false), millisecondInterval, TimeUnit.MILLISECONDS);
 
                     executor.shutdown();
                 } else {
                     waitingSecondClick.set(false);
 
-                    if (LocalDateTime.now().compareTo(firstClickTime.get()) < 300) {
+                    if (LocalDateTime.now().compareTo(firstClickTime.get()) < millisecondInterval) {
                         if (e.getItem() != null) {
                             nestedTabs.onSelectNewRootEntry(e.getItem());
                         }
@@ -482,7 +510,7 @@ public class TaskTreeGrid extends VerticalLayout {
                             NotificationError.show(e);
                         }
                     } else {
-                        name.setText("No valid task");
+                        name.setText("No valid task to add");
                     }
 
                     insertBefore.setEnabled(hasActiveTaskProvider);
@@ -494,36 +522,38 @@ public class TaskTreeGrid extends VerticalLayout {
         }
     }
 
-    public Button visibilityMenu() {
-        Button menuButton = new Button("Column", VaadinIcon.EYE.create());
-        menuButton.setIconAfterText(false);
-        ColumnVisibilityToggleMenu columnVisibilityToggleMenu = new ColumnVisibilityToggleMenu(
-                menuButton);
-        columnVisibilityToggleMenu.addColumnToggleItem("Tags",
-                tagColumn);
-        columnVisibilityToggleMenu.addColumnToggleItem("Description",
-                descriptionColumn);
-        columnVisibilityToggleMenu.addColumnToggleItem("Task Duration",
-                taskDurationColumn);
-        columnVisibilityToggleMenu.addColumnToggleItem("Total Time Estimate",
-                timeEstimateColumn);
-        columnVisibilityToggleMenu.addColumnToggleItem("Edit",
-                editColumn);
+    private Div visibilityMenu() {
+        MenuBar menuBar = new MenuBar();
+        menuBar.setWidth(ICON_COL_WIDTH);
+        menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
 
-        return menuButton;
-    }
+        InlineIconButton menuIcon = new InlineIconButton(VaadinIcon.ELLIPSIS_DOTS_V.create());
+        SubMenu subMenu = menuBar.addItem(menuIcon)
+                .getSubMenu();
 
-    private static class ColumnVisibilityToggleMenu extends ContextMenu {
-        public ColumnVisibilityToggleMenu(Component target) {
-            super(target);
-            this.setOpenOnClick(true);
-        }
+        List<String> toggleableColumnKeys = List.of(
+                COLUMN_KEY_TAGS,
+                COLUMN_KEY_DESCRIPTION,
+                COLUMN_KEY_DURATION,
+                COLUMN_KEY_TIME_ESTIMATE,
+                COLUMN_KEY_EDIT,
+                COLUMN_KEY_DELETE);
 
-        void addColumnToggleItem(String label, Grid.Column<TaskEntry> column) {
-            MenuItem menuItem = this.addItem(label, e ->
-                    column.setVisible(e.getSource().isChecked()));
-            menuItem.setCheckable(true);
-            menuItem.setChecked(column.isVisible());
-        }
+        MenuItem visibilityDivider = subMenu.addItem("Column Visibility");
+        visibilityDivider.setEnabled(false);
+        visibilityDivider.addClassName("primary-color");
+
+        toggleableColumnKeys.forEach(
+                (name) -> {
+                    Grid.Column<TaskEntry> column = treeGrid.getColumnByKey(name);
+                    MenuItem menuItem = subMenu.addItem(name);
+
+                    menuItem.setCheckable(true);
+                    menuItem.setChecked(column.isVisible());
+                    menuItem.addClickListener(e -> column.setVisible(menuItem.isChecked()));
+                }
+        );
+
+        return new Div(menuBar);
     }
 }

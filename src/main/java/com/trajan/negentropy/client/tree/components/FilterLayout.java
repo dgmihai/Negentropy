@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree.components;
 
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
+import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
@@ -10,7 +10,6 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -81,9 +80,6 @@ public class FilterLayout extends FormLayout {
     }
 
     private void configureLayout() {
-        this.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM, LumoUtility.Padding.Vertical.SMALL,
-                LumoUtility.BoxSizing.BORDER);
-
         this.setResponsiveSteps(
                 new ResponsiveStep("0", 1),
                 new ResponsiveStep("600px", 2),

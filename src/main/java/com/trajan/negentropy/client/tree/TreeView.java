@@ -63,6 +63,8 @@ public class TreeView extends Div {
         quickAddField.setWidthFull();
 
         this.filterDiv = new FilterLayout(presenter);
+        filterDiv.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+                LumoUtility.BoxSizing.BORDER);
 
         this.createTaskForm = new TaskFormLayout(presenter, new Task(null));
         createTaskForm.binder().setBean(new Task(null));
@@ -88,8 +90,7 @@ public class TreeView extends Div {
         dragSettings.add("Add on drag");
 
         this.options = new HorizontalLayout(
-                recalculateTimeEstimates,
-                taskTreeGrid.visibilityMenu());
+                recalculateTimeEstimates);
         options.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
         UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver ->
