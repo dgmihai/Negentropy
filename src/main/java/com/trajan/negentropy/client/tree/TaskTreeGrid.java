@@ -35,11 +35,14 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabsVariant;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextAreaVariant;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.WebBrowser;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -68,6 +71,7 @@ public class TaskTreeGrid extends VerticalLayout {
     private final TreeGrid<TaskEntry> treeGrid;
     private final NestedTaskTabs nestedTabs;
 
+    private Grid.Column<TaskEntry> dragHandleColumn;
     private Grid.Column<TaskEntry> nameColumn;
     private Grid.Column<TaskEntry> tagColumn;
     private Grid.Column<TaskEntry> descriptionColumn;
@@ -83,6 +87,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private Editor<TaskEntry> editor;
 
+    private static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
     private static final String COLUMN_KEY_NAME = "Name";
     private static final String COLUMN_KEY_TAGS = "Tags";
     private static final String COLUMN_KEY_DESCRIPTION = "Description";
@@ -154,7 +159,27 @@ public class TaskTreeGrid extends VerticalLayout {
         });
     }
 
+    private void onDown(TaskEntry entry) {
+        treeGrid.setRowsDraggable(true);
+        draggedItem = entry;
+    }
+
     private void initReadColumns() {
+        dragHandleColumn = treeGrid.addColumn(
+                new ComponentRenderer<>(entry -> {
+                    InlineIconButton dragHandle = new InlineIconButton(LumoIcon.MENU.create());
+
+                    dragHandle.getElement().addEventListener("mousedown", e -> onDown(entry));
+                    dragHandle.getElement().addEventListener("touchStart", e -> onDown(entry));
+
+                    return dragHandle;
+                }))
+                .setKey(COLUMN_KEY_DRAG_HANDLE)
+                .setAutoWidth(true)
+                .setFrozen(true)
+                .setFlexGrow(0)
+                .setTextAlign(ColumnTextAlign.CENTER);
+
         nameColumn = treeGrid.addHierarchyColumn(
                         entry -> entry.task().name())
                 .setKey(COLUMN_KEY_NAME)
@@ -163,8 +188,8 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setFrozen(true)
                 .setFlexGrow(1);
 
-        tagColumn = treeGrid.addComponentColumn(
-                entry -> {
+        tagColumn = treeGrid.addColumn(
+                new ComponentRenderer<>(entry -> {
                     TagComboBox tagComboBox = new CustomValueTagComboBox(presenter);
                     tagComboBox.setWidthFull();
                     tagComboBox.setClassName("grid-combo-box");
@@ -177,7 +202,7 @@ public class TaskTreeGrid extends VerticalLayout {
                         presenter.updateTask(task);
                     });
                     return tagComboBox;
-                })
+                }))
                 .setKey(COLUMN_KEY_TAGS)
                 .setHeader(COLUMN_KEY_TAGS)
                 .setFlexGrow(1);
@@ -297,8 +322,6 @@ public class TaskTreeGrid extends VerticalLayout {
         ComponentRenderer<Component, TaskEntry> detailsRenderer = new ComponentRenderer<>(entry -> {
             Predicate<TaskEntry> isBeingEdited = ntry -> ntry.equals(editor.getItem());
 
-            Div detailsDiv = new Div();
-
             if (isBeingEdited.test(entry)) {
                 TaskEntryFormLayout form = new TaskEntryFormLayout(presenter, entry);
                 form.addClassNames(LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.NONE,
@@ -308,44 +331,66 @@ public class TaskTreeGrid extends VerticalLayout {
 
                 editor.setBinder(form.binder());
 
-                detailsDiv.add(form);
-            } else if (!entry.task().description().isBlank()) {
+                return form;
+            } else {
                 TextArea descriptionArea = new TextArea();
-                descriptionArea.setValue(entry.task().description());
-                descriptionArea.setSizeUndefined();
+                descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+                descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
                 descriptionArea.setWidthFull();
-                descriptionArea.setReadOnly(true);
 
-                detailsDiv.add(descriptionArea);
-//
-//                Runnable saveDescription = () -> {
-//                    logger.debug("Saving description from details");
-//                    entry.task().description(descriptionArea.getValue());
-//                    presenter.updateTask(entry);
-//                    descriptionArea.setReadOnly(true);
-//                };
-//
-//                detailsDiv.addClickListener(e -> {
-//                    descriptionArea.setReadOnly(false);
-//                });
-//
-//                descriptionArea.addBlurListener(e -> {
-//                    saveDescription.run();
-//                });
-//
-//                Shortcuts.addShortcutListener(detailsDiv,
-//                        saveDescription::run,
-//                        Key.ENTER);
-//
-//                Shortcuts.addShortcutListener(detailsDiv,
-//                        saveDescription::run,
-//                        Key.ESCAPE);
+                InlineIconButton descriptionSaveButton = new InlineIconButton(VaadinIcon.CHECK.create());
+                InlineIconButton descriptionCancelButton = new InlineIconButton(VaadinIcon.CLOSE.create());
+                HorizontalLayout container = new HorizontalLayout(
+                        descriptionArea,
+                        descriptionSaveButton,
+                        descriptionCancelButton);
+
+                descriptionArea.setValue(entry.task().description());
+                descriptionArea.setReadOnly(true);
+                descriptionSaveButton.setVisible(false);
+                descriptionCancelButton.setVisible(false);
+                AtomicBoolean editing = new AtomicBoolean(false);
+
+                Runnable toggleEditing = () -> {
+                    boolean toggle = editing.get();
+                    descriptionArea.setReadOnly(toggle);
+                    descriptionSaveButton.setVisible(!toggle);
+                    descriptionCancelButton.setVisible(!toggle);
+                    editing.set(!toggle);
+                };
+
+                Runnable saveDescription = () -> {
+                    toggleEditing.run();
+
+                    presenter.updateTask(new Task(entry.task().id())
+                            .description(descriptionArea.getValue()));
+                };
+
+                Runnable cancelEditingDescription = () -> {
+                    toggleEditing.run();
+
+                    descriptionArea.setValue(entry.task().description());
+                };
+
+                descriptionArea.getElement().addEventListener("mouseup", e -> toggleEditing.run());
+                descriptionArea.getElement().addEventListener("touchend", e -> toggleEditing.run());
+
+                descriptionSaveButton.addClickListener(e -> saveDescription.run());
+                descriptionCancelButton.addClickListener(e -> cancelEditingDescription.run());
+
+                Shortcuts.addShortcutListener(container,
+                        saveDescription::run,
+                        Key.ENTER);
+
+                Shortcuts.addShortcutListener(container,
+                        cancelEditingDescription::run,
+                        Key.ESCAPE);
+
+                return container;
             }
-            return detailsDiv;
         });
 
         treeGrid.setItemDetailsRenderer(detailsRenderer);
-        treeGrid.setDetailsVisibleOnClick(false);
     }
 
     private void initEditColumns() {
@@ -363,7 +408,6 @@ public class TaskTreeGrid extends VerticalLayout {
 
         editor.addOpenListener(e -> {
             escapeListener.get().ifPresent(Registration::remove);
-            treeGrid.setRowsDraggable(false);
             enterListener.set(Optional.of(Shortcuts.addShortcutListener(treeGrid,
                     editor::save,
                     Key.ENTER)));
@@ -371,7 +415,6 @@ public class TaskTreeGrid extends VerticalLayout {
 
         editor.addCloseListener(e -> {
             enterListener.get().ifPresent(Registration::remove);
-            treeGrid.setRowsDraggable(true);
             treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
             escapeListener.set(Optional.of(Shortcuts.addShortcutListener(treeGrid,
                     editor::cancel,
@@ -385,13 +428,8 @@ public class TaskTreeGrid extends VerticalLayout {
     }
 
     private void configureDragAndDrop() {
-        treeGrid.setRowsDraggable(true);
         treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
-
-        treeGrid.addDragStartListener(event -> {
-            logger.debug("Started dragging " + event.getDraggedItems().get(0).task().name());
-            draggedItem = event.getDraggedItems().get(0);
-        });
+        // Drag start is managed by the dragHandleColumn
 
         treeGrid.addDropListener(event -> {
             logger.debug("Dropped onto " + event.getDropTargetItem().orElseThrow().task().name());
@@ -418,6 +456,7 @@ public class TaskTreeGrid extends VerticalLayout {
                 }
             }
             draggedItem = null;
+            treeGrid.setRowsDraggable(false);
         });
     }
 
