@@ -12,6 +12,7 @@ import com.trajan.negentropy.server.facade.model.id.TagID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -50,6 +51,15 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     TagEntity getTag(TagID tagId);
+
+    /**
+     * Find a tag entity from the repository by name.
+     *
+     * @param name The name of the tag to retrieve.
+     * @return An optional of the matching tag entity.
+     * @see TaskLink
+     */
+    Optional<TagEntity> findTag(String name);
 
     /**
      * Finds tasks.

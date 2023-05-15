@@ -50,13 +50,13 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
     protected void configureFields() {
         nameField = new TextField();
-        nameField.setPlaceholder("Name*");
+        nameField.setPlaceholder("Name *");
         nameField.setValueChangeMode(ValueChangeMode.EAGER);
 
         durationField = new TextField();
-        durationField.setPlaceholder("Duration");
-        durationField.setHelperText("Format: 1h 2m 30s");
+        durationField.setPlaceholder("Duration (?h ?m ?s)");
         durationField.setPattern(DurationConverter.DURATION_PATTERN);
+        durationField.setErrorMessage("Required format: ?h ?m ?s (ex: 1m 30m, or 2h");
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");

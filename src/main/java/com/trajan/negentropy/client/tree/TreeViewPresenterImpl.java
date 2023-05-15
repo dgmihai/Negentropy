@@ -206,8 +206,8 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
         if (validTaskResponse.success()) {
             try {
                 Task task = taskProvider.getTask().orElseThrow();
-
                 task = this.processTags(task);
+
                 if (task == null) {
                     throw new RuntimeException("Failed to process tags in new task");
                 }
@@ -336,20 +336,24 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
 
     private Task processTags(Task task ) {
         Set<Tag> processedTags = new HashSet<>();
+
         for (Tag tag : task.tags()) {
             if (tag.id() == null) {
                 TagResponse response = (TagResponse) this.process(
                         tag,
                         Refresh.NONE,
-                        t -> updateService.createTag(tag));
+                        t -> updateService.findTagOrElseCreate(tag.name()));
                 if (response.success()) {
                     processedTags.add(response.tag());
                 } else {
                     return null;
                 }
+
+                processedTags.add(response.tag());
+            } else {
+                processedTags.add(queryService.fetchTag(tag.id())); // TODO: Filter, list of tags
             }
 
-            processedTags.add(queryService.fetchTag(tag.id())); // TODO: Filter
         }
         return task.tags(processedTags);
     }

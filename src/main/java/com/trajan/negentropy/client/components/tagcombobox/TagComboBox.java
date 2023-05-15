@@ -24,7 +24,8 @@ public class TagComboBox extends MultiSelectComboBox<Tag> {
     }
 
     public TagComboBox(String labelText, TreeViewPresenter presenter) {
-        super(labelText);
+        super();
+        this.setPlaceholder(labelText);
         this.presenter = presenter;
         init();
     }

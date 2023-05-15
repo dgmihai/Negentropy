@@ -77,6 +77,8 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private Grid.Column<TaskEntry> dragHandleColumn;
     private Grid.Column<TaskEntry> nameColumn;
+    private Grid.Column<TaskEntry> completeColumn;
+    private Grid.Column<TaskEntry> recurringColumn;
     private Grid.Column<TaskEntry> tagColumn;
     private Grid.Column<TaskEntry> descriptionColumn;
     private Grid.Column<TaskEntry> taskDurationColumn;
@@ -87,13 +89,16 @@ public class TaskTreeGrid extends VerticalLayout {
     private TaskEntry draggedItem;
 
     private final String DURATION_COL_WIDTH = "50px";
-    private final String ICON_COL_WIDTH = "30px";
+    private final String ICON_COL_WIDTH_S = "31px";
+    private final String ICON_COL_WIDTH_L = "35px";
 
     private Editor<TaskEntry> editor;
 
     public static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String COLUMN_KEY_NAME = "Name";
+    public static final String COLUMN_KEY_COMPLETE = "Complete";
+    public static final String COLUMN_KEY_RECURRING = "Recurring";
     public static final String COLUMN_KEY_TAGS = "Tags";
     public static final String COLUMN_KEY_DESCRIPTION = "Description";
     public static final String COLUMN_KEY_DURATION = "Task Duration";
@@ -102,6 +107,8 @@ public class TaskTreeGrid extends VerticalLayout {
     public static final String COLUMN_KEY_DELETE = "Delete";
     public static final List<String> VISIBILITY_TOGGLEABLE_COLUMNS = List.of(
             COLUMN_KEY_DRAG_HANDLE,
+            COLUMN_KEY_COMPLETE,
+            COLUMN_KEY_RECURRING,
             COLUMN_KEY_TAGS,
             COLUMN_KEY_DESCRIPTION,
             COLUMN_KEY_DURATION,
@@ -121,19 +128,20 @@ public class TaskTreeGrid extends VerticalLayout {
         new TaskTreeContextMenu(treeGrid);
         this.editor = treeGrid.getEditor();
 
-        initReadColumns();
-        initEditColumns();
-        initDetails();
-        configureDragAndDrop();
-        configureSelection();
+        this.initReadColumns();
+        this.initEditColumns();
+        this.initDetails();
+        this.configureDragAndDrop();
+        this.configureSelection();
 
         nestedTabs.addThemeVariants(TabsVariant.LUMO_SMALL);
 
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
+        // TODO: Wrap cell content?
         treeGrid.addThemeVariants(
                 GridVariant.LUMO_COMPACT,
-                GridVariant.LUMO_COLUMN_BORDERS);
+                GridVariant.LUMO_WRAP_CELL_CONTENT);
         this.setPadding(false);
 
         HorizontalLayout toolbar = new HorizontalLayout(
@@ -183,16 +191,14 @@ public class TaskTreeGrid extends VerticalLayout {
 
         dragHandleColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
-                    InlineIconButton dragHandle = new InlineIconButton(
-                            LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID.create());
-                    dragHandle.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
+                    Component dragHandle = LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID.create();
+                    dragHandle.addClassName(K.ICON_COLOR_UNSELECTED);
                     dragHandle.getElement().addEventListener("mousedown", e -> onDown.accept(entry));
                     dragHandle.getElement().addEventListener("touchStart", e -> onDown.accept(entry));
-
                     return dragHandle;
                 }))
                 .setKey(COLUMN_KEY_DRAG_HANDLE)
-                .setAutoWidth(true)
+                .setWidth(ICON_COL_WIDTH_L)
                 .setFrozen(true)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
@@ -206,6 +212,44 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setWidth("150px")
                 .setFrozen(true)
                 .setFlexGrow(1);
+
+        Icon completeColumnHeaderIcon = VaadinIcon.CHECK_SQUARE_O.create();
+        completeColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
+        completeColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
+        completeColumn = treeGrid.addColumn(
+                new ComponentRenderer<>(entry -> {
+                    InlineIconButton completeOneTime = new InlineIconButton(VaadinIcon.CHECK.create());
+                    completeOneTime.addClickListener(event -> presenter.deleteNode(entry));
+                    completeOneTime.setEnabled(!entry.task().recurring());
+                    completeOneTime.setVisible(!entry.hasChildren());
+                    return completeOneTime;
+                }))
+                .setKey(COLUMN_KEY_COMPLETE)
+                .setHeader(completeColumnHeaderIcon)
+                .setWidth(ICON_COL_WIDTH_L)
+                .setFlexGrow(0)
+                .setTextAlign(ColumnTextAlign.CENTER);
+
+        Icon recurringColumnHeaderIcon = VaadinIcon.ROTATE_RIGHT.create();
+        recurringColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
+        recurringColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
+        recurringColumn = treeGrid.addColumn(
+                new ComponentRenderer<>(entry -> {
+                    InlineIconToggleButton isTaskRecurring = new InlineIconToggleButton(
+                            VaadinIcon.ROTATE_RIGHT.create());
+                    if (entry.task().recurring()) {
+                        isTaskRecurring.activate();
+                    }
+                    isTaskRecurring.onToggle( () ->
+                            presenter.updateTask(new Task(entry.task().id())
+                                    .recurring(!entry.task().recurring())));
+                    return isTaskRecurring;
+                }))
+                .setKey(COLUMN_KEY_RECURRING)
+                .setHeader(recurringColumnHeaderIcon)
+                .setAutoWidth(true)
+                .setFlexGrow(0)
+                .setTextAlign(ColumnTextAlign.CENTER);
 
         tagColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
@@ -229,7 +273,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
         Icon descriptionColumnHeaderIcon = VaadinIcon.NOTEBOOK.create();
         descriptionColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        descriptionColumnHeaderIcon.addClassName("unselected-color-icon");
+        descriptionColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
         descriptionColumn = treeGrid.addColumn(
                 this.inlineButtonRenderer(VaadinIcon.EYE, VaadinIcon.EYE_SLASH,
                         entry -> {
@@ -241,7 +285,7 @@ public class TaskTreeGrid extends VerticalLayout {
                         treeGrid::isDetailsVisible))
                 .setKey(COLUMN_KEY_DESCRIPTION)
                 .setHeader(descriptionColumnHeaderIcon)
-                .setAutoWidth(true)
+                .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -301,7 +345,7 @@ public class TaskTreeGrid extends VerticalLayout {
                         }))
                 )
                 .setKey(COLUMN_KEY_EDIT)
-                .setWidth(ICON_COL_WIDTH)
+                .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -329,12 +373,20 @@ public class TaskTreeGrid extends VerticalLayout {
                     return div;
                 }))
                 .setKey(COLUMN_KEY_DELETE)
-                .setHeader(new Div(trashIconButton))
-                .setWidth(ICON_COL_WIDTH)
+                .setHeader(trashIconButton)
+                .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
         treeGrid.setSortableColumns();
+
+        treeGrid.setPartNameGenerator(entry -> {
+            if (entry.task().recurring()) {
+                return K.GRID_PARTNAME_RECURRING;
+            } else {
+                return K.GRID_PARTNAME_NON_RECURRING;
+            }
+        });
     }
 
     private void initDetails() {
@@ -418,8 +470,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
         editor.setBuffered(true);
 
-        Icon check = VaadinIcon.CHECK.create();
-        check.addClassNames(K.ICON_COLOR_PRIMARY);
+        InlineIconButton check = new InlineIconButton(VaadinIcon.CHECK.create());
         check.addClickListener(e -> editor.save());
 
         AtomicReference<Optional<Registration>> enterListener = new AtomicReference<>(Optional.empty());
@@ -451,7 +502,7 @@ public class TaskTreeGrid extends VerticalLayout {
         // Drag start is managed by the dragHandleColumn
 
         treeGrid.addDropListener(event -> {
-            logger.debug("Dropped onto " + event.getDropTargetItem().orElseThrow().task().name());
+            logger.debug(draggedItem + " dropped onto " + event.getDropTargetItem().orElseThrow().task().name());
             if (event.getDropTargetItem().isPresent()) {
                 TaskEntry target = event.getDropTargetItem().get();
                 if (!draggedItem.equals(target)) {
@@ -590,7 +641,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private Div visibilityMenu() {
         MenuBar menuBar = new MenuBar();
-        menuBar.setWidth(ICON_COL_WIDTH);
+        menuBar.setWidth(ICON_COL_WIDTH_S);
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
 
         InlineIconButton menuIcon = new InlineIconButton(VaadinIcon.ELLIPSIS_DOTS_V.create());

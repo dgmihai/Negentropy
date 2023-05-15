@@ -36,8 +36,9 @@ public class FilterForm extends FormLayout {
     }
 
     private void configureFields() {
-        name = new TextField("Search By Name");
+        name = new TextField();
         name.setClearButtonVisible(true);
+        name.setPlaceholder("Search By Name");
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         name.setValueChangeMode(ValueChangeMode.EAGER);
         name.addValueChangeListener(event -> {
@@ -78,7 +79,6 @@ public class FilterForm extends FormLayout {
             name.clear();
             tagsToExclude.clear();
             tagsToInclude.clear();
-            // TODO: Actually apply filters
         });
     }
 

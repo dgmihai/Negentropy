@@ -63,6 +63,12 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 () -> new NoSuchElementException("Failed to get tag with ID: " + tagId));
     }
 
+    @Override
+    public Optional<TagEntity> findTag(String name) {
+        logger.trace("findTag");
+        return tagRepository.findFirstByName(name);
+    }
+
     private BooleanBuilder filterLink(TaskFilter filter) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {

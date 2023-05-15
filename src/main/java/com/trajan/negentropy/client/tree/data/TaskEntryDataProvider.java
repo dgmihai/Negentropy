@@ -13,12 +13,16 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @SpringComponent
 @VaadinSessionScope
 public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
+    // TODO: Data Provider rework
     private static final Logger logger = LoggerFactory.getLogger(TaskEntryDataProvider.class);
 
     private final QueryService queryService;

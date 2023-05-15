@@ -29,19 +29,20 @@ public class QuickCreateField extends TextField implements TaskProvider {
     private boolean top = false;
 
     public QuickCreateField(TreeViewPresenter presenter) {
-        super("Quick Create");
+        super();
         this.presenter = presenter;
 
         this.setClearButtonVisible(true);
         this.setValueChangeMode(ValueChangeMode.EAGER);
         this.addThemeVariants(TextFieldVariant.LUMO_SMALL);
 
-        this.setHelperText("Format: name " +
+        String placeholder = K.QUICK_CREATE + "(name " +
                 QuickCreateParser.DELIMITER + "desc description " +
                 QuickCreateParser.DELIMITER + "tag tag1, tag2,... " +
                 QuickCreateParser.DELIMITER + "dur 1h30m, " +
                 QuickCreateParser.DELIMITER + "rec(curring) " +
-                QuickCreateParser.DELIMITER + "top");
+                QuickCreateParser.DELIMITER + "top)";
+        this.setPlaceholder(placeholder);
 
         Shortcuts.addShortcutListener(this,
                 this::save,
@@ -59,7 +60,6 @@ public class QuickCreateField extends TextField implements TaskProvider {
 
     public void save() {
         String input = this.getValue();
-        logger.debug("Quick Create input: " + input);
         if (!input.isBlank()) {
             try {
                 parse(input);
@@ -87,7 +87,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
                 return new Response(false, e.getMessage());
             }
         } else {
-            return new Response(false, "Quick Create input is blank");
+            return new Response(false, K.QUICK_CREATE + " input is blank");
         }
     }
 

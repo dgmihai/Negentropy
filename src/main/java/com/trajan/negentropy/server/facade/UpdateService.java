@@ -85,5 +85,12 @@ public interface UpdateService {
      */
     TagResponse createTag(Tag tag);
 
+    /**
+     * Creates a new tag entity, or returns an existing tag if it already exists.
+     * @param name The name of the tag to persist or retrieve.
+     * @return A response containing the persisted tag.
+     */
+    TagResponse findTagOrElseCreate(String name);
+
     void recalculateTimeEstimates();
 }

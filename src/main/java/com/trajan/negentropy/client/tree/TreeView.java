@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.tree;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
@@ -123,7 +124,7 @@ public class TreeView extends Div {
 
         if (browserWidth > BREAKPOINT_PX) {
             closeTab = new Tab(VaadinIcon.CLOSE_SMALL.create());
-            quickCreateTab = new Tab("Quick Add");
+            quickCreateTab = new Tab(K.QUICK_CREATE);
             searchAndFilterTab = new Tab("Search & Filter");
             createNewTaskTab = new Tab("Create New Task");
             optionsTab = new Tab("Options");

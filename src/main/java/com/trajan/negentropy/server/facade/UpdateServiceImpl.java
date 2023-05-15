@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -38,7 +39,7 @@ public class UpdateServiceImpl implements UpdateService {
     private final String OK = "OK";
 
     @PostConstruct
-    public void prePrepare() {
+    public void postConstruct() {
 //        entityQueryService.findOrphanedTasks().forEach( task ->
 //                insertTaskNode(new TaskNodeDTO()
 //                .childId(ID.of(task))));
@@ -140,6 +141,26 @@ public class UpdateServiceImpl implements UpdateService {
             logger.debug("Creating tag " + tag);
 
             TagEntity tagEntity = dataContext.mergeTag(tag);
+
+            return new TagResponse(true, tagEntity, this.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new TagResponse(false, null, e.getMessage());
+        }
+    }
+
+    @Override
+    public TagResponse findTagOrElseCreate(String name) {
+        try {
+            logger.debug("Finding or creating tag named " + name);
+
+            Optional<TagEntity> tagOptional = entityQueryService.findTag(name);
+
+            if (tagOptional.isEmpty()) {
+                return this.createTag(new Tag(null, name));
+            }
+
+            TagEntity tagEntity = tagOptional.get();
 
             return new TagResponse(true, tagEntity, this.OK);
         } catch (Exception e) {
