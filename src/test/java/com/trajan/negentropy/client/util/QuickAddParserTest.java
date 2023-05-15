@@ -5,26 +5,30 @@ import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.util.Pair;
 
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class QuickAddParserTest {
+class QuickCreateParserTest {
 
     @Test
     void testBasicInput() {
         try {
-             String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 2m #rep";
-             Task task = QuickCreateParser.parse(input);
+            String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 2m #rec #top";
+            Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+            Task task = result.getFirst();
+            boolean top = result.getSecond();
 
-             assertEquals("TaskName", task.name());
-             assertEquals("TaskDescription", task.description());
-             assertEquals(Duration.ofMinutes(2), task.duration());
-             assertFalse(task.oneTime());
-             assertTrue(task.tags().contains(new Tag(null, "tag1")));
-             assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertEquals("TaskName", task.name());
+            assertEquals("TaskDescription", task.description());
+            assertEquals(Duration.ofMinutes(2), task.duration());
+            assertTrue(task.recurring());
+            assertTrue(task.tags().contains(new Tag(null, "tag1")));
+            assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertTrue(top);
         } catch (Exception e) {
             fail(e);
         }
@@ -34,30 +38,36 @@ class QuickAddParserTest {
     void testIncompleteInput() {
         try {
             String input = "TaskName #desc TaskDescription";
-            Task task = QuickCreateParser.parse(input);
+            Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+            Task task = result.getFirst();
+            boolean top = result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
             assertTrue(task.duration().isZero());
-            assertTrue(task.oneTime());
+            assertFalse(task.recurring());
+            assertFalse(top);
             assertTrue(task.tags().isEmpty());
-            } catch (Exception e) {
-                fail(e);
-            }
+        } catch (Exception e) {
+            fail(e);
+        }
     }
 
     @Test
     void testOutOfOrderInput() {
         try {
-            String input = "TaskName #dur 2m #rep #desc TaskDescription #tag tag1, tag2";
-            Task task = QuickCreateParser.parse(input);
+            String input = "TaskName #dur 2m #rec #desc TaskDescription #tag tag1, tag2";
+            Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+            Task task = result.getFirst();
+            boolean top = result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
             assertEquals(Duration.ofMinutes(2), task.duration());
-            assertFalse(task.oneTime());
+            assertTrue(task.recurring());
             assertTrue(task.tags().contains(new Tag(null, "tag1")));
             assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertFalse(top);
         } catch (Exception e) {
             fail(e);
         }
@@ -66,15 +76,18 @@ class QuickAddParserTest {
     @Test
     void testSpacesInNameAndDescription() {
         try {
-            String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 2m #rep";
-            Task task = QuickCreateParser.parse(input);
+            String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 2m #rec";
+            Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+            Task task = result.getFirst();
+            boolean top = result.getSecond();
 
             assertEquals("Task Name with Spaces", task.name());
             assertEquals("Task Description with Spaces", task.description());
             assertEquals(Duration.ofMinutes(2), task.duration());
-            assertFalse(task.oneTime());
+            assertTrue(task.recurring());
             assertTrue(task.tags().contains(new Tag(null, "tag1")));
             assertTrue(task.tags().contains(new Tag(null, "tag2")));
+            assertFalse(top);
         } catch (Exception e) {
             fail(e);
         }
@@ -82,7 +95,7 @@ class QuickAddParserTest {
 
     @Test
     void testInvalidDuration() {
-        String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur not_a_number #rep";
+        String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur not_a_number #rec";
         assertThrows(QuickCreateParser.ParseException.class, () -> QuickCreateParser.parse(input));
     }
 
@@ -90,13 +103,16 @@ class QuickAddParserTest {
     void testOnlyName() {
         try {
             String input = "TaskName";
-            Task task = QuickCreateParser.parse(input);
+            Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+            Task task = result.getFirst();
+            boolean top = result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertTrue(task.description().isBlank());
             assertTrue(task.duration().isZero());
-            assertTrue(task.oneTime());
+            assertFalse(task.recurring());
             assertTrue(task.tags().isEmpty());
+            assertFalse(top);
         } catch (Exception e) {
             fail(e);
         }

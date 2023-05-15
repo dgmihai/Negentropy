@@ -15,6 +15,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.util.Pair;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -24,6 +25,8 @@ public class QuickCreateField extends TextField implements TaskProvider {
     private static final Logger logger = LoggerFactory.getLogger(QuickCreateField.class);
 
     private Task task = null;
+    private boolean top = false;
+
     @Setter
     private Function<Task, Response> onAction;
 
@@ -36,8 +39,8 @@ public class QuickCreateField extends TextField implements TaskProvider {
         this.setHelperText("Format: name " +
                 QuickCreateParser.DELIMITER + "desc description " +
                 QuickCreateParser.DELIMITER + "tag tag1, tag2,... " +
-                QuickCreateParser.DELIMITER + "dur seconds, " +
-                QuickCreateParser.DELIMITER + "rep(eating)" +
+                QuickCreateParser.DELIMITER + "dur 1h30m, " +
+                QuickCreateParser.DELIMITER + "rec(curring)" +
                 QuickCreateParser.DELIMITER + "top");
 
         Shortcuts.addShortcutListener(this,
@@ -48,7 +51,10 @@ public class QuickCreateField extends TextField implements TaskProvider {
                 this::clear,
                 Key.ESCAPE);
 
-        this.addValueChangeListener(e -> task = null);
+        this.addValueChangeListener(e -> {
+            task = null;
+            top = false;
+        });
     }
 
     public void save() {
@@ -86,7 +92,9 @@ public class QuickCreateField extends TextField implements TaskProvider {
     }
 
     private void parse(String input) throws QuickCreateParser.ParseException {
-        task = QuickCreateParser.parse(input);
+        Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+        task = result.getFirst();
+        top = result.getSecond();
     }
 
     @Override

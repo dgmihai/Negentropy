@@ -1,6 +1,5 @@
 package com.trajan.negentropy.client.tree;
 
-import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.tree.data.TaskEntry;
 import com.trajan.negentropy.client.tree.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.util.NotificationError;
@@ -12,11 +11,13 @@ import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.TagResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.vaadin.flow.spring.annotation.UIScope;
+import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
@@ -28,16 +29,13 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-@UIScope
 @SpringComponent
+@VaadinSessionScope
 @Accessors(fluent = true)
 @Getter
 public class TreeViewPresenterImpl implements TreeViewPresenter {
     private static final Logger logger = LoggerFactory.getLogger(TreeViewPresenterImpl.class);
 
-    private TreeView view;
-    private TaskFormLayout form;
-    private TaskTreeGrid gridLayout;
     private TaskEntryDataProvider dataProvider;
 
     private TaskProvider activeTaskProvider;
@@ -46,19 +44,9 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     @Autowired private UpdateService updateService;
     @Autowired private TagService tagService;
 
-    @Override
-    public void initTreeView(TreeView treeView) {
-        this.view = treeView;
-        this.form = view.createTaskForm();
-        this.gridLayout = view.taskTreeGrid();
-
-        loadData();
-    }
-
-    private void loadData() {
-        logger.debug("Refreshed task nodes");
+    @PostConstruct
+    private void init() {
         this.dataProvider = new TaskEntryDataProvider(queryService);
-        gridLayout.treeGrid().setDataProvider(dataProvider);
     }
 
     @Override
@@ -258,8 +246,8 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
         }
     }
 
-    private Response tryBiFunctionWithActiveProvider(BiFunction<TaskProvider, TaskEntry, Response> biFunction,
-                                                     TaskEntry entry) {
+    private Response tryBiFunctionWithActiveProvider(
+            BiFunction<TaskProvider, TaskEntry, Response> biFunction, TaskEntry entry) {
         if (activeTaskProvider != null) {
             return biFunction.apply(activeTaskProvider, entry);
         } else {
@@ -269,11 +257,14 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
+    public Response addTaskFromProvider(TaskProvider taskProvider, boolean top) {
+        TaskEntry parent = dataProvider.getBaseEntry();
+        return this.addTaskFromProviderAsChild(taskProvider, parent, top);
+    }
+
+    @Override
     public Response addTaskFromProvider(TaskProvider taskProvider) {
-        TaskEntry parent = dataProvider.getBaseEntry() == null ?
-                null :
-                dataProvider.getBaseEntry();
-        return this.addTaskFromProviderAsChild(taskProvider, parent);
+        return this.addTaskFromProvider(taskProvider, false);
     }
 
     @Override
@@ -282,14 +273,21 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     }
 
     @Override
-    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
+    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, boolean top) {
         logger.debug("Creating task as a child of " + parent);
+        Integer position = top ? 0 : null;
+        TaskID parentId = parent == null ? null : parent.node().parentId();
         TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
-                parent.node().parentId(),
+                parentId,
                 null,
-                null,
+                position,
                 0);
         return this.addTaskDTO(taskProvider, taskNodeDTO);
+    }
+
+    @Override
+    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
+        return this.addTaskFromProviderAsChild(taskProvider, parent, false);
     }
 
     @Override

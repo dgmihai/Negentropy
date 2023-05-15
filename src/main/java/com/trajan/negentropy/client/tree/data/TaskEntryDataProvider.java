@@ -7,7 +7,8 @@ import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
-import com.vaadin.flow.spring.annotation.UIScope;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,16 +16,16 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.stream.Stream;
 
-@UIScope
+@SpringComponent
+@VaadinSessionScope
 public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
     private static final Logger logger = LoggerFactory.getLogger(TaskEntryDataProvider.class);
 
     private final QueryService queryService;
 
     @Getter
-    private final Map<TaskID, Set<TaskEntry>> entriesByChildId = new HashMap<>();
-    @Getter
-    private final List<TaskEntry> taskEntries = new ArrayList<>();
+    private final Map<TaskID, Set<TaskEntry>> cachedTaskEntriesByChildTaskId = new HashMap<>();
+    private final Map<TaskID, Task> cachedTasks = new HashMap<>();
 
     @Getter
     private TaskEntry baseEntry = null;
@@ -60,8 +61,9 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     @Override
     protected Stream<TaskEntry> fetchChildrenFromBackEnd(HierarchicalQuery<TaskEntry, Void> query) {
         // TODO: Integrate query offset and limit into queryService
-
+        // TODO: Cache tasks somehow if possible?
         TaskEntry parent = query.getParent();
+
         Stream<TaskNode> nodeStream;
         if (parent == null) {
             nodeStream = (baseEntry == null) ?
@@ -73,7 +75,10 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
         return nodeStream
                 .map(node -> {
-                    Task task = queryService.fetchTask(node.childId());
+                    Task task = cachedTasks.containsKey(node.childId()) ?
+                            cachedTasks.get(node.childId()) :
+                            queryService.fetchTask(node.childId());
+
                     boolean hasChildren = queryService.hasChildren(task.id(), activeFilter);
 
                     TaskEntry entry = new TaskEntry(
@@ -82,17 +87,18 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
                             task,
                             queryService.fetchNetTimeDuration(node.childId()),
                             hasChildren);
-                    entriesByChildId.computeIfAbsent(
+                    cachedTaskEntriesByChildTaskId.computeIfAbsent(
                             entry.task().id(), k -> new HashSet<>()).add(entry);
-                    taskEntries.add(entry);
+                    cachedTasks.put(task.id(), task);
                     return entry;
                 });
     }
 
     public void refreshMatchingItems(TaskID id, boolean ancestors) {
+        cachedTasks.remove(id);
         Task task = queryService.fetchTask(id);
-        if (entriesByChildId.containsKey(id)) {
-            for (TaskEntry entry : entriesByChildId.get(id)) {
+        if (cachedTaskEntriesByChildTaskId.containsKey(id)) {
+            for (TaskEntry entry : cachedTaskEntriesByChildTaskId.get(id)) {
                 entry.task(task);
                 this.refreshItem(entry);
                 if (ancestors) {
@@ -111,5 +117,10 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     @Override
     public void refreshAll() {
         super.refreshAll();
+    }
+
+    public void reset() {
+        cachedTaskEntriesByChildTaskId.clear();
+        cachedTasks.clear();
     }
 }

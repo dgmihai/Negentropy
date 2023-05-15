@@ -9,7 +9,6 @@ import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
 
 public interface TreeViewPresenter {
-    void initTreeView(TreeView treeView);
 
     TaskEntry getBaseEntry();
     void setBaseEntry(TaskEntry entry);
@@ -31,9 +30,11 @@ public interface TreeViewPresenter {
     TaskProvider activeTaskProvider();
     void activeTaskProvider(TaskProvider activeTaskProvider);
 
+    Response addTaskFromProvider(TaskProvider taskProvider, boolean top);
     Response addTaskFromProvider(TaskProvider taskProvider);
-
     Response addTaskFromActiveProvider();
+
+    Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, boolean top);
 
     Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent);
     Response addTaskFromActiveProviderAsChild(TaskEntry parent);

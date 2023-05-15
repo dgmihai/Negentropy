@@ -12,13 +12,15 @@ import java.util.Stack;
 
 public class NestedTaskTabs extends Tabs {
     private final TreeViewPresenter presenter;
+    private TaskEntry currentEntry;
 
     public NestedTaskTabs(TreeViewPresenter presenter) {
         super();
         this.presenter = presenter;
 
-        add(new Tab(new Icon(VaadinIcon.HOME)));
+        this.add(new Tab(new Icon(VaadinIcon.HOME)));
 
+        this.onSelectNewRootEntry(presenter.getBaseEntry());
         this.addSelectedChangeListener(e -> setRootEntry());
 
         this.addThemeVariants(TabsVariant.LUMO_SMALL);
@@ -27,8 +29,12 @@ public class NestedTaskTabs extends Tabs {
     private void setRootEntry() {
         int tabIndex = getSelectedIndex();
         if (getSelectedTab() instanceof TaskTab tab) {
-            presenter.setBaseEntry(tab.getEntry());
-        } else presenter.setBaseEntry(null);
+            currentEntry = tab.getEntry();
+            presenter.setBaseEntry(currentEntry);
+        } else {
+            currentEntry = null;
+            presenter.setBaseEntry(null);
+        }
         while (getComponentCount() > tabIndex + 1) {
             remove(getTabAt(tabIndex + 1));
         }
@@ -39,7 +45,7 @@ public class NestedTaskTabs extends Tabs {
             Stack<TaskEntry> stack = new Stack<>();
             TaskEntry current = entry;
 
-            while (current != null && !current.equals(presenter.getBaseEntry())) {
+            while (current != null && !current.equals(currentEntry)) {
                 stack.push(current);
                 current = current.parent();
             }

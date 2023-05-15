@@ -100,7 +100,8 @@ public class DataContextImpl implements DataContext {
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities)
-                .oneTime(task.oneTime());
+                .recurring(Objects.requireNonNullElse(
+                        task.recurring(), taskEntity.recurring()));
     }
 
     @Override

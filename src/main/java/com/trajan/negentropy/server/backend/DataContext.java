@@ -39,7 +39,7 @@ public interface DataContext {
                 taskEntity.tags().stream()
                         .map(DataContext::toDTO)
                         .collect(Collectors.toSet()),
-                taskEntity.oneTime());
+                taskEntity.recurring());
     }
 
     static TaskNode toDTO(TaskLink link) {

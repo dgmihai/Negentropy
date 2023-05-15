@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
+import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.InlineIconToggleButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
@@ -46,6 +47,7 @@ import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.apache.logging.log4j.util.TriConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +69,7 @@ public class TaskTreeGrid extends VerticalLayout {
     private static final Logger logger = LoggerFactory.getLogger(TaskTreeGrid.class);
 
     private final TreeViewPresenter presenter;
+    private final SessionSettings settings;
 
     private final TreeGrid<TaskEntry> treeGrid;
     private final NestedTaskTabs nestedTabs;
@@ -87,19 +90,30 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private Editor<TaskEntry> editor;
 
-    private static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
-    private static final String COLUMN_KEY_NAME = "Name";
-    private static final String COLUMN_KEY_TAGS = "Tags";
-    private static final String COLUMN_KEY_DESCRIPTION = "Description";
-    private static final String COLUMN_KEY_DURATION = "Task Duration";
-    private static final String COLUMN_KEY_TIME_ESTIMATE = "Net Time Estimate";
-    private static final String COLUMN_KEY_EDIT = "Edit";
-    private static final String COLUMN_KEY_DELETE = "Delete";
+    public static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
+    public static final String COLUMN_KEY_NAME = "Name";
+    public static final String COLUMN_KEY_TAGS = "Tags";
+    public static final String COLUMN_KEY_DESCRIPTION = "Description";
+    public static final String COLUMN_KEY_DURATION = "Task Duration";
+    public static final String COLUMN_KEY_TIME_ESTIMATE = "Net Time Estimate";
+    public static final String COLUMN_KEY_EDIT = "Edit";
+    public static final String COLUMN_KEY_DELETE = "Delete";
+    public static final List<String> VISIBILITY_TOGGLEABLE_COLUMNS = List.of(
+            COLUMN_KEY_DRAG_HANDLE,
+            COLUMN_KEY_TAGS,
+            COLUMN_KEY_DESCRIPTION,
+            COLUMN_KEY_DURATION,
+            COLUMN_KEY_TIME_ESTIMATE,
+            COLUMN_KEY_EDIT,
+            COLUMN_KEY_DELETE
+    );
 
-    public TaskTreeGrid(TreeViewPresenter presenter) {
+    public TaskTreeGrid(TreeViewPresenter presenter, SessionSettings settings) {
         this.presenter = presenter;
+        this.settings = settings;
         
         this.treeGrid = new TreeGrid<>(TaskEntry.class);
+        treeGrid.setDataProvider(presenter.dataProvider());
 
         this.nestedTabs = new NestedTaskTabs(presenter);
         new TaskTreeContextMenu(treeGrid);
@@ -570,26 +584,25 @@ public class TaskTreeGrid extends VerticalLayout {
         SubMenu subMenu = menuBar.addItem(menuIcon)
                 .getSubMenu();
 
-        List<String> toggleableColumnKeys = List.of(
-                COLUMN_KEY_TAGS,
-                COLUMN_KEY_DESCRIPTION,
-                COLUMN_KEY_DURATION,
-                COLUMN_KEY_TIME_ESTIMATE,
-                COLUMN_KEY_EDIT,
-                COLUMN_KEY_DELETE);
-
         MenuItem visibilityDivider = subMenu.addItem("Column Visibility");
         visibilityDivider.setEnabled(false);
         visibilityDivider.addClassName("primary-color");
 
-        toggleableColumnKeys.forEach(
-                (name) -> {
-                    Grid.Column<TaskEntry> column = treeGrid.getColumnByKey(name);
-                    MenuItem menuItem = subMenu.addItem(name);
+        TriConsumer<Grid.Column<TaskEntry>, MenuItem, Boolean> toggleVisibility = (column, menuItem, checked) -> {
+            menuItem.setChecked(checked);
+            settings.columnVisibility().put(column.getKey(), checked);
+            column.setVisible(checked);
+        };
 
+        VISIBILITY_TOGGLEABLE_COLUMNS.forEach(
+                (columnKey) -> {
+                    Grid.Column<TaskEntry> column = treeGrid.getColumnByKey(columnKey);
+                    MenuItem menuItem = subMenu.addItem(columnKey);
                     menuItem.setCheckable(true);
-                    menuItem.setChecked(column.isVisible());
-                    menuItem.addClickListener(e -> column.setVisible(menuItem.isChecked()));
+
+                    toggleVisibility.accept(column, menuItem, settings.columnVisibility().get(columnKey));
+                    menuItem.addClickListener(e -> toggleVisibility.accept(
+                            column, menuItem, menuItem.isChecked()));
                 }
         );
 

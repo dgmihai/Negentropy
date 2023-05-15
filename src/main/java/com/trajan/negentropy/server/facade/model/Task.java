@@ -13,6 +13,7 @@ import java.util.Set;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
 public class Task {
     @EqualsAndHashCode.Include
     private final TaskID id;
@@ -20,14 +21,9 @@ public class Task {
     private String description;
     private Duration duration;
     private Set<Tag> tags;
-    private boolean oneTime;
+    private Boolean recurring;
 
     public Task() {
         id = null;
-    }
-
-    @Override
-    public String toString() {
-        return "Task[" + id + ", name: " + name + "]";
     }
 }

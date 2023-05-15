@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,19 +22,24 @@ import java.util.Set;
 @Accessors(fluent = true)
 @Getter
 @Setter
+@ToString(onlyExplicitlyIncluded = true)
 public class TaskEntity extends AbstractEntity {
     private static final Logger logger = LoggerFactory.getLogger(TaskEntity.class);
 
     @Column(nullable = false, unique = true)
     @NotEmpty(message = "Name is required")
+    @ToString.Include
     private String name;
 
     @Column(columnDefinition = "TEXT")
+    @ToString.Include
     private String description = "";
 
+    @ToString.Include
     private Duration duration = Duration.ZERO;
 
     @OneToMany(
+            fetch = FetchType.EAGER,
             mappedBy = "task",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
@@ -51,6 +57,7 @@ public class TaskEntity extends AbstractEntity {
     private List<TaskLink> parentLinks = new ArrayList<>();
 
     @ManyToMany(
+            fetch = FetchType.EAGER,
             cascade = CascadeType.REMOVE)
     @JoinTable(
             name = "task_tags",
@@ -58,10 +65,6 @@ public class TaskEntity extends AbstractEntity {
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     private Set<TagEntity> tags = new HashSet<>();
 
-    private Boolean oneTime;
-
-    @Override
-    public String toString() {
-        return "TaskEntity[" + super.toString() + ", name=" + name + "]";
-    }
+    @ToString.Include
+    private Boolean recurring = false;
 }

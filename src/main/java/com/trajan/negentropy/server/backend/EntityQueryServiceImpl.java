@@ -286,6 +286,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
         logger.trace("getLowestImportanceOfDescendants");
         QTimeEstimate qTimeEstimate = QTimeEstimate.timeEstimate;
+        // TODO: Unused qsort?
         QSort sort = new QSort(qTimeEstimate.importance.desc());
         return timeEstimateRepository.findOne(
                 qTimeEstimate.task.id.eq(ancestorId.val())).orElseThrow()

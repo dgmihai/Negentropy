@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.tree;
 import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.quickadd.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
+import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.FilterLayout;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.component.UI;
@@ -22,36 +23,40 @@ import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle("Negentropy - Task Tree")
+@UIScope
 @Route(value = "", layout = MainLayout.class)
-@Uses(Icon.class)
 @RouteAlias("tree")
+@Uses(Icon.class)
 @Accessors(fluent = true)
 @Getter
 public class TreeView extends Div {
     private static final Logger logger = LoggerFactory.getLogger(TreeView.class);
-    private final TreeViewPresenter presenter;
+    @Autowired private final TreeViewPresenter presenter;
+    @Autowired private final SessionSettings settings;
 
     private final QuickCreateField quickAddField;
     private final FilterLayout filterDiv;
     private final TaskTreeGrid taskTreeGrid;
     private final TaskFormLayout createTaskForm;
     private final HorizontalLayout options;
-    private TabSheet tabSheet;
+    private final TabSheet tabSheet;
 
     private final int BREAKPOINT_PX = 600;
 
-    public TreeView(TreeViewPresenter presenter) {
+    public TreeView(TreeViewPresenter presenter, SessionSettings settings) {
         this.presenter = presenter;
+        this.settings = settings;
 
-        this.taskTreeGrid = new TaskTreeGrid(presenter);
-        this.presenter.initTreeView(this);
+        this.taskTreeGrid = new TaskTreeGrid(presenter, settings);
 
         this.addClassName("tree-view");
         this.setSizeFull();

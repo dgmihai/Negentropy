@@ -37,7 +37,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Task Name")
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120))
-                .oneTime(true));
+                .recurring(true));
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -53,7 +53,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.name(), task.name());
         assertEquals(taskEntity.description(), task.description());
         assertEquals(taskEntity.duration(), task.duration());
-        assertEquals(taskEntity.oneTime().booleanValue(), task.oneTime());
+        assertEquals(taskEntity.recurring().booleanValue(), task.recurring());
         assertEquals(tagEntities.size(), task.tags().size());
         task.tags().forEach(tag -> {
             TagEntity originalTag = tagEntities.stream()
@@ -170,7 +170,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Original Task Name")
                 .description("Original Task Description")
                 .duration(Duration.ofMinutes(120))
-                .oneTime(true));
+                .recurring(true));
 
         Set<TagEntity> originalTagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -192,7 +192,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(task.name(), mergedTaskEntity.name());
         assertEquals(task.description(), mergedTaskEntity.description());
         assertEquals(task.duration(), mergedTaskEntity.duration());
-        assertEquals(task.oneTime(), mergedTaskEntity.oneTime());
+        assertEquals(task.recurring(), mergedTaskEntity.recurring());
         assertEquals(task.tags().size(), mergedTaskEntity.tags().size());
     }
 

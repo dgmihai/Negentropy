@@ -38,10 +38,12 @@ public class UpdateServiceImpl implements UpdateService {
     private final String OK = "OK";
 
     @PostConstruct
-    public void resetOrphans() {
-        entityQueryService.findOrphanedTasks().forEach( task ->
-                insertTaskNode(new TaskNodeDTO()
-                .childId(ID.of(task))));
+    public void prePrepare() {
+//        entityQueryService.findOrphanedTasks().forEach( task ->
+//                insertTaskNode(new TaskNodeDTO()
+//                .childId(ID.of(task))));
+//        entityQueryService.findTasks(null).forEach(task ->
+//                task.recurring(!task.oneTime()));
     }
 
     @Override
@@ -62,7 +64,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Override
     public TaskResponse createTask(Task task) {
         try {
-            logger.debug("Creating task " + task.name());
+            logger.debug("Creating task " + task);
 
             TaskEntity taskEntity = dataContext.mergeTask(task);
 
@@ -76,7 +78,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Override
     public TaskResponse updateTask(Task task) {
         try {
-            logger.debug("Updating task " + task.name());
+            logger.debug("Updating " + task);
 
             TaskEntity taskEntity = dataContext.mergeTask(task);
 
@@ -90,7 +92,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Override
     public NodeResponse updateNode(TaskNode node) {
         try {
-            logger.debug("Updating link " + node.linkId());
+            logger.debug("Updating " + node);
 
             TaskLink link = dataContext.mergeNode(node);
 
@@ -135,7 +137,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Override
     public TagResponse createTag(Tag tag) {
         try {
-            logger.debug("Creating tag " + tag.name());
+            logger.debug("Creating tag " + tag);
 
             TagEntity tagEntity = dataContext.mergeTag(tag);
 

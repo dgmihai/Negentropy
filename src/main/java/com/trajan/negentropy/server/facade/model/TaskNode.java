@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
-@ToString
+@ToString(callSuper = true)
 public class TaskNode extends TaskNodeDTO {
     @EqualsAndHashCode.Include
     @NonNull
