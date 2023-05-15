@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.tree.components;
 
+import com.trajan.negentropy.client.K;
 import com.vaadin.flow.component.icon.Icon;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,9 +16,6 @@ import java.util.function.BooleanSupplier;
 public class InlineIconToggleButton extends InlineIconButton {
     private static final Logger logger = LoggerFactory.getLogger(InlineIconToggleButton.class);
 
-    private static final String ACTIVATED = "primary-color-icon";
-    private static final String DEACTIVATED = "unselected-color-icon";
-
     private Runnable onActivate = () -> {};
     private Runnable onDeactivate = () -> {};
 
@@ -30,7 +28,7 @@ public class InlineIconToggleButton extends InlineIconButton {
     public InlineIconToggleButton(Icon icon) {
         super(icon);
 
-        icon.addClassName(DEACTIVATED);
+        icon.addClassName(K.ICON_COLOR_UNSELECTED);
 
         this.addClickListener(event -> toggle());
     }
@@ -48,8 +46,8 @@ public class InlineIconToggleButton extends InlineIconButton {
     }
 
     public void activate() {
-        getIcon().removeClassName(DEACTIVATED);
-        getIcon().addClassName(ACTIVATED);
+        getIcon().removeClassName(K.ICON_COLOR_UNSELECTED);
+        getIcon().addClassName(K.ICON_COLOR_PRIMARY);
         activated = true;
         if (activatedIcon != null) {
             super.setIcon(activatedIcon);
@@ -58,8 +56,8 @@ public class InlineIconToggleButton extends InlineIconButton {
     }
 
     public void deactivate() {
-        getIcon().removeClassName(ACTIVATED);
-        getIcon().addClassName(DEACTIVATED);
+        getIcon().removeClassName(K.ICON_COLOR_PRIMARY);
+        getIcon().addClassName(K.ICON_COLOR_UNSELECTED);
         activated = false;
         if (activatedIcon != null) {
             super.setIcon(deactivatedIcon);

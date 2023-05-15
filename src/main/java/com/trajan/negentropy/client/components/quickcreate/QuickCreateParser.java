@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.quickadd;
+package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.util.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Tag;

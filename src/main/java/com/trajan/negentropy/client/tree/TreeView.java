@@ -1,10 +1,10 @@
 package com.trajan.negentropy.client.tree;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.components.quickadd.QuickCreateField;
+import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.session.SessionSettings;
-import com.trajan.negentropy.client.tree.components.FilterLayout;
+import com.trajan.negentropy.client.tree.components.FilterForm;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -44,7 +44,7 @@ public class TreeView extends Div {
     @Autowired private final SessionSettings settings;
 
     private final QuickCreateField quickAddField;
-    private final FilterLayout filterDiv;
+    private final FilterForm filterForm;
     private final TaskTreeGrid taskTreeGrid;
     private final TaskFormLayout createTaskForm;
     private final HorizontalLayout options;
@@ -63,12 +63,11 @@ public class TreeView extends Div {
 
         this.tabSheet = new TabSheet();
 
-        this.quickAddField = new QuickCreateField();
-        quickAddField.onAction(task -> presenter.addTaskFromProvider(quickAddField));
+        this.quickAddField = new QuickCreateField(presenter);
         quickAddField.setWidthFull();
 
-        this.filterDiv = new FilterLayout(presenter);
-        filterDiv.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+        this.filterForm = new FilterForm(presenter);
+        filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
         this.createTaskForm = new TaskFormLayout(presenter, new Task(null));
@@ -138,7 +137,7 @@ public class TreeView extends Div {
 
         tabSheet.add(closeTab, new Div());
         tabSheet.add(quickCreateTab, this.quickAddField);
-        tabSheet.add(searchAndFilterTab, this.filterDiv);
+        tabSheet.add(searchAndFilterTab, this.filterForm);
         tabSheet.add(createNewTaskTab, this.createTaskForm);
         tabSheet.add(optionsTab, this.options);
 

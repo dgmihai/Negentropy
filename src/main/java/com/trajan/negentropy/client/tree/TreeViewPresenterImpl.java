@@ -276,7 +276,7 @@ public class TreeViewPresenterImpl implements TreeViewPresenter {
     public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, boolean top) {
         logger.debug("Creating task as a child of " + parent);
         Integer position = top ? 0 : null;
-        TaskID parentId = parent == null ? null : parent.node().parentId();
+        TaskID parentId = parent == null ? null : parent.task().id();
         TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
                 parentId,
                 null,

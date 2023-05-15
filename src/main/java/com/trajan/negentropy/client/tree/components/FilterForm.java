@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @Getter
-public class FilterLayout extends FormLayout {
+public class FilterForm extends FormLayout {
     private final TreeViewPresenter presenter;
 
     private TextField name;
@@ -25,7 +25,7 @@ public class FilterLayout extends FormLayout {
     private TagComboBox tagsToInclude;
     private Button resetBtn;
 
-    public FilterLayout(TreeViewPresenter presenter) {
+    public FilterForm(TreeViewPresenter presenter) {
         this.presenter = presenter;
 
         this.addClassName("filter-layout");
@@ -37,6 +37,7 @@ public class FilterLayout extends FormLayout {
 
     private void configureFields() {
         name = new TextField("Search By Name");
+        name.setClearButtonVisible(true);
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         name.setValueChangeMode(ValueChangeMode.EAGER);
         name.addValueChangeListener(event -> {
@@ -46,6 +47,7 @@ public class FilterLayout extends FormLayout {
         });
 
         tagsToExclude = new TagComboBox("Filter: Excluded Tags", presenter);
+        tagsToExclude.setClearButtonVisible(true);
         tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         tagsToExclude.addValueChangeListener(event -> {
             TaskFilter filter = presenter.dataProvider().getActiveFilter();
@@ -56,6 +58,7 @@ public class FilterLayout extends FormLayout {
         });
 
         tagsToInclude = new TagComboBox("Filter: Include Tags", presenter);
+        tagsToInclude.setClearButtonVisible(true);
         tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         tagsToInclude.addValueChangeListener(event -> {
             TaskFilter filter = presenter.dataProvider().getActiveFilter();

@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.util;
 
-import com.trajan.negentropy.client.components.quickadd.QuickCreateParser;
+import com.trajan.negentropy.client.components.quickcreate.QuickCreateParser;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import org.junit.jupiter.api.Test;

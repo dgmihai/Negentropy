@@ -43,13 +43,14 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.WebBrowser;
 import com.vaadin.flow.shared.Registration;
-import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import elemental.json.JsonObject;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -91,6 +92,7 @@ public class TaskTreeGrid extends VerticalLayout {
     private Editor<TaskEntry> editor;
 
     public static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
+    public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String COLUMN_KEY_NAME = "Name";
     public static final String COLUMN_KEY_TAGS = "Tags";
     public static final String COLUMN_KEY_DESCRIPTION = "Description";
@@ -173,18 +175,19 @@ public class TaskTreeGrid extends VerticalLayout {
         });
     }
 
-    private void onDown(TaskEntry entry) {
-        treeGrid.setRowsDraggable(true);
-        draggedItem = entry;
-    }
-
     private void initReadColumns() {
+        Consumer<TaskEntry> onDown = entry -> {
+            treeGrid.setRowsDraggable(true);
+            draggedItem = entry;
+        };
+
         dragHandleColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
-                    InlineIconButton dragHandle = new InlineIconButton(LumoIcon.MENU.create());
-
-                    dragHandle.getElement().addEventListener("mousedown", e -> onDown(entry));
-                    dragHandle.getElement().addEventListener("touchStart", e -> onDown(entry));
+                    InlineIconButton dragHandle = new InlineIconButton(
+                            LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID.create());
+                    dragHandle.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
+                    dragHandle.getElement().addEventListener("mousedown", e -> onDown.accept(entry));
+                    dragHandle.getElement().addEventListener("touchStart", e -> onDown.accept(entry));
 
                     return dragHandle;
                 }))
@@ -193,6 +196,8 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setFrozen(true)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
+        dragHandleColumn
+                .setId(COLUMN_ID_DRAG_HANDLE);
 
         nameColumn = treeGrid.addHierarchyColumn(
                         entry -> entry.task().name())
@@ -308,18 +313,18 @@ public class TaskTreeGrid extends VerticalLayout {
                 () -> {
                     deleteIcons.forEach(icon -> icon.setVisible(trashIconButton.activated()));
                 });
-        trashIconButton.activatedIcon().addClassName("error-color-icon");
-        trashIconButton.deactivatedIcon().addClassName("error-color-icon");
+        trashIconButton.activatedIcon().addClassName(K.ICON_COLOR_ERROR);
+        trashIconButton.deactivatedIcon().addClassName(K.ICON_COLOR_ERROR);
         deleteColumn = treeGrid.addColumn(
                 new ComponentRenderer<Component, TaskEntry>(entry -> {
                     Div div = new Div();
                     if(!entry.hasChildren()) {
                         InlineIconButton iconButton = new InlineIconButton(VaadinIcon.TRASH.create());
-                        iconButton.getIcon().addClassName("error-color-icon");
+                        iconButton.getIcon().addClassName(K.ICON_COLOR_ERROR);
                         iconButton.addClickListener(event -> presenter.deleteNode(entry));
                         deleteIcons.add(iconButton);
                         div.add(iconButton);
-                        iconButton.setVisible(false);
+                        iconButton.setVisible(trashIconButton.activated());
                     }
                     return div;
                 }))
@@ -414,7 +419,7 @@ public class TaskTreeGrid extends VerticalLayout {
         editor.setBuffered(true);
 
         Icon check = VaadinIcon.CHECK.create();
-        check.addClassNames("primary-color-icon");
+        check.addClassNames(K.ICON_COLOR_PRIMARY);
         check.addClickListener(e -> editor.save());
 
         AtomicReference<Optional<Registration>> enterListener = new AtomicReference<>(Optional.empty());
@@ -523,7 +528,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
             GridMenuItem<TaskEntry> name = addItem("");
             name.setEnabled(false);
-            name.addClassName("primary-color");
+            name.addClassName(K.COLOR_PRIMARY);
 
             add(new Hr());
 
@@ -573,6 +578,14 @@ public class TaskTreeGrid extends VerticalLayout {
                 }
             });
         }
+
+        @Override
+        protected boolean onBeforeOpenMenu(JsonObject eventDetail) {
+            if (eventDetail.getString("columnId").equals(COLUMN_ID_DRAG_HANDLE)) {
+                return false;
+            }
+            return super.onBeforeOpenMenu(eventDetail);
+        }
     }
 
     private Div visibilityMenu() {
@@ -586,7 +599,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
         MenuItem visibilityDivider = subMenu.addItem("Column Visibility");
         visibilityDivider.setEnabled(false);
-        visibilityDivider.addClassName("primary-color");
+        visibilityDivider.addClassName(K.COLOR_PRIMARY);
 
         TriConsumer<Grid.Column<TaskEntry>, MenuItem, Boolean> toggleVisibility = (column, menuItem, checked) -> {
             menuItem.setChecked(checked);

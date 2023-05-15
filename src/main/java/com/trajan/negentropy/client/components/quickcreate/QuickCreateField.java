@@ -1,6 +1,7 @@
-package com.trajan.negentropy.client.components.quickadd;
+package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.tree.TreeViewPresenter;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TaskProvider;
 import com.trajan.negentropy.client.util.TaskProviderException;
@@ -11,28 +12,27 @@ import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
 
 import java.util.Optional;
-import java.util.function.Function;
 
 @Accessors(fluent = true)
 public class QuickCreateField extends TextField implements TaskProvider {
     private static final Logger logger = LoggerFactory.getLogger(QuickCreateField.class);
 
+    private TreeViewPresenter presenter;
+
     private Task task = null;
     private boolean top = false;
 
-    @Setter
-    private Function<Task, Response> onAction;
-
-    public QuickCreateField() {
+    public QuickCreateField(TreeViewPresenter presenter) {
         super("Quick Create");
+        this.presenter = presenter;
 
+        this.setClearButtonVisible(true);
         this.setValueChangeMode(ValueChangeMode.EAGER);
         this.addThemeVariants(TextFieldVariant.LUMO_SMALL);
 
@@ -40,7 +40,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
                 QuickCreateParser.DELIMITER + "desc description " +
                 QuickCreateParser.DELIMITER + "tag tag1, tag2,... " +
                 QuickCreateParser.DELIMITER + "dur 1h30m, " +
-                QuickCreateParser.DELIMITER + "rec(curring)" +
+                QuickCreateParser.DELIMITER + "rec(curring) " +
                 QuickCreateParser.DELIMITER + "top");
 
         Shortcuts.addShortcutListener(this,
@@ -64,7 +64,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
             try {
                 parse(input);
 
-                Response response = onAction.apply(task);
+                Response response = presenter.addTaskFromProvider(this, top);
                 if (response.success()) {
                     this.clear();
                 } else {
