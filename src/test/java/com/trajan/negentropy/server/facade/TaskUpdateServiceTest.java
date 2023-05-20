@@ -33,13 +33,13 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TaskUpdateServiceTest extends TaskTestTemplate {
 
     @BeforeAll
-    public void setup() {
+    void setup() {
         init();
     }
 
-    private void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
+    void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
         List<TaskNode> nodeList = nodes
-                .peek(node -> System.out.println("Validate nodes peek: child=" + taskIds.get(node.childId())))
+                .peek(node -> System.out.println("Validate nodes peek: child=" + node.child()))
                 .toList();
         System.out.println("EXPCTD: " + expected);
         TaskID parentId = nodeList.get(0).parentId();
@@ -56,7 +56,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
             }
 
             assertEquals(node.position(), i);
-            assertEquals(task.id(), node.childId());
+            assertEquals(task.id(), node.child().id());
             assertEquals(parentId, node.parentId());
         }
     }
@@ -139,7 +139,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         assertTrue(response.success());
 
         assertEquals(parent.id(), response.node().parentId());
-        fresh = queryService.fetchTask(response.node().childId());
+        fresh = response.node().child();
 
         List<Object> expectedTasks = List.of(
                 TWOONE,
@@ -159,15 +159,15 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
 
         fresh = updateService.createTask(fresh).task();
 
-        NodeResponse response = updateService.insertTaskNode(new TaskNodeDTO()
-                .position(1)
+        NodeResponse response = updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(parent.id())
-                .childId(fresh.id()));
+                .childId(fresh.id())
+                .position(1));
 
         assertTrue(response.success());
 
         assertEquals(parent.id(), response.node().parentId());
-        fresh = queryService.fetchTask(response.node().childId());
+        fresh = response.node().child();
 
         List<Object> expectedTasks = List.of(
                 TWOONE,
@@ -193,7 +193,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
 
         assertTrue(queryService.fetchRootNodes()
                 .anyMatch(node ->
-                        node.childId().equals(fresh.id())));
+                        node.child().id().equals(fresh.id())));
     }
 
     @Test
@@ -249,17 +249,17 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
 
     @Test
     @Transactional
-    public void testMoveTaskLink() {
+    void testMoveTaskLink() {
         Task task1 = tasks.get(ONE);
         Task task2 = tasks.get(TWO);
         Task task21 = tasks.get(TWOONE);
         TaskLink taskLink3 = entityQueryService.getTask(task21.id())
                 .parentLinks().get(0);
 
-        NodeResponse nodeResponse = updateService.insertTaskNode(new TaskNodeDTO()
-                .position(0)
+        NodeResponse nodeResponse = updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(task1.id())
-                .childId( task21.id()));
+                .childId( task21.id())
+                .position(0));
 
         Response response = updateService.deleteNode(ID.of(taskLink3));
 
@@ -284,7 +284,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTaskLinkOrderAfterChange() {
+    void testTaskLinkOrderAfterChange() {
         Task task4 = tasks.get(FOUR);
         Task task21 = tasks.get(TWOONE);
         Task task22 = tasks.get(TWOTWO);
@@ -296,7 +296,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         NodeResponse r22 = updateService.insertTaskNode(new TaskNodeDTO()
                 .parentId(task4.id())
                 .childId( task22.id()));
-        NodeResponse r33 = updateService.insertTaskNode(new TaskNodeDTO()
+        NodeResponse r33 = updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(task4.id())
                 .childId( task33.id())
                 .position(r22.node().position()));
@@ -319,7 +319,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testCyclicalConnectionDirect() {
+    void testCyclicalConnectionDirect() {
         Task task2 = tasks.get(TWO);
         Task task22 = tasks.get(TWOTWO);
 
@@ -331,7 +331,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testCyclicalConnectionNested() {
+    void testCyclicalConnectionNested() {
         Task task2 = tasks.get(TWO);
         Task task222 = tasks.get(TWOTWOTWO);
 
@@ -343,7 +343,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testCyclicalConnectionSelf() {
+    void testCyclicalConnectionSelf() {
         Task task1 = tasks.get(ONE);
 
         NodeResponse response = updateService.insertTaskNode(new TaskNodeDTO()
@@ -354,18 +354,18 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testInsertTaskBefore() {
+    void testInsertTaskBefore() {
         Task fresh = new Task().name("Fresh");
         Task next = tasks.get(TWOTWO);
         Task parent = tasks.get(TWO);
 
         TaskNode node22 = queryService.fetchChildNodes(parent.id())
-                .filter(node -> node.childId().equals(next.id()))
+                .filter(node -> node.child().id().equals(next.id()))
                 .findFirst().orElseThrow();
 
         fresh = updateService.createTask(fresh).task();
 
-        NodeResponse response = updateService.insertTaskNode(new TaskNodeDTO()
+        NodeResponse response = updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(node22.parentId())
                 .childId( fresh.id())
                 .position(node22.position()));
@@ -373,7 +373,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         assertTrue(response.success());
 
         assertEquals(parent.id(), response.node().parentId());
-        fresh = queryService.fetchTask(response.node().childId());
+        fresh = queryService.fetchTask(response.node().child().id());
 
         List<Object> expectedTasks = List.of(
                 tasks.get(TWOONE),
@@ -387,18 +387,18 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testInsertTaskAfter() {
+    void testInsertTaskAfter() {
         Task fresh = new Task(null).name("Fresh");
         Task prev = tasks.get(TWOONE);
         Task parent = tasks.get(TWO);
 
         TaskNode node21 = queryService.fetchChildNodes(parent.id())
-                .filter(node -> node.childId().equals(prev.id()))
+                .filter(node -> node.child().id().equals(prev.id()))
                 .findFirst().orElseThrow();
 
         fresh = updateService.createTask(fresh).task();
 
-        NodeResponse response = updateService.insertTaskNode(new TaskNodeDTO()
+        NodeResponse response = updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(node21.parentId())
                 .childId( fresh.id())
                 .position(node21.position() + 1));
@@ -406,7 +406,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         assertTrue(response.success());
 
         assertEquals(parent.id(), response.node().parentId());
-        fresh = queryService.fetchTask(response.node().childId());
+        fresh = queryService.fetchTask(response.node().child().id());
 
         List<Object> expectedTasks = List.of(
                 prev,
@@ -420,7 +420,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testPartialUpdate() {
+    void testPartialUpdate() {
         TaskID oneId = tasks.get(ONE).id();
         String desc = "Partial Update";
 
@@ -433,7 +433,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
 
     // TIME ESTIMATES
 
-    private void assertTimeEstimate(int expectedMinutes, String taskName) {
+    void assertTimeEstimate(int expectedMinutes, String taskName) {
         TaskID id = tasks.get(taskName).id();
 
         assertEquals(
@@ -442,32 +442,32 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateOfTaskWithNoDescendants() {
+    void testTimeEstimateOfTaskWithNoDescendants() {
         assertTimeEstimate(1, ONE);
     }
 
     @Test
-    public void testTimeEstimateOfTaskWithSingleLevelOfDescendants() {
+    void testTimeEstimateOfTaskWithSingleLevelOfDescendants() {
         assertTimeEstimate(4, TWOTWO);
     }
 
     @Test
-    public void testTimeEstimateOfTaskWithMultipleLevelsOfDescendants() {
+    void testTimeEstimateOfTaskWithMultipleLevelsOfDescendants() {
         assertTimeEstimate(7, TWO);
     }
 
     @Test
-    public void testTimeEstimateOfTaskWithDuplicateDescendants() {
+    void testTimeEstimateOfTaskWithDuplicateDescendants() {
         assertTimeEstimate(5, THREETWO);
     }
 
     @Test
-    public void testTimeEstimateOfTaskWithComplexHierarchy() {
+    void testTimeEstimateOfTaskWithComplexHierarchy() {
         assertTimeEstimate(8, THREE_AND_FIVE);
     }
 
     @Test
-    public void testTimeEstimateAdjustedOnRemoval() {
+    void testTimeEstimateAdjustedOnRemoval() {
         TaskLink link = links.get(Triple.of(
                 TWOTWO, TWOTWOONE, 0));
 
@@ -478,7 +478,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateAdjustedOnRemovalNested() {
+    void testTimeEstimateAdjustedOnRemovalNested() {
         TaskLink link = links.get(Triple.of(
                 THREETWO, THREETWOONE_AND_THREETWOTHREE, 0));
 
@@ -495,7 +495,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateOnTaskUpdate() {
+    void testTimeEstimateOnTaskUpdate() {
         Task task222 = tasks.get(TWOTWOTWO);
 
         task222.duration(Duration.ofMinutes(3));
@@ -506,7 +506,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateWhenTaskWithNoDurationAdded() {
+    void testTimeEstimateWhenTaskWithNoDurationAdded() {
         Task task22 = tasks.get(TWOTWO);
         Task fresh = new Task()
                 .name("Fresh");
@@ -522,7 +522,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         Task fresh2 = new Task()
                 .name("Fresh 2");
         fresh2 = updateService.createTask(fresh2).task();
-        updateService.insertTaskNode(new TaskNodeDTO()
+        updateService.insertTaskNode((TaskNodeDTO) new TaskNodeDTO()
                 .parentId(task22.id())
                 .childId(fresh2.id())
                 .position(1));
@@ -543,7 +543,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateWhenParentHasNoDuration() {
+    void testTimeEstimateWhenParentHasNoDuration() {
         Task task22 = tasks.get(TWOTWO);
         Task parent = new Task()
                 .name("Parent");
@@ -579,7 +579,7 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
     }
 
     @Test
-    public void testTimeEstimateFullRecalculate() {
+    void testTimeEstimateFullRecalculate() {
         updateService.recalculateTimeEstimates();
 
         assertTimeEstimate(1, ONE);
@@ -590,126 +590,4 @@ public class TaskUpdateServiceTest extends TaskTestTemplate {
         assertTimeEstimate(1, FOUR);
         assertTimeEstimate(1, SIX_AND_THREETWOFOUR);
     }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenChildTaskAdded() {
-//        Task newChildTask = Task.builder()
-//                .name("New Child task")
-//                .description("A new child task")
-//                .duration(Duration.ofHours(2))
-//                .build();
-//
-//        updateService.addTaskAsChild(parentTask.id(), newChildTask);
-//
-//        // Check if time estimates have been updated correctly
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        assertEquals(Duration.ofHours(14), parentTaskEstimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenChildTaskRemoved() {
-//        updateService.deleteTask(childTask1_1.id());
-//
-//        // Check if time estimates have been updated correctly
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        assertEquals(Duration.ofHours(11), parentTaskEstimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenChildTaskWithChildrenRemoved() {
-//        updateService.deleteTask(childTask1.id());
-//
-//        // Check if time estimates have been updated correctly
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        assertEquals(Duration.ofHours(7), parentTaskEstimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenLinkDeleted() {
-//
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenChildTaskDurationUpdated() {
-//        // Update childTask1's duration, increase by 1
-//        childTask1.duration(Duration.ofHours(3));
-//        updateService.updateTask(childTask1);
-//
-//        // Check if time estimates have been updated correctly
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        Duration childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        assertEquals(Duration.ofHours(13), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(6), childTask1Estimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenTaskMovedToAnotherParent() {
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        Duration childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        Duration childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//
-//        assertEquals(Duration.ofHours(12), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(5), childTask1Estimate);
-//        assertEquals(Duration.ofHours(6), childTask2Estimate);
-//
-//        // Move childTask1_1 under childTask2
-//        TaskLink oldLink = childTask1_1.parentLinks().get(0);
-//        updateService.addTaskAsChild(childTask2.id(), childTask1_1);
-//        updateService.deleteLink(oldLink.id());
-//
-//        // Check if time estimates have been updated correctly
-//        parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//        assertEquals(Duration.ofHours(12), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(4), childTask1Estimate);
-//        assertEquals(Duration.ofHours(7), childTask2Estimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenTaskDuplicatedToAnotherParent() {
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        Duration childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        Duration childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//
-//        assertEquals(Duration.ofHours(12), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(5), childTask1Estimate);
-//        assertEquals(Duration.ofHours(6), childTask2Estimate);
-//
-//        // Move childTask1_1 under childTask2
-//        updateService.addTaskAsChild(childTask2.id(), childTask1_1);
-//
-//        // Check if time estimates have been updated correctly
-//        parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//        assertEquals(Duration.ofHours(12), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(5), childTask1Estimate);
-//        assertEquals(Duration.ofHours(7), childTask2Estimate);
-//    }
-//
-//    @Test
-//    public void timeEstimatesUpdatedWhenTaskDuplicatedToAnotherParentAndUpdated() {
-//        Duration parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        Duration childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        Duration childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//
-//        assertEquals(Duration.ofHours(12), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(5), childTask1Estimate);
-//        assertEquals(Duration.ofHours(6), childTask2Estimate);
-//
-//        // Move childTask1_1 under childTask2
-//        NodeResponse response = updateService.addTaskAsChild(childTask2.id(), childTask1_1);
-//        childTask1_1 = response.child();
-//        childTask1_1.duration(Duration.ofHours(2));
-//        updateService.updateTask(childTask1_1);
-//
-//        // Check if time estimates have been updated correctly
-//        parentTaskEstimate = queryService.getEstimatedTotalDuration(parentTask.id());
-//        childTask1Estimate = queryService.getEstimatedTotalDuration(childTask1.id());
-//        childTask2Estimate = queryService.getEstimatedTotalDuration(childTask2.id());
-//        assertEquals(Duration.ofHours(14), parentTaskEstimate);
-//        assertEquals(Duration.ofHours(6), childTask1Estimate);
-//        assertEquals(Duration.ofHours(8), childTask2Estimate);
-//    }
 }

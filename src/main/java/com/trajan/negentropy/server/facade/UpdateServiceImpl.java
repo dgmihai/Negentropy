@@ -5,7 +5,7 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.backend.repository.TimeEstimateRepository;
+import com.trajan.negentropy.server.backend.repository.TotalDurationEstimateRepository;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
@@ -34,7 +34,7 @@ public class UpdateServiceImpl implements UpdateService {
 
     @Autowired private DataContext dataContext;
     @Autowired private EntityQueryService entityQueryService;
-    @Autowired private TimeEstimateRepository timeEstimateRepository;
+    @Autowired private TotalDurationEstimateRepository timeEstimateRepository;
 
     private final String OK = "OK";
 
@@ -57,7 +57,6 @@ public class UpdateServiceImpl implements UpdateService {
             return new NodeResponse(true, freshLink, this.OK);
         } catch (Exception e) {
             e.printStackTrace();
-
             return new NodeResponse(false, null, e.getMessage());
         }
     }
@@ -172,14 +171,14 @@ public class UpdateServiceImpl implements UpdateService {
     @Override
     public void recalculateTimeEstimates() {
         timeEstimateRepository.findAll()
-                .forEach(estimate -> estimate.netDuration(Duration.ZERO));
+                .forEach(estimate -> estimate.totalDuration(Duration.ZERO));
 
         entityQueryService.findTasks(null)
                 .forEach(task -> {
                     Duration sum = entityQueryService.findDescendantTasks(ID.of(task), null)
                             .map(TaskEntity::duration)
                             .reduce(task.duration(), Duration::plus);
-                    task.timeEstimates().get(0).netDuration(sum);
+                    task.timeEstimates().get(0).totalDuration(sum);
         });
     }
 }

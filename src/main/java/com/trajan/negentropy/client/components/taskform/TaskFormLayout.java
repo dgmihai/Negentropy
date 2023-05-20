@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.client.util.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -18,7 +18,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     private final Binder<Task> binder = new BeanValidationBinder<>(Task.class);
 
-    public TaskFormLayout(TreeViewPresenter presenter, Task task) {
+    public TaskFormLayout(ClientDataController presenter, Task task) {
         super(presenter);
         binder.setBean(task);
 

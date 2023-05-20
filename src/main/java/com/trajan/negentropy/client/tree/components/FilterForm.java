@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree.components;
 
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
@@ -18,15 +18,15 @@ import java.util.stream.Collectors;
 @Accessors(fluent = true)
 @Getter
 public class FilterForm extends FormLayout {
-    private final TreeViewPresenter presenter;
+    private final ClientDataController controller;
 
     private TextField name;
     private TagComboBox tagsToExclude;
     private TagComboBox tagsToInclude;
     private Button resetBtn;
 
-    public FilterForm(TreeViewPresenter presenter) {
-        this.presenter = presenter;
+    public FilterForm(ClientDataController controller) {
+        this.controller = controller;
 
         this.addClassName("filter-layout");
 
@@ -42,31 +42,31 @@ public class FilterForm extends FormLayout {
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         name.setValueChangeMode(ValueChangeMode.EAGER);
         name.addValueChangeListener(event -> {
-            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            TaskFilter filter = controller.dataProvider().getFilter();
             filter.name(name.getValue());
-            presenter.dataProvider().refreshAll();
+            controller.dataProvider().refreshAll();
         });
 
-        tagsToExclude = new TagComboBox("Filter: Excluded Tags", presenter);
+        tagsToExclude = new TagComboBox("Filter: Excluded Tags", controller);
         tagsToExclude.setClearButtonVisible(true);
         tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         tagsToExclude.addValueChangeListener(event -> {
-            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            TaskFilter filter = controller.dataProvider().getFilter();
             filter.excludedTagIds(tagsToExclude.getValue().stream()
                     .map(Tag::id)
                     .collect(Collectors.toSet()));
-            presenter.dataProvider().refreshAll();
+            controller.dataProvider().refreshAll();
         });
 
-        tagsToInclude = new TagComboBox("Filter: Include Tags", presenter);
+        tagsToInclude = new TagComboBox("Filter: Include Tags", controller);
         tagsToInclude.setClearButtonVisible(true);
         tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         tagsToInclude.addValueChangeListener(event -> {
-            TaskFilter filter = presenter.dataProvider().getActiveFilter();
+            TaskFilter filter = controller.dataProvider().getFilter();
             filter.includedTagIds(tagsToInclude.getValue().stream()
                     .map(Tag::id)
                     .collect(Collectors.toSet()));
-            presenter.dataProvider().refreshAll();
+            controller.dataProvider().refreshAll();
         });
 
         resetBtn = new Button("Reset");

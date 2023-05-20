@@ -3,7 +3,7 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.TagService;
-import com.trajan.negentropy.server.backend.repository.TimeEstimateRepository;
+import com.trajan.negentropy.server.backend.repository.TotalDurationEstimateRepository;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
@@ -24,7 +24,7 @@ public class QueryServiceImpl implements QueryService {
     
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private TagService tagService;
-    @Autowired private TimeEstimateRepository timeRepository;
+    @Autowired private TotalDurationEstimateRepository timeRepository;
 
     @Override
     public Task fetchTask(TaskID taskId) {
@@ -113,19 +113,18 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Duration fetchNetTimeDuration(TaskID taskId) {
-        return entityQueryService.getTimeEstimate(taskId, 0)
-                .netDuration();
+        return this.fetchNetTimeDuration(taskId, 0);
     }
 
     @Override
     public Duration fetchNetTimeDuration(TaskID taskId, int priority) {
-        return entityQueryService.getTimeEstimate(taskId, priority)
-                .netDuration();
+        return entityQueryService.getTotalDuration(taskId, 0)
+                .totalDuration();
     }
 
     @Override
     public Duration fetchNetTimeDuration(TaskID taskId, TaskFilter filter) {
-        return entityQueryService.calculateNetDuration(taskId, filter);
+        return entityQueryService.calculateTotalDuration(taskId, filter);
     }
 
     @Override

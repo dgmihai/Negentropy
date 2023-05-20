@@ -1,0 +1,70 @@
+package com.trajan.negentropy.client.controller;
+
+import com.trajan.negentropy.client.controller.data.TaskEntry;
+import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
+import com.trajan.negentropy.client.util.TaskProvider;
+import com.trajan.negentropy.server.facade.QueryService;
+import com.trajan.negentropy.server.facade.model.Tag;
+import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.server.facade.model.id.StepID;
+import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.response.Response;
+import com.trajan.negentropy.server.facade.response.RoutineResponse;
+
+public interface ClientDataController {
+
+    TaskEntry getBaseEntry();
+    void setBaseEntry(TaskEntry entry);
+
+    void deleteNode(TaskEntry entry);
+
+    void updateNode(TaskEntry entry);
+    void updateNode(TaskNode node);
+    void updateTask(Task task);
+    void updateTask(TaskEntry entry);
+    void updateEntry(TaskEntry entry);
+
+    void moveNodeToRoot(TaskEntry entry);
+
+    void moveNodeInto(TaskEntry moved, TaskEntry target);
+
+    void moveNodeBefore(TaskEntry moved, TaskEntry target);
+    void moveNodeAfter(TaskEntry moved, TaskEntry target);
+
+    TaskProvider activeTaskProvider();
+    void activeTaskProvider(TaskProvider activeTaskProvider);
+
+    Response addTaskFromProvider(TaskProvider taskProvider, TaskNodeInfo nodeInfo);
+    Response addTaskFromProvider(TaskProvider taskProvider);
+    Response addTaskFromActiveProvider();
+
+    Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, TaskNodeInfo nodeInfo);
+
+    Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent);
+    Response addTaskFromActiveProviderAsChild(TaskEntry parent);
+
+    Response addTaskFromProviderBefore(TaskProvider taskProvider, TaskEntry after);
+    Response addTaskFromActiveProviderBefore(TaskEntry after);
+
+    Response addTaskFromProviderAfter(TaskProvider taskProvider, TaskEntry before);
+    Response addTaskFromActiveProviderAfter(TaskEntry before);
+
+    Tag createTag(Tag tag);
+
+    QueryService queryService();
+
+    void recalculateTimeEstimates();
+
+    TaskEntryDataProvider dataProvider();
+
+    RoutineResponse createRoutine(TaskID taskId);
+
+    RoutineResponse startRoutineStep(StepID stepId);
+    RoutineResponse pauseRoutineStep(StepID stepId);
+    RoutineResponse previousRoutineStep(StepID stepId);
+    RoutineResponse completeRoutineStep(StepID stepId);
+    RoutineResponse skipRoutineStep(StepID stepId);
+
+}

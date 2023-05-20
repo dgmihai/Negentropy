@@ -1,9 +1,9 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
-import com.trajan.negentropy.client.tree.data.TaskEntry;
+import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.client.util.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -21,7 +21,7 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
 
     //    IntegerField priorityField;
 
-    public TaskEntryFormLayout(TreeViewPresenter presenter, TaskEntry entry) {
+    public TaskEntryFormLayout(ClientDataController presenter, TaskEntry entry) {
         super(presenter);
         binder.setBean(entry);
 
@@ -57,27 +57,27 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
         binder.forField(nameField)
                 .asRequired("Name must exist and be unique")
                 .bind(
-                        entry -> entry.task().name(),
-                        (entry, name) -> entry.task().name(name));
+                        entry -> entry.node().child().name(),
+                        (entry, name) -> entry.node().child().name(name));
 
         binder.forField(durationField)
                 .withConverter(new DurationConverter())
                 .bind(
-                        entry -> entry.task().duration(),
-                        (entry, duration) -> entry.task().duration(duration));
+                        entry -> entry.node().child().duration(),
+                        (entry, duration) -> entry.node().child().duration(duration));
 
         binder.forField(descriptionArea)
                 .bind(
-                        entry -> entry.task().description(),
-                        (entry, description) -> entry.task().description(description));
+                        entry -> entry.node().child().description(),
+                        (entry, description) -> entry.node().child().description(description));
 
         tagComboBox = new CustomValueTagComboBox(presenter, tag ->
-                binder.getBean().task().tags().add(tag));
+                binder.getBean().node().child().tags().add(tag));
 
         binder.forField(tagComboBox)
                 .bind(
-                        entry -> entry.task().tags(),
-                        (entry, tags) -> entry.task().tags(tags));
+                        entry -> entry.node().child().tags(),
+                        (entry, tags) -> entry.node().child().tags(tags));
 
         saveButton.setEnabled(binder.isValid());
         binder.addValueChangeListener(e -> {
@@ -93,7 +93,7 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
     @Override
     public Optional<Task> getTask() throws TaskProviderException {
         if (hasValidTask().success()) {
-            return Optional.of(binder.getBean().task());
+            return Optional.of(binder.getBean().node().child());
         } else {
             return Optional.empty();
         }

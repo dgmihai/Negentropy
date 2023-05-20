@@ -2,21 +2,25 @@ package com.trajan.negentropy.server.facade.model;
 
 import com.trajan.negentropy.server.facade.model.id.LinkID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+@AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
-@ToString(callSuper = true)
-public class TaskNode extends TaskNodeDTO {
+@ToString
+public class TaskNode extends TaskNodeInfo {
     @EqualsAndHashCode.Include
     @NonNull
     private LinkID linkId;
 
-    public TaskNode(@NonNull LinkID linkId, TaskID parentId, TaskID childId, int position, int importance) {
-        super(parentId, childId, position, importance);
-        this.linkId = linkId;
-    }
+    private TaskID parentId;
+    @NotNull
+    private Task child;
+    private Integer position;
+    private Integer importance;
+    private Boolean recurring;
 }

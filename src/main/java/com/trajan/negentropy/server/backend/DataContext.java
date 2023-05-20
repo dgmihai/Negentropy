@@ -1,22 +1,18 @@
 package com.trajan.negentropy.server.backend;
 
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
+import com.trajan.negentropy.server.backend.entity.*;
+import com.trajan.negentropy.server.facade.model.*;
 import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
+@Transactional
 public interface DataContext {
     void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId);
     void addToTimeEstimateOfTask(Duration change, TaskID taskId);
@@ -39,27 +35,48 @@ public interface DataContext {
                 taskEntity.tags().stream()
                         .map(DataContext::toDTO)
                         .collect(Collectors.toSet()),
-                taskEntity.recurring());
+                !taskEntity.childLinks().isEmpty());
     }
 
     static TaskNode toDTO(TaskLink link) {
-        TaskID parentId = ID.of(link.parent());
-        if (parentId != null) {
-            List<TaskLink> siblings = link.parent().childLinks();
-        }
-
         return new TaskNode(
                 ID.of(link),
-                parentId,
-                ID.of(link.child()),
+                ID.of(link.parent()),
+                toDTO(link.child()),
                 link.position(),
-                link.importance());
+                link.importance(),
+                link.recurring());
     }
 
     static Tag toDTO(TagEntity tagEntity) {
         return new Tag(
                 ID.of(tagEntity),
                 tagEntity.name());
+    }
+
+    static Routine toDTO(RoutineEntity routineEntity) {
+        return new Routine(
+                ID.of(routineEntity),
+                routineEntity.steps().stream()
+                        .map(DataContext::toDTO)
+                        .toList(),
+                routineEntity.currentPosition(),
+                routineEntity.estimatedDuration(),
+                routineEntity.estimatedDurationLastUpdatedTime(),
+                routineEntity.status());
+    }
+
+    static RoutineStep toDTO(RoutineStepEntity routineStepEntity) {
+        return new RoutineStep(
+                ID.of(routineStepEntity),
+                toDTO(routineStepEntity.task()),
+                ID.of(routineStepEntity.routine()),
+                ID.of(routineStepEntity.parent()),
+                routineStepEntity.startTime(),
+                routineStepEntity.finishTime(),
+                routineStepEntity.lastSuspendedTime(),
+                routineStepEntity.elapsedSuspendedDuration(),
+                routineStepEntity.status());
     }
 
     TaskLink TESTONLY_mergeLink(TaskLink link);

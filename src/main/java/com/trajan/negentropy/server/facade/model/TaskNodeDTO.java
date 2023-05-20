@@ -7,23 +7,28 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Accessors(fluent = true)
-@Builder
 @Getter
 @Setter
 @ToString
-public class TaskNodeDTO {
+public class TaskNodeDTO extends TaskNodeInfo {
     private TaskID parentId;
     private TaskID childId;
-    private Integer position;
-    private Integer importance;
 
+    public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Integer importance, Boolean recurring) {
+        this.parentId = parentId;
+        this.childId = childId;
+        this.position = position;
+        this.importance = importance;
+        this.recurring = recurring;
+    }
+    
     public TaskNodeDTO(TaskNode node) {
         this.parentId = node.parentId();
-        this.childId = node.childId();
+        this.childId = node.child().id();
         this.position = node.position();
         this.importance = node.importance();
+        this.recurring = node.recurring();
     }
 
     public TaskNodeDTO(TaskLink link) {
@@ -31,5 +36,16 @@ public class TaskNodeDTO {
         this.childId = ID.of(link.child());
         this.position = link.position();
         this.importance = link.importance();
+        this.recurring = link.recurring();
+    }
+
+    public TaskNodeDTO(TaskID parentId, TaskID childId, TaskNodeInfo info) {
+        this.parentId = parentId;
+        this.childId = childId;
+        if (info != null) {
+            this.position = info.position();
+            this.importance = info.importance();
+            this.recurring = info.recurring();
+        }
     }
 }

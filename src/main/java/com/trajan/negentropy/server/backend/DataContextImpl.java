@@ -4,7 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.backend.entity.TimeEstimate;
+import com.trajan.negentropy.server.backend.entity.TotalDurationEstimate;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
@@ -51,10 +51,8 @@ public class DataContextImpl implements DataContext {
     @Override
     public void addToTimeEstimateOfTask(Duration change, TaskID taskId) {
         logger.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
-        TimeEstimate timeEstimate = entityQueryService.getTimeEstimate(taskId);
-        if (timeEstimate != null) {
-            timeEstimate.netDuration(timeEstimate.netDuration().plus(change));
-        }
+        TotalDurationEstimate timeEstimate = entityQueryService.getTotalDuration(taskId);
+        timeEstimate.totalDuration(timeEstimate.totalDuration().plus(change));
     }
 
     @Override
@@ -69,7 +67,7 @@ public class DataContextImpl implements DataContext {
 
             taskEntity = taskRepository.save(new TaskEntity()
                     .name(task.name()));
-            taskEntity.timeEstimates().add(new TimeEstimate(
+            taskEntity.timeEstimates().add(new TotalDurationEstimate(
                     taskEntity,
                     0,
                     Objects.requireNonNullElse(
@@ -99,15 +97,14 @@ public class DataContextImpl implements DataContext {
                         task.description(), taskEntity.description()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
-                .tags(tagEntities)
-                .recurring(Objects.requireNonNullElse(
-                        task.recurring(), taskEntity.recurring()));
+                .tags(tagEntities);
     }
 
     @Override
     public TaskLink mergeNode(TaskNode node) {
         return entityQueryService.getLink(node.linkId())
-                .importance(node.importance());
+                .importance(node.importance())
+                .recurring(node.recurring());
     }
 
     @Override
@@ -152,16 +149,18 @@ public class DataContextImpl implements DataContext {
 
         int importance = node.importance() == null ?
                 0 :
-                node.importance();;
+                node.importance();
+        boolean recurring = node.recurring() != null && node.recurring();
 
         TaskLink link = linkRepository.save(new TaskLink(
                 parent,
                 child,
                 position,
-                importance));
+                importance,
+                recurring));
 
         if (parent != null) {
-            Duration change = entityQueryService.getTimeEstimate(ID.of(child)).netDuration();
+            Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration();
             TaskID parentId = ID.of(parent);
 
             this.addToTimeEstimateOfAllAncestors(change, parentId);
@@ -215,7 +214,7 @@ public class DataContextImpl implements DataContext {
         linkRepository.delete(link);
 
 
-        Duration change = entityQueryService.getTimeEstimate(ID.of(child)).netDuration()
+        Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration()
             .negated();
         TaskID parentId = ID.of(parent);
         this.addToTimeEstimateOfAllAncestors(change, parentId);

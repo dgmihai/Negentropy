@@ -20,6 +20,16 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-primary-color);
 }
 
+.error-color {
+    color:
+      var(--lumo-error-color);
+}
+
+.unselected-color {
+    color:
+      var(--lumo-secondary-text-color);
+}
+
 .primary-color-icon {
     fill:
       var(--lumo-primary-color);

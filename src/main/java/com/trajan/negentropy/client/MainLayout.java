@@ -2,6 +2,7 @@ package com.trajan.negentropy.client;
 
 import com.trajan.negentropy.client.components.appnav.AppNav;
 import com.trajan.negentropy.client.components.appnav.AppNavItem;
+import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.tree.TreeView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
@@ -50,6 +51,7 @@ public class MainLayout extends AppLayout {
         AppNav nav = new AppNav();
 
         nav.addItem(new AppNavItem("Task Tree", TreeView.class, LineAwesomeIcon.TREE_SOLID.create()));
+        nav.addItem(new AppNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
 
         return nav;
     }

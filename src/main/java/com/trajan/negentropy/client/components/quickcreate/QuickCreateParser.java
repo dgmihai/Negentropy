@@ -1,8 +1,9 @@
 package com.trajan.negentropy.client.components.quickcreate;
 
-import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.vaadin.flow.data.binder.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,14 +23,14 @@ public class QuickCreateParser {
     public static final String RECURRING = "rec";
     public static final String TOP = "top";
 
-    public static Pair<Task, Boolean> parse(String input) throws ParseException {
+    public static Pair<Task, TaskNodeInfo> parse(String input) throws ParseException {
         logger.debug("Parsing " + input);
-        Task task = new Task(null)
-                .recurring(false)
+        Task task = new Task()
                 .description("")
                 .duration(Duration.ZERO)
                 .tags(new HashSet<>());
-        boolean top = false;
+        TaskNodeInfo nodeInfo = new TaskNodeInfo()
+                .recurring(false);
 
         // Add '#' to the beginning of the input string to handle cases like '#rep' without a trailing space
         input = input.trim();
@@ -69,12 +70,12 @@ public class QuickCreateParser {
                     }
                     result.ifOk(task::duration);
                 }
-                case RECURRING -> task.recurring(true);
-                case TOP -> top = true;
+                case RECURRING -> nodeInfo.recurring(true);
+                case TOP -> nodeInfo.position(0);
                 default -> throw new ParseException("Invalid keyword specified: " + value);
             }
         }
-        return Pair.of(task, top);
+        return Pair.of(task, nodeInfo);
     }
 
     public static class ParseException extends Exception{

@@ -5,8 +5,6 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.entity.TagEntity;
 import com.trajan.negentropy.server.backend.entity.TaskEntity;
 import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.backend.repository.LinkRepository;
-import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.UpdateService;
@@ -18,8 +16,6 @@ import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.TagID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Pair;
@@ -43,10 +39,6 @@ public class TaskTestTemplate {
     @Autowired protected QueryService queryService;
 
     @Autowired protected TaskRepository taskRepository;
-    @Autowired protected LinkRepository linkRepository;
-    @Autowired protected TagRepository tagRepository;
-
-    @PersistenceContext private EntityManager em;
 
     protected static final String NULL = "";
     protected static final String ONE = "One";
@@ -138,15 +130,16 @@ public class TaskTestTemplate {
                         .task());
             }
 
-            TaskID childID = tasks.get(name).id();
-            TaskID parentID = parent == null ?
+            TaskID childId = tasks.get(name).id();
+            TaskID parentId = parent == null ?
                     null : tasks.get(parent).id();
 
             TaskNodeDTO freshNode = new TaskNodeDTO(
-                    parentID,
-                    childID,
+                    parentId,
+                    childId,
                     i,
-                    children.get(i).getSecond());
+                    children.get(i).getSecond(),
+                    false);
 
             TaskNode node = updateService.insertTaskNode(freshNode).node();
 

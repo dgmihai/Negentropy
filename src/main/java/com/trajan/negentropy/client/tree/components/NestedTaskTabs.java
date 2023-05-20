@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree.components;
 
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
-import com.trajan.negentropy.client.tree.data.TaskEntry;
+import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
@@ -11,16 +11,16 @@ import com.vaadin.flow.component.tabs.TabsVariant;
 import java.util.Stack;
 
 public class NestedTaskTabs extends Tabs {
-    private final TreeViewPresenter presenter;
+    private final ClientDataController controller;
     private TaskEntry currentEntry;
 
-    public NestedTaskTabs(TreeViewPresenter presenter) {
+    public NestedTaskTabs(ClientDataController controller) {
         super();
-        this.presenter = presenter;
+        this.controller = controller;
 
         this.add(new Tab(new Icon(VaadinIcon.HOME)));
 
-        this.onSelectNewRootEntry(presenter.getBaseEntry());
+        this.onSelectNewRootEntry(controller.getBaseEntry());
         this.addSelectedChangeListener(e -> setRootEntry());
 
         this.addThemeVariants(TabsVariant.LUMO_SMALL);
@@ -30,10 +30,10 @@ public class NestedTaskTabs extends Tabs {
         int tabIndex = getSelectedIndex();
         if (getSelectedTab() instanceof TaskTab tab) {
             currentEntry = tab.getEntry();
-            presenter.setBaseEntry(currentEntry);
+            controller.setBaseEntry(currentEntry);
         } else {
             currentEntry = null;
-            presenter.setBaseEntry(null);
+            controller.setBaseEntry(null);
         }
         while (getComponentCount() > tabIndex + 1) {
             remove(getTabAt(tabIndex + 1));

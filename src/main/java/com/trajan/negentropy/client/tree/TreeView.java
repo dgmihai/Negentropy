@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.FilterForm;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -23,9 +24,9 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
@@ -34,51 +35,47 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle("Negentropy - Task Tree")
 @UIScope
-@Route(value = "", layout = MainLayout.class)
-@RouteAlias("tree")
+@Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
 @Accessors(fluent = true)
 @Getter
 public class TreeView extends Div {
     private static final Logger logger = LoggerFactory.getLogger(TreeView.class);
-    @Autowired private final TreeViewPresenter presenter;
-    @Autowired private final SessionSettings settings;
 
-    private final QuickCreateField quickAddField;
-    private final FilterForm filterForm;
-    private final TaskTreeGrid taskTreeGrid;
-    private final TaskFormLayout createTaskForm;
-    private final HorizontalLayout options;
-    private final TabSheet tabSheet;
+    @Autowired private ClientDataController controller;
+    @Autowired private SessionSettings settings;
+
+    private QuickCreateField quickCreateField;
+    private FilterForm filterForm;
+    @Autowired private TaskTreeGrid taskTreeGrid;
+    private TaskFormLayout createTaskForm;
+    private HorizontalLayout options;
+    private TabSheet tabSheet;
 
     private final int BREAKPOINT_PX = 600;
 
-    public TreeView(TreeViewPresenter presenter, SessionSettings settings) {
-        this.presenter = presenter;
-        this.settings = settings;
-
-        this.taskTreeGrid = new TaskTreeGrid(presenter, settings);
-
+    @PostConstruct
+    public void init() {
         this.addClassName("tree-view");
         this.setSizeFull();
 
         this.tabSheet = new TabSheet();
 
-        this.quickAddField = new QuickCreateField(presenter);
-        quickAddField.setWidthFull();
+        this.quickCreateField = new QuickCreateField(controller);
+        quickCreateField.setWidthFull();
 
-        this.filterForm = new FilterForm(presenter);
+        this.filterForm = new FilterForm(controller);
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
-        this.createTaskForm = new TaskFormLayout(presenter, new Task(null));
+        this.createTaskForm = new TaskFormLayout(controller, new Task(null));
         createTaskForm.binder().setBean(new Task(null));
 
         createTaskForm.onClear(() -> {
             createTaskForm.binder().setBean(new Task(null));
         });
         createTaskForm.onSave(() -> {
-            presenter.addTaskFromProvider(createTaskForm);
+            controller.addTaskFromProvider(createTaskForm);
             createTaskForm.binder().setBean(new Task(null));
         });
 
@@ -87,7 +84,7 @@ public class TreeView extends Div {
 
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
         recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        recalculateTimeEstimates.addClickListener(e -> presenter.recalculateTimeEstimates());
+        recalculateTimeEstimates.addClickListener(e -> controller.recalculateTimeEstimates());
 
         // TODO: Not yet implemented, option to move or add on drag
         Select<String> dragSettings = new Select<>();
@@ -137,7 +134,7 @@ public class TreeView extends Div {
         }
 
         tabSheet.add(closeTab, new Div());
-        tabSheet.add(quickCreateTab, this.quickAddField);
+        tabSheet.add(quickCreateTab, this.quickCreateField);
         tabSheet.add(searchAndFilterTab, this.filterForm);
         tabSheet.add(createNewTaskTab, this.createTaskForm);
         tabSheet.add(optionsTab, this.options);
@@ -146,11 +143,11 @@ public class TreeView extends Div {
             Tab openedTab = event.getSelectedTab();
 
             if (openedTab.equals(quickCreateTab)) {
-                presenter.activeTaskProvider(quickAddField);
+                controller.activeTaskProvider(quickCreateField);
             } else if (openedTab.equals(createNewTaskTab)) {
-                presenter.activeTaskProvider(createTaskForm);
+                controller.activeTaskProvider(createTaskForm);
             } else {
-                presenter.activeTaskProvider(null);
+                controller.activeTaskProvider(null);
             }
         });
     }

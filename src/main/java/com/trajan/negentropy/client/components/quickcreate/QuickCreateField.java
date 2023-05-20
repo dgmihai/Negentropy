@@ -1,11 +1,12 @@
 package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TaskProvider;
 import com.trajan.negentropy.client.util.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -23,12 +24,12 @@ import java.util.Optional;
 public class QuickCreateField extends TextField implements TaskProvider {
     private static final Logger logger = LoggerFactory.getLogger(QuickCreateField.class);
 
-    private TreeViewPresenter presenter;
+    private ClientDataController presenter;
 
     private Task task = null;
-    private boolean top = false;
+    private TaskNodeInfo node = null;
 
-    public QuickCreateField(TreeViewPresenter presenter) {
+    public QuickCreateField(ClientDataController presenter) {
         super();
         this.presenter = presenter;
 
@@ -54,7 +55,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
 
         this.addValueChangeListener(e -> {
             task = null;
-            top = false;
+            node = null;
         });
     }
 
@@ -64,7 +65,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
             try {
                 parse(input);
 
-                Response response = presenter.addTaskFromProvider(this, top);
+                Response response = presenter.addTaskFromProvider(this, node);
                 if (response.success()) {
                     this.clear();
                 } else {
@@ -92,9 +93,9 @@ public class QuickCreateField extends TextField implements TaskProvider {
     }
 
     private void parse(String input) throws QuickCreateParser.ParseException {
-        Pair<Task, Boolean> result = QuickCreateParser.parse(input);
+        Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
         task = result.getFirst();
-        top = result.getSecond();
+        node = result.getSecond();
     }
 
     @Override

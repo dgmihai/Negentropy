@@ -64,6 +64,11 @@
             <artifactId>line-awesome</artifactId>
             <version>1.1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.flowingcode.addons</groupId>
+            <artifactId>simple-timer</artifactId>
+            <version>2.1.1</version>
+        </dependency>
 
         <!-- DB & Persistence -->
         <dependency>

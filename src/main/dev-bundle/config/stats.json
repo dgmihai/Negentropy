@@ -130,6 +130,7 @@
   "@vaadin/vaadin-usage-statistics": "2.1.2",
   "@vaadin/vertical-layout": "24.0.3",
   "@vaadin/virtual-list": "24.0.3",
+  "@webcomponents/shadycss": "1.11.2",
   "construct-style-sheets-polyfill": "3.1.0",
   "date-fns": "2.29.3",
   "lit-element": "3.3.2",
@@ -215,6 +216,7 @@
   "Frontend/generated/jar-resources/menubarConnector.js",
   "Frontend/generated/jar-resources/messageListConnector.js",
   "Frontend/generated/jar-resources/selectConnector.js",
+  "Frontend/generated/jar-resources/simple-timer/simple-timer.js",
   "Frontend/generated/jar-resources/tooltip.ts",
   "Frontend/generated/jar-resources/vaadin-big-decimal-field.js",
   "Frontend/generated/jar-resources/vaadin-grid-flow-selection-column.js",
@@ -234,6 +236,7 @@
   "menubarConnector.js": "8ddac5a87155632c516fd16c9402bd9a2fe6d965998169743744842aacdfd412",
   "messageListConnector.js": "480d7092b9fe42aab45756eb4287b2c4b0d6e5d38514e967543bc5c317948c18",
   "selectConnector.js": "bd4277e735d390853603351ddd963233349b702789ddf8ce000df5179bb30523",
+  "simple-timer/simple-timer.js": "58b27eb36fbcf3fbe0684b12bd2f20e5a769a619e3f5e4707de9f652f383596f",
   "tooltip.ts": "b7e9af67169277b94cab722d244340c3a9d463bcf4de2aaa84dddcebbd59447b",
   "vaadin-big-decimal-field.js": "0e0f4e3bb8928c708d02e77d07ede09525102440511942e3b24721702352f140",
   "vaadin-grid-flow-selection-column.js": "f365d122c334d411f30c5463fb7c0dbfde705f3ee3924bcd41837f7d0a9a0301",
@@ -244,7 +247,7 @@
   "negentropy": "{\n  \"lumoImports\" : [ \"typography\", \"color\", \"spacing\", \"badge\", \"utility\" ],\n  \"assets\" : {\n    \"@fontsource/pt-sans-narrow\" : {\n      \"*.css\" : \"@fontsource/pt-sans-narrow\",\n      \"files/*\" : \"@fontsource/pt-sans-narrow/files\"\n    }\n  }\n}"
  },
  "entryScripts": [
-  "VAADIN/build/indexhtml-08a459b7.js"
+  "VAADIN/build/indexhtml-c4dbf8d6.js"
  ],
  "webComponents": [],
  "packageJsonHash": "7c1940ada65b2da11b39e1dfc948ae65608a28ba90c19df806e65fca02079e86"

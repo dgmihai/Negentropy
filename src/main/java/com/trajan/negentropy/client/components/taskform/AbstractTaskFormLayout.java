@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.tree.TreeViewPresenter;
-import com.trajan.negentropy.client.util.DurationConverter;
+import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.client.util.TaskProvider;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractTaskFormLayout extends FormLayout implements TaskProvider {
     private static final Logger logger = LoggerFactory.getLogger(TaskFormLayout.class);
 
-    protected final TreeViewPresenter presenter;
+    protected final ClientDataController presenter;
 
     protected TextField nameField;
     protected TextField durationField;
@@ -42,7 +42,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     @Setter
     protected Runnable onSave = () -> { };
 
-    public AbstractTaskFormLayout(TreeViewPresenter presenter) {
+    public AbstractTaskFormLayout(ClientDataController presenter) {
         this.presenter = presenter;
 
         this.addClassName("task-entry-form");

@@ -1,18 +1,14 @@
 package com.trajan.negentropy.server.backend;
 
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.backend.entity.TimeEstimate;
+import com.trajan.negentropy.server.backend.entity.*;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.LinkID;
-import com.trajan.negentropy.server.facade.model.id.TagID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.model.id.*;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -51,6 +47,10 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     TagEntity getTag(TagID tagId);
+
+    RoutineEntity getRoutine(RoutineID routineId);
+
+    RoutineStepEntity getRoutineStep(StepID stepId);
 
     /**
      * Find a tag entity from the repository by name.
@@ -189,6 +189,8 @@ public interface EntityQueryService {
      */
     Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter);
 
+    Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer);
+
     /**
      * Retrieves all descendant tasks of a given task via depth-first search.
      * </p>
@@ -203,13 +205,13 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskFilter filter);
 
-    TimeEstimate getTimeEstimate(TaskID taskId);
+    TotalDurationEstimate getTotalDuration(TaskID taskId);
 
-    TimeEstimate getTimeEstimate(TaskID taskId, int priority);
+    TotalDurationEstimate getTotalDuration(TaskID taskId, int importance);
 
-    Stream<TimeEstimate> getTimeEstimatesWithImportanceThreshold(TaskID taskId, int importanceDifference);
+    Stream<TotalDurationEstimate> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 
-    Duration calculateNetDuration(TaskID taskId, TaskFilter filter);
+    Duration calculateTotalDuration(TaskID taskId, TaskFilter filter);
 
     int getLowestImportanceOfDescendants(TaskID ancestorId);
 

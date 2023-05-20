@@ -2,15 +2,10 @@ package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
 import com.trajan.negentropy.server.backend.entity.*;
-import com.trajan.negentropy.server.backend.repository.LinkRepository;
-import com.trajan.negentropy.server.backend.repository.TagRepository;
-import com.trajan.negentropy.server.backend.repository.TaskRepository;
-import com.trajan.negentropy.server.backend.repository.TimeEstimateRepository;
+import com.trajan.negentropy.server.backend.repository.*;
+import com.trajan.negentropy.server.backend.util.DFS;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.ID;
-import com.trajan.negentropy.server.facade.model.id.LinkID;
-import com.trajan.negentropy.server.facade.model.id.TagID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.model.id.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -33,13 +27,15 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
-    @Autowired private TimeEstimateRepository timeEstimateRepository;
+    @Autowired private TotalDurationEstimateRepository durationEstimateRepository;
     @Autowired private TagRepository tagRepository;
+    @Autowired private RoutineRepository routineRepository;
+    @Autowired private RoutineStepRepository stepRepository;
     
     private static final QTaskLink Q_LINK = QTaskLink.taskLink;
     private static final QTaskEntity Q_TASK = QTaskEntity.taskEntity;
 
-    private Map<TaskID, Duration> cachedNetDurations = new HashMap<>();
+    private Map<TaskID, Duration> cachedTotalDurations = new HashMap<>();
     private TaskFilter activeFilter = new TaskFilter();
 
     @Override
@@ -63,6 +59,20 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 () -> new NoSuchElementException("Failed to get tag with ID: " + tagId));
     }
 
+    @Override
+    public RoutineEntity getRoutine(RoutineID routineId) {
+        logger.trace("getRoutine");
+        return routineRepository.findById(routineId.val()).orElseThrow(
+                () -> new NoSuchElementException("Failed to get routine with ID: " + routineId));
+    }
+
+    @Override
+    public RoutineStepEntity getRoutineStep(StepID stepId) {
+        logger.trace("getRoutineStep");
+        return stepRepository.findById(stepId.val()).orElseThrow(
+                () -> new NoSuchElementException("Failed to get step with ID: " + stepId));
+    }
+    
     @Override
     public Optional<TagEntity> findTag(String name) {
         logger.trace("findTag");
@@ -169,8 +179,8 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Override
     public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
         logger.trace("findAncestorLinks");
-        return dfs(descendantId, filter,
-                this::findParentLinks,
+        return DFS.getLinks(descendantId,
+                childId -> this.findParentLinks(childId, filter),
                 link -> ID.of(link.parent()))
                 .stream();
     }
@@ -184,9 +194,19 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter) {
         logger.trace("findDescendantLinks");
-        return dfs(ancestorId, filter,
-                this::findChildLinks,
+        return DFS.getLinks(ancestorId,
+                parentId -> this.findChildLinks(parentId, filter),
                 link -> ID.of(link.child()))
+                .stream();
+    }
+
+    @Override
+    public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
+        logger.trace("findDescendantLinksWithConsumer");
+        return DFS.getLinks(ancestorId,
+                        parentId -> this.findChildLinks(parentId, filter),
+                        link -> ID.of(link.child()),
+                        consumer)
                 .stream();
     }
 
@@ -196,36 +216,16 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return this.findDescendantLinks(ancestorId, filter).map(TaskLink::child);
     }
 
-    private List<TaskLink> dfs (TaskID rootId, TaskFilter filter,
-                                 BiFunction<TaskID, TaskFilter, Stream<TaskLink>> getNextLinks,
-                                 Function<TaskLink, TaskID> getNextLink) {
-        List<TaskLink> results = new ArrayList<>();
-        this.dfsRecursive(rootId, results, filter, getNextLinks, getNextLink, true);
-        return results;
-    }
-
-    private void dfsRecursive(TaskID id, List<TaskLink> results, TaskFilter filter,
-                              BiFunction<TaskID, TaskFilter, Stream<TaskLink>> getNextLinks,
-                              Function<TaskLink, TaskID> getNextLink,
-                              boolean first) {
-        if (id != null || first) {
-            getNextLinks.apply(id, filter)
-                    .peek(results::add)
-                    .forEachOrdered(link -> dfsRecursive(getNextLink.apply(link), results, filter,
-                            getNextLinks, getNextLink, false));
-        }
-    }
-
     @Override
-    public TimeEstimate getTimeEstimate(TaskID taskId) {
-        logger.trace("getTimeEstimate");
+    public TotalDurationEstimate getTotalDuration(TaskID taskId) {
+        logger.trace("getTotalDuration");
         // TODO: Implement importance in time estimate caching
-        return this.getTimeEstimate(taskId, 0);
+        return this.getTotalDuration(taskId, 0);
     }
 
     @Override
-    public TimeEstimate getTimeEstimate(TaskID taskId, int importance) {
-        logger.trace("getTimeEstimate");
+    public TotalDurationEstimate getTotalDuration(TaskID taskId, int importance) {
+        logger.trace("getTotalDurationByImportance");
         TaskEntity task = this.getTask(taskId);
         return task.timeEstimates().stream()
                 .filter(
@@ -235,8 +235,8 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TimeEstimate> getTimeEstimatesWithImportanceThreshold(TaskID taskId, int importanceDifference) {
-        logger.trace("getTimeEstimatesWithImportanceThreshold");
+    public Stream<TotalDurationEstimate> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {
+        logger.trace("getTotalDurationWithImportanceThreshold");
         TaskEntity task = this.getTask(taskId);
         int lowestImportance = this.getLowestImportanceOfDescendants(taskId);
         return task.timeEstimates().stream()
@@ -247,23 +247,28 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Duration calculateNetDuration(TaskID taskId, TaskFilter filter) {
-        logger.trace("calculateNetDuration");
+    public Duration calculateTotalDuration(TaskID taskId, TaskFilter filter) {
+        logger.trace("calculateTotalDuration");
+
+        if (filter == null) {
+            return getTotalDuration(taskId).totalDuration();
+        }
+
         if (filter.name().isBlank() && filter.includedTagIds().isEmpty() && filter.excludedTagIds().isEmpty()) {
-            return getTimeEstimate(taskId, filter.importanceThreshold()).netDuration();
+            return getTotalDuration(taskId, filter.importanceThreshold()).totalDuration();
         }
 
         boolean filterCached = filter.equals(activeFilter);
 
         if (!filterCached) {
-            cachedNetDurations.clear();
+            cachedTotalDurations.clear();
         }
 
         Predicate<TaskID> hasCachedNetDuration =
-                id -> filterCached && cachedNetDurations.containsKey(id);
+                id -> filterCached && cachedTotalDurations.containsKey(id);
 
         if (hasCachedNetDuration.test(taskId)) {
-            return cachedNetDurations.get(taskId);
+            return cachedTotalDurations.get(taskId);
         }
 
         Stream<TaskEntity> descendants = this.findDescendantTasks(taskId, filter);
@@ -276,26 +281,24 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             return this.getTask(taskId).duration();
         }
 
-        Duration durationSum = cachedNetDurations.get(ID.of(descendantStack.poll()));
+        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll()));
         TaskEntity next = descendantStack.poll();
         while (next != null) {
             durationSum = durationSum.plus(next.duration());
-            cachedNetDurations.put(ID.of(next), durationSum);
+            cachedTotalDurations.put(ID.of(next), durationSum);
             next = descendantStack.poll();
         }
 
-        cachedNetDurations.put(taskId, durationSum.plus(task.duration()));
+        cachedTotalDurations.put(taskId, durationSum.plus(task.duration()));
         return durationSum;
     }
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
         logger.trace("getLowestImportanceOfDescendants");
-        QTimeEstimate qTimeEstimate = QTimeEstimate.timeEstimate;
-        // TODO: Unused qsort?
-        QSort sort = new QSort(qTimeEstimate.importance.desc());
-        return timeEstimateRepository.findOne(
-                qTimeEstimate.task.id.eq(ancestorId.val())).orElseThrow()
+        QTotalDurationEstimate qTotalDurationEstimate = QTotalDurationEstimate.totalDurationEstimate;
+        return durationEstimateRepository.findOne(
+                qTotalDurationEstimate.task.id.eq(ancestorId.val())).orElseThrow()
                 .importance();
     }
 

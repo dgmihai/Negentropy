@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.entity;
 
+import com.trajan.negentropy.server.facade.model.interfaces.TaskData;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
@@ -7,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +26,7 @@ import java.util.Set;
 @Getter
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
-public class TaskEntity extends AbstractEntity {
+public class TaskEntity extends AbstractEntity implements TaskData {
     private static final Logger logger = LoggerFactory.getLogger(TaskEntity.class);
 
     @Column(nullable = false, unique = true)
@@ -39,21 +42,23 @@ public class TaskEntity extends AbstractEntity {
     private Duration duration = Duration.ZERO;
 
     @OneToMany(
-            fetch = FetchType.EAGER,
             mappedBy = "task",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
-    private List<TimeEstimate> timeEstimates = new ArrayList<>();
+    private List<TotalDurationEstimate> timeEstimates = new ArrayList<>();
 
     @OneToMany(
+            fetch = FetchType.EAGER,
             mappedBy = "parent",
             cascade = CascadeType.ALL)
+    @Fetch(FetchMode.SUBSELECT)
     @OrderBy("position")
     private List<TaskLink> childLinks = new ArrayList<>();
 
     @OneToMany(
             mappedBy = "child",
             cascade = CascadeType.ALL)
+    @Fetch(FetchMode.SUBSELECT)
     private List<TaskLink> parentLinks = new ArrayList<>();
 
     @ManyToMany(
@@ -63,8 +68,6 @@ public class TaskEntity extends AbstractEntity {
             name = "task_tags",
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    @Fetch(FetchMode.SUBSELECT)
     private Set<TagEntity> tags = new HashSet<>();
-
-    @ToString.Include
-    private Boolean recurring = false;
 }

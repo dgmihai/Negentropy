@@ -1,8 +1,6 @@
 package com.trajan.negentropy.server.facade.model.id;
 
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
+import com.trajan.negentropy.server.backend.entity.*;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,6 +29,18 @@ public class ID {
         return tagEntity == null ?
                 null :
                 new TagID(tagEntity.id());
+    }
+
+    public static RoutineID of(RoutineEntity routineEntity) {
+        return routineEntity == null ?
+                null :
+                new RoutineID(routineEntity.id());
+    }
+
+    public static StepID of(RoutineStepEntity routineStepEntity) {
+        return routineStepEntity == null ?
+                null :
+                new StepID(routineStepEntity.id());
     }
 
     @Override
