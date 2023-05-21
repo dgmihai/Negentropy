@@ -1,9 +1,10 @@
 package com.trajan.negentropy.server.facade.model;
 
-import com.trajan.negentropy.server.backend.entity.status.StepStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineStepData;
+import com.trajan.negentropy.util.RoutineUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class RoutineStep implements RoutineStepData {
+public class RoutineStep implements RoutineStepData, Timeable {
     private StepID id;
 
     private Task task;
@@ -32,5 +33,20 @@ public class RoutineStep implements RoutineStepData {
 
     private Duration elapsedSuspendedDuration;
 
-    private StepStatus status;
+    private TimeableStatus status;
+
+    @Override
+    public String name() {
+        return task.name();
+    }
+
+    @Override
+    public String description() {
+        return task.description();
+    }
+
+    @Override
+    public Duration remainingDuration(LocalDateTime time) {
+        return RoutineUtil.getRemainingStepDuration(this, time);
+    }
 }

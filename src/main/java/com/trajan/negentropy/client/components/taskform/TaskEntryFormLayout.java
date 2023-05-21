@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.client.util.TaskProviderException;
+import com.trajan.negentropy.client.controller.data.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -31,7 +31,8 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
         configureLayout();
 
         this.add(nameField, durationField,
-                tagComboBox, descriptionArea,
+                tagComboBox, recurringCheckbox,
+                descriptionArea,
                 buttonLayout);
     }
 
@@ -65,6 +66,11 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
                 .bind(
                         entry -> entry.node().child().duration(),
                         (entry, duration) -> entry.node().child().duration(duration));
+
+        binder.forField(recurringCheckbox)
+                .bind(
+                        entry -> entry.node().recurring(),
+                        (entry, recurring) -> entry.node().recurring(recurring));
 
         binder.forField(descriptionArea)
                 .bind(

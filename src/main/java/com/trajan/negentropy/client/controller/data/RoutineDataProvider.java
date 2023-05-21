@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.controller.data;
 
-import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.vaadin.flow.data.provider.AbstractDataProvider;
@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 @SpringComponent
 @VaadinSessionScope
 @Accessors(fluent = true)
-public class RoutineDataProvider extends AbstractDataProvider<Routine, Set<RoutineStatus>> {
+public class RoutineDataProvider extends AbstractDataProvider<Routine, Set<TimeableStatus>> {
     private static final Logger logger = LoggerFactory.getLogger(RoutineDataProvider.class);
 
     @Autowired private RoutineService routineService;
@@ -29,12 +29,12 @@ public class RoutineDataProvider extends AbstractDataProvider<Routine, Set<Routi
     }
 
     @Override
-    public int size(Query<Routine, Set<RoutineStatus>> query) {
+    public int size(Query<Routine, Set<TimeableStatus>> query) {
         return (int) routineService.countCurrentRoutines(query.getFilter().orElse(Set.of()));
     }
 
     @Override
-    public Stream<Routine> fetch(Query<Routine, Set<RoutineStatus>> query) {
+    public Stream<Routine> fetch(Query<Routine, Set<TimeableStatus>> query) {
         return routineService.fetchRoutines(query.getFilter().orElse(Set.of()));
     }
 }

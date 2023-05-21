@@ -1,6 +1,5 @@
 package com.trajan.negentropy.server.backend.entity;
 
-import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineData;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -39,7 +38,7 @@ public class RoutineEntity extends AbstractEntity implements RoutineData {
     private Duration estimatedDuration;
 
     @Enumerated(EnumType.STRING)
-    private RoutineStatus status = RoutineStatus.NOT_STARTED;
+    private TimeableStatus status = TimeableStatus.NOT_STARTED;
 
     public RoutineStepEntity currentStep() {
         return steps.get(currentPosition);

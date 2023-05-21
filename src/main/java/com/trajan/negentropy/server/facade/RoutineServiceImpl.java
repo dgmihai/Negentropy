@@ -8,8 +8,7 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.entity.QRoutineEntity;
 import com.trajan.negentropy.server.backend.entity.RoutineEntity;
 import com.trajan.negentropy.server.backend.entity.RoutineStepEntity;
-import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
-import com.trajan.negentropy.server.backend.entity.status.StepStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.backend.repository.RoutineRepository;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.trajan.negentropy.server.facade.model.RoutineStep;
@@ -44,11 +43,13 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public Routine fetchRoutine(RoutineID routineID) {
+        logger.trace("fetchRoutine");
         return DataContext.toDTO(entityQueryService.getRoutine(routineID));
     }
 
     @Override
     public RoutineStep fetchRoutineStep(StepID stepID) {
+        logger.trace("fetchRoutineStep");
         return DataContext.toDTO(entityQueryService.getRoutineStep(stepID));
     }
 
@@ -99,7 +100,8 @@ public class RoutineServiceImpl implements RoutineService {
         });
     }
 
-    private Predicate filterByStatus(Set<RoutineStatus> statusSet) {
+    private Predicate filterByStatus(Set<TimeableStatus> statusSet) {
+        logger.trace("filterByStatus");
         QRoutineEntity qRoutine = QRoutineEntity.routineEntity;
         BooleanBuilder builder = new BooleanBuilder();
         statusSet.forEach(status -> builder.or(qRoutine.status.eq(status)));
@@ -107,13 +109,15 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public long countCurrentRoutines(Set<RoutineStatus> statusSet) {
+    public long countCurrentRoutines(Set<TimeableStatus> statusSet) {
+        logger.trace("countCurrentRoutines");
         return routineRepository.count(
                 this.filterByStatus(statusSet));
     }
 
     @Override
-    public Stream<Routine> fetchRoutines(Set<RoutineStatus> statusSet) {
+    public Stream<Routine> fetchRoutines(Set<TimeableStatus> statusSet) {
+        logger.trace("fetchRoutines");
         return StreamSupport.stream(
                 routineRepository.findAll(this.filterByStatus(statusSet)).spliterator(), false)
                 .map(DataContext::toDTO);
@@ -139,9 +143,9 @@ public class RoutineServiceImpl implements RoutineService {
             }
         }
 
-        step.status(StepStatus.ACTIVE);
-        if (routine.status().equals(RoutineStatus.NOT_STARTED)) {
-            routine.status(RoutineStatus.ACTIVE);
+        step.status(TimeableStatus.ACTIVE);
+        if (routine.status().equals(TimeableStatus.NOT_STARTED)) {
+            routine.status(TimeableStatus.ACTIVE);
         }
 
         RoutineUtil.setRoutineDuration(routine, time);
@@ -152,7 +156,7 @@ public class RoutineServiceImpl implements RoutineService {
     public RoutineResponse startStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         RoutineEntity routine = step.routine();
-        logger.debug("Starting step " + step + " in routine " + routine);
+        logger.debug("Starting step " + step + " in routine " + routine.id());
 
         return process(() -> startStepSupplier(step, routine, time));
     }
@@ -161,12 +165,12 @@ public class RoutineServiceImpl implements RoutineService {
     public RoutineResponse suspendStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         RoutineEntity routine = step.routine();
-        logger.debug("Suspending step " + step + " in routine " + routine);
+        logger.debug("Suspending step " + step + " in routine " + routine.id());
 
         return process(() -> {
-            if (Objects.requireNonNull(step.status()) == StepStatus.ACTIVE) {
+            if (Objects.requireNonNull(step.status()) == TimeableStatus.ACTIVE) {
                 step.lastSuspendedTime(time);
-                step.status(StepStatus.SUSPENDED);
+                step.status(TimeableStatus.SUSPENDED);
             }
 
             RoutineUtil.setRoutineDuration(routine, time);
@@ -175,20 +179,20 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity iterateStepSupplier(
-            RoutineStepEntity step, RoutineEntity routine, LocalDateTime time, StepStatus newStatus) {
+            RoutineStepEntity step, RoutineEntity routine, LocalDateTime time, TimeableStatus newStatus) {
         switch (step.status()) {
             case SUSPENDED -> {
                 step.elapsedSuspendedDuration(
                         Duration.between(step.lastSuspendedTime(), time)
                                 .plus(step.elapsedSuspendedDuration()));
-                step.status(StepStatus.ACTIVE);
+                step.status(TimeableStatus.ACTIVE);
             }
             case ACTIVE -> step.finishTime(time);
         }
 
         step.status(newStatus);
         if (step.position().equals(routine.steps().size() - 1)) {
-            routine.status(RoutineStatus.COMPLETED);
+            routine.status(TimeableStatus.COMPLETED);
         } else {
             routine.currentPosition(routine.currentPosition() + 1);
         }
@@ -197,28 +201,30 @@ public class RoutineServiceImpl implements RoutineService {
         return step.routine();
     }
 
-    private RoutineEntity iterateStep(StepID stepId, LocalDateTime time, StepStatus newStatus) {
+    private RoutineEntity iterateStep(StepID stepId, LocalDateTime time, TimeableStatus newStatus) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         RoutineEntity routine = step.routine();
-        logger.debug("Iterating step " + step + " to " + newStatus + " in routine " + routine);
+        logger.debug("Iterating step " + step + " to " + newStatus + " in routine " + routine.id());
 
         routine = iterateStepSupplier(step, routine, time, newStatus);
-        if (!routine.status().equals(RoutineStatus.COMPLETED)) {
+        if (!routine.status().equals(TimeableStatus.COMPLETED)) {
             step = routine.steps().get(routine.currentPosition());
+            logger.debug("Routine " + routine + " now at position " + routine.currentPosition());
             return startStepSupplier(step, routine, time);
         } else {
+            logger.debug("Routine " + routine + " complete.");
             return routine;
         }
     }
 
     @Override
     public RoutineResponse completeStep(StepID stepId, LocalDateTime time) {
-        return process(() -> iterateStep(stepId, time, StepStatus.COMPLETED));
+        return process(() -> iterateStep(stepId, time, TimeableStatus.COMPLETED));
     }
 
     @Override
     public RoutineResponse skipStep(StepID stepId, LocalDateTime time) {
-        return process(() -> iterateStep(stepId, time, StepStatus.SKIPPED));
+        return process(() -> iterateStep(stepId, time, TimeableStatus.SKIPPED));
     }
 
     @Override
@@ -226,26 +232,24 @@ public class RoutineServiceImpl implements RoutineService {
         return process(() -> {
             RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
             RoutineEntity routine = step.routine();
-            boolean previousStatusActive = step.status().equals(StepStatus.ACTIVE);
+            if (routine.currentPosition() == 0) {
+                throw new IllegalStateException("Cannot go to previous step when at the first step of a routine.");
+            }
 
-            logger.debug("Going to previous step of " + step + " in routine " + routine);
+            boolean previousStatusActive = step.status().equals(TimeableStatus.ACTIVE);
+
+            logger.debug("Going to previous step of " + step + " in routine " + routine.id());
 
             RoutineResponse response = this.suspendStep(stepId, time);
             if (response.success()) {
-                logger.debug("1 CURRENT POSITION: " + routine.currentPosition());
                 routine.currentPosition(routine.currentPosition() - 1);
-                logger.debug("2 CURRENT POSITION: " + routine.currentPosition());
                 if (previousStatusActive) {
-                    logger.debug("3 CURRENT POSITION: " + routine.currentPosition());
                     routine = startStepSupplier(routine.currentStep(), routine, time);
-                    logger.debug("4 CURRENT POSITION: " + routine.currentPosition());
                 } else {
-                    logger.debug("5 CURRENT POSITION: " + routine.currentPosition());
-                    step.status(StepStatus.SUSPENDED);
-                    logger.debug("6 CURRENT POSITION: " + routine.currentPosition());
+                    step.status(TimeableStatus.SUSPENDED);
                 }
             }
-            logger.debug("7 CURRENT POSITION: " + routine.currentPosition());
+            logger.debug("Routine " + routine + " now at position " + routine.currentPosition());
 
             RoutineUtil.setRoutineDuration(routine, time);
             return routine;

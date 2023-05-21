@@ -23,4 +23,5 @@ public class TaskNode extends TaskNodeInfo {
     private Integer position;
     private Integer importance;
     private Boolean recurring;
+    private Boolean completed;
 }

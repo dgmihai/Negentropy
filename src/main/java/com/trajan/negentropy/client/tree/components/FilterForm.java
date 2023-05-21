@@ -5,6 +5,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -21,9 +22,10 @@ public class FilterForm extends FormLayout {
     private final ClientDataController controller;
 
     private TextField name;
+    private Checkbox innerJoinIncludedTags;
     private TagComboBox tagsToExclude;
     private TagComboBox tagsToInclude;
-    private Button resetBtn;
+    private Button resetButton;
 
     public FilterForm(ClientDataController controller) {
         this.controller = controller;
@@ -44,6 +46,13 @@ public class FilterForm extends FormLayout {
         name.addValueChangeListener(event -> {
             TaskFilter filter = controller.dataProvider().getFilter();
             filter.name(name.getValue());
+            controller.dataProvider().refreshAll();
+        });
+
+        innerJoinIncludedTags = new Checkbox("All of the included tags");
+        innerJoinIncludedTags.addValueChangeListener(event -> {
+            TaskFilter filter = controller.dataProvider().getFilter();
+            filter.innerJoinIncludedTags(innerJoinIncludedTags.getValue());
             controller.dataProvider().refreshAll();
         });
 
@@ -69,24 +78,29 @@ public class FilterForm extends FormLayout {
             controller.dataProvider().refreshAll();
         });
 
-        resetBtn = new Button("Reset");
+        resetButton = new Button("Reset");
 
-        this.add(name, tagsToExclude, tagsToInclude, resetBtn);
+        this.add(name, innerJoinIncludedTags, resetButton, tagsToInclude, tagsToExclude);
     }
 
     private void configureInteractions() {
-        resetBtn.addClickListener(e -> {
+        resetButton.addClickListener(e -> {
             name.clear();
+            innerJoinIncludedTags.clear();
             tagsToExclude.clear();
             tagsToInclude.clear();
         });
     }
 
     private void configureLayout() {
+        this.setColspan(name, 2);
+        this.setColspan(tagsToInclude, 2);
+        this.setColspan(tagsToExclude, 2);
+
         this.setResponsiveSteps(
-                new ResponsiveStep("0", 1),
-                new ResponsiveStep("600px", 2),
-                new ResponsiveStep("1200px", 4));
+                new ResponsiveStep("0", 2),
+                new ResponsiveStep("600px", 4),
+                new ResponsiveStep("1200px", 6));
 
         this.setWidthFull();
     }

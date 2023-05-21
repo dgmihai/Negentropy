@@ -1,13 +1,12 @@
 package com.trajan.negentropy.client.routine.components;
 
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
-import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.html.H3;
+import com.trajan.negentropy.server.facade.model.Timeable;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
@@ -15,36 +14,63 @@ import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
 @Getter
-public class TaskInfoBar extends Details {
-    private final H3 name;
+public class TaskInfoBar extends VerticalLayout {
+    private final ClientDataController controller;
+
+    private final Span name;
+    private RoutineTimer timer;
     private final InlineIconButton skip;
-    private final TextArea description;
+    private final Span description;
 
-    private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
+    private final Binder<Timeable> binder = new BeanValidationBinder<>(Timeable.class);
 
-    public TaskInfoBar() {
-        name = new H3();
+    public TaskInfoBar(Timeable timeable, ClientDataController controller) {
+        this.controller = controller;
 
-        skip = new InlineIconButton(VaadinIcon.CLOSE.create());
+        this.addClassName("bar");
+        this.setSpacing(false);
 
-        description = new TextArea();
-        binder.forField(description)
-                .bindReadOnly(s -> s.task().description());
+        binder.setBean(timeable);
 
-        HorizontalLayout summary = new HorizontalLayout(name, skip);
+        name = new Span();
+        name.addClassName("date");
+        name.setWidthFull();
 
-        summary.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        timer = new RoutineTimer(binder.getBean(), controller);
+        timer.setShowEta(true);
+        timer.addClassNames("date", "timer");
 
-        this.setSummary(summary);
-        summary.setWidthFull();
-        this.setContent(description);
+        skip = new InlineIconButton(VaadinIcon.BAN.create());
+
+        description = new Span();
+        description.addClassName("description");
+        description.setWidthFull();
+
+        HorizontalLayout upper = new HorizontalLayout(name, timer);
+        upper.addClassName("header");
+        upper.getThemeList().add("spacing-s");
+        upper.setPadding(false);
+        upper.setWidthFull();
+
+        HorizontalLayout lower = new HorizontalLayout(description, skip);
+        lower.setWidthFull();
+
+        this.add(upper, lower);
+
+        setTimeable(timeable);
+
+        upper.getElement().addEventListener("click",
+                e -> lower.setVisible(!lower.isVisible()));
     }
 
-    public void setStep(RoutineStep step) {
-        binder.setBean(step);
+    public void setTimeable(Timeable timeable) {
+        binder.setBean(timeable);
 
-        name.setText(binder.getBean().task().name());
+        name.setText(binder.getBean().name());
 
+        timer.setTimeable(timeable);
+
+        description.setText(binder.getBean().description());
         description.setWidthFull();
 
         this.setWidthFull();

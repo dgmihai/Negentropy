@@ -2,12 +2,13 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.data.TaskProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.client.util.TaskProvider;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -29,8 +30,9 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
     protected TextField nameField;
     protected TextField durationField;
-    protected TextArea descriptionArea;
     protected CustomValueTagComboBox tagComboBox;
+    protected Checkbox recurringCheckbox;
+    protected TextArea descriptionArea;
     protected HorizontalLayout buttonLayout;
 
     protected Button saveButton;
@@ -57,6 +59,9 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         durationField.setPlaceholder("Duration (?h ?m ?s)");
         durationField.setPattern(DurationConverter.DURATION_PATTERN);
         durationField.setErrorMessage("Required format: ?h ?m ?s (ex: 1m 30m, or 2h");
+        durationField.setValueChangeMode(ValueChangeMode.EAGER);
+
+        recurringCheckbox = new Checkbox("Recurring");
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -70,6 +75,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         Runnable onSaveValid = () -> {
             if (this.isValid()) {
                 onSave.run();
+                nameField.focus();
             }
         };
 
@@ -108,7 +114,6 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
         setColspan(descriptionArea, 2);
         setColspan(buttonLayout, 2);
-        setColspan(tagComboBox, 2);
 
         this.setResponsiveSteps(
                 new ResponsiveStep("0", 1),

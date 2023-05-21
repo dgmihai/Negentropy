@@ -1,8 +1,9 @@
 package com.trajan.negentropy.server.facade.model;
 
-import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineData;
+import com.trajan.negentropy.util.RoutineUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,9 +19,10 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-public class Routine implements RoutineData {
+public class Routine implements RoutineData, Timeable {
     private RoutineID id;
 
+    @ToString.Exclude
     private List<RoutineStep> steps;
 
     private int currentPosition;
@@ -28,9 +30,28 @@ public class Routine implements RoutineData {
     private Duration estimatedDuration;
     private LocalDateTime estimatedDurationLastUpdatedTime;
 
-    private RoutineStatus status;
+    private TimeableStatus status;
 
     public RoutineStep currentStep() {
         return steps.get(currentPosition);
+    }
+    public RoutineStep rootStep() {
+        return steps.get(0);
+    }
+
+    @Override
+    @ToString.Include
+    public String name() {
+        return rootStep().name();
+    }
+
+    @Override
+    public String description() {
+        return rootStep().description();
+    }
+
+    @Override
+    public Duration remainingDuration(LocalDateTime time) {
+        return RoutineUtil.getRemainingRoutineDuration(this, time);
     }
 }

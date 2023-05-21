@@ -17,7 +17,6 @@ import com.trajan.negentropy.server.facade.response.NodeResponse;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.TagResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,15 +36,6 @@ public class UpdateServiceImpl implements UpdateService {
     @Autowired private TotalDurationEstimateRepository timeEstimateRepository;
 
     private final String OK = "OK";
-
-    @PostConstruct
-    public void postConstruct() {
-//        entityQueryService.findOrphanedTasks().forEach( task ->
-//                insertTaskNode(new TaskNodeDTO()
-//                .childId(ID.of(task))));
-//        entityQueryService.findTasks(null).forEach(task ->
-//                task.recurring(!task.oneTime()));
-    }
 
     @Override
     public NodeResponse insertTaskNode(TaskNodeDTO fresh) {

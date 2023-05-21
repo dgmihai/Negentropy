@@ -6,13 +6,18 @@ import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
 import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
-import com.trajan.negentropy.server.backend.entity.status.RoutineStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.router.PageTitle;
@@ -26,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @PageTitle("Negentropy - Routine")
@@ -45,25 +51,84 @@ public class RoutineView extends VerticalLayout {
 
     private VerticalLayout routineDiv;
 
-    Grid<Routine> routineSelectionGrid = new Grid<>(Routine.class, false);
+    private Grid<Routine> routineSelectionGrid = new Grid<>(Routine.class, false);
+    private Grid<Routine> activeRoutineGrid = new Grid<>();
 
     @PostConstruct
     public void init() {
         this.addClassName("routine-view");
-
-        routineDiv = new VerticalLayout();
-
-        routineDataProvider.fetch(new Query<>(
-                Set.of(RoutineStatus.ACTIVE)))
-                .forEachOrdered(routine ->
-                        routineDiv.add(new RoutineCard(routine, controller)));
+        this.setSizeFull();
 
         routineSelectionGrid.setItems(routineDataProvider.fetch(new Query<>(
-                Set.of(RoutineStatus.NOT_STARTED))).toList());
+                Set.of(TimeableStatus.NOT_STARTED))).toList());
+
+        activeRoutineGrid.setItems(routineDataProvider.fetch(new Query<>(
+                Set.of(TimeableStatus.ACTIVE))).toList());
+
+//        activeRoutineGrid.setHeight("100%");
+        activeRoutineGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS);
+        activeRoutineGrid.addComponentColumn(routine -> new RoutineCard(routine, controller));
+        activeRoutineGrid.setAllRowsVisible(true);
 
         initRoutineSelectionGrid();
 
-        this.add(routineDiv, routineSelectionGrid);
+        this.add(activeRoutineGrid, routineSelectionGrid);
+    }
+
+    private HorizontalLayout createCard(Routine routine) {
+        logger.debug("Creating card for routine: " + routine);
+        HorizontalLayout card = new HorizontalLayout();
+        card.addClassName("card");
+        card.setSpacing(false);
+        card.getThemeList().add("spacing-s");
+
+        VerticalLayout middle = new VerticalLayout();
+        middle.addClassName("middle");
+        middle.setSpacing(false);
+        middle.setPadding(false);
+
+        HorizontalLayout header = new HorizontalLayout();
+        header.addClassName("header");
+        header.setSpacing(false);
+        header.getThemeList().add("spacing-s");
+        header.setWidthFull();
+
+
+        Label hey = new Label("HEY!");
+//        hey.addClassName("name");
+
+        Span name = new Span(routine.currentStep().task().name());
+        name.addClassName("name");
+        Span date = new Span(String.valueOf(LocalDateTime.now()));
+        date.addClassName("date");
+        header.add(hey, name, date);
+
+        Span post = new Span(routine.currentStep().task().description());
+        post.addClassName("post");
+
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.addClassName("actions");
+        actions.setSpacing(false);
+        actions.getThemeList().add("spacing-s");
+
+        Icon likeIcon = VaadinIcon.HEART.create();
+        likeIcon.addClassName("icon");
+//        Span likes = new Span(person.getLikes());
+//        likes.addClassName("likes");
+        Icon commentIcon = VaadinIcon.COMMENT.create();
+        commentIcon.addClassName("icon");
+//        Span comments = new Span(person.getComments());
+//        comments.addClassName("comments");
+        Icon shareIcon = VaadinIcon.CONNECT.create();
+        shareIcon.addClassName("icon");
+//        Span shares = new Span(person.getShares());
+//        shares.addClassName("shares");
+
+        actions.add(likeIcon, commentIcon, shareIcon);
+
+        middle.add(header, post, actions);
+        card.add(middle);
+        return card;
     }
 
     private void initRoutineSelectionGrid() {

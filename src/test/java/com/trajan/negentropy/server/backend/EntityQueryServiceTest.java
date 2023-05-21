@@ -143,6 +143,8 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                     .map(s -> tags.get(s).id())
                     .collect(Collectors.toSet()));
         }
+        // TODO: Properly test outer join of tags
+        filter.innerJoinIncludedTags(true);
         return filter;
     }
 
@@ -1175,6 +1177,8 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         testFindDescendantLinks(ancestor, filter, expectedLinks);
         testFindDescendantTasks(ancestor, filter, expectedTasks);
     }
+
+    // TODO: Test tag filter with outer join
 
     @Test
     public void testFindDescendantsFilteredComplexNesting() {

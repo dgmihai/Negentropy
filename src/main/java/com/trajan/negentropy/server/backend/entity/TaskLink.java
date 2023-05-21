@@ -27,10 +27,10 @@ public class TaskLink extends AbstractEntity {
     private TaskEntity child;
 
     private Integer position = 0;
-
     private Integer importance = 0;
 
     private Boolean recurring = false;
+    private Boolean completed = false;
 
     public String toString() {
         return "LinkEntity[" + super.toString() + ", parent=" + parent + ", child=" + child + "]";

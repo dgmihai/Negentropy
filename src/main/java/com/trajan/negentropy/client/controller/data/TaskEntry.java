@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.controller.data;
 
+import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,4 +20,8 @@ public class TaskEntry {
     private TaskEntry parent;
     private TaskNode node;
     private Duration netDuration;
+
+    public Task task() {
+        return node.child();
+    }
 }

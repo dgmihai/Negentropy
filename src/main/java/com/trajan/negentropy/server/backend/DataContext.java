@@ -45,7 +45,8 @@ public interface DataContext {
                 toDTO(link.child()),
                 link.position(),
                 link.importance(),
-                link.recurring());
+                link.recurring(),
+                link.completed());
     }
 
     static Tag toDTO(TagEntity tagEntity) {
@@ -80,5 +81,8 @@ public interface DataContext {
     }
 
     TaskLink TESTONLY_mergeLink(TaskLink link);
+
+    void deleteAllOrphanedTags();
+
     TaskEntity TESTONLY_mergeTask(TaskEntity taskEntity);
 }

@@ -1,8 +1,11 @@
 @import url('./main-layout.css');
+@import url('./views/routine-view.css');
+
 @import url('@fontsource/pt-sans-narrow/index.css');    html {
       --lumo-primary-color: hsl(311, 46%, 30%);
       --lumo-primary-color-50pct: hsla(311, 46%, 30%, 0.5);
       --lumo-primary-color-10pct: hsla(311, 46%, 30%, 0.1);
+      --lumo-primary-color-5pct: hsla(311, 46%, 50%, 0.05);
       --lumo-error-color: hsla(3, 100%, 38%, 0.72);
       --lumo-error-color-50pct: hsla(3, 100%, 38%, 0.5);
       --lumo-error-color-10pct: hsla(3, 100%, 38%, 0.1);

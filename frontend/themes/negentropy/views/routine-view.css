@@ -1,0 +1,98 @@
+.routine-view {
+  display: block;
+  height: 100%;
+}
+
+.routine-view vaadin-grid {
+  height: 100%;
+  line-height: var(--lumo-line-height-m);
+}
+
+.routine-view vaadin-grid,
+.routine-view vaadin-grid-cell-content {
+  background-color: var(--lumo-base-color);
+}
+
+.routine-view .card {
+  background-color: var(--lumo-shade-5pct);
+  border-radius: var(--lumo-border-radius);
+  box-shadow: var(--lumo-box-shadow-s);
+  padding: calc(var(--lumo-space-s) * 1.5) var(--lumo-space-m);
+  align-items: baseline;
+}
+
+.routine-view .card[active] {
+  background-color: var(--lumo-primary-color-5pct);
+}
+
+.routine-view .bar {
+  border-radius: var(--lumo-border-radius);
+  border: 1px outset;
+  align-items: baseline;
+}
+
+.routine-view .card-side {
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+}
+
+.routine-view img {
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: var(--lumo-size-m);
+  margin-right: calc(var(--lumo-space-s) * 1.5);
+  width: var(--lumo-size-m);
+}
+
+.routine-view .header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--lumo-space-xs);
+}
+
+.routine-view .name {
+  font-size: var(--lumo-font-size-xl);
+  margin-right: var(--lumo-space-s);
+}
+
+.routine-view .date {
+  color: var(--lumo-body-text-color);
+  font-size: var(--lumo-font-size-l);
+}
+
+.routine-view .bar .timer {
+  text-align: right;
+  width: 4rem;
+}
+
+.routine-view .description {
+  color: var(--lumo-secondary-text-color);
+  font-size: var(--lumo-font-size-m);
+  margin-bottom: var(--lumo-space-xs);
+  --lumo-text-field-size: var(--lumo-size-s);
+}
+
+.routine-view vaadin-text-area::part(input-field) {
+  background-color: var(--lumo-tint-70pct);
+}
+
+.routine-view .actions {
+  align-items: center;
+}
+
+.routine-view .icon {
+  color: var(--lumo-tertiary-text-color);
+  height: calc(var(--lumo-icon-size-s) * 0.8);
+  margin-right: var(--lumo-space-s);
+  width: calc(var(--lumo-icon-size-s) * 0.8);
+}
+
+.routine-view .likes,
+.routine-view .comments,
+.routine-view .shares {
+  color: var(--lumo-tertiary-text-color);
+  font-size: var(--lumo-font-size-xs);
+  margin-right: var(--lumo-space-l);
+}

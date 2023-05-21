@@ -5,6 +5,9 @@ import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.vaadin.flow.function.ValueProvider;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -12,9 +15,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.function.Supplier;
 
+@SpringComponent
+@UIScope
 public class DurationEstimateValueProvider<T> implements ValueProvider<T, String> {
 
-    private final QueryService queryService;
+    @Autowired private final QueryService queryService;
     private final Supplier<TimeFormat> timeFormatCallback;
     private final boolean netDuration;
 

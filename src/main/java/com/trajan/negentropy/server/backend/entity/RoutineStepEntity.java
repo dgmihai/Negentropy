@@ -1,6 +1,5 @@
 package com.trajan.negentropy.server.backend.entity;
 
-import com.trajan.negentropy.server.backend.entity.status.StepStatus;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineStepData;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -40,7 +39,7 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
 
     @Enumerated(EnumType.STRING)
     @NotNull
-    private StepStatus status = StepStatus.NOT_STARTED;
+    private TimeableStatus status = TimeableStatus.NOT_STARTED;
 
     private Integer position;
 }

@@ -30,6 +30,11 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-secondary-text-color);
 }
 
+.grayed-color {
+    color:
+      var(--lumo-body-text-color);
+}
+
 .primary-color-icon {
     fill:
       var(--lumo-primary-color);
@@ -45,11 +50,20 @@ vaadin-scroller[slot="drawer"] {
     var(--lumo-error-color);
 }
 
+.grayed-color-icon {
+    fill:
+      var(--lumo-body-text-color);
+}
+
 vaadin-multi-select-combo-box-chip {
     background-color:
     var(--lumo-primary-color-10pct);
   color:
     var(--lumo-contrast);
+}
+
+#drag-handle-column {
+    user-select: none;
 }
 
 vaadin-multi-select-combo-box.grid-combo-box::part(input-field) {

@@ -139,6 +139,7 @@ public class TaskTestTemplate {
                     childId,
                     i,
                     children.get(i).getSecond(),
+                    false,
                     false);
 
             TaskNode node = updateService.insertTaskNode(freshNode).node();

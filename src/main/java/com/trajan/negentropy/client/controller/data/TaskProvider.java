@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.util;
+package com.trajan.negentropy.client.controller.data;
 
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;

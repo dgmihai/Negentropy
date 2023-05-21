@@ -59,9 +59,11 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     }
 
     public Task getTask(TaskID taskId) {
-        return cachedTasks.containsKey(taskId) ?
+        Task task =  cachedTasks.containsKey(taskId) ?
                 cachedTasks.get(taskId) :
                 queryService.fetchTask(taskId);
+        cachedTasks.put(task.id(), task);
+        return task;
     }
 
     @Override

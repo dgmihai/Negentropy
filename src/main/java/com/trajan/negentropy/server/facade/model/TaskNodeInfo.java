@@ -13,4 +13,5 @@ public class TaskNodeInfo {
     protected Integer position;
     protected Integer importance;
     protected Boolean recurring;
+    protected Boolean completed;
 }

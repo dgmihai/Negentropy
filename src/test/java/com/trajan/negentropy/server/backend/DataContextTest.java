@@ -84,6 +84,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.importance(), (Integer) taskNode.importance());
         assertEquals(taskLink.position(), taskNode.position());
         assertEquals(taskLink.recurring(), taskNode.recurring());
+        assertEquals(taskLink.completed(), taskNode.completed());
         assertEquals(ID.of(taskLink.parent()), taskNode.parentId());
         assertEquals(ID.of(taskLink.child()), taskNode.child().id());
     }
@@ -98,6 +99,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 0,
                 0,
+                false,
                 false));
 
         TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink(
@@ -105,6 +107,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 2,
                 1,
+                false,
                 false));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
@@ -112,6 +115,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 2,
                 0,
+                false,
                 false));
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
@@ -131,14 +135,16 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 2,
                 0,
-                true));
+                true,
+                false));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 parentTaskEntity,
                 childTaskEntity,
                 1,
                 0,
-                true));
+                true,
+                false));
 
         parentTaskEntity.childLinks(List.of(taskLink, nextLink));
 
@@ -236,6 +242,7 @@ public class DataContextTest extends TaskTestTemplate {
                 DataContext.toDTO(childTaskEntity),
                 1,
                 2,
+                false,
                 false);
 
         TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
@@ -266,6 +273,7 @@ public class DataContextTest extends TaskTestTemplate {
                         ID.of(childTaskEntity),
                         4,
                         2,
+                        false,
                         false)));
     }
 
@@ -294,7 +302,8 @@ public class DataContextTest extends TaskTestTemplate {
                 DataContext.toDTO(childTaskEntity),
                 1,
                 2,
-                true);
+                true,
+                false);
 
         TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
 
@@ -310,7 +319,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .parent(parentTaskEntity)
                 .child(childTaskEntity)
                 .importance(2)
-                .position(0));
+                .position(0)
+                .completed(true));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
@@ -325,13 +335,15 @@ public class DataContextTest extends TaskTestTemplate {
                 DataContext.toDTO(childTaskEntity),
                 0,
                 2,
-                false);
+                false,
+                true);
 
         TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
 
         assertEquals(taskNode.linkId(), ID.of(mergedTaskLink));
         assertEquals(taskNode.importance(), mergedTaskLink.importance());
         assertEquals(taskNode.position(), mergedTaskLink.position());
+        assertEquals(taskNode.recurring(), mergedTaskLink.recurring());
         assertEquals(ID.of(parentTaskEntity), ID.of(mergedTaskLink.parent()));
         assertEquals(ID.of(childTaskEntity), ID.of(mergedTaskLink.child()));
     }

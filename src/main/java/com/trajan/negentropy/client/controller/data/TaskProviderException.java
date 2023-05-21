@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.util;
+package com.trajan.negentropy.client.controller.data;
 
 public class TaskProviderException extends Exception {
     public TaskProviderException(String message) {

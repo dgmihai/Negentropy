@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.controller;
 
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
-import com.trajan.negentropy.client.util.TaskProvider;
+import com.trajan.negentropy.client.controller.data.TaskProvider;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -12,6 +12,7 @@ import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.trajan.negentropy.server.facade.response.TaskResponse;
 
 public interface ClientDataController {
 
@@ -22,8 +23,8 @@ public interface ClientDataController {
 
     void updateNode(TaskEntry entry);
     void updateNode(TaskNode node);
-    void updateTask(Task task);
-    void updateTask(TaskEntry entry);
+    TaskResponse updateTask(Task task);
+    TaskResponse updateTask(TaskEntry entry);
     void updateEntry(TaskEntry entry);
 
     void moveNodeToRoot(TaskEntry entry);

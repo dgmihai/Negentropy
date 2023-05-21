@@ -96,9 +96,14 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(qTask.name.lower().contains(filter.name().toLowerCase()));
             }
             if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
+                Consumer<TagEntity> filterFunction =
+                        (filter.innerJoinIncludedTags() != null && filter.innerJoinIncludedTags()) ?
+                        tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
+                        tagEntity -> builder.or(qTask.tags.contains(tagEntity));
+
                 filter.includedTagIds().stream()
                         .map(this::getTag)
-                        .forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity)));
+                        .forEach(filterFunction);
             }
             if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
                 filter.excludedTagIds().stream()
@@ -317,6 +322,15 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         QTaskEntity qTask = QTaskEntity.taskEntity;
         return StreamSupport.stream(taskRepository.findAll(
                 qTask.parentLinks.isEmpty())
+                .spliterator(), false);
+    }
+
+    @Override
+    public Stream<TagEntity> findOrphanedTags() {
+        logger.trace("findOrphanedTags");
+        QTagEntity qTag = QTagEntity.tagEntity;
+        return StreamSupport.stream(tagRepository.findAll(
+                        qTag.tasks.isEmpty())
                 .spliterator(), false);
     }
 }

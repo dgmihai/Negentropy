@@ -218,4 +218,6 @@ public interface EntityQueryService {
     Stream<TaskLink> findLeafTaskLinks(TaskFilter filter);
 
     Stream<TaskEntity> findOrphanedTasks();
+
+    Stream<TagEntity> findOrphanedTags();
 }

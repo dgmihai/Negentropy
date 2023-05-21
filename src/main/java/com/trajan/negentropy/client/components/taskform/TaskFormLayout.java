@@ -3,7 +3,7 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.client.util.TaskProviderException;
+import com.trajan.negentropy.client.controller.data.TaskProviderException;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -26,6 +26,8 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         configureInteractions();
         configureBindings();
         configureLayout();
+
+        setColspan(tagComboBox, 2);
 
         this.add(nameField, durationField,
                 tagComboBox, descriptionArea,

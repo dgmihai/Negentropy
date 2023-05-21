@@ -2,13 +2,14 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.server.backend.entity.status.StepStatus;
+import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.trajan.negentropy.server.facade.model.RoutineStep;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.trajan.negentropy.server.facade.response.TaskResponse;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -16,6 +17,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ReadOnlyHasValue;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +37,9 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
-    private H2 currentTaskName;
-    private StepTimer timer;
-    private TextArea descriptionArea;
+    private Span currentTaskName;
+    private RoutineTimer timer;
+    private TextArea description;
 
     private Routine routine;
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
@@ -49,7 +52,7 @@ public class RoutineCard extends VerticalLayout {
         binder.setBean(routine.steps().get(routine.currentPosition()));
 
         initComponents();
-        arrangeComponents();
+        layout();
     }
 
     private void processStep(Function<StepID, RoutineResponse> stepFunction) {
@@ -59,18 +62,19 @@ public class RoutineCard extends VerticalLayout {
         updateComponents();
     }
 
+    private boolean isActive() {
+        return binder.getBean().status().equals(TimeableStatus.ACTIVE);
+    }
+
     private void updateComponents() {
-        play.setVisible(binder.getBean().status().equals(StepStatus.ACTIVE));
-        pause.setVisible(!play.isVisible());
-        currentTaskName.setText(binder.getBean().task().name());
+        this.getElement().setAttribute("active", isActive());
         prev.setEnabled(routine.currentPosition() > 0);
-        timer.setStep(routine.currentStep());
+        timer.setTimeable(binder.getBean());
+        rootTaskbar.timer().run(!isActive());
     }
 
     private void initComponents() {
-        rootTaskbar = new TaskInfoBar();
-
-        rootTaskbar.setStep(routine.steps().get(0));
+        rootTaskbar = new TaskInfoBar(routine.rootStep(), controller);
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> this.processStep(
@@ -92,48 +96,90 @@ public class RoutineCard extends VerticalLayout {
         skip.addClickListener(event -> this.processStep(
                 controller::skipRoutineStep));
 
-        currentTaskName = new H2(binder.getBean().task().name());
+        currentTaskName = new Span(binder.getBean().task().name());
+        ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(
+                text -> currentTaskName.setText(text));
+        binder.forField(taskName)
+                .bindReadOnly(step -> step.task().name());
 
-        timer = new StepTimer(binder.getBean(), controller);
-        timer.getStyle().set("font-size", "20px");
+        timer = new RoutineTimer(binder.getBean(), controller);
 
         this.updateComponents();
-        binder.addValueChangeListener(event -> updateComponents());
 
-        descriptionArea = new TextArea();
-        binder.forField(descriptionArea)
-                .bindReadOnly(step -> step.task().description());
+        description = new TextArea();
+        binder.forField(description)
+                .bind(step -> step.task().description(),
+                        (step, text) -> step.task().description(text));
+        description.setValueChangeMode(ValueChangeMode.LAZY);
+        description.addValueChangeListener(event -> {
+            TaskResponse response = controller.updateTask(binder.getBean().task());
+            if (response.success()) {
+                binder.getBean().task(response.task());
+            }
+        });
     }
 
-    private void arrangeComponents() {
-        HorizontalLayout routineUpper = new HorizontalLayout();
+    private void layout() {
+        this.setSpacing(false);
+        this.addClassName("card");
+
+        rootTaskbar.setPadding(false);
+
+        HorizontalLayout lower = new HorizontalLayout();
+        lower.addClassName("header");
+        lower.setWidthFull();
+
+        lower.getThemeList().add("spacing-s");
+
+        Div left = new Div(prev);
+        left.setHeightFull();
+        left.addClassName("card-side");
+
+        Div right = new Div(next);
+        right.setHeightFull();
+        right.addClassName("card-side");
+
+        currentTaskName.addClassName("name");
+        timer.addClassName("name");
+
+        HorizontalLayout header = new HorizontalLayout();
+        header.addClassName("header");
+        header.setSpacing(false);
+        header.getThemeList().add("spacing-s");
+        header.setWidthFull();
+        header.add(currentTaskName, timer);
+
+        VerticalLayout middle = new VerticalLayout();
+        middle.addClassName("middle");
+        middle.setSpacing(false);
+        middle.setPadding(false);
+        middle.add(header, description);
+
         HorizontalLayout routineMiddle = new HorizontalLayout();
         HorizontalLayout routineLower = new HorizontalLayout();
 
-//        auxiliaryButtons.add(play, pause, skip);
-//        auxiliaryButtons.setWidthFull();
-//        auxiliaryButtons.setJustifyContentMode(JustifyContentMode.EVENLY);
+        HorizontalLayout upper = new HorizontalLayout();
+        upper.setWidthFull();
+        upper.setJustifyContentMode(JustifyContentMode.EVENLY);
 
-        routineUpper.add(currentTaskName);
-        routineUpper.setWidthFull();
-        routineUpper.setJustifyContentMode(JustifyContentMode.EVENLY);
-
-        routineMiddle.add(timer);
         routineMiddle.setWidthFull();
         routineMiddle.setJustifyContentMode(JustifyContentMode.EVENLY);
 
-        routineLower.add(prev, skip, play, pause, next);
-        routineLower.setJustifyContentMode(JustifyContentMode.EVENLY);
         routineLower.setWidthFull();
 
-        descriptionArea.setWidthFull();
+        description.setWidthFull();
 
-        this.add(rootTaskbar, routineUpper, routineMiddle, routineLower, descriptionArea);
+        lower.add(left, middle, right);
+        this.add(rootTaskbar, lower);
+        this.setWidthFull();
 
-        this.addClassNames(
-                LumoUtility.BorderColor.PRIMARY,
-                LumoUtility.Border.ALL,
-                LumoUtility.BorderRadius.SMALL);
+        header.getElement().addEventListener("click", e -> {
+            if (isActive()) {
+                processStep(controller::pauseRoutineStep);
+            } else {
+                processStep(controller::startRoutineStep);
+            }
+        });
     }
 
     private static class RoutineCardButton extends Div {
@@ -141,7 +187,7 @@ public class RoutineCard extends VerticalLayout {
             super(icon);
 
             icon.addClassNames(
-                    LumoUtility.IconSize.LARGE,
+                    LumoUtility.IconSize.MEDIUM,
                     K.COLOR_PRIMARY);
         }
     }
@@ -151,7 +197,7 @@ public class RoutineCard extends VerticalLayout {
             super(icon);
 
             icon.addClassNames(
-                    LumoUtility.IconSize.LARGE);
+                    LumoUtility.IconSize.MEDIUM);
         }
 
         @Override

@@ -14,6 +14,7 @@ import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,11 @@ public class DataContextImpl implements DataContext {
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
     @Autowired private TagRepository tagRepository;
+
+    @PostConstruct
+    public void cleanup() {
+        this.deleteAllOrphanedTags();
+    }
 
     @Override
     public void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId) {
@@ -151,13 +157,15 @@ public class DataContextImpl implements DataContext {
                 0 :
                 node.importance();
         boolean recurring = node.recurring() != null && node.recurring();
+        boolean completed = node.completed() != null && node.completed();
 
         TaskLink link = linkRepository.save(new TaskLink(
                 parent,
                 child,
                 position,
                 importance,
-                recurring));
+                recurring,
+                completed));
 
         if (parent != null) {
             Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration();
@@ -218,6 +226,12 @@ public class DataContextImpl implements DataContext {
             .negated();
         TaskID parentId = ID.of(parent);
         this.addToTimeEstimateOfAllAncestors(change, parentId);
+    }
+
+    @Override
+    public void deleteAllOrphanedTags() {
+        logger.trace("deleteAllOrphanedTags");
+        tagRepository.deleteAllInBatch(entityQueryService.findOrphanedTags().toList());
     }
 
     @Override

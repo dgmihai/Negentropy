@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.util.NotificationError;
-import com.trajan.negentropy.client.util.TaskProvider;
+import com.trajan.negentropy.client.controller.data.TaskProvider;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.UpdateService;
@@ -112,19 +112,17 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
-    public void updateTask(Task task) {
+    public TaskResponse updateTask(Task task) {
         logger.debug("Updating task: " + task);
-        this.tryServiceCall(
+        TaskResponse response = this.tryServiceCall(
                 () -> updateService.updateTask(task));
-        dataProvider.refreshMatchingItems(task.id(), false);
+        dataProvider.refreshMatchingItems(task.id(), true);
+        return response;
     }
 
     @Override
-    public void updateTask(TaskEntry entry) {
-        logger.debug("Updating task: " + entry);
-        this.tryServiceCall(
-                () -> updateService.updateTask(entry.node().child()));
-        dataProvider.refreshMatchingItems(entry.node().child().id(), true);
+    public TaskResponse updateTask(TaskEntry entry) {
+        return this.updateTask(entry.node().child());
     }
 
     @Override
@@ -255,7 +253,7 @@ public class ClientDataControllerImpl implements ClientDataController {
 
     @Override
     public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, TaskNodeInfo nodeInfo) {
-        logger.debug("Creating task as a child of " + parent);
+        logger.debug("Adding task as a child of " + parent);
         TaskID parentId = parent == null ? null : parent.node().child().id();
         TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
                 parentId,
@@ -279,12 +277,13 @@ public class ClientDataControllerImpl implements ClientDataController {
         TaskNodeInfo nodeInfo = new TaskNodeInfo(
                 next.node().position(),
                 null,
-                false
-        );
+                false,
+                false);
         TaskNodeDTO taskDTO = new TaskNodeDTO(
                 next.node().parentId(),
                 null,
                 nodeInfo);
+        logger.debug("Adding task " + taskDTO + " before: " + next);
         return this.addTaskDTO(taskProvider, taskDTO);
     }
 
@@ -298,12 +297,13 @@ public class ClientDataControllerImpl implements ClientDataController {
         TaskNodeInfo nodeInfo = new TaskNodeInfo(
                 prev.node().position() + 1,
                 null,
-                false
-        );
+                false,
+                false);
         TaskNodeDTO taskDTO = new TaskNodeDTO(
                 prev.node().parentId(),
                 null,
                 nodeInfo);
+        logger.debug("Adding task " + taskDTO + " after: " + prev);
         return this.addTaskDTO(taskProvider, taskDTO);
     }
 
@@ -343,16 +343,16 @@ public class ClientDataControllerImpl implements ClientDataController {
 
     @Override
     public void recalculateTimeEstimates() {
+        logger.debug("Recalculating time estimates");
         updateService.recalculateTimeEstimates();
         dataProvider.refreshAll();
     }
 
     // Routine Management
 
-
-
     @Override
     public RoutineResponse createRoutine(TaskID taskId) {
+        logger.debug("Creating routine from task: " + taskId);
         return tryServiceCall(() -> routineService.createRoutine(taskId));
     }
 
@@ -363,30 +363,35 @@ public class ClientDataControllerImpl implements ClientDataController {
 
     @Override
     public RoutineResponse startRoutineStep(StepID stepId) {
+        logger.debug("Starting routine step: " + stepId);
         return this.processStep(
                 () -> routineService.startStep(stepId, LocalDateTime.now()));
     }
 
     @Override
     public RoutineResponse pauseRoutineStep(StepID stepId) {
+        logger.debug("Pausing routine step: " + stepId);
         return this.processStep(
                 () -> routineService.suspendStep(stepId, LocalDateTime.now()));
     }
 
     @Override
     public RoutineResponse previousRoutineStep(StepID stepId) {
+        logger.debug("Going to previous step of routine step: " + stepId);
         return this.processStep(
                 () -> routineService.previousStep(stepId, LocalDateTime.now()));
     }
 
     @Override
     public RoutineResponse completeRoutineStep(StepID stepId) {
+        logger.debug("Completing routine step: " + stepId);
         return this.processStep(
                 () -> routineService.completeStep(stepId, LocalDateTime.now()));
     }
 
     @Override
     public RoutineResponse skipRoutineStep(StepID stepId) {
+        logger.debug("Skipping routine step: " + stepId);
         return this.processStep(
                 () -> routineService.skipStep(stepId, LocalDateTime.now()));
     }

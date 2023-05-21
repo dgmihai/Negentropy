@@ -44,8 +44,6 @@ import com.vaadin.flow.component.textfield.TextAreaVariant;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.server.WebBrowser;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
@@ -63,7 +61,6 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -95,7 +92,7 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private TaskEntry draggedItem;
 
-    private final String DURATION_COL_WIDTH = "50px";
+    private final String DURATION_COL_WIDTH = "60px";
     private final String ICON_COL_WIDTH_S = "31px";
     private final String ICON_COL_WIDTH_L = "35px";
 
@@ -109,8 +106,8 @@ public class TaskTreeGrid extends VerticalLayout {
     public static final String COLUMN_KEY_RECURRING = "Recurring";
     public static final String COLUMN_KEY_TAGS = "Tags";
     public static final String COLUMN_KEY_DESCRIPTION = "Description";
-    public static final String COLUMN_KEY_DURATION = "Task Duration";
-    public static final String COLUMN_KEY_TIME_ESTIMATE = "Net Time Estimate";
+    public static final String COLUMN_KEY_DURATION = "Single Step Duration";
+    public static final String COLUMN_KEY_TIME_ESTIMATE = "Total Duration";
     public static final String COLUMN_KEY_EDIT = "Edit";
     public static final String COLUMN_KEY_DELETE = "Delete";
     public static final List<String> VISIBILITY_TOGGLEABLE_COLUMNS = List.of(
@@ -189,9 +186,18 @@ public class TaskTreeGrid extends VerticalLayout {
             return div;
         });
     }
+    
+    private Icon headerIcon(VaadinIcon vaadinIcon) {
+            Icon icon = vaadinIcon.create();
+            icon.setSize(K.INLINE_ICON_SIZE);
+            icon.addClassName(K.ICON_COLOR_GRAYED);
+            return icon;
+    }
 
-    private Task getTask(TaskEntry entry) {
-        return entry.node().child();
+    private Component headerIcon(LineAwesomeIcon lineAwesomeIcon) {
+        Component icon = lineAwesomeIcon.create();
+        icon.addClassName(K.ICON_COLOR_GRAYED);
+        return icon;
     }
 
     private void initReadColumns() {
@@ -203,9 +209,9 @@ public class TaskTreeGrid extends VerticalLayout {
         dragHandleColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
                     Component dragHandle = LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID.create();
-                    dragHandle.addClassName(K.ICON_COLOR_UNSELECTED);
+                    dragHandle.addClassName(K.COLOR_UNSELECTED);
                     dragHandle.getElement().addEventListener("mousedown", e -> onDown.accept(entry));
-                    dragHandle.getElement().addEventListener("touchStart", e -> onDown.accept(entry));
+                    dragHandle.getElement().addEventListener("touchstart", e -> onDown.accept(entry));
                     return dragHandle;
                 }))
                 .setKey(COLUMN_KEY_DRAG_HANDLE)
@@ -217,52 +223,43 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setId(COLUMN_ID_DRAG_HANDLE);
 
         nameColumn = treeGrid.addHierarchyColumn(
-                        entry -> getTask(entry).name())
+                        entry -> entry.task().name())
                 .setKey(COLUMN_KEY_NAME)
                 .setHeader(COLUMN_KEY_NAME)
                 .setWidth("150px")
                 .setFrozen(true)
                 .setFlexGrow(1);
 
-        Component routineColumnHeaderIcon = LineAwesomeIcon.FIRE_ALT_SOLID.create();
-//        routineColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        routineColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
         routineColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
                     InlineIconButton startAsRoutine = new InlineIconButton(LineAwesomeIcon.FIRE_ALT_SOLID.create());
                     startAsRoutine.addClickListener(event -> {
-                        controller.createRoutine(getTask(entry).id());
+                        controller.createRoutine(entry.task().id());
                         UI.getCurrent().navigate(RoutineView.class);
                     });
                     return startAsRoutine;
                 }))
                 .setKey(COLUMN_KEY_ROUTINE)
-                .setHeader(routineColumnHeaderIcon)
+                .setHeader(headerIcon(LineAwesomeIcon.FIRE_ALT_SOLID))
                 .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-        Icon completeColumnHeaderIcon = VaadinIcon.CHECK_SQUARE_O.create();
-        completeColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        completeColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
         completeColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
                     InlineIconButton completeOneTime = new InlineIconButton(VaadinIcon.CHECK.create());
                     completeOneTime.addClickListener(event -> controller.deleteNode(entry));
                     completeOneTime.setEnabled(!entry.node().recurring());
-                    completeOneTime.setVisible(!getTask(entry).hasChildren());
+                    completeOneTime.setVisible(!entry.task().hasChildren());
                     return completeOneTime;
                 }))
                 .setKey(COLUMN_KEY_COMPLETE)
-                .setHeader(completeColumnHeaderIcon)
+                .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
                 .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-        Icon recurringColumnHeaderIcon = VaadinIcon.ROTATE_RIGHT.create();
-        recurringColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        recurringColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
-        recurringColumn = treeGrid.addColumn(
+         recurringColumn = treeGrid.addColumn(
                 new ComponentRenderer<>(entry -> {
                     InlineIconToggleButton isTaskRecurring = new InlineIconToggleButton(
                             VaadinIcon.ROTATE_RIGHT.create());
@@ -275,7 +272,7 @@ public class TaskTreeGrid extends VerticalLayout {
                     return isTaskRecurring;
                 }))
                 .setKey(COLUMN_KEY_RECURRING)
-                .setHeader(recurringColumnHeaderIcon)
+                .setHeader(headerIcon(VaadinIcon.ROTATE_RIGHT))
                 .setAutoWidth(true)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
@@ -287,9 +284,9 @@ public class TaskTreeGrid extends VerticalLayout {
                     tagComboBox.setClassName("grid-combo-box");
                     tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
                     tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
-                    tagComboBox.setValue(getTask(entry).tags());
+                    tagComboBox.setValue(entry.task().tags());
                     tagComboBox.addValueChangeListener(event -> {
-                        Task task = new Task(getTask(entry).id())
+                        Task task = new Task(entry.task().id())
                                 .tags(event.getValue());
                         controller.updateTask(task);
                     });
@@ -300,9 +297,6 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setFlexGrow(1);
         tagColumn.setClassName("tag-column");
 
-        Icon descriptionColumnHeaderIcon = VaadinIcon.NOTEBOOK.create();
-        descriptionColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        descriptionColumnHeaderIcon.addClassName(K.ICON_COLOR_UNSELECTED);
         descriptionColumn = treeGrid.addColumn(
                 this.inlineButtonRenderer(VaadinIcon.EYE, VaadinIcon.EYE_SLASH,
                         entry -> {
@@ -310,10 +304,10 @@ public class TaskTreeGrid extends VerticalLayout {
                                     entry,
                                     !treeGrid.isDetailsVisible(entry));
                         },
-                        entry -> !getTask(entry).description().isBlank(),
+                        entry -> !entry.task().description().isBlank(),
                         treeGrid::isDetailsVisible))
                 .setKey(COLUMN_KEY_DESCRIPTION)
-                .setHeader(descriptionColumnHeaderIcon)
+                .setHeader(headerIcon(VaadinIcon.CLIPBOARD_TEXT))
                 .setWidth(ICON_COL_WIDTH_L)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
@@ -327,30 +321,24 @@ public class TaskTreeGrid extends VerticalLayout {
 
         Icon durationColumnHeaderIcon = VaadinIcon.CLOCK.create();
         durationColumnHeaderIcon.setSize(K.INLINE_ICON_SIZE);
-        durationColumnHeaderIcon.addClassNames("unselected-color-icon");
+        durationColumnHeaderIcon.addClassNames(K.ICON_COLOR_UNSELECTED);
         taskDurationColumn = treeGrid.addColumn(
                         new DurationEstimateValueProvider<>(
                                 controller.queryService(),
                                 () -> TimeFormat.DURATION,
                                 false))
                 .setKey(COLUMN_KEY_DURATION)
-                .setHeader(durationColumnHeaderIcon)
+                .setHeader(headerIcon(VaadinIcon.CLOCK))
                 .setWidth(DURATION_COL_WIDTH)
                 .setFlexGrow(0)
                 .setTextAlign(ColumnTextAlign.CENTER);
 
-        Icon clock = VaadinIcon.CLOCK.create();
-        clock.setSize(K.INLINE_ICON_SIZE);
-        clock.addClassNames("unselected-color-icon");
-
-        Icon tree = VaadinIcon.FILE_TREE_SUB.create();
-        tree.setSize(K.INLINE_ICON_SIZE);
-        tree.addClassNames("unselected-color-icon");
-
-        HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(tree, clock);
+        HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
+                headerIcon(VaadinIcon.FILE_TREE_SUB),
+                headerIcon(VaadinIcon.CLOCK));
         timeEstimateColumnHeader.setSpacing(false);
         timeEstimateColumnHeader.setJustifyContentMode(JustifyContentMode.CENTER);
-        timeEstimateColumnHeader.setSizeFull();
+//        timeEstimateColumnHeader.setSizeFull();
         timeEstimateColumn = treeGrid.addColumn(
                         new DurationEstimateValueProvider<>(
                                 controller.queryService(),
@@ -369,6 +357,7 @@ public class TaskTreeGrid extends VerticalLayout {
                             if (editor.isOpen()) {
                                 editor.cancel();
                             }
+                            treeGrid.setDetailsVisible(entry, false);
                             editor.editItem(entry);
                             treeGrid.setDetailsVisible(entry, true);
                         }))
@@ -391,7 +380,7 @@ public class TaskTreeGrid extends VerticalLayout {
         deleteColumn = treeGrid.addColumn(
                 new ComponentRenderer<Component, TaskEntry>(entry -> {
                     Div div = new Div();
-                    if(!getTask(entry).hasChildren()) {
+                    if(!entry.task().hasChildren()) {
                         InlineIconButton iconButton = new InlineIconButton(VaadinIcon.TRASH.create());
                         iconButton.getIcon().addClassName(K.ICON_COLOR_ERROR);
                         iconButton.addClickListener(event -> controller.deleteNode(entry));
@@ -408,6 +397,7 @@ public class TaskTreeGrid extends VerticalLayout {
                 .setTextAlign(ColumnTextAlign.CENTER);
 
         treeGrid.setSortableColumns();
+        treeGrid.setColumnReorderingAllowed(true);
 
         treeGrid.setPartNameGenerator(entry -> {
             if (entry.node().recurring()) {
@@ -445,44 +435,41 @@ public class TaskTreeGrid extends VerticalLayout {
                         descriptionSaveButton,
                         descriptionCancelButton);
 
-                descriptionArea.setValue(getTask(entry).description());
+                descriptionArea.setValue(entry.task().description());
                 descriptionArea.setReadOnly(true);
                 descriptionSaveButton.setVisible(false);
                 descriptionCancelButton.setVisible(false);
-                AtomicBoolean editing = new AtomicBoolean(false);
 
-                Runnable toggleEditing = () -> {
-                    boolean toggle = editing.get();
-                    descriptionArea.setReadOnly(toggle);
-                    descriptionSaveButton.setVisible(!toggle);
-                    descriptionCancelButton.setVisible(!toggle);
-                    editing.set(!toggle);
+                Consumer<Boolean> toggleEditing = editing -> {
+                    descriptionArea.setReadOnly(!editing);
+                    descriptionSaveButton.setVisible(editing);
+                    descriptionCancelButton.setVisible(editing);
                 };
 
                 Runnable saveDescription = () -> {
-                    toggleEditing.run();
+                    toggleEditing.accept(false);
 
-                    controller.updateTask(new Task(getTask(entry).id())
+                    controller.updateTask(new Task(entry.task().id())
                             .description(descriptionArea.getValue()));
                 };
 
                 Runnable cancelEditingDescription = () -> {
-                    toggleEditing.run();
+                    toggleEditing.accept(false);
 
-                    descriptionArea.setValue(getTask(entry).description());
+                    descriptionArea.setValue(entry.task().description());
                 };
 
-                descriptionArea.getElement().addEventListener("mouseup", e -> toggleEditing.run());
-                descriptionArea.getElement().addEventListener("touchend", e -> toggleEditing.run());
+                descriptionArea.getElement().addEventListener("mouseup", e -> toggleEditing.accept(true));
+                descriptionArea.getElement().addEventListener("touchend", e -> toggleEditing.accept(true));
 
                 descriptionSaveButton.addClickListener(e -> saveDescription.run());
                 descriptionCancelButton.addClickListener(e -> cancelEditingDescription.run());
 
-                Shortcuts.addShortcutListener(container,
+                Registration enterShortcut = Shortcuts.addShortcutListener(container,
                         saveDescription::run,
                         Key.ENTER);
 
-                Shortcuts.addShortcutListener(container,
+                Registration escapeShortcut = Shortcuts.addShortcutListener(container,
                         cancelEditingDescription::run,
                         Key.ESCAPE);
 
@@ -518,7 +505,7 @@ public class TaskTreeGrid extends VerticalLayout {
             escapeListener.set(Optional.of(Shortcuts.addShortcutListener(treeGrid,
                     editor::cancel,
                     Key.ESCAPE)));
-            if (getTask(e.getItem()).description().isBlank()) {
+            if (e.getItem().task().description().isBlank()) {
                 treeGrid.setDetailsVisible(e.getItem(), false);
             }
         });
@@ -528,11 +515,12 @@ public class TaskTreeGrid extends VerticalLayout {
 
     private void configureDragAndDrop() {
         treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
+        treeGrid.setRowsDraggable(false);
         // Drag start is managed by the dragHandleColumn
 
         treeGrid.addDropListener(event -> {
-            logger.debug(draggedItem + " dropped onto " + getTask(
-                    event.getDropTargetItem().orElseThrow()).name());
+            logger.debug(draggedItem + " dropped onto " +
+                    event.getDropTargetItem().orElseThrow().task().name());
             if (event.getDropTargetItem().isPresent()) {
                 TaskEntry target = event.getDropTargetItem().get();
                 if (!draggedItem.equals(target)) {
@@ -560,12 +548,9 @@ public class TaskTreeGrid extends VerticalLayout {
         });
     }
 
-    private boolean isIOS() {
-        WebBrowser webBrowser = VaadinSession.getCurrent().getBrowser();
-        return webBrowser.isIPhone();
-    }
-
     private void configureSelection() {
+        treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+
         DoubleClickListenerUtil.add(treeGrid, entry ->
                 nestedTabs.onSelectNewRootEntry(entry));
     }

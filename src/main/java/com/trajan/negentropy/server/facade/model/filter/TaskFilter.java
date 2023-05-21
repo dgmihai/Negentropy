@@ -17,4 +17,5 @@ public class TaskFilter {
     private Set<TagID> includedTagIds;
     private Set<TagID> excludedTagIds;
     private Integer importanceThreshold;
+    private Boolean innerJoinIncludedTags;
 }
