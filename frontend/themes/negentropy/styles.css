@@ -1,5 +1,6 @@
 @import url('./main-layout.css');
 @import url('./views/routine-view.css');
+@import url('./components/grid.css');
 
 @import url('@fontsource/pt-sans-narrow/index.css');    html {
       --lumo-primary-color: hsl(311, 46%, 30%);

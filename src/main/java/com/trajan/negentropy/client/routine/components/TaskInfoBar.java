@@ -1,10 +1,8 @@
 package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.server.facade.model.Timeable;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -19,7 +17,6 @@ public class TaskInfoBar extends VerticalLayout {
 
     private final Span name;
     private RoutineTimer timer;
-    private final InlineIconButton skip;
     private final Span description;
 
     private final Binder<Timeable> binder = new BeanValidationBinder<>(Timeable.class);
@@ -40,8 +37,6 @@ public class TaskInfoBar extends VerticalLayout {
         timer.setShowEta(true);
         timer.addClassNames("date", "timer");
 
-        skip = new InlineIconButton(VaadinIcon.BAN.create());
-
         description = new Span();
         description.addClassName("description");
         description.setWidthFull();
@@ -52,7 +47,7 @@ public class TaskInfoBar extends VerticalLayout {
         upper.setPadding(false);
         upper.setWidthFull();
 
-        HorizontalLayout lower = new HorizontalLayout(description, skip);
+        HorizontalLayout lower = new HorizontalLayout(description);
         lower.setWidthFull();
 
         this.add(upper, lower);

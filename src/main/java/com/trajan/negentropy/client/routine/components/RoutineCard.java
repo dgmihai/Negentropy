@@ -2,9 +2,11 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.trajan.negentropy.server.facade.model.RoutineStep;
+import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
@@ -23,6 +25,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.function.Function;
 
 public class RoutineCard extends VerticalLayout {
@@ -37,6 +40,7 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
+    private RoutineCardButton close;
     private Span currentTaskName;
     private RoutineTimer timer;
     private TextArea description;
@@ -48,7 +52,6 @@ public class RoutineCard extends VerticalLayout {
         this.controller = controller;
 
         this.routine = routine;
-        logger.debug("Routine: " + routine);
         binder.setBean(routine.steps().get(routine.currentPosition()));
 
         initComponents();
@@ -62,19 +65,42 @@ public class RoutineCard extends VerticalLayout {
         updateComponents();
     }
 
+    private void processRoutine(Function<RoutineID, RoutineResponse> stepFunction) {
+        RoutineResponse response = stepFunction.apply(binder.getBean().routineId());
+        this.routine = response.routine();
+        binder.setBean(routine.steps().get(routine.currentPosition()));
+        updateComponents();
+    }
+
     private boolean isActive() {
         return binder.getBean().status().equals(TimeableStatus.ACTIVE);
     }
 
     private void updateComponents() {
-        this.getElement().setAttribute("active", isActive());
-        prev.setEnabled(routine.currentPosition() > 0);
-        timer.setTimeable(binder.getBean());
-        rootTaskbar.timer().run(!isActive());
+        if (routine.status().equals(TimeableStatus.COMPLETED)) {
+            this.removeAll();
+            this.getElement().setAttribute("active", isActive());
+
+            Span completed = new Span("Completed '" + routine.name() + "' in " +
+                    DurationConverter.toPresentation(Duration.between(
+                            routine.rootStep().startTime(),
+                            routine.finishTime()))
+                    + "!");
+
+            completed.addClassName("name");
+            this.add(completed);
+        } else {
+            this.getElement().setAttribute("active", isActive());
+            play.setVisible(!isActive());
+            pause.setVisible(isActive());
+            prev.setEnabled(routine.currentPosition() > 0);
+            timer.setTimeable(binder.getBean());
+            rootTaskbar.timer().run(!isActive());
+        }
     }
 
     private void initComponents() {
-        rootTaskbar = new TaskInfoBar(routine.rootStep(), controller);
+        rootTaskbar = new TaskInfoBar(routine, controller);
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> this.processStep(
@@ -85,16 +111,20 @@ public class RoutineCard extends VerticalLayout {
                 controller::previousRoutineStep));
 
         play = new RoutineCardButton(VaadinIcon.PLAY.create());
-        play.addClickListener(event -> this.processStep(
-                controller::startRoutineStep));
+        play.addClickListener(event ->
+            this.processStep(controller::startRoutineStep));
 
         pause = new RoutineCardButton(VaadinIcon.PAUSE.create());
-        pause.addClickListener(event -> this.processStep(
-                controller::pauseRoutineStep));
+        pause.addClickListener(event ->
+            this.processStep(controller::pauseRoutineStep));
 
-        skip = new RoutineCardButton(VaadinIcon.CLOSE.create());
+        skip = new RoutineCardButton(VaadinIcon.TIME_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
                 controller::skipRoutineStep));
+
+        close = new RoutineCardButton(VaadinIcon.CLOSE.create());
+        close.addClickListener(event -> this.processRoutine(
+                controller::skipRoutine));
 
         currentTaskName = new Span(binder.getBean().task().name());
         ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(
@@ -149,28 +179,21 @@ public class RoutineCard extends VerticalLayout {
         header.setWidthFull();
         header.add(currentTaskName, timer);
 
+        HorizontalLayout auxActions = new HorizontalLayout();
+        auxActions.addClassName("footer");
+        auxActions.setWidthFull();
+        auxActions.add(close, play, pause, skip);
+
         VerticalLayout middle = new VerticalLayout();
         middle.addClassName("middle");
         middle.setSpacing(false);
         middle.setPadding(false);
-        middle.add(header, description);
-
-        HorizontalLayout routineMiddle = new HorizontalLayout();
-        HorizontalLayout routineLower = new HorizontalLayout();
-
-        HorizontalLayout upper = new HorizontalLayout();
-        upper.setWidthFull();
-        upper.setJustifyContentMode(JustifyContentMode.EVENLY);
-
-        routineMiddle.setWidthFull();
-        routineMiddle.setJustifyContentMode(JustifyContentMode.EVENLY);
-
-        routineLower.setWidthFull();
+        middle.add(description, auxActions);
 
         description.setWidthFull();
 
         lower.add(left, middle, right);
-        this.add(rootTaskbar, lower);
+        this.add(rootTaskbar, header, lower);
         this.setWidthFull();
 
         header.getElement().addEventListener("click", e -> {

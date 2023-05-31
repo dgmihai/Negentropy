@@ -3,10 +3,12 @@ package com.trajan.negentropy.util;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineData;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineStepData;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+@Slf4j
 public class RoutineUtil {
 
     public static Duration getStepElapsedActiveDuration(RoutineStepData step, LocalDateTime time) {

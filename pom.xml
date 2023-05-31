@@ -13,6 +13,7 @@
         <vaadin.version>24.0.5</vaadin.version>
         <selenium.version>4.8.3</selenium.version>
         <querydsl.version>5.0.0</querydsl.version>
+        <aspectj.version>1.9.19</aspectj.version>
     </properties>
 
     <parent>
@@ -134,11 +135,25 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.springframework/spring-aspects -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
+        <!-- Aspects -->
+        <!-- https://mvnrepository.com/artifact/org.aspectj/aspectjweaver -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.19</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.aspectj/aspectjrt -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.9.19</version>
+        </dependency>
+
 
         <!-- Other -->
         <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
@@ -185,7 +200,9 @@
             </resource>
         </resources>
         <defaultGoal>spring-boot:run</defaultGoal>
+
         <plugins>
+
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
@@ -254,6 +271,7 @@
                     </processors>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 

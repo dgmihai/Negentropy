@@ -1,0 +1,43 @@
+.grid-icon-vaadin {
+    height: 1em;
+    width: 1em;
+}
+
+.grid-icon-vaadin {
+    fill:
+      var(--lumo-contrast-40pct);
+}
+
+.grid-icon-vaadin[active] {
+    fill:
+      var(--lumo-primary-color);
+}
+
+.grid-icon-vaadin[delete] {
+    fill:
+      var(--lumo-error-color);
+}
+
+.grid-icon-vaadin[expand] {
+    fill:
+      var(--lumo-contrast-40pct);
+    height: 1.8em;
+}
+
+.grid-icon-lineawesome {
+    height: 1.8em;
+    color:
+      var(--lumo-secondary-text-color);
+}
+
+vaadin-grid::part(recurring-task) {
+    color:
+      var(--lumo-primary-color);
+}
+
+vaadin-grid::part(completed-node) {
+    color:
+      var(--lumo-tertiary-text-color);
+    fill:
+      var(--lumo-shade-5pct);
+}

@@ -163,11 +163,11 @@ Polymer({
           (seconds + 's');
       },
 
-      _calculateETA: function(elapsedSeconds) {
+      _calculateETA: function(time) {
         let currentDateTime = new Date();
 
-        if (elapsedSeconds < 0) {
-            currentDateTime.setSeconds(currentDateTime.getSeconds() - elapsedSeconds);
+        if (time < 0) {
+            currentDateTime.setSeconds(currentDateTime.getSeconds() - time);
         }
 
         let hours = currentDateTime.getHours();

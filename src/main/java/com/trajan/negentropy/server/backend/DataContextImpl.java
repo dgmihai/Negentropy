@@ -108,9 +108,14 @@ public class DataContextImpl implements DataContext {
 
     @Override
     public TaskLink mergeNode(TaskNode node) {
-        return entityQueryService.getLink(node.linkId())
-                .importance(node.importance())
-                .recurring(node.recurring());
+        TaskLink linkEntity = entityQueryService.getLink(node.linkId());
+        return linkEntity
+                .importance(Objects.requireNonNullElse(
+                        node.importance(), linkEntity.importance()))
+                .recurring(Objects.requireNonNullElse(
+                        node.recurring(), linkEntity.recurring()))
+                .completed(Objects.requireNonNullElse(
+                        node.completed(), linkEntity.completed()));
     }
 
     @Override

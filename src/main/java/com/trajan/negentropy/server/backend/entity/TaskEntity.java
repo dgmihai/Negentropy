@@ -10,8 +10,6 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,7 +25,6 @@ import java.util.Set;
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
 public class TaskEntity extends AbstractEntity implements TaskData {
-    private static final Logger logger = LoggerFactory.getLogger(TaskEntity.class);
 
     @Column(nullable = false, unique = true)
     @NotEmpty(message = "Name is required")

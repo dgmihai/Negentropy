@@ -53,6 +53,11 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public int fetchChildCount(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
+        return entityQueryService.findChildCount(parentTaskId, filter, offset, limit);
+    }
+
+    @Override
     public boolean hasChildren(TaskID parentTaskId) {
         return this.hasChildren(parentTaskId, null);
     }
@@ -74,6 +79,12 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
+        return entityQueryService.findChildLinks(parentTaskId, filter, offset, limit)
+                .map(DataContext::toDTO);
+    }
+
+    @Override
     public int fetchRootCount() {
         return entityQueryService.findChildCount(null, null);
     }
@@ -84,6 +95,11 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public int fetchRootCount(TaskFilter filter, int offset, int limit) {
+        return entityQueryService.findChildCount(null, filter, offset, limit);
+    }
+
+    @Override
     public Stream<TaskNode> fetchRootNodes() {
         return this.fetchRootNodes(null);
     }
@@ -91,6 +107,12 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskFilter filter) {
         return entityQueryService.findChildLinks(null, filter)
+                .map(DataContext::toDTO);
+    }
+
+    @Override
+    public Stream<TaskNode> fetchRootNodes(TaskFilter filter, int offset, int limit) {
+        return entityQueryService.findChildLinks(null, filter, offset, limit)
                 .map(DataContext::toDTO);
     }
 

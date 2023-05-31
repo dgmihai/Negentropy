@@ -7,6 +7,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 @AllArgsConstructor
+@RequiredArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter

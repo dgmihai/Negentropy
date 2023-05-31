@@ -8,6 +8,7 @@ import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -67,5 +68,5 @@ public interface ClientDataController {
     RoutineResponse previousRoutineStep(StepID stepId);
     RoutineResponse completeRoutineStep(StepID stepId);
     RoutineResponse skipRoutineStep(StepID stepId);
-
+    RoutineResponse skipRoutine(RoutineID routineId);
 }

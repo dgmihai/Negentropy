@@ -8,4 +8,5 @@ public interface RoutineData {
     List<? extends RoutineStepData> steps();
     RoutineData estimatedDuration(Duration duration);
     RoutineData estimatedDurationLastUpdatedTime(LocalDateTime time);
+    LocalDateTime finishTime();
 }

@@ -43,4 +43,8 @@ public class RoutineEntity extends AbstractEntity implements RoutineData {
     public RoutineStepEntity currentStep() {
         return steps.get(currentPosition);
     }
+
+    public LocalDateTime finishTime() {
+        return currentStep().finishTime();
+    }
 }

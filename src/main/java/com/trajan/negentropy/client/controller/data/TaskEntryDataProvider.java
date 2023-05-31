@@ -45,12 +45,12 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
         if (query.getParent() == null) {
             if (baseEntry == null) {
-                return queryService.fetchRootCount(filter);
+                return queryService.fetchRootCount(filter, query.getOffset(), query.getLimit());
             } else {
-                return queryService.fetchChildCount(baseEntry.node().child().id(), filter);
+                return queryService.fetchChildCount(baseEntry.node().child().id(), filter, query.getOffset(), query.getLimit());
             }
         }
-        return queryService.fetchChildCount(query.getParent().node().child().id(), filter);
+        return queryService.fetchChildCount(query.getParent().node().child().id(), filter, query.getOffset(), query.getLimit());
     }
 
     @Override
@@ -68,17 +68,18 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     @Override
     protected Stream<TaskEntry> fetchChildrenFromBackEnd(HierarchicalQuery<TaskEntry, Void> query) {
-        // TODO: Integrate query offset and limit into queryService
-        // TODO: Cache tasks somehow if possible?
+        // TODO: Cache tasks better somehow? Not too big of a problem
         TaskEntry parent = query.getParent();
+        int offset = query.getOffset();
+        int limit = query.getLimit();
 
         Stream<TaskNode> nodeStream;
         if (parent == null) {
             nodeStream = (baseEntry == null) ?
-                    queryService.fetchRootNodes(filter) :
-                    queryService.fetchChildNodes(baseEntry.node().child().id(), filter);
+                    queryService.fetchRootNodes(filter, offset, limit) :
+                    queryService.fetchChildNodes(baseEntry.node().child().id(), filter, offset, limit);
         } else {
-            nodeStream = queryService.fetchChildNodes(parent.node().child().id(), filter);
+            nodeStream = queryService.fetchChildNodes(parent.node().child().id(), filter, offset, limit);
         }
 
         return nodeStream

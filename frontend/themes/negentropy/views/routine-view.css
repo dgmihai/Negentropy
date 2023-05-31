@@ -45,26 +45,35 @@
   width: var(--lumo-size-m);
 }
 
-.routine-view .header {
+.routine-view .card .header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   padding: var(--lumo-space-xs);
 }
 
+.routine-view .card .footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-evenly;
+  padding: var(--lumo-space-xs);
+}
+
 .routine-view .name {
-  font-size: var(--lumo-font-size-xl);
+  color: var(--lumo-primary-text-color);
+  font-size: var(--lumo-font-size-l);
+  font-weight: 600;
   margin-right: var(--lumo-space-s);
 }
 
 .routine-view .date {
   color: var(--lumo-body-text-color);
-  font-size: var(--lumo-font-size-l);
+  font-size: var(--lumo-font-size-m);
 }
 
 .routine-view .bar .timer {
   text-align: right;
-  width: 4rem;
+  width: 5rem;
 }
 
 .routine-view .description {

@@ -7,6 +7,7 @@ import com.vaadin.flow.theme.Theme;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -22,6 +23,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         offlineResources = { "./images/offline.png"}
 )
 @SpringBootApplication
+@EnableAspectJAutoProxy(proxyTargetClass=true)
 @NpmPackage(value = "@fontsource/pt-sans-narrow", version = "4.5.0")
 @Theme(value = "negentropy")
 @EnableScheduling

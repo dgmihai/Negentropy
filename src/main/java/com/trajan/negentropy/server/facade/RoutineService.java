@@ -28,4 +28,6 @@ public interface RoutineService {
     RoutineResponse completeStep(StepID stepId, LocalDateTime time);
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);
     RoutineResponse previousStep(StepID stepId, LocalDateTime time);
+
+    RoutineResponse skipRoutine(RoutineID routineId, LocalDateTime now);
 }

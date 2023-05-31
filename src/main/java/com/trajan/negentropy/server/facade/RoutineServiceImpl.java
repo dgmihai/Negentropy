@@ -130,6 +130,7 @@ public class RoutineServiceImpl implements RoutineService {
                 step.lastSuspendedTime(time);
             }
             case SKIPPED, COMPLETED -> {
+                if (step.finishTime() == null) step.finishTime(time); // TODO: Remove when routine stablizied
                 step.elapsedSuspendedDuration(
                         Duration.between(step.finishTime(), time)
                                 .plus(step.elapsedSuspendedDuration()));
@@ -180,16 +181,13 @@ public class RoutineServiceImpl implements RoutineService {
 
     private RoutineEntity iterateStepSupplier(
             RoutineStepEntity step, RoutineEntity routine, LocalDateTime time, TimeableStatus newStatus) {
-        switch (step.status()) {
-            case SUSPENDED -> {
-                step.elapsedSuspendedDuration(
-                        Duration.between(step.lastSuspendedTime(), time)
-                                .plus(step.elapsedSuspendedDuration()));
-                step.status(TimeableStatus.ACTIVE);
-            }
-            case ACTIVE -> step.finishTime(time);
+        if (Objects.requireNonNull(step.status()) == TimeableStatus.SUSPENDED) {
+            step.elapsedSuspendedDuration(
+                    Duration.between(step.lastSuspendedTime(), time)
+                            .plus(step.elapsedSuspendedDuration()));
         }
 
+        step.finishTime(time);
         step.status(newStatus);
         if (step.position().equals(routine.steps().size() - 1)) {
             routine.status(TimeableStatus.COMPLETED);
@@ -252,6 +250,19 @@ public class RoutineServiceImpl implements RoutineService {
             logger.debug("Routine " + routine + " now at position " + routine.currentPosition());
 
             RoutineUtil.setRoutineDuration(routine, time);
+            return routine;
+        });
+    }
+
+    @Override
+    public RoutineResponse skipRoutine(RoutineID routineId, LocalDateTime time) {
+        return process(() -> {
+            RoutineEntity routine = entityQueryService.getRoutine(routineId);
+
+            routine.status(TimeableStatus.COMPLETED);
+            routine.currentStep().status(TimeableStatus.SKIPPED);
+            routine.currentStep().finishTime(time);
+
             return routine;
         });
     }

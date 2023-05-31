@@ -225,7 +225,8 @@
   "Frontend/simple-clock/simple-clock.js"
  ],
  "frontendHashes": {
-  "simple-clock/simple-clock.js": "36c0d2a9c7ff228318a581f777b169a31e2f4b148930e95219ad2de5a90acd54",
+  "themes/negentropy/components/grid.css": "083ff888c12e4e692c9f0a9d357c6aa45c086b0db8d604a04e20eba8ad4837f2",
+  "simple-clock/simple-clock.js": "f720f2dd6487c1555fa8125ccabd178047840596cedf22a7635e07ef4c32b50a",
   "comboBoxConnector.js": "1d004c3dae9c76f8bcc68678abe1b8f7bdc8b456f5c9c4c7f190df8ed25d66cd",
   "contextMenuConnector.js": "25a200f8086461635ddd92316ebeb5a868294c8650a190efbae120edb1088f4f",
   "contextMenuTargetConnector.js": "870f67643988dd5618c247bd3c28d843f70aa026ee89f44c3c7556b5e70856af",
@@ -249,7 +250,7 @@
   "negentropy": "{\n  \"lumoImports\" : [ \"typography\", \"color\", \"spacing\", \"badge\", \"utility\" ],\n  \"assets\" : {\n    \"@fontsource/pt-sans-narrow\" : {\n      \"*.css\" : \"@fontsource/pt-sans-narrow\",\n      \"files/*\" : \"@fontsource/pt-sans-narrow/files\"\n    }\n  }\n}"
  },
  "entryScripts": [
-  "VAADIN/build/indexhtml-06c28c11.js"
+  "VAADIN/build/indexhtml-b68ee7e5.js"
  ],
  "webComponents": [],
  "packageJsonHash": "7c1940ada65b2da11b39e1dfc948ae65608a28ba90c19df806e65fca02079e86"

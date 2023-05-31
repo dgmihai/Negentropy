@@ -4,10 +4,12 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
+import com.trajan.negentropy.client.components.tasktreegrid.TaskTreeGrid;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.FilterForm;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.util.ExecTimer;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -29,18 +31,18 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle("Negentropy - Task Tree")
 @UIScope
 @Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
+@Slf4j
 @Accessors(fluent = true)
 @Getter
 public class TreeView extends Div {
-    private static final Logger logger = LoggerFactory.getLogger(TreeView.class);
+    @Autowired private ExecTimer execTimer;
 
     @Autowired private ClientDataController controller;
     @Autowired private SessionSettings settings;
@@ -52,22 +54,26 @@ public class TreeView extends Div {
     private HorizontalLayout options;
     private TabSheet tabSheet;
 
-    private final int BREAKPOINT_PX = 600;
-
     @PostConstruct
     public void init() {
+        execTimer.mark("TreeView init");
+
         this.addClassName("tree-view");
         this.setSizeFull();
 
+        execTimer.mark("Tab Sheet");
         this.tabSheet = new TabSheet();
 
+        execTimer.mark("Quick Create");
         this.quickCreateField = new QuickCreateField(controller);
         quickCreateField.setWidthFull();
 
+        execTimer.mark("Filter Form");
         this.filterForm = new FilterForm(controller);
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
+        execTimer.mark("Task Form");
         this.createTaskForm = new TaskFormLayout(controller, new Task(null));
         createTaskForm.binder().setBean(new Task(null));
 
@@ -82,15 +88,18 @@ public class TreeView extends Div {
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
+        execTimer.mark("Recalculate Time Estimates");
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
         recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         recalculateTimeEstimates.addClickListener(e -> controller.recalculateTimeEstimates());
 
+        execTimer.mark("Drag Settings");
         // TODO: Not yet implemented, option to move or add on drag
         Select<String> dragSettings = new Select<>();
         dragSettings.add("Move on drag");
         dragSettings.add("Add on drag");
 
+        execTimer.mark("Layout");
         this.options = new HorizontalLayout(
                 recalculateTimeEstimates);
         options.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
@@ -101,6 +110,9 @@ public class TreeView extends Div {
         tabSheet.setWidthFull();
 
         tabSheet.addThemeVariants(TabSheetVariant.LUMO_TABS_CENTERED);
+
+        taskTreeGrid.setAllColumns();
+        taskTreeGrid.treeGrid().setDataProvider(controller.dataProvider());
         taskTreeGrid.setSizeFull();
 
         VerticalLayout layout = new VerticalLayout(
@@ -110,6 +122,8 @@ public class TreeView extends Div {
         layout.setSizeFull();
         layout.setSpacing(false);
         this.add(layout);
+
+        log.trace(execTimer.print());
     }
 
     private void initTabSheet(int browserWidth) {
@@ -119,7 +133,7 @@ public class TreeView extends Div {
         Tab createNewTaskTab;
         Tab optionsTab;
 
-        if (browserWidth > BREAKPOINT_PX) {
+        if (browserWidth > K.BREAKPOINT_PX) {
             closeTab = new Tab(VaadinIcon.CLOSE_SMALL.create());
             quickCreateTab = new Tab(K.QUICK_CREATE);
             searchAndFilterTab = new Tab("Search & Filter");

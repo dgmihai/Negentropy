@@ -64,6 +64,17 @@ public interface QueryService {
     int fetchChildCount(TaskID parentTaskId, TaskFilter filter);
 
     /**
+     * Counts the child tasks of a task by ID.
+     *
+     * @param parentTaskId The parent task ID.
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit the size of the elements to be returned.
+     * @return The number of child tasks.
+     */
+    int fetchChildCount(TaskID parentTaskId, TaskFilter filter, int offset, int limit);
+
+    /**
      * Checks if the task has children by parent ID.
      *
      * @param parentTaskId The parent task ID.
@@ -98,6 +109,17 @@ public interface QueryService {
     Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter);
 
     /**
+     * Retrieves the child task nodes of a particular task by ID, ordered.
+     *
+     * @param parentTaskId The parent task ID.
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit the size of the elements to be returned.
+     * @return An ordered stream of child task nodes.
+     */
+    Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter, int offset, int limit);
+
+    /**
      * Retrieves the total duration of a task by ID, including all descendants.
      *
      * @param taskId The ID of the task to find the duration for.
@@ -118,6 +140,16 @@ public interface QueryService {
     int fetchRootCount(TaskFilter filter);
 
     /**
+     * Counts the tasks that have at least one instance associated with the root parent.
+     *
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit the size of the elements to be returned.
+     * @return The number of root tasks.
+     */
+    int fetchRootCount(TaskFilter filter, int offset, int limit);
+
+    /**
      * Returns the task nodes associated with the root parent.
      *
      * @return An ordered stream of root nodes
@@ -131,6 +163,17 @@ public interface QueryService {
      * @return An ordered stream of root nodes
      */
     Stream<TaskNode> fetchRootNodes(TaskFilter filter);
+
+    /**
+     * Returns the task nodes associated with the root parent.
+     *
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit the size of the elements to be returned.
+     * @return An ordered stream of root nodes
+     */
+    Stream<TaskNode> fetchRootNodes(TaskFilter filter, int offset, int limit);
+
 
     /**
      * Retrieves a tag by its ID.

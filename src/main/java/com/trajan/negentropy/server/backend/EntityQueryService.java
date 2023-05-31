@@ -83,6 +83,19 @@ public interface EntityQueryService {
     int findChildCount(TaskID parentId, TaskFilter filter);
 
     /**
+     * Counts the child tasks of a task.
+     *
+     * @param parentId The ID of parent task, which can be null.
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit  the size of the elements to be returned.
+     * @return The number of child tasks given the filter criteria.
+     * @see TaskFilter
+     * @see TaskEntity
+     */
+    int findChildCount(TaskID parentId, TaskFilter filter, int offset, int limit);
+
+    /**
      * Checks if the task has children.
      *
      * @param parentId The ID of the parent task.
@@ -106,6 +119,22 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Stream<TaskLink> findChildLinks(TaskID parentId, TaskFilter filter);
+
+    /**
+     * Retrieves all the child task links where a given task is a parent.
+     * </p>
+     * The returned stream is ordered by position.
+     *
+     * @param parentId The ID of the parent task.
+     * @param filter The filter criteria to be applied.
+     * @param offset zero-based offset.
+     * @param limit  the size of the elements to be returned.
+     * @return A non-distinct ordered stream of TaskLink entity objects in the persistence context.
+     * @see TaskFilter
+     * @see TaskEntity
+     * @see TaskLink
+     */
+    Stream<TaskLink> findChildLinks(TaskID parentId, TaskFilter filter, int offset, int limit);
 
     /**
      * Retrieves all the child tasks where a given task is a parent.

@@ -90,13 +90,3 @@ vaadin-multi-select-combo-box[opened] > input {
     font-size: 16px;
   }
 }
-
-vaadin-grid::part(recurring-task) {
-    color:
-      var(--lumo-primary-color);
-}
-
-vaadin-grid::part(non-recurring-task) {
-    color:
-      var(--lumo-body-text-color);
-}

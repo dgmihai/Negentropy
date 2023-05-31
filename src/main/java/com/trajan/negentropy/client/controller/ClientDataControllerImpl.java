@@ -3,12 +3,13 @@ package com.trajan.negentropy.client.controller;
 import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
-import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
+import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.UpdateService;
 import com.trajan.negentropy.server.facade.model.*;
+import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -100,7 +101,8 @@ public class ClientDataControllerImpl implements ClientDataController {
         logger.debug("Updating node: " + node);
         this.tryServiceCall(
                 () -> updateService.updateNode(node));
-        dataProvider.refreshMatchingItems(node.child().id(), true);
+        dataProvider.refreshAll();
+        // TODO: Do we need to refresh matching tasks by node?
     }
 
     @Override
@@ -394,5 +396,14 @@ public class ClientDataControllerImpl implements ClientDataController {
         logger.debug("Skipping routine step: " + stepId);
         return this.processStep(
                 () -> routineService.skipStep(stepId, LocalDateTime.now()));
+    }
+
+    @Override
+    public RoutineResponse skipRoutine(RoutineID routineId) {
+        logger.debug("Skipping routine: " + routineId);
+        RoutineResponse response = this.processStep(
+                () -> routineService.skipRoutine(routineId, LocalDateTime.now()));
+        routineCache.refreshAll();
+        return response;
     }
 }
