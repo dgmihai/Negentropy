@@ -1,10 +1,11 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.util.duration.DurationConverter;
+import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -16,66 +17,71 @@ import java.util.Optional;
 @Accessors(fluent = true)
 public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
-    private final Binder<Task> binder = new BeanValidationBinder<>(Task.class);
+    private final Binder<Task> taskBinder = new BeanValidationBinder<>(Task.class);
+    @Getter
+    private final Binder<TaskNodeInfo> nodeBinder = new BeanValidationBinder<>(TaskNodeInfo.class);
 
-    public TaskFormLayout(ClientDataController presenter, Task task) {
+    public TaskFormLayout(ClientDataController presenter) {
         super(presenter);
-        binder.setBean(task);
+        taskBinder.setBean(new Task());
+        nodeBinder.setBean(new TaskNodeInfo());
 
         configureFields();
         configureInteractions();
         configureBindings();
         configureLayout();
-
-        setColspan(tagComboBox, 2);
-
-        this.add(nameField, durationField,
-                tagComboBox, descriptionArea,
-                buttonLayout);
     }
 
     @Override
     boolean isValid() {
-        return binder.isValid();
+        return taskBinder.isValid();
     }
 
     @Override
     protected void configureBindings() {
-        binder.forField(nameField)
+        taskBinder.forField(nameField)
                 .asRequired("Name must exist and be unique")
                 .bind(Task::name, Task::name);
 
-        binder.forField(durationField)
+        taskBinder.forField(durationField)
                 .withConverter(new DurationConverter())
                 .bind(Task::duration, Task::duration);
 
-        binder.forField(descriptionArea)
+        taskBinder.forField(descriptionArea)
                 .bind(Task::description, Task::description);
 
-        tagComboBox = new CustomValueTagComboBox(presenter, tag ->{
-            binder.getBean().tags().add(tag);
-        });
+        tagComboBox = new CustomValueTagComboBox(presenter, tag ->
+                taskBinder.getBean().tags().add(tag));
 
-        binder.forField(tagComboBox)
+        nodeBinder.forField(recurringCheckbox)
+                .bind(TaskNodeInfo::recurring, TaskNodeInfo::recurring);
+        taskBinder.forField(blockCheckbox)
+                .bind(Task::block, Task::block);
+
+        taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);
 
-        saveButton.setEnabled(binder.isValid());
-        binder.addValueChangeListener(e -> {
-            saveButton.setEnabled(binder.isValid());
-        });
+        saveButton.setEnabled(taskBinder.isValid());
+        taskBinder.addValueChangeListener(e ->
+                saveButton.setEnabled(taskBinder.isValid()));
     }
 
     @Override
     public Response hasValidTask() {
-        return new Response(binder.isValid(), "Task in form is invalid");
+        return new Response(taskBinder.isValid(), "Task in form is invalid");
     }
 
     @Override
     public Optional<Task> getTask() throws TaskProviderException {
         if (hasValidTask().success()) {
-            return Optional.of(binder.getBean());
+            return Optional.of(taskBinder.getBean());
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public TaskNodeInfo getNodeInfo() {
+        return nodeBinder.getBean();
     }
 }

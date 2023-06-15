@@ -9,6 +9,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.FilterForm;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.util.ExecTimer;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -74,15 +75,17 @@ public class TreeView extends Div {
                 LumoUtility.BoxSizing.BORDER);
 
         execTimer.mark("Task Form");
-        this.createTaskForm = new TaskFormLayout(controller, new Task(null));
-        createTaskForm.binder().setBean(new Task(null));
+        this.createTaskForm = new TaskFormLayout(controller);
+        createTaskForm.taskBinder().setBean(new Task(null));
 
         createTaskForm.onClear(() -> {
-            createTaskForm.binder().setBean(new Task(null));
+            createTaskForm.taskBinder().setBean(new Task(null));
+            createTaskForm.nodeBinder().setBean(new TaskNodeInfo());
         });
         createTaskForm.onSave(() -> {
             controller.addTaskFromProvider(createTaskForm);
-            createTaskForm.binder().setBean(new Task(null));
+            createTaskForm.taskBinder().setBean(new Task(null));
+            createTaskForm.nodeBinder().setBean(new TaskNodeInfo());
         });
 
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,

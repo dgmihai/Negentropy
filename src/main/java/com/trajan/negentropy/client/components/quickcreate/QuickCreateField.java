@@ -27,7 +27,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
     private ClientDataController presenter;
 
     private Task task = null;
-    private TaskNodeInfo node = null;
+    private TaskNodeInfo nodeInfo = null;
 
     public QuickCreateField(ClientDataController presenter) {
         super();
@@ -55,7 +55,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
 
         this.addValueChangeListener(e -> {
             task = null;
-            node = null;
+            nodeInfo = null;
         });
     }
 
@@ -65,7 +65,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
             try {
                 parse(input);
 
-                Response response = presenter.addTaskFromProvider(this, node);
+                Response response = presenter.addTaskFromProvider(this);
                 if (response.success()) {
                     this.clear();
                 } else {
@@ -95,7 +95,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
     private void parse(String input) throws QuickCreateParser.ParseException {
         Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
         task = result.getFirst();
-        node = result.getSecond();
+        nodeInfo = result.getSecond();
     }
 
     @Override
@@ -105,5 +105,10 @@ public class QuickCreateField extends TextField implements TaskProvider {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public TaskNodeInfo getNodeInfo() {
+        return nodeInfo;
     }
 }

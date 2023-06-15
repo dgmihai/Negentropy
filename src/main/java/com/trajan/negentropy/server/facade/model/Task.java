@@ -21,6 +21,7 @@ public class Task implements TaskData {
     private String name;
     private String description;
     private Duration duration;
+    private Boolean block;
     private Set<Tag> tags;
     private Boolean hasChildren;
 

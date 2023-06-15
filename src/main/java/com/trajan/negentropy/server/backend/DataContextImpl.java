@@ -101,6 +101,8 @@ public class DataContextImpl implements DataContext {
                         task.duration(), taskEntity.duration()))
                 .description(Objects.requireNonNullElse(
                         task.description(), taskEntity.description()))
+                .block(Objects.requireNonNullElse(
+                        task.block(), taskEntity.block()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
@@ -235,7 +237,6 @@ public class DataContextImpl implements DataContext {
 
     @Override
     public void deleteAllOrphanedTags() {
-        logger.trace("deleteAllOrphanedTags");
         tagRepository.deleteAllInBatch(entityQueryService.findOrphanedTags().toList());
     }
 

@@ -19,12 +19,9 @@ import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Accessors(fluent = true)
 public abstract class AbstractTaskFormLayout extends FormLayout implements TaskProvider {
-    private static final Logger logger = LoggerFactory.getLogger(TaskFormLayout.class);
 
     protected final ClientDataController presenter;
 
@@ -32,8 +29,10 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     protected TextField durationField;
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox recurringCheckbox;
+    protected Checkbox blockCheckbox;
     protected TextArea descriptionArea;
     protected HorizontalLayout buttonLayout;
+    protected HorizontalLayout checkboxLayout;
 
     protected Button saveButton;
     protected Button clearButton;
@@ -62,6 +61,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
 
         recurringCheckbox = new Checkbox("Recurring");
+        blockCheckbox = new Checkbox("Block");
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -110,6 +110,14 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         buttonLayout.setWidthFull();
         buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
+        checkboxLayout = new HorizontalLayout(
+                blockCheckbox,
+                recurringCheckbox
+        );
+
+        checkboxLayout.setWidthFull();
+        checkboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+
         tagComboBox.setPlaceholder("Tags");
 
         setColspan(descriptionArea, 2);
@@ -120,5 +128,9 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
                 new ResponsiveStep("600px", 2));
 
         this.setWidthFull();
+
+        this.add(nameField, durationField,
+                tagComboBox, checkboxLayout,
+                descriptionArea, buttonLayout);
     }
 }

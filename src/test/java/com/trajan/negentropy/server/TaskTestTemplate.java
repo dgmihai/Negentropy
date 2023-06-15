@@ -18,7 +18,6 @@ import com.trajan.negentropy.server.facade.model.id.TagID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.util.Pair;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,13 +119,16 @@ public class TaskTestTemplate {
     protected final Map<TaskID, String> taskIds = new HashMap<>();
     protected final Map<TagID, String> tagIds = new HashMap<>();
 
-    private void initTasks(String parent, List<Pair<String, Integer>> children) {
+    // Init tasks - (Task name, duration in minutes, if block)
+    private void initTasks(String parent, List<Task> children) {
         for (int i=0; i<children.size(); i++) {
-            String name = children.get(i).getFirst();
+            Task task = children.get(i);
+            String name = task.name();
             if (!tasks.containsKey(name)) {
                 tasks.put(name, updateService.createTask(new Task(null)
                                 .name(name)
-                                .duration(Duration.ofMinutes(1)))
+                                .duration(Duration.ofMinutes(1))
+                                .block(task.block()))
                         .task());
             }
 
@@ -138,7 +140,9 @@ public class TaskTestTemplate {
                     parentId,
                     childId,
                     i,
-                    children.get(i).getSecond(),
+//                  TODO: implement importance
+//                    task.importance,
+                    0,
                     false,
                     false);
 
@@ -223,44 +227,52 @@ public class TaskTestTemplate {
                 filter), true);
     }
 
+    protected Task task(String name, int importance, boolean block) {
+        return new Task()
+                .name(name)
+//                TODO: Implement importance
+//                .importance(importance)
+                .block(block);
+    }
+
     protected void init() {
         initTasks(null,
                 List.of(
-                        Pair.of(ONE, 1),
-                        Pair.of(TWO, 0),
-                        Pair.of(THREE_AND_FIVE, 1),
-                        Pair.of(FOUR, 0),
-                        Pair.of(THREE_AND_FIVE, 1),
-                        Pair.of(SIX_AND_THREETWOFOUR, 0))
+                        task(ONE, 1, false),
+                        task(TWO, 0, false),
+                        task(THREE_AND_FIVE, 1, false),
+                        task(FOUR, 0, false),
+                        task(THREE_AND_FIVE, 1, false),
+                        task(SIX_AND_THREETWOFOUR, 0, false))
         );
 
         initTasks(TWO,
                 List.of(
-                        Pair.of(TWOONE, 1),
-                        Pair.of(TWOTWO, 1),
-                        Pair.of(TWOTHREE, 1))
+                        task(TWOONE, 1, false),
+                        task(TWOTWO, 1, true),
+                        task(TWOTHREE, 1, false))
         );
 
         initTasks(TWOTWO,
                 List.of(
-                        Pair.of(TWOTWOONE, 1),
-                        Pair.of(TWOTWOTWO, 1),
-                        Pair.of(TWOTWOTHREE_AND_THREETWOTWO, 1))
+                        task(TWOTWOONE, 1, true),
+                        task(TWOTWOTWO, 1, true),
+                        task(TWOTWOTHREE_AND_THREETWOTWO, 1, true))
         );
 
         initTasks(THREE_AND_FIVE,
                 List.of(
-                        Pair.of(THREEONE, 1),
-                        Pair.of(THREETWO, 1),
-                        Pair.of(THREETHREE, 1))
+                        task(THREEONE, 1, false),
+                        task(THREETWO, 1, false),
+                        task(THREETHREE, 1, true))
         );
 
         initTasks(THREETWO,
                 List.of(
-                        Pair.of(THREETWOONE_AND_THREETWOTHREE, 1),
-                        Pair.of(TWOTWOTHREE_AND_THREETWOTWO, 1),
-                        Pair.of(THREETWOONE_AND_THREETWOTHREE, 1),
-                        Pair.of(SIX_AND_THREETWOFOUR, 1))
+                        task(THREETWOONE_AND_THREETWOTHREE, 1, true),
+                        task(TWOTWOTHREE_AND_THREETWOTWO, 1, true),
+                        task(THREETWOONE_AND_THREETWOTHREE, 1, true),
+                        task(SIX_AND_THREETWOFOUR, 1, false))
         );
 
         initTags(REPEATONCE,

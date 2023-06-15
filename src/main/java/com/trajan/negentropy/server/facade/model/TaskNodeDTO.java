@@ -30,7 +30,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
         this.position = node.position();
         this.importance = node.importance();
         this.recurring = node.recurring();
-        this.completed = completed;
+        this.completed = node.completed();
     }
 
     public TaskNodeDTO(TaskLink link) {
@@ -39,7 +39,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
         this.position = link.position();
         this.importance = link.importance();
         this.recurring = link.recurring();
-        this.completed = completed;
+        this.completed = link.completed();
     }
 
     public TaskNodeDTO(TaskID parentId, TaskID childId, TaskNodeInfo info) {
@@ -49,7 +49,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
             this.position = info.position();
             this.importance = info.importance();
             this.recurring = info.recurring();
-            this.completed = completed;
+            this.completed = info.completed();
         }
     }
 }

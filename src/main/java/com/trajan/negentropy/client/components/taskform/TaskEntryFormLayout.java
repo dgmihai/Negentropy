@@ -1,11 +1,12 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
-import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -29,11 +30,6 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
         configureInteractions();
         configureBindings();
         configureLayout();
-
-        this.add(nameField, durationField,
-                tagComboBox, recurringCheckbox,
-                descriptionArea,
-                buttonLayout);
     }
 
     @Override
@@ -72,6 +68,11 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
                         entry -> entry.node().recurring(),
                         (entry, recurring) -> entry.node().recurring(recurring));
 
+        binder.forField(blockCheckbox)
+                .bind(
+                        entry -> entry.node().child().block(),
+                        (entry, block) -> entry.node().child().block(block));
+
         binder.forField(descriptionArea)
                 .bind(
                         entry -> entry.node().child().description(),
@@ -103,5 +104,10 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public TaskNodeInfo getNodeInfo() {
+        return binder.getBean().node();
     }
 }

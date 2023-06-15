@@ -37,6 +37,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.name(), task.name());
         assertEquals(taskEntity.description(), task.description());
         assertEquals(taskEntity.duration(), task.duration());
+        assertEquals(taskEntity.block(), task.block());
     }
 
     @Test
@@ -44,7 +45,8 @@ public class DataContextTest extends TaskTestTemplate {
         TaskEntity taskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity()
                 .name("Task Name")
                 .description("Task Description")
-                .duration(Duration.ofMinutes(120)));
+                .duration(Duration.ofMinutes(120)))
+                .block(true);
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -181,7 +183,8 @@ public class DataContextTest extends TaskTestTemplate {
         TaskEntity taskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity()
                 .name("Original Task Name")
                 .description("Original Task Description")
-                .duration(Duration.ofMinutes(120)));
+                .duration(Duration.ofMinutes(120))
+                .block(true));
 
         Set<TagEntity> originalTagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -194,6 +197,7 @@ public class DataContextTest extends TaskTestTemplate {
                 "Updated Task Name",
                 "Updated Task Description",
                 Duration.ofMinutes(180),
+                true,
                 originalTagEntities.stream().map(DataContext::toDTO).collect(Collectors.toSet()),
                 false);
 

@@ -30,7 +30,7 @@
       var(--lumo-secondary-text-color);
 }
 
-vaadin-grid::part(recurring-task) {
+vaadin-grid::part(block-task) {
     color:
       var(--lumo-primary-color);
 }

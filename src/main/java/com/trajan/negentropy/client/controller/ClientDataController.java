@@ -7,7 +7,6 @@ import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
@@ -38,11 +37,7 @@ public interface ClientDataController {
     TaskProvider activeTaskProvider();
     void activeTaskProvider(TaskProvider activeTaskProvider);
 
-    Response addTaskFromProvider(TaskProvider taskProvider, TaskNodeInfo nodeInfo);
     Response addTaskFromProvider(TaskProvider taskProvider);
-    Response addTaskFromActiveProvider();
-
-    Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, TaskNodeInfo nodeInfo);
 
     Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent);
     Response addTaskFromActiveProviderAsChild(TaskEntry parent);

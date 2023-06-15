@@ -87,9 +87,18 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     private BooleanBuilder filterTask(TaskFilter filter, QTaskEntity qTask) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
+
+            // Filter by name, case-insensitive
             if (filter.name() != null && !filter.name().isBlank()) {
                 builder.and(qTask.name.lower().contains(filter.name().toLowerCase()));
             }
+
+            // Filter if task is a block
+            if (filter.block() != null) {
+                builder.and(qTask.block.eq(filter.block()));
+            }
+
+            // Filter by included task IDs, and if this filter is by inner join or not
             if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
                 Consumer<TagEntity> filterFunction =
                         (filter.innerJoinIncludedTags() != null && filter.innerJoinIncludedTags()) ?
@@ -100,6 +109,8 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                         .map(this::getTag)
                         .forEach(filterFunction);
             }
+
+            // Filter by tags that must be excluded
             if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
                 filter.excludedTagIds().stream()
                         .map(this::getTag)

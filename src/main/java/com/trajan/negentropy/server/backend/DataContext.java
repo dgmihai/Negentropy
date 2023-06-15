@@ -32,6 +32,7 @@ public interface DataContext {
                 taskEntity.name(),
                 taskEntity.description(),
                 taskEntity.duration(),
+                taskEntity.block(),
                 taskEntity.tags().stream()
                         .map(DataContext::toDTO)
                         .collect(Collectors.toSet()),

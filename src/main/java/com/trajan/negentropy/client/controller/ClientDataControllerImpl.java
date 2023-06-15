@@ -57,13 +57,6 @@ public class ClientDataControllerImpl implements ClientDataController {
         dataProvider.setBaseEntry(entry);
     }
 
-    private enum Refresh {
-        NONE,
-        SINGLE,
-        ANCESTORS,
-        ALL
-    }
-
     private <T extends Response> T tryServiceCall(Supplier<T> serviceCall) {
         T response = serviceCall.get();
 
@@ -133,7 +126,7 @@ public class ClientDataControllerImpl implements ClientDataController {
         this.tryServiceCalls(
                 () -> updateService.updateNode(entry.node()),
                 () -> updateService.updateTask(entry.node().child()));
-        dataProvider.refreshMatchingItems(entry.node().child().id(), true);
+        dataProvider.refreshAll();
     }
 
     @Override
@@ -189,6 +182,12 @@ public class ClientDataControllerImpl implements ClientDataController {
         this.activeTaskProvider = activeTaskProvider;
     }
 
+    @Override
+    public Response addTaskFromProvider(TaskProvider taskProvider) {
+        TaskEntry parent = dataProvider.getBaseEntry();
+        return this.addTaskFromProviderAsChild(taskProvider, parent);
+    }
+
     private Response addTaskDTO(TaskProvider taskProvider, TaskNodeDTO taskDTO) {
         Response validTaskResponse = taskProvider.hasValidTask();
         if (validTaskResponse.success()) {
@@ -238,35 +237,15 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
-    public Response addTaskFromProvider(TaskProvider taskProvider, TaskNodeInfo nodeInfo) {
-        TaskEntry parent = dataProvider.getBaseEntry();
-        return this.addTaskFromProviderAsChild(taskProvider, parent, nodeInfo);
-    }
-
-    @Override
-    public Response addTaskFromProvider(TaskProvider taskProvider) {
-        return this.addTaskFromProvider(taskProvider, null);
-    }
-
-    @Override
-    public Response addTaskFromActiveProvider() {
-        return tryFunctionWithActiveProvider(this::addTaskFromProvider);
-    }
-
-    @Override
-    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent, TaskNodeInfo nodeInfo) {
+    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
         logger.debug("Adding task as a child of " + parent);
         TaskID parentId = parent == null ? null : parent.node().child().id();
         TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
                 parentId,
                 null,
-                nodeInfo);
+                taskProvider.getNodeInfo());
+        logger.debug("Provided node info: " + taskProvider.getNodeInfo());
         return this.addTaskDTO(taskProvider, taskNodeDTO);
-    }
-
-    @Override
-    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
-        return this.addTaskFromProviderAsChild(taskProvider, parent, null);
     }
 
     @Override
@@ -276,15 +255,11 @@ public class ClientDataControllerImpl implements ClientDataController {
 
     @Override
     public Response addTaskFromProviderBefore(TaskProvider taskProvider, TaskEntry next) {
-        TaskNodeInfo nodeInfo = new TaskNodeInfo(
-                next.node().position(),
-                null,
-                false,
-                false);
         TaskNodeDTO taskDTO = new TaskNodeDTO(
                 next.node().parentId(),
                 null,
-                nodeInfo);
+                taskProvider.getNodeInfo()
+                        .position(next.node().position()));
         logger.debug("Adding task " + taskDTO + " before: " + next);
         return this.addTaskDTO(taskProvider, taskDTO);
     }
@@ -296,15 +271,11 @@ public class ClientDataControllerImpl implements ClientDataController {
 
     @Override
     public Response addTaskFromProviderAfter(TaskProvider taskProvider, TaskEntry prev) {
-        TaskNodeInfo nodeInfo = new TaskNodeInfo(
-                prev.node().position() + 1,
-                null,
-                false,
-                false);
         TaskNodeDTO taskDTO = new TaskNodeDTO(
                 prev.node().parentId(),
                 null,
-                nodeInfo);
+                taskProvider.getNodeInfo()
+                        .position(prev.node().position()+1));
         logger.debug("Adding task " + taskDTO + " after: " + prev);
         return this.addTaskDTO(taskProvider, taskDTO);
     }

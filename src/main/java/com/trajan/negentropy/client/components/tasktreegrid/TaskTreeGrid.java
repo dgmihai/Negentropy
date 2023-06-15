@@ -83,6 +83,7 @@ public class TaskTreeGrid extends Div {
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String COLUMN_KEY_NAME = "Name";
     public static final String COLUMN_KEY_FOCUS = "Focus";
+    public static final String COLUMN_KEY_BLOCK = "block";
     public static final String COLUMN_KEY_COMPLETE = "Complete";
     public static final String COLUMN_KEY_RECURRING = "Recurring";
     public static final String COLUMN_KEY_TAGS = "Tags";
@@ -96,6 +97,7 @@ public class TaskTreeGrid extends Div {
     public static final List<String> VISIBILITY_TOGGLEABLE_COLUMNS = List.of(
             COLUMN_KEY_DRAG_HANDLE,
             COLUMN_KEY_FOCUS,
+            COLUMN_KEY_BLOCK,
             COLUMN_KEY_COMPLETE,
             COLUMN_KEY_RECURRING,
             COLUMN_KEY_TAGS,
@@ -113,6 +115,7 @@ public class TaskTreeGrid extends Div {
     private Grid.Column<TaskEntry> dragHandleColumn;
     private Grid.Column<TaskEntry> focusColumn;
     private Grid.Column<TaskEntry> nameColumn;
+    private Grid.Column<TaskEntry> blockColumn;
     private Grid.Column<TaskEntry> completeColumn;
     private Grid.Column<TaskEntry> recurringColumn;
     private Grid.Column<TaskEntry> tagColumn;
@@ -237,6 +240,23 @@ public class TaskTreeGrid extends Div {
                     .setTextAlign(ColumnTextAlign.CENTER);
         }
 
+        if (columns.contains(COLUMN_KEY_BLOCK)) {
+            blockColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                                    inlineVaadinIconLitExpression("bookmark-o",
+                                            "?active=\"${item.block}\" "))
+                            .withFunction("onClick", entry ->
+                                    controller.updateTask(entry.task()
+                                            .block(!entry.task().block())))
+                            .withProperty("block", entry ->
+                                    entry.task().block())
+                    )
+                    .setKey(COLUMN_KEY_BLOCK)
+                    .setHeader(headerIcon(VaadinIcon.BOOKMARK))
+                    .setWidth(ICON_COL_WIDTH_L)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
+        }
+
         if (columns.contains(COLUMN_KEY_COMPLETE)) {
             completeColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                     inlineVaadinIconLitExpression("check",
@@ -299,16 +319,12 @@ public class TaskTreeGrid extends Div {
         if (columns.contains(COLUMN_KEY_DESCRIPTION)) {
             descriptionColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                     inlineVaadinIconLitExpression("eye",
-//                                            "?hidden=\"${!item.isHidden}\" " +
-                                                    "?active=\"${item.isActive}\""))
+                                                    "?active=\"${item.hasDescription}\""))
                             .withFunction("onClick", entry ->
                                     treeGrid.setDetailsVisible(
                                             entry,
                                             !treeGrid.isDetailsVisible(entry)))
-//                            .withProperty("isHidden", entry ->
-//                                    !treeGrid.isDetailsVisible(entry)
-//                                            && !entry.task().description().isBlank())
-                            .withProperty("isActive", entry ->
+                            .withProperty("hasDescription", entry ->
                                     !entry.task().description().isBlank()))
                     .setKey(COLUMN_KEY_DESCRIPTION)
                     .setHeader(headerIcon(VaadinIcon.CLIPBOARD_TEXT))
@@ -395,10 +411,10 @@ public class TaskTreeGrid extends Div {
             List<String> partNames = new ArrayList<>();
 
             if (entry.node().completed()) {
-                partNames.add("completed-node");
+                partNames.add(K.GRID_PARTNAME_COMPLETED);
             }
-            if (entry.node().recurring()) {
-                partNames.add("recurring-task");
+            if (entry.task().block()) {
+                partNames.add(K.GRID_PARTNAME_BLOCK);
             }
 
             return Joiner.on(" ").join(partNames);
@@ -489,7 +505,7 @@ public class TaskTreeGrid extends Div {
     private void initEditColumns() {
         if (columns.contains(COLUMN_KEY_EDIT)) {
             Editor<TaskEntry> editor = treeGrid.getEditor();
-            editor.addSaveListener(e -> controller.updateTask(e.getItem()));
+            editor.addSaveListener(e -> controller.updateEntry(e.getItem()));
 
             editor.setBuffered(true);
 

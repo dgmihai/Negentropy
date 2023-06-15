@@ -38,6 +38,9 @@ public class TaskEntity extends AbstractEntity implements TaskData {
     @ToString.Include
     private Duration duration = Duration.ZERO;
 
+    @ToString.Include
+    private boolean block = false;
+
     @OneToMany(
             mappedBy = "task",
             cascade = CascadeType.ALL,
