@@ -5,7 +5,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -16,6 +16,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
@@ -26,11 +27,7 @@ public class FilterForm extends FormLayout {
     private TextField name;
     private Button resetButton;
     private HorizontalLayout topLayout;
-    private Checkbox showOnlyBlocks;
-    private Checkbox showCompleted;
-    private Checkbox includeParents;
-    private Checkbox ignoreScheduling;
-    private Checkbox innerJoinIncludedTags;
+    private CheckboxGroup<String> filterOptions;
     private TagComboBox tagsToExclude;
     private TagComboBox tagsToInclude;
 
@@ -59,45 +56,20 @@ public class FilterForm extends FormLayout {
         resetButton = new Button("Reset");
         resetButton.setMaxWidth("5em");
 
+        filterOptions = new CheckboxGroup<>();
+        filterOptions.setWidthFull();
+        filterOptions.setItems(TaskFilter.OPTION_TYPES());
+        filterOptions.addValueChangeListener(event -> {
+            TaskFilter filter = controller.dataProvider().getFilter();
+            filter.options(filterOptions.getValue());
+            controller.dataProvider().refreshAll();
+        });
+        filterOptions.setValue(controller.settings().filter().options());
+
         topLayout = new HorizontalLayout(name, resetButton);
         name.setWidthFull();
         topLayout.setWidthFull();
         topLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
-
-        showOnlyBlocks = new Checkbox("Show Only Blocks");
-        showOnlyBlocks.addValueChangeListener(event -> {
-            controller.settings().filter().showOnlyBlocks(showOnlyBlocks.getValue());
-            controller.dataProvider().refreshAll();
-        });
-        showOnlyBlocks.setValue(controller.settings().filter().showOnlyBlocks());
-
-        showCompleted = new Checkbox("Show Completed Tasks");
-        showCompleted.addValueChangeListener(event -> {
-            controller.settings().filter().showCompleted(showCompleted.getValue());
-            controller.dataProvider().refreshAll();
-        });
-        showCompleted.setValue(controller.settings().filter().showCompleted());
-
-        includeParents = new Checkbox("Include Parents");
-        includeParents.addValueChangeListener(event -> {
-            controller.settings().filter().includeParents(includeParents.getValue());
-            controller.dataProvider().refreshAll();
-        });
-        includeParents.setValue(controller.settings().filter().includeParents());
-        
-        ignoreScheduling = new Checkbox("Ignore Scheduling");
-        ignoreScheduling.addValueChangeListener(event -> {
-            controller.settings().ignoreScheduling(ignoreScheduling.getValue());
-            controller.dataProvider().refreshAll();
-        });
-        ignoreScheduling.setValue(controller.settings().ignoreScheduling());
-
-        innerJoinIncludedTags = new Checkbox("Inner join included tags");
-        innerJoinIncludedTags.addValueChangeListener(event -> {
-            controller.settings().filter().innerJoinIncludedTags(innerJoinIncludedTags.getValue());
-            controller.dataProvider().refreshAll();
-        });
-        innerJoinIncludedTags.setValue(controller.settings().filter().innerJoinIncludedTags());
 
         tagsToExclude = new TagComboBox("Filter: Excluded Tags", controller);
         tagsToExclude.setClearButtonVisible(true);
@@ -121,26 +93,26 @@ public class FilterForm extends FormLayout {
         });
         // TODO: Load tags from settings
 
-        this.add(topLayout, showOnlyBlocks, includeParents, showCompleted, ignoreScheduling, innerJoinIncludedTags, tagsToInclude, tagsToExclude);
+        this.add(topLayout, filterOptions, tagsToInclude, tagsToExclude);
     }
 
     private void configureInteractions() {
         resetButton.addClickListener(e -> {
             name.clear();
-            innerJoinIncludedTags.clear();
+            filterOptions.setValue(Set.of());
             tagsToExclude.clear();
             tagsToInclude.clear();
         });
     }
 
     private void configureLayout() {
-        this.setColspan(topLayout, 4);
-        this.setColspan(tagsToInclude, 4);
-        this.setColspan(tagsToExclude, 4);
-
-        this.setResponsiveSteps(
-                new ResponsiveStep("0", 2),
-                new ResponsiveStep("1200px", 4));
+//        this.setColspan(topLayout, 4);
+//        this.setColspan(tagsToInclude, 4);
+//        this.setColspan(tagsToExclude, 4);
+//
+//        this.setResponsiveSteps(
+//                new ResponsiveStep("0", 2),
+//                new ResponsiveStep("1200px", 4));
 
         this.setWidthFull();
     }

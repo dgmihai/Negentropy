@@ -3,7 +3,7 @@
   "assets" : {
     "@fontsource/pt-sans-narrow" : {
       "*.css" : "@fontsource/pt-sans-narrow",
-      "files/*" : "@fontsource/pt-sans-narrow/files"
+      "files/**" : "@fontsource/pt-sans-narrow/files"
     }
   }
 }

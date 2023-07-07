@@ -178,6 +178,13 @@ public class RoutineServiceTest extends TaskTestTemplate {
                 RoutineUtil.getStepElapsedActiveDuration(routine.currentStep(), time5));
 
         LocalDateTime time6 = LocalDateTime.now();
+
+        try {
+            Thread.sleep(5);
+        } catch (InterruptedException e) {
+            assert false;
+        }
+
         routine = doRoutine(routine.currentStep().id(),
                 time6,
                 routineService::completeStep);

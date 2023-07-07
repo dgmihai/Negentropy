@@ -301,7 +301,7 @@ public class TaskTreeGrid extends Div {
                             entry -> cronValueProvider.apply(entry.node().cron()))
                     .setKey(COLUMN_KEY_CRON)
                     .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
-                    .setAutoWidth(true)
+                    .setAutoWidth(false)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
         }
@@ -317,7 +317,7 @@ public class TaskTreeGrid extends Div {
                     })
                     .setKey(COLUMN_KEY_SCHEDULED_FOR)
                     .setHeader(headerIcon(VaadinIcon.CALENDAR))
-                    .setAutoWidth(true)
+                    .setAutoWidth(false)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
         }
@@ -629,7 +629,7 @@ public class TaskTreeGrid extends Div {
     }
 
     private void configureSelectionMode() {
-        treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
+        treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
     }
 
     private void configureNestedTaskTabs() {

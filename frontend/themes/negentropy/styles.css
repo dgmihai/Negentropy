@@ -1,8 +1,8 @@
+@import url('@fontsource/pt-sans-narrow/index.css');
 @import url('./main-layout.css');
 @import url('./views/routine-view.css');
 @import url('./components/grid.css');
-
-@import url('@fontsource/pt-sans-narrow/index.css');    html {
+html {
       --lumo-primary-color: hsl(311, 46%, 30%);
       --lumo-primary-color-50pct: hsla(311, 46%, 30%, 0.5);
       --lumo-primary-color-10pct: hsla(311, 46%, 30%, 0.1);
@@ -23,7 +23,7 @@
       --lumo-size-s: 1.75rem;
       --lumo-size-xs: 1.5rem;
       --lumo-base-color: #fcfcfc;
---lumo-font-family: PT Sans Narrow;
+--lumo-font-family: PT Sans Narrow, sans-serif-condensed;
 
 --lumo-shade-5pct-opaque: hsl(210,15%,95%);
 

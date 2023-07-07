@@ -24,7 +24,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 )
 @SpringBootApplication
 @EnableAspectJAutoProxy(proxyTargetClass=true)
-@NpmPackage(value = "@fontsource/pt-sans-narrow", version = "4.5.0")
+@NpmPackage(value = "@fontsource/pt-sans-narrow", version = "5.0.4")
 @Theme(value = "negentropy")
 @EnableScheduling
 public class Negentropy extends SpringBootServletInitializer implements AppShellConfigurator {

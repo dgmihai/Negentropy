@@ -133,12 +133,6 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     }
 
     private void updateFilterFromSettings() {
-        if (!settings.ignoreScheduling()) {
-            filter.availableAtTime(LocalDateTime.now());
-        } else {
-            filter.availableAtTime(null);
-        }
-
         filter = settings.filter();
     }
 

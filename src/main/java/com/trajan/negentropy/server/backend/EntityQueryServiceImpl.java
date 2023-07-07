@@ -85,7 +85,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime()));
             }
 
-            if (filter.showCompleted() != null && !filter.showCompleted()) {
+            if (!filter.options().contains(TaskFilter.DONT_HIDE_COMPLETED)) {
                 builder.andNot(Q_LINK.completed.eq(true));
             }
        }
@@ -102,18 +102,21 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             }
 
             // Filter if task is a block
-            if (filter.showOnlyBlocks() != null && filter.showOnlyBlocks()) {
+            if (filter.options().contains(TaskFilter.ONLY_BLOCKS)) {
                 builder.and(qTask.block.eq(true));
             }
 
-            if (filter.includeParents() != null && filter.includeParents()) {
-                builder.or(qTask.childLinks.isNotEmpty());
+            if (filter.options().contains(TaskFilter.ALWAYS_INCLUDE_PARENTS)) {
+                if (filter.options().size() > 1) {
+                    // 'or' doesn't work well if it's the only option
+                    builder.or(qTask.childLinks.isNotEmpty());
+                }
             }
 
             // Filter by included task IDs, and if this filter is by inner join or not
             if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
                 Consumer<TagEntity> filterFunction =
-                        (filter.innerJoinIncludedTags() != null && filter.innerJoinIncludedTags()) ?
+                        (filter.options().contains(TaskFilter.INNER_JOIN_INCLUDED_TAGS)) ?
                         tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
                         tagEntity -> builder.or(qTask.tags.contains(tagEntity));
 

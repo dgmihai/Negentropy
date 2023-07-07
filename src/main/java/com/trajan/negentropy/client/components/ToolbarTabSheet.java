@@ -19,9 +19,11 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Slf4j
 public class ToolbarTabSheet extends TabSheet {
     private ClientDataController controller;
     private SessionSettings settings;
@@ -42,8 +44,10 @@ public class ToolbarTabSheet extends TabSheet {
         this.controller = controller;
         this.settings = settings;
 
-        UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver ->
-                mobile.set(receiver.getScreenWidth() > K.BREAKPOINT_PX));
+        UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver -> {
+            mobile.set(receiver.getScreenWidth() > K.BREAKPOINT_PX);
+            log.debug("Detected page size: " + receiver.getScreenWidth());
+        });
 
         initCloseTab();
 

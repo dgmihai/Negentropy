@@ -17,11 +17,8 @@ public class SessionSettings {
     private final Map<String, Boolean> treeViewColumnVisibility = new HashMap<>();
     private final Map<String, Boolean> routineViewColumnVisibility = new HashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
-    private TaskFilter filter = new TaskFilter()
-            .showOnlyBlocks(false)
-            .showCompleted(false);
+    private TaskFilter filter = new TaskFilter();
     @Setter private boolean enableContextMenu = true;
-    @Setter private boolean ignoreScheduling = false;
 
     @Setter
     private DescriptionViewDefaultSetting descriptionViewDefaultSetting =
