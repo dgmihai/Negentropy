@@ -5,6 +5,9 @@ import com.trajan.negentropy.server.facade.model.id.TaskID;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
+import org.springframework.scheduling.support.CronExpression;
+
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
@@ -23,6 +26,11 @@ public class TaskNode extends TaskNodeInfo {
     private Task child;
     private Integer position;
     private Integer importance;
-    private Boolean recurring;
+
+    private LocalDateTime createdAt;
     private Boolean completed;
+
+    private Boolean recurring;
+    private CronExpression cron;
+    private LocalDateTime scheduledFor;
 }

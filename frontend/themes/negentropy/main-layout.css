@@ -68,7 +68,7 @@ vaadin-multi-select-combo-box-chip {
 
 vaadin-multi-select-combo-box.grid-combo-box::part(input-field) {
   background-color:
-    var(--lumo-base-color);
+    hsla(0, 0%, 100%, 0);
 }
 
 vaadin-multi-select-combo-box[opened] > input {

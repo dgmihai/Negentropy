@@ -174,6 +174,7 @@ public interface QueryService {
      */
     Stream<TaskNode> fetchRootNodes(TaskFilter filter, int offset, int limit);
 
+    Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskFilter filter);
 
     /**
      * Retrieves a tag by its ID.

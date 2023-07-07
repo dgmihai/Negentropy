@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
@@ -62,6 +63,12 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
                 .bind(
                         entry -> entry.node().child().duration(),
                         (entry, duration) -> entry.node().child().duration(duration));
+
+        binder.forField(cronField)
+                .withConverter(new CronConverter())
+                .bind(
+                        entry -> entry.node().cron(),
+                        (entry, cronString) -> entry.node().cron(cronString));
 
         binder.forField(recurringCheckbox)
                 .bind(

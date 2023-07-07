@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.controller;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
+import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -15,6 +16,11 @@ import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.server.facade.response.TaskResponse;
 
 public interface ClientDataController {
+
+    TaskEntryDataProvider dataProvider();
+    SessionSettings settings();
+    QueryService queryService();
+    TaskProvider activeTaskProvider();
 
     TaskEntry getBaseEntry();
     void setBaseEntry(TaskEntry entry);
@@ -34,7 +40,6 @@ public interface ClientDataController {
     void moveNodeBefore(TaskEntry moved, TaskEntry target);
     void moveNodeAfter(TaskEntry moved, TaskEntry target);
 
-    TaskProvider activeTaskProvider();
     void activeTaskProvider(TaskProvider activeTaskProvider);
 
     Response addTaskFromProvider(TaskProvider taskProvider);
@@ -50,11 +55,7 @@ public interface ClientDataController {
 
     Tag createTag(Tag tag);
 
-    QueryService queryService();
-
     void recalculateTimeEstimates();
-
-    TaskEntryDataProvider dataProvider();
 
     RoutineResponse createRoutine(TaskID taskId);
 

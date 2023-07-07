@@ -15,22 +15,23 @@ import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.id.ID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class DataContextImpl implements DataContext {
-    private static final Logger logger = LoggerFactory.getLogger(DataContextImpl.class);
 
     @Autowired private EntityQueryService entityQueryService;
 
@@ -56,7 +57,7 @@ public class DataContextImpl implements DataContext {
 
     @Override
     public void addToTimeEstimateOfTask(Duration change, TaskID taskId) {
-        logger.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
+        log.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
         TotalDurationEstimate timeEstimate = entityQueryService.getTotalDuration(taskId);
         timeEstimate.totalDuration(timeEstimate.totalDuration().plus(change));
     }
@@ -69,10 +70,11 @@ public class DataContextImpl implements DataContext {
             if (task.name() == null) {
                 throw new IllegalArgumentException("New task must have a non-blank unique name");
             }
-            logger.debug("Creating new task: " + task.name());
+            log.debug("Creating new task: " + task.name());
 
             taskEntity = taskRepository.save(new TaskEntity()
                     .name(task.name()));
+
             taskEntity.timeEstimates().add(new TotalDurationEstimate(
                     taskEntity,
                     0,
@@ -80,7 +82,7 @@ public class DataContextImpl implements DataContext {
                             task.duration(), Duration.ZERO)));
         } else {
             taskEntity = entityQueryService.getTask(task.id());
-            logger.debug("Merging to existing task: " + taskEntity.name());
+            log.debug("Merging to existing task: " + taskEntity.name());
 
             if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
                 Duration change = task.duration().minus(taskEntity.duration());
@@ -94,7 +96,7 @@ public class DataContextImpl implements DataContext {
                         .map(tag ->entityQueryService.getTag(tag.id()))
                         .collect(Collectors.toSet());
 
-        return taskEntity
+        taskEntity
                 .name(Objects.requireNonNullElse(
                         task.name(), taskEntity.name()))
                 .duration(Objects.requireNonNullElse(
@@ -106,18 +108,40 @@ public class DataContextImpl implements DataContext {
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
+
+        log.debug("Merged task: " + taskEntity);
+        return taskEntity;
     }
 
     @Override
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
-        return linkEntity
+
+        boolean updatedCron = node.cron() != linkEntity.cron();
+        boolean updatedCompleted = node.completed() && !linkEntity.completed();
+
+        linkEntity
                 .importance(Objects.requireNonNullElse(
                         node.importance(), linkEntity.importance()))
                 .recurring(Objects.requireNonNullElse(
                         node.recurring(), linkEntity.recurring()))
                 .completed(Objects.requireNonNullElse(
-                        node.completed(), linkEntity.completed()));
+                        node.completed(), linkEntity.completed()))
+                .cron(Optional.ofNullable(node.cron()).orElse((linkEntity.cron())));
+
+        boolean scheduled = linkEntity.cron() != null && linkEntity.recurring();
+
+        if ((scheduled && updatedCron)
+                || (updatedCompleted && scheduled)) {
+            log.debug("Updating scheduled time");
+            linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
+            if (linkEntity.completed()) {
+                linkEntity.completed(false);
+            }
+        }
+        
+        log.debug("Merged task link from node: " + linkEntity);
+        return linkEntity;
     }
 
     @Override
@@ -143,7 +167,7 @@ public class DataContextImpl implements DataContext {
 
         Integer position = node.position();
 
-        logger.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
+        log.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
 
         if (node.position() == null || node.position() == -1) {
             position = parent == null ?
@@ -166,13 +190,26 @@ public class DataContextImpl implements DataContext {
         boolean recurring = node.recurring() != null && node.recurring();
         boolean completed = node.completed() != null && node.completed();
 
+        String cron = node.cron() == null ?
+                null :
+                node.cron().toString();
+
+        LocalDateTime now = DataContext.now();
+        LocalDateTime scheduledFor = now;
+        if (cron != null) {
+            scheduledFor = node.cron().next(now);
+        }
+
         TaskLink link = linkRepository.save(new TaskLink(
                 parent,
                 child,
                 position,
                 importance,
+                now,
+                completed,
                 recurring,
-                completed));
+                cron,
+                scheduledFor));
 
         if (parent != null) {
             Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration();
@@ -188,6 +225,7 @@ public class DataContextImpl implements DataContext {
 
         child.parentLinks().add(link);
 
+        log.debug("Merged task link from node dto: " + link);
         return link;
     }
 
@@ -211,7 +249,7 @@ public class DataContextImpl implements DataContext {
         TaskEntity parent = link.parent();
         TaskEntity child = link.child();
 
-        logger.debug("Deleting link " + link);
+        log.debug("Deleting link " + link);
 
         if (parent != null) {
             parent.childLinks().remove(link);

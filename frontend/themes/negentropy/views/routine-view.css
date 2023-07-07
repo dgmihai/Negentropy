@@ -4,7 +4,6 @@
 }
 
 .routine-view vaadin-grid {
-  height: 100%;
   line-height: var(--lumo-line-height-m);
 }
 

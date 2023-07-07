@@ -38,6 +38,6 @@ vaadin-grid::part(block-task) {
 vaadin-grid::part(completed-node) {
     color:
       var(--lumo-tertiary-text-color);
-    fill:
-      var(--lumo-shade-5pct);
+    background-color:
+      var(--lumo-shade-5pct-opaque);
 }

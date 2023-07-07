@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
@@ -24,6 +25,7 @@ import java.util.Set;
 @Getter
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
+@Slf4j
 public class TaskEntity extends AbstractEntity implements TaskData {
 
     @Column(nullable = false, unique = true)

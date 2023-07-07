@@ -1,15 +1,15 @@
 package com.trajan.negentropy.client.routine;
 
 import com.trajan.negentropy.client.MainLayout;
+import com.trajan.negentropy.client.components.TaskTreeGrid;
+import com.trajan.negentropy.client.components.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
 import com.trajan.negentropy.client.session.SessionSettings;
-import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.model.Routine;
-import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -19,7 +19,7 @@ import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
-import com.vaadin.flow.spring.annotation.UIScope;
+import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -30,7 +30,7 @@ import java.util.Set;
 
 @PageTitle("Negentropy - Routine")
 @Slf4j
-@UIScope
+@VaadinSessionScope
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
 @Uses(Icon.class)
@@ -43,44 +43,38 @@ public class RoutineView extends VerticalLayout {
     @Autowired private RoutineDataProvider routineDataProvider;
     @Autowired private RoutineService routineService;
 
-    private VerticalLayout routineDiv;
-
-    private Grid<Routine> routineSelectionGrid = new Grid<>(Routine.class, false);
+    @Autowired private TaskTreeGrid taskTreeGrid;
+    @Autowired private ToolbarTabSheet toolbarTabSheet;
     private Grid<Routine> activeRoutineGrid = new Grid<>();
 
     @PostConstruct
     public void init() {
         this.addClassName("routine-view");
         this.setSizeFull();
+        this.setJustifyContentMode(JustifyContentMode.START);
 
-        routineSelectionGrid.setItems(routineDataProvider.fetch(new Query<>(
-                Set.of(TimeableStatus.NOT_STARTED))).toList());
+        Set<TimeableStatus> visibleRoutineStatuses = Set.of(
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.ACTIVE
+        );
+
+        toolbarTabSheet
+                .initSearchAndFilterTab()
+                .initOptionsTab();
+
+        taskTreeGrid.init(settings.routineViewColumnVisibility());
+        taskTreeGrid.treeGrid().setDataProvider(controller.dataProvider());
+        taskTreeGrid.setSizeFull();
 
         activeRoutineGrid.setItems(routineDataProvider.fetch(new Query<>(
-                Set.of(TimeableStatus.ACTIVE))).toList());
+                visibleRoutineStatuses)).toList());
 
-//        activeRoutineGrid.setHeight("100%");
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS);
         activeRoutineGrid.addComponentColumn(routine -> new RoutineCard(routine, controller));
-        activeRoutineGrid.setAllRowsVisible(true);
+        activeRoutineGrid.setAllRowsVisible(true); // TODO: Verify this works
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
 
-        initRoutineSelectionGrid();
-
-        // TODO: Verify this works
-        activeRoutineGrid.setAllRowsVisible(true);
-        routineSelectionGrid.setAllRowsVisible(true);
-
-        this.add(activeRoutineGrid, routineSelectionGrid);
-    }
-
-    private void initRoutineSelectionGrid() {
-        routineSelectionGrid.addColumn(r -> r.steps().get(0).task().name());
-
-        DoubleClickListenerUtil.add(routineSelectionGrid, routine -> {
-            RoutineResponse response = controller.startRoutineStep(routine.currentStep().id());
-            routineDiv.add(new RoutineCard(response.routine(), controller));
-        });
+        this.add(activeRoutineGrid, toolbarTabSheet, taskTreeGrid);
     }
 
 }

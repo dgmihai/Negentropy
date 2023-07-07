@@ -80,8 +80,16 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             if (filter.importanceThreshold() != null) {
                 builder.and(Q_LINK.importance.loe(filter.importanceThreshold()));
             }
-        }
-        return new BooleanBuilder();
+
+            if (filter.availableAtTime() != null) {
+                builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime()));
+            }
+
+            if (filter.showCompleted() != null && !filter.showCompleted()) {
+                builder.andNot(Q_LINK.completed.eq(true));
+            }
+       }
+        return builder;
     }
 
     private BooleanBuilder filterTask(TaskFilter filter, QTaskEntity qTask) {
@@ -94,8 +102,12 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             }
 
             // Filter if task is a block
-            if (filter.block() != null) {
-                builder.and(qTask.block.eq(filter.block()));
+            if (filter.showOnlyBlocks() != null && filter.showOnlyBlocks()) {
+                builder.and(qTask.block.eq(true));
+            }
+
+            if (filter.includeParents() != null && filter.includeParents()) {
+                builder.or(qTask.childLinks.isNotEmpty());
             }
 
             // Filter by included task IDs, and if this filter is by inner join or not

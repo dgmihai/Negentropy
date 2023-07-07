@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
@@ -46,6 +47,10 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         taskBinder.forField(durationField)
                 .withConverter(new DurationConverter())
                 .bind(Task::duration, Task::duration);
+
+        nodeBinder.forField(cronField)
+                .withConverter(new CronConverter())
+                .bind(TaskNodeInfo::cron, TaskNodeInfo::cron);
 
         taskBinder.forField(descriptionArea)
                 .bind(Task::description, Task::description);

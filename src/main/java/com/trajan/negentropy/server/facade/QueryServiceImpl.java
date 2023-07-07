@@ -117,6 +117,12 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskFilter filter) {
+        return entityQueryService.findDescendantLinks(ancestorId, filter)
+                .map(DataContext::toDTO);
+    }
+
+    @Override
     public Tag fetchTag(TagID tagId) {
         return DataContext.toDTO(tagService.getTagEntity(tagId));
     }

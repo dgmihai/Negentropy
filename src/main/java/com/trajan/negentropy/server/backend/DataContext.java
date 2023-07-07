@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.server.backend.entity.*;
 import com.trajan.negentropy.server.facade.model.*;
 import com.trajan.negentropy.server.facade.model.id.ID;
@@ -7,6 +8,7 @@ import com.trajan.negentropy.server.facade.model.id.TaskID;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 /**
@@ -46,8 +48,11 @@ public interface DataContext {
                 toDTO(link.child()),
                 link.position(),
                 link.importance(),
+                link.createdAt(),
+                link.completed(),
                 link.recurring(),
-                link.completed());
+                link.cron(),
+                link.scheduledFor());
     }
 
     static Tag toDTO(TagEntity tagEntity) {
@@ -86,4 +91,9 @@ public interface DataContext {
     void deleteAllOrphanedTags();
 
     TaskEntity TESTONLY_mergeTask(TaskEntity taskEntity);
+
+    @VisibleForTesting
+    static LocalDateTime now() {
+        return LocalDateTime.now();
+    };
 }

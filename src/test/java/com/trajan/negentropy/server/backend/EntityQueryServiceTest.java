@@ -12,9 +12,14 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -101,6 +106,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 .map(task -> task == null ? NULL : task.name())
                 .toList();
 
+        System.out.println("EXPECTED: " + expected);
+        System.out.println("ACTUAL:   " + resultNameList);
+
         assertTrue(ordered ?
                 Iterables.elementsEqual(expected, resultNameList) :
                 Iterables.size(expected) == resultNameList.size());
@@ -133,7 +141,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     private TaskFilter createFilter(String name, Boolean block, Set<String> includedTags, Set<String> excludedTags) {
         TaskFilter filter = new TaskFilter();
         if (name != null) filter.name(name);
-        if (block != null) filter.block(block);
+        if (block != null) filter.showOnlyBlocks(block);
         if (includedTags != null) {
             filter.includedTagIds(includedTags.stream()
                     .map(s -> tags.get(s).id())
@@ -391,11 +399,19 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindChildCountWithFilterOfBlocksWithParents() {
+        TaskFilter filter = createFilter(null, true, null, null);
+        testFindChildCount(TWOTWO, filter, 3);
+
+        testFindChildCount(THREE_AND_FIVE, filter, 1);
+    }
+
+    @Test
     public void testFindChildCountWithFilterOfNotBlocks() {
         TaskFilter filter = createFilter(null, false, null, null);
-        testFindChildCount(TWOTWO, filter, 0);
+        testFindChildCount(TWOTWO, filter, 3);
 
-        testFindChildCount(THREE_AND_FIVE, filter, 2);
+        testFindChildCount(THREE_AND_FIVE, filter, 3);
     }
 
     // Testing hasChildren
@@ -428,29 +444,44 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     @Test
     public void testHasChildrenWithFilterOfTaskWithoutChildren() {
         TaskFilter filter = createFilter(ONE, null, null, null);
+
         testHasChildren(FOUR, filter, false);
     }
 
     @Test
     public void testHasChildrenWithFilterOfTaskWithChildrenAllFilteredOut() {
         TaskFilter filter = createFilter(FOUR, null, null, null);
+
         testHasChildren(TWO, filter, false);
     }
 
     @Test
     public void testHasChildrenWithFilterOfBlocks() {
         TaskFilter filter = createFilter(null, true, null, null);
-        testHasChildren(TWOTWO, filter, true);
 
+        testHasChildren(TWOTWO, filter, true);
         testHasChildren(THREEONE, filter, false);
+        testHasChildren(null, filter, false);
+    }
+
+    @Test
+    public void testHasChildrenWithFilterOfBlocksWithParents() {
+        TaskFilter filter = new TaskFilter()
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        testHasChildren(TWOTWO, filter, true);
+        testHasChildren(THREEONE, filter, false);
+        testHasChildren(null, filter, true);
     }
 
     @Test
     public void testHasChildrenWithFilterOfNotBlocks() {
         TaskFilter filter = createFilter(null, false, null, null);
-        testHasChildren(TWOTWO, filter, false);
 
+        testHasChildren(TWOTWO, filter, true);
         testHasChildren(THREEONE, filter, false);
+        testHasChildren(null, filter, true);
     }
 
     // Testing findChildLinks
@@ -633,6 +664,20 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindChildTasksWithFilterOfBlocksWithParents() {
+        String parent = TWO;
+
+        TaskFilter filter = new TaskFilter()
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        Iterable<String> expectedResults = List.of(
+                TWOTWO);
+
+        testFindChildTasks(parent, filter, expectedResults);
+    }
+
+    @Test
     public void testFindChildTasksWithFilterOfNotBlocks() {
         String parent = TWO;
 
@@ -640,6 +685,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
         Iterable<String> expectedResults = List.of(
                 TWOONE,
+                TWOTWO,
                 TWOTHREE);
 
         testFindChildTasks(parent, filter, expectedResults);
@@ -726,8 +772,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         TaskFilter filter = createFilter(TWO, true, null, null);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
-                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2)
-        );
+                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2));
 
         testFindParentLinks(child, filter, expectedResults);
     }
@@ -739,8 +784,8 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         TaskFilter filter = createFilter(TWO, false, null, null);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
-                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1)
-        );
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(TWOTWO,TWOTWOTHREE_AND_THREETWOTWO,2));
 
         testFindParentLinks(child, filter, expectedResults);
     }
@@ -831,13 +876,30 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindParentTasksWithFilterOfBlocksWithParents() {
+        String child = TWOTWOTHREE_AND_THREETWOTWO;
+
+        TaskFilter filter = new TaskFilter()
+                .name(TWO)
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        Iterable<String> expectedResults = List.of(
+                THREETWO,
+                TWOTWO);
+
+        testFindParentTasks(child, filter, expectedResults);
+    }
+
+    @Test
     public void testFindParentTasksWithFilterOfNotBlocks() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
         TaskFilter filter = createFilter(TWO, false, null, null);
 
         Iterable<String> expectedResults = List.of(
-                THREETWO);
+                THREETWO,
+                TWOTWO);
 
         testFindParentTasks(child, filter, expectedResults);
     }
@@ -1101,14 +1163,39 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindAncestorsFilteredByBlocksWithParents() {
+        String descendant = TWOTWOTWO;
+
+        TaskFilter filter = new TaskFilter()
+                .name(TWO)
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        Iterable<String> expectedTasks = List.of(
+                TWOTWO,
+                TWO);
+
+        Iterable<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWO, TWOTWO, 1));
+
+        testFindAncestorLinks(descendant, filter, expectedLinks);
+        testFindAncestorTasks(descendant, filter, expectedTasks);
+    }
+
+    @Test
     public void testFindAncestorsFilteredByNotBlocks() {
         String descendant = TWOTWOTWO;
 
         TaskFilter filter = createFilter(TWO, false, null, null);
 
-        Iterable<String> expectedTasks = List.of();
+        Iterable<String> expectedTasks = List.of(
+                TWOTWO,
+                TWO);
 
-        Iterable<Triple<String, String, Integer>> expectedLinks = List.of();
+        Iterable<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWO, TWOTWO, 1));
 
         testFindAncestorLinks(descendant, filter, expectedLinks);
         testFindAncestorTasks(descendant, filter, expectedTasks);
@@ -1329,6 +1416,30 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindDescendantsFilteredByBlocksWithParents() {
+        String ancestor = TWO;
+
+        TaskFilter filter = new TaskFilter()
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        Collection<String> expectedTasks = List.of(
+                TWOTWO,
+                TWOTWOONE,
+                TWOTWOTWO,
+                TWOTWOTHREE_AND_THREETWOTWO);
+
+        Collection<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(TWO, TWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOONE, 0),
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2));
+
+        testFindDescendantLinks(ancestor, filter, expectedLinks);
+        testFindDescendantTasks(ancestor, filter, expectedTasks);
+    }
+
+    @Test
     public void testFindDescendantsFilteredByNotBlocks() {
         String ancestor = TWO;
 
@@ -1336,10 +1447,18 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
         Collection<String> expectedTasks = List.of(
                 TWOONE,
+                TWOTWO,
+                TWOTWOONE,
+                TWOTWOTWO,
+                TWOTWOTHREE_AND_THREETWOTWO,
                 TWOTHREE);
 
         Collection<Triple<String, String, Integer>> expectedLinks = List.of(
                 Triple.of(TWO, TWOONE, 0),
+                Triple.of(TWO, TWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOONE, 0),
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2),
                 Triple.of(TWO, TWOTHREE, 2));
 
         testFindDescendantLinks(ancestor, filter, expectedLinks);
@@ -1462,7 +1581,247 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         testFindDescendantTasks(null, null, expectedTasks);
     }
 
-    // Filtering through blocks
+    /*
+     * Cron tests
+     */
+
+    @Test
+    void testNextValidTimeOfTask() {
+        TaskLink link = links.get(Triple.of(THREE_AND_FIVE, THREETWO, 1));
+        CronExpression cron = link.cron();
+
+        Duration estimatedWaitTime = Duration.ofDays(1);
+
+        assertEquals(cron.next(MARK), MARK.plus(estimatedWaitTime));
+    }
+
+    @Test
+    void testTaskScheduledDaily() {
+        TaskLink link = links.get(Triple.of(THREE_AND_FIVE, THREETWO, 1));
+        CronExpression cron = link.cron();
+
+        LocalDateTime target = MARK.plusDays(1);
+
+        assertEquals(target, cron.next(MARK));
+    }
+
+    @Test
+    void testTaskScheduledWeekly() {
+        TaskLink link = links.get(Triple.of(NULL, THREE_AND_FIVE, 2));
+        CronExpression cron = link.cron();
+
+        LocalDateTime target = MARK.plusDays(7);
+
+        assertEquals(target, cron.next(MARK));
+    }
+
+    @Test
+    void testTaskScheduledEveryWednesday() {
+        TaskLink link = links.get(Triple.of(TWO, TWOTHREE, 2));
+        CronExpression cron = link.cron();
+
+        LocalDateTime target = MARK.plusDays(6);
+
+        assertEquals(target, cron.next(MARK));
+    }
+
+    @Test
+    void testTaskScheduledOnlyEvenings() {
+        TaskLink link = links.get(Triple.of(TWOTWO, TWOTWOONE, 0));
+        CronExpression cron = link.cron();
+
+        LocalDateTime target = MARK.plusHours(17);
+
+        assertEquals(target, cron.next(MARK));
+    }
+
+    @Test
+    void testTaskScheduledAfterTheTenth() {
+        TaskLink link = links.get(Triple.of(TWO, TWOTWO, 1));
+        CronExpression cron = link.cron();
+
+        LocalDateTime target = MARK.plusDays(9);
+
+        assertEquals(target, cron.next(MARK));
+    }
+
+    @Test
+    @Transactional
+    void testFilterOnlyAvailableTasks() {
+        try (MockedStatic<DataContext> utilities = Mockito.mockStatic(DataContext.class)) {
+            utilities.when(DataContext::now).thenReturn(MARK);
+            assertEquals(DataContext.now(), MARK);
+        }
+
+        Collection<String> expectedTasks = List.of(
+                ONE,
+                FOUR,
+                THREE_AND_FIVE,
+                THREETHREE,
+                SIX_AND_THREETWOFOUR
+        );
+
+        Collection<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(NULL, ONE, 0),
+                Triple.of(NULL, FOUR, 3),
+                Triple.of(NULL, THREE_AND_FIVE, 4),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
+
+        TaskFilter filter = new TaskFilter().availableAtTime(MARK);
+
+        testFindDescendantLinks(null, filter, expectedLinks);
+        testFindDescendantTasks(null, filter, expectedTasks);
+
+        expectedTasks = List.of(
+                TWOTWOONE);
+
+        expectedLinks = List.of(
+                Triple.of(TWOTWO, TWOTWOONE, 0));
+
+        filter = new TaskFilter().availableAtTime(MARK.plusHours(23));
+
+        testFindDescendantLinks(TWOTWO, filter, expectedLinks);
+        testFindDescendantTasks(TWOTWO, filter, expectedTasks);
+
+        expectedTasks = List.of(
+                ONE,
+                TWO,
+                TWOONE,
+                FOUR,
+                THREE_AND_FIVE,
+                THREETWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                SIX_AND_THREETWOFOUR,
+                THREETHREE,
+                SIX_AND_THREETWOFOUR);
+
+        expectedLinks = List.of(
+                Triple.of(NULL, ONE, 0),
+                Triple.of(NULL, TWO, 1),
+                Triple.of(TWO, TWOONE, 0),
+                Triple.of(NULL, FOUR, 3),
+                Triple.of(NULL, THREE_AND_FIVE, 4),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREETWO, SIX_AND_THREETWOFOUR, 3),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
+
+        filter = new TaskFilter().availableAtTime(MARK.plusDays(1));
+
+        testFindDescendantLinks(null, filter, expectedLinks);
+        testFindDescendantTasks(null, filter, expectedTasks);
+
+        expectedTasks = List.of(
+                ONE,
+                TWO,
+                TWOONE,
+                TWOTHREE,
+                THREE_AND_FIVE,
+                THREETWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                SIX_AND_THREETWOFOUR,
+                THREETHREE,
+                FOUR,
+                THREE_AND_FIVE,
+                THREETWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                SIX_AND_THREETWOFOUR,
+                THREETHREE,
+                SIX_AND_THREETWOFOUR);
+
+        expectedLinks = List.of(
+                Triple.of(NULL, ONE, 0),
+                Triple.of(NULL, TWO, 1),
+                Triple.of(TWO, TWOONE, 0),
+                Triple.of(TWO, TWOTHREE, 2),
+                Triple.of(NULL, THREE_AND_FIVE, 2),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREETWO, SIX_AND_THREETWOFOUR, 3),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(NULL, FOUR, 3),
+                Triple.of(NULL, THREE_AND_FIVE, 4),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREETWO, SIX_AND_THREETWOFOUR, 3),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
+
+        filter = new TaskFilter().availableAtTime(MARK.plusDays(7));
+
+        testFindDescendantLinks(null, filter, expectedLinks);
+        testFindDescendantTasks(null, filter, expectedTasks);
+    }
+
+    @Test
+    void testFilterBlocksWithParents() {
+        // Should include parents of tasks that are blocks as well
+        Collection<String> expectedTasks = List.of(
+                TWO,
+                TWOTWO,
+                TWOTWOONE,
+                TWOTWOTWO,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREE_AND_FIVE,
+                THREETWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                THREETHREE,
+                THREE_AND_FIVE,
+                THREETWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                THREETWOONE_AND_THREETWOTHREE,
+                THREETHREE
+        );
+
+        Collection<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(NULL, TWO, 1),
+                Triple.of(TWO, TWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOONE, 0),
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2),
+                Triple.of(NULL, THREE_AND_FIVE, 2),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(NULL, THREE_AND_FIVE, 4),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2)
+        );
+
+        TaskFilter filter = new TaskFilter()
+                .showOnlyBlocks(true)
+                .includeParents(true);
+
+        testFindDescendantLinks(null, filter, expectedLinks);
+        testFindDescendantTasks(null, filter, expectedTasks);
+
+        filter = new TaskFilter().showOnlyBlocks(true);
+
+        testFindDescendantLinks(null, filter, List.of());
+        testFindDescendantTasks(null, filter, List.of());
+    }
 
     // TODO: Priority
 //    @Test

@@ -2,9 +2,9 @@ package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -14,16 +14,12 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.experimental.Accessors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
 
 import java.util.Optional;
 
 @Accessors(fluent = true)
 public class QuickCreateField extends TextField implements TaskProvider {
-    private static final Logger logger = LoggerFactory.getLogger(QuickCreateField.class);
-
     private ClientDataController presenter;
 
     private Task task = null;

@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.tasktreegrid;
+package com.trajan.negentropy.client.components;
 
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
@@ -13,6 +13,7 @@ import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.components.RetainOpenedMenuItemDecorator;
+import com.trajan.negentropy.client.util.CronValueProvider;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TimeFormat;
@@ -61,12 +62,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @SpringComponent
@@ -79,13 +81,17 @@ public class TaskTreeGrid extends Div {
     @Autowired private ClientDataController controller;
     @Autowired private SessionSettings settings;
 
+    @Autowired private CronValueProvider cronValueProvider;
+
     public static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String COLUMN_KEY_NAME = "Name";
     public static final String COLUMN_KEY_FOCUS = "Focus";
-    public static final String COLUMN_KEY_BLOCK = "block";
+    public static final String COLUMN_KEY_BLOCK = "Block";
     public static final String COLUMN_KEY_COMPLETE = "Complete";
     public static final String COLUMN_KEY_RECURRING = "Recurring";
+    public static final String COLUMN_KEY_CRON = "Cron";
+    public static final String COLUMN_KEY_SCHEDULED_FOR = "Scheduled For";
     public static final String COLUMN_KEY_TAGS = "Tags";
     public static final String COLUMN_KEY_DESCRIPTION = "Description";
     public static final String COLUMN_KEY_DURATION = "Single Step Duration";
@@ -100,6 +106,8 @@ public class TaskTreeGrid extends Div {
             COLUMN_KEY_BLOCK,
             COLUMN_KEY_COMPLETE,
             COLUMN_KEY_RECURRING,
+            COLUMN_KEY_CRON,
+            COLUMN_KEY_SCHEDULED_FOR,
             COLUMN_KEY_TAGS,
             COLUMN_KEY_DESCRIPTION,
             COLUMN_KEY_DURATION,
@@ -110,7 +118,7 @@ public class TaskTreeGrid extends Div {
 
     private TreeGrid<TaskEntry> treeGrid;
     private NestedTaskTabs nestedTabs;
-    private HorizontalLayout toolbar;
+    private HorizontalLayout topBar;
 
     private Grid.Column<TaskEntry> dragHandleColumn;
     private Grid.Column<TaskEntry> focusColumn;
@@ -118,6 +126,8 @@ public class TaskTreeGrid extends Div {
     private Grid.Column<TaskEntry> blockColumn;
     private Grid.Column<TaskEntry> completeColumn;
     private Grid.Column<TaskEntry> recurringColumn;
+    private Grid.Column<TaskEntry> cron_column;
+    private Grid.Column<TaskEntry> scheduled_for_column;
     private Grid.Column<TaskEntry> tagColumn;
     private Grid.Column<TaskEntry> descriptionColumn;
     private Grid.Column<TaskEntry> taskDurationColumn;
@@ -133,31 +143,26 @@ public class TaskTreeGrid extends Div {
 
     private Editor<TaskEntry> editor;
 
-    public List<String> columns;
+    private List<String> columns;
+    private Map<String, Boolean> visibleColumns;
 
-    public void setColumns(List<String> columns) {
-        this.columns = columns;
-        this.init();
-    }
-
-    public void setAllColumns() {
-        this.columns = new ArrayList<>(VISIBILITY_TOGGLEABLE_COLUMNS);
-        this.init();
-    }
-
-    private void init() {
+    public void init(Map<String, Boolean> visibleColumns) {
         this.treeGrid = new TreeGrid<>(TaskEntry.class);
+        this.columns = new ArrayList<>(VISIBILITY_TOGGLEABLE_COLUMNS);
+        this.visibleColumns = visibleColumns;
 
         this.editor = treeGrid.getEditor();
 
-        new TaskTreeContextMenu(treeGrid);
+        if (settings.enableContextMenu()) {
+            new TaskTreeContextMenu(treeGrid);
+        }
 
-        toolbar = new HorizontalLayout();
-        toolbar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        toolbar.setWidthFull();
+        topBar = new HorizontalLayout();
+        topBar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        topBar.setWidthFull();
 
         this.add(
-                toolbar,
+                topBar,
                 treeGrid);
 
         this.initReadColumns();
@@ -174,8 +179,8 @@ public class TaskTreeGrid extends Div {
                 GridVariant.LUMO_COMPACT,
                 GridVariant.LUMO_WRAP_CELL_CONTENT);
 
-        toolbar.add(gridOptionsMenu());
-        this.add(toolbar, treeGrid);
+        topBar.add(gridOptionsMenu());
+        this.add(topBar, treeGrid);
     }
 
     private Icon headerIcon(VaadinIcon vaadinIcon) {
@@ -260,15 +265,12 @@ public class TaskTreeGrid extends Div {
         if (columns.contains(COLUMN_KEY_COMPLETE)) {
             completeColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                     inlineVaadinIconLitExpression("check",
-                                            "?active=\"${!item.completed}\" " +
-                                                    "?hidden=\"${item.isHidden}\""))
+                                            "?active=\"${!item.completed}\" "))
                             .withFunction("onClick", entry ->
                                     controller.updateNode(entry.node()
                                             .completed(!entry.node().completed())))
                             .withProperty("completed", entry ->
                                     entry.node().completed())
-                            .withProperty("isHidden", entry ->
-                                    entry.task().hasChildren() || entry.node().recurring())
                     )
                     .setKey(COLUMN_KEY_COMPLETE)
                     .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
@@ -289,6 +291,32 @@ public class TaskTreeGrid extends Div {
                     )
                     .setKey(COLUMN_KEY_RECURRING)
                     .setHeader(headerIcon(VaadinIcon.TIME_FORWARD))
+                    .setAutoWidth(true)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
+        }
+
+        if (columns.contains(COLUMN_KEY_CRON)) {
+            cron_column = treeGrid.addColumn(
+                            entry -> cronValueProvider.apply(entry.node().cron()))
+                    .setKey(COLUMN_KEY_CRON)
+                    .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
+                    .setAutoWidth(true)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
+        }
+
+        if (columns.contains(COLUMN_KEY_SCHEDULED_FOR)) {
+            scheduled_for_column = treeGrid.addColumn(entry -> {
+                        if (entry.node().cron() != null) {
+                            DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT);
+                            return formatter.format(entry.node().scheduledFor());
+                        } else {
+                            return "-- -- -- -- -- -- --";
+                        }
+                    })
+                    .setKey(COLUMN_KEY_SCHEDULED_FOR)
+                    .setHeader(headerIcon(VaadinIcon.CALENDAR))
                     .setAutoWidth(true)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
@@ -351,13 +379,14 @@ public class TaskTreeGrid extends Div {
                     .setWidth(DURATION_COL_WIDTH)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
+        }
 
+        if (columns.contains((COLUMN_KEY_TIME_ESTIMATE))) {
             HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
                     headerIcon(VaadinIcon.FILE_TREE_SUB),
                     headerIcon(VaadinIcon.CLOCK));
             timeEstimateColumnHeader.setSpacing(false);
             timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-//        timeEstimateColumnHeader.setSizeFull();
             timeEstimateColumn = treeGrid.addColumn(
                             new DurationEstimateValueProvider<>(
                                     controller.queryService(),
@@ -600,7 +629,7 @@ public class TaskTreeGrid extends Div {
     }
 
     private void configureSelectionMode() {
-        treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
     }
 
     private void configureNestedTaskTabs() {
@@ -610,7 +639,7 @@ public class TaskTreeGrid extends Div {
             DoubleClickListenerUtil.add(treeGrid, entry ->
                     nestedTabs.onSelectNewRootEntry(entry));
 
-            toolbar.add(nestedTabs);
+            topBar.add(nestedTabs);
         }
     }
 
@@ -687,6 +716,12 @@ public class TaskTreeGrid extends Div {
         }
     }
 
+    private BiConsumer<String, Boolean> setColumnVisibility = (column, visible) ->
+            visibleColumns.put(column, visible);
+
+    private Function<String, Boolean> getColumnVisibility = column ->
+            visibleColumns.get(column);
+
     private Div gridOptionsMenu() {
         MenuBar menuBar = new MenuBar();
         menuBar.setWidth(ICON_COL_WIDTH_S);
@@ -702,7 +737,7 @@ public class TaskTreeGrid extends Div {
 
         TriConsumer<Grid.Column<TaskEntry>, MenuItem, Boolean> toggleVisibility = (column, menuItem, checked) -> {
             menuItem.setChecked(checked);
-            settings.columnVisibility().put(column.getKey(), checked);
+            this.setColumnVisibility.accept(column.getKey(), checked);
             column.setVisible(checked);
         };
 
@@ -712,11 +747,16 @@ public class TaskTreeGrid extends Div {
                     MenuItem menuItem = visibilityMenu.getSubMenu().addItem(columnKey);
                     menuItem.setCheckable(true);
 
-                    toggleVisibility.accept(column, menuItem, settings.columnVisibility().get(columnKey));
-                    menuItem.addClickListener(e -> toggleVisibility.accept(
-                            column, menuItem, menuItem.isChecked()));
+                    // TODO: Use visibleColumns
+                    if (column != null) {
+                        toggleVisibility.accept(column, menuItem, this.getColumnVisibility.apply(columnKey));
+                        menuItem.addClickListener(e -> toggleVisibility.accept(
+                                column, menuItem, menuItem.isChecked()));
 
-                    RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
+                        RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
+                    }
+
+
                 }
         );
 

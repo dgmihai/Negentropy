@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.controller.data;
 
+import com.trajan.negentropy.client.session.SessionSettings;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
@@ -9,11 +10,13 @@ import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataPr
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,6 +30,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     private static final Logger logger = LoggerFactory.getLogger(TaskEntryDataProvider.class);
 
     @Autowired private QueryService queryService;
+    @Autowired private SessionSettings settings;
 
     private final Map<TaskID, Set<TaskEntry>> cachedTaskEntriesByChildTaskId = new HashMap<>();
     private final Map<TaskID, Task> cachedTasks = new HashMap<>();
@@ -35,6 +39,11 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     private TaskEntry baseEntry = null;
     @Getter
     private TaskFilter filter = new TaskFilter();
+
+    @PostConstruct
+    private void init() {
+        this.updateFilterFromSettings();
+    }
 
     public void setBaseEntry(TaskEntry baseEntry) {
         this.baseEntry = baseEntry;
@@ -97,6 +106,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     }
 
     public void refreshMatchingItems(TaskID id, boolean refreshAncestors) {
+        this.updateFilterFromSettings();
         cachedTasks.remove(id);
         Task task = queryService.fetchTask(id);
         if (cachedTaskEntriesByChildTaskId.containsKey(id)) {
@@ -118,10 +128,23 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     @Override
     public void refreshAll() {
+        this.updateFilterFromSettings();
         super.refreshAll();
     }
 
+    private void updateFilterFromSettings() {
+        if (!settings.ignoreScheduling()) {
+            filter.availableAtTime(LocalDateTime.now());
+        } else {
+            filter.availableAtTime(null);
+        }
+
+        filter = settings.filter();
+    }
+
     public void reset() {
+        this.filter = new TaskFilter();
+        this.filter.availableAtTime(LocalDateTime.now());
         cachedTaskEntriesByChildTaskId.clear();
         cachedTasks.clear();
     }

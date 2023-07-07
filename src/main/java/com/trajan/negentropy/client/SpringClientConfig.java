@@ -1,13 +1,24 @@
 package com.trajan.negentropy.client;
 
-//@Configuration
+import com.trajan.negentropy.client.components.ToolbarTabSheet;
+import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.session.SessionSettings;
+import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
+
+@Configuration
+@VaadinSessionScope
 //@ComponentScan(value = "com.trajan.negentropy")
 public class SpringClientConfig {
-//    @Autowired private ClientDataController controller;
+    @Autowired private ClientDataController controller;
+    @Autowired private SessionSettings settings;
 
-//    @Bean
-//    @Scope("prototype")
-//    public RoutineCard routineCard(Routine routine) {
-//        return new RoutineCard(routine, controller);
-//    }
+    @Bean
+    @Scope("prototype")
+    public ToolbarTabSheet toolbarTabSheet() {
+        return new ToolbarTabSheet(controller, settings);
+    }
 }

@@ -25,6 +25,8 @@
       --lumo-base-color: #fcfcfc;
 --lumo-font-family: PT Sans Narrow;
 
+--lumo-shade-5pct-opaque: hsl(210,15%,95%);
+
 --negentropy-color-a: hsl(30, 100%, 100%);
 --negentropy-color-b: hsl(57, 100%, 100%);
 --negentropy-color-c: hsl(157, 100%, 100%);

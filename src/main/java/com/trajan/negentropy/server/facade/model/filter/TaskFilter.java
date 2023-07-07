@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Accessors(fluent = true)
@@ -18,5 +19,8 @@ public class TaskFilter {
     private Set<TagID> excludedTagIds;
     private Integer importanceThreshold;
     private Boolean innerJoinIncludedTags;
-    private Boolean block;
+    private Boolean showOnlyBlocks;
+    private LocalDateTime availableAtTime;
+    private Boolean showCompleted;
+    private Boolean includeParents;
 }

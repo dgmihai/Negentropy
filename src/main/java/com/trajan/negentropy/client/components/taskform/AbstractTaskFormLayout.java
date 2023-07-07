@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
@@ -27,6 +28,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
     protected TextField nameField;
     protected TextField durationField;
+    protected TextField cronField;
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox recurringCheckbox;
     protected Checkbox blockCheckbox;
@@ -59,6 +61,11 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         durationField.setPattern(DurationConverter.DURATION_PATTERN);
         durationField.setErrorMessage("Required format: ?h ?m ?s (ex: 1m 30m, or 2h");
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
+
+        cronField = new TextField();
+        cronField.setPlaceholder("Cron (S M H D M W)");
+        cronField.setPattern(K.CRON_PATTERN);
+        cronField.setValueChangeMode(ValueChangeMode.EAGER);
 
         recurringCheckbox = new Checkbox("Recurring");
         blockCheckbox = new Checkbox("Block");
@@ -100,6 +107,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     protected void configureLayout() {
         nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
@@ -129,7 +137,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
         this.setWidthFull();
 
-        this.add(nameField, durationField,
+        this.add(nameField, durationField, cronField,
                 tagComboBox, checkboxLayout,
                 descriptionArea, buttonLayout);
     }
