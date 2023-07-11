@@ -13,7 +13,7 @@ import java.util.*;
 @SpringComponent
 @Accessors(fluent = true)
 @Getter
-public class SessionSettings {
+public class UserSettings {
     private final Map<String, Boolean> treeViewColumnVisibility = new HashMap<>();
     private final Map<String, Boolean> routineViewColumnVisibility = new HashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
@@ -24,7 +24,7 @@ public class SessionSettings {
     private DescriptionViewDefaultSetting descriptionViewDefaultSetting =
             DescriptionViewDefaultSetting.IF_PRESENT;
 
-    public SessionSettings() {
+    public UserSettings() {
         TaskTreeGrid.VISIBILITY_TOGGLEABLE_COLUMNS.forEach(columnKey ->
                 treeViewColumnVisibility.put(columnKey, true));
 

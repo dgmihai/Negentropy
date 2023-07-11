@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.controller.data;
 
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
@@ -30,7 +30,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     private static final Logger logger = LoggerFactory.getLogger(TaskEntryDataProvider.class);
 
     @Autowired private QueryService queryService;
-    @Autowired private SessionSettings settings;
+    @Autowired private UserSettings settings;
 
     private final Map<TaskID, Set<TaskEntry>> cachedTaskEntriesByChildTaskId = new HashMap<>();
     private final Map<TaskID, Task> cachedTasks = new HashMap<>();
@@ -129,16 +129,17 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     @Override
     public void refreshAll() {
         this.updateFilterFromSettings();
+        logger.debug("Filter: " + filter);
         super.refreshAll();
     }
 
     private void updateFilterFromSettings() {
         filter = settings.filter();
+        this.filter.availableAtTime(LocalDateTime.now());
     }
 
     public void reset() {
-        this.filter = new TaskFilter();
-        this.filter.availableAtTime(LocalDateTime.now());
+        this.updateFilterFromSettings();
         cachedTaskEntriesByChildTaskId.clear();
         cachedTasks.clear();
     }

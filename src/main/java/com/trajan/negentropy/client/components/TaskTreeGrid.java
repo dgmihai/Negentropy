@@ -9,7 +9,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.tree.components.InlineIconButton;
 import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
 import com.trajan.negentropy.client.tree.components.RetainOpenedMenuItemDecorator;
@@ -79,7 +79,7 @@ import java.util.function.Predicate;
 @Getter
 public class TaskTreeGrid extends Div {
     @Autowired private ClientDataController controller;
-    @Autowired private SessionSettings settings;
+    @Autowired private UserSettings settings;
 
     @Autowired private CronValueProvider cronValueProvider;
 
@@ -755,8 +755,6 @@ public class TaskTreeGrid extends Div {
 
                         RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
                     }
-
-
                 }
         );
 

@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.components.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.model.Routine;
@@ -19,7 +19,7 @@ import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
-import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -30,7 +30,7 @@ import java.util.Set;
 
 @PageTitle("Negentropy - Routine")
 @Slf4j
-@VaadinSessionScope
+@UIScope
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
 @Uses(Icon.class)
@@ -39,7 +39,7 @@ import java.util.Set;
 public class RoutineView extends VerticalLayout {
 
     @Autowired private ClientDataController controller;
-    @Autowired private SessionSettings settings;
+    @Autowired private UserSettings settings;
     @Autowired private RoutineDataProvider routineDataProvider;
     @Autowired private RoutineService routineService;
 
@@ -58,9 +58,9 @@ public class RoutineView extends VerticalLayout {
                 TimeableStatus.ACTIVE
         );
 
-        toolbarTabSheet
-                .initSearchAndFilterTab()
-                .initOptionsTab();
+        toolbarTabSheet.init(
+                ToolbarTabSheet.TabType.SEARCH_AND_FILTER_TAB,
+                ToolbarTabSheet.TabType.OPTIONS_TAB);
 
         taskTreeGrid.init(settings.routineViewColumnVisibility());
         taskTreeGrid.treeGrid().setDataProvider(controller.dataProvider());

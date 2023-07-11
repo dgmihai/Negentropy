@@ -258,6 +258,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .child(childTaskEntity)
                 .importance(2)
                 .createdAt(MARK)
+                .completed(false)
                 .position(1)
                 .cron(DAILY_STRING)
                 .scheduledFor(LocalDateTime.MIN));

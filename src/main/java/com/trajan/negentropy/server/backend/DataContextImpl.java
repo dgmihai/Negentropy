@@ -117,7 +117,7 @@ public class DataContextImpl implements DataContext {
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
-        boolean updatedCron = node.cron() != linkEntity.cron();
+        boolean updatedCron = !node.cron().equals(linkEntity.cron());
         boolean updatedCompleted = node.completed() && !linkEntity.completed();
 
         linkEntity
@@ -129,7 +129,7 @@ public class DataContextImpl implements DataContext {
                         node.completed(), linkEntity.completed()))
                 .cron(Optional.ofNullable(node.cron()).orElse((linkEntity.cron())));
 
-        boolean scheduled = linkEntity.cron() != null && linkEntity.recurring();
+        boolean scheduled = linkEntity.cron() != null;
 
         if ((scheduled && updatedCron)
                 || (updatedCompleted && scheduled)) {

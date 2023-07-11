@@ -35,6 +35,13 @@ vaadin-grid::part(block-task) {
       var(--lumo-primary-color);
 }
 
+vaadin-grid::part(project-task) {
+    background-color:
+      var(--lumo-complementary-color-5pct-opaque);
+    color:
+      var(--lumo-complimentary-color);
+}
+
 vaadin-grid::part(completed-node) {
     color:
       var(--lumo-tertiary-text-color);

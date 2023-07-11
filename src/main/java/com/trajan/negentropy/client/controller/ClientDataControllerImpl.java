@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.RoutineService;
@@ -44,7 +44,7 @@ public class ClientDataControllerImpl implements ClientDataController {
     @Autowired private QueryService queryService;
     @Autowired private UpdateService updateService;
     @Autowired private RoutineService routineService;
-    @Autowired private SessionSettings settings;
+    @Autowired private UserSettings settings;
 
     @Autowired private RoutineDataProvider routineCache;
 
@@ -127,7 +127,9 @@ public class ClientDataControllerImpl implements ClientDataController {
         this.tryServiceCalls(
                 () -> updateService.updateNode(entry.node()),
                 () -> updateService.updateTask(entry.node().child()));
+        logger.debug("Updating entry 2");
         dataProvider.refreshAll();
+        logger.debug("Updating entry 3");
     }
 
     @Override

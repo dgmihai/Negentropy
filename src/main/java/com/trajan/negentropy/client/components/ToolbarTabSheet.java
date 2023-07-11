@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.vaadin.flow.component.UI;
@@ -21,12 +21,10 @@ import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 @Slf4j
 public class ToolbarTabSheet extends TabSheet {
     private ClientDataController controller;
-    private SessionSettings settings;
+    private UserSettings settings;
 
     private Tab closeTab;
     private Tab quickCreateTab;
@@ -34,71 +32,66 @@ public class ToolbarTabSheet extends TabSheet {
     private Tab createNewTaskTab;
     private Tab optionsTab;
 
-    private AtomicBoolean mobile = new AtomicBoolean();
+    public enum TabType {
+        CLOSE_TAB,
+        CREATE_NEW_TASK_TAB,
+        SEARCH_AND_FILTER_TAB,
+        OPTIONS_TAB,
+        QUICK_CREATE_TAB
+    }
+
     private TaskFormLayout createTaskForm;
     private QuickCreateField quickCreateField;
     private FilterForm filterForm;
     private HorizontalLayout options;
 
-    public ToolbarTabSheet(ClientDataController controller, SessionSettings settings) {
+    public ToolbarTabSheet(ClientDataController controller, UserSettings settings) {
         this.controller = controller;
         this.settings = settings;
+    }
 
+    public void initWithAllTabs() {
+        this.init(TabType.values());
+    }
+
+    public void init(TabType... tabsNames) {
         UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver -> {
-            mobile.set(receiver.getScreenWidth() > K.BREAKPOINT_PX);
-            log.debug("Detected page size: " + receiver.getScreenWidth());
-        });
+            boolean mobile = (receiver.getWindowInnerWidth() > K.BREAKPOINT_PX);
 
-        initCloseTab();
-
-        this.setWidthFull();
-        this.addThemeVariants(TabSheetVariant.LUMO_TABS_CENTERED);
-    }
-
-    private ToolbarTabSheet initWidth(int browserWidth) {
-        if (browserWidth > K.BREAKPOINT_PX) {
-            createNewTaskTab = new Tab("Create New Task");
-            closeTab = new Tab(VaadinIcon.CLOSE_SMALL.create());
-            quickCreateTab = new Tab(K.QUICK_CREATE);
-            searchAndFilterTab = new Tab("Search & Filter");
-            optionsTab = new Tab("Options");
-        } else {
-            closeTab = new Tab(VaadinIcon.CLOSE.create());
-            createNewTaskTab = new Tab(VaadinIcon.FILE_ADD.create());
-            quickCreateTab = new Tab(VaadinIcon.BOLT.create());
-            searchAndFilterTab = new Tab(VaadinIcon.SEARCH.create());
-            optionsTab = new Tab(VaadinIcon.COG.create());
-        }
-
-        addSelectedChangeListener(event -> {
-            Tab openedTab = event.getSelectedTab();
-            if (openedTab.equals(quickCreateTab)) {
-                controller.activeTaskProvider(quickCreateField);
-            } else if (openedTab.equals(createNewTaskTab)) {
-                controller.activeTaskProvider(createTaskForm);
-            } else {
-                controller.activeTaskProvider(null);
+            initCloseTab(mobile);
+            for (TabType tabName : tabsNames) {
+                switch (tabName) {
+                    case CREATE_NEW_TASK_TAB -> initCreateNewTaskTab(mobile);
+                    case SEARCH_AND_FILTER_TAB -> initSearchAndFilterTab(mobile);
+                    case OPTIONS_TAB -> initOptionsTab(mobile);
+                    case QUICK_CREATE_TAB -> initQuickCreateTab(mobile);
+                }
             }
+
+            addSelectedChangeListener(event -> {
+                Tab openedTab = event.getSelectedTab();
+                if (openedTab.equals(quickCreateTab)) {
+                    controller.activeTaskProvider(quickCreateField);
+                } else if (openedTab.equals(createNewTaskTab)) {
+                    controller.activeTaskProvider(createTaskForm);
+                } else {
+                    controller.activeTaskProvider(null);
+                }
+            });
+
+            this.setWidthFull();
+            this.addThemeVariants(TabSheetVariant.LUMO_TABS_CENTERED);
         });
-
-        return this;
     }
 
-    public void initAll() {
-        initCreateNewTaskTab();
-        initSearchAndFilterTab();
-        initOptionsTab();
-        initQuickCreateTab();
-    }
-
-    private void initCloseTab() {
-        closeTab = mobile.get()
+    private void initCloseTab(boolean mobile) {
+        closeTab = mobile
                 ? new Tab(VaadinIcon.CLOSE_SMALL.create())
                 : new Tab(VaadinIcon.CLOSE.create());
         add(closeTab, new Div());
     }
 
-    public ToolbarTabSheet initCreateNewTaskTab() {
+    private ToolbarTabSheet initCreateNewTaskTab(boolean mobile) {
         this.createTaskForm = new TaskFormLayout(controller);
         createTaskForm.taskBinder().setBean(new Task(null));
 
@@ -115,18 +108,19 @@ public class ToolbarTabSheet extends TabSheet {
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
-        createNewTaskTab = mobile.get()
+        createNewTaskTab = mobile
                 ? new Tab("Create New Task")
                 : new Tab(VaadinIcon.FILE_ADD.create());
+
         add(createNewTaskTab, this.createTaskForm);
         return this;
     }
 
-    public ToolbarTabSheet initQuickCreateTab() {
+    private ToolbarTabSheet initQuickCreateTab(boolean mobile) {
         this.quickCreateField = new QuickCreateField(controller);
         quickCreateField.setWidthFull();
 
-        quickCreateTab = mobile.get()
+        quickCreateTab = mobile
                 ? new Tab(K.QUICK_CREATE)
                 : new Tab(VaadinIcon.BOLT.create());
 
@@ -134,12 +128,12 @@ public class ToolbarTabSheet extends TabSheet {
         return this;
     }
 
-    public ToolbarTabSheet initSearchAndFilterTab() {
+    private ToolbarTabSheet initSearchAndFilterTab(boolean mobile) {
         this.filterForm = new FilterForm(controller);
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
-        searchAndFilterTab = mobile.get()
+        searchAndFilterTab = mobile
                 ? new Tab("Search & Filter")
                 : new Tab(VaadinIcon.SEARCH.create());
 
@@ -148,7 +142,7 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
 
-    public ToolbarTabSheet initOptionsTab() {
+    private ToolbarTabSheet initOptionsTab(boolean mobile) {
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
         recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         recalculateTimeEstimates.addClickListener(e -> controller.recalculateTimeEstimates());
@@ -164,7 +158,7 @@ public class ToolbarTabSheet extends TabSheet {
                 recalculateTimeEstimates, disableContextMenu);
         options.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
-        optionsTab = mobile.get()
+        optionsTab = mobile
                 ? new Tab("Options")
                 : new Tab(VaadinIcon.COG.create());
 

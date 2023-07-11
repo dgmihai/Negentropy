@@ -106,13 +106,9 @@ public class FilterForm extends FormLayout {
     }
 
     private void configureLayout() {
-//        this.setColspan(topLayout, 4);
-//        this.setColspan(tagsToInclude, 4);
-//        this.setColspan(tagsToExclude, 4);
-//
-//        this.setResponsiveSteps(
-//                new ResponsiveStep("0", 2),
-//                new ResponsiveStep("1200px", 4));
+        this.setResponsiveSteps(
+                new ResponsiveStep("0", 1),
+                new ResponsiveStep("1600px", 2));
 
         this.setWidthFull();
     }

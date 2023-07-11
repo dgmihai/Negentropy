@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.TaskTreeGrid;
 import com.trajan.negentropy.client.components.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
@@ -28,7 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Getter
 public class TreeView extends Div {
     @Autowired private ClientDataController controller;
-    @Autowired private SessionSettings settings;
+    @Autowired private UserSettings settings;
 
     @Autowired private ToolbarTabSheet toolbarTabSheet;
 
@@ -39,7 +39,7 @@ public class TreeView extends Div {
         this.addClassName("tree-view");
         this.setSizeFull();
 
-        toolbarTabSheet.initAll();
+        toolbarTabSheet.initWithAllTabs();
 
         // TODO: Not yet implemented, option to move or add on drag
         Select<String> dragSettings = new Select<>();

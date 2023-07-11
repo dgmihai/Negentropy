@@ -3,7 +3,7 @@ package com.trajan.negentropy.client.controller;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
-import com.trajan.negentropy.client.session.SessionSettings;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -18,7 +18,7 @@ import com.trajan.negentropy.server.facade.response.TaskResponse;
 public interface ClientDataController {
 
     TaskEntryDataProvider dataProvider();
-    SessionSettings settings();
+    UserSettings settings();
     QueryService queryService();
     TaskProvider activeTaskProvider();
 

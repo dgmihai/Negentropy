@@ -9,6 +9,7 @@ import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @NoArgsConstructor
@@ -39,5 +40,17 @@ public class TaskFilter {
                 ALWAYS_INCLUDE_PARENTS,
                 IGNORE_SCHEDULING,
                 INNER_JOIN_INCLUDED_TAGS);
+    }
+
+    @Override
+    public String toString() {
+        return "TaskFilter {" +
+                "\n\tname='" + name + '\'' +
+                ",\n\tincludedTagIds=" + (includedTagIds == null ? null : String.join(", ", includedTagIds.stream().map(TagID::toString).collect(Collectors.toSet()))) +
+                ",\n\texcludedTagIds=" + (excludedTagIds == null ? null : String.join(", ", excludedTagIds.stream().map(TagID::toString).collect(Collectors.toSet()))) +
+                ",\n\tavailableAtTime=" + availableAtTime +
+                ",\n\timportanceThreshold=" + importanceThreshold +
+                ",\n\toptions=" + (options == null ? null : String.join(", ", options)) +
+                "\n}";
     }
 }

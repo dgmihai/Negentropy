@@ -81,7 +81,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.importance.loe(filter.importanceThreshold()));
             }
 
-            if (filter.availableAtTime() != null) {
+            if (filter.availableAtTime() != null && !filter.options().contains(TaskFilter.IGNORE_SCHEDULING)) {
                 builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime()));
             }
 
