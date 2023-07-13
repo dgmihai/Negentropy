@@ -2,10 +2,9 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
-import com.trajan.negentropy.client.util.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
+import com.trajan.negentropy.server.facade.model.RoutineStep;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
 import com.trajan.negentropy.server.facade.response.Response;
@@ -17,31 +16,18 @@ import lombok.experimental.Accessors;
 import java.util.Optional;
 
 @Accessors(fluent = true)
-public class TaskEntryFormLayout extends AbstractTaskFormLayout {
+public class RoutineStepFormLayout extends AbstractTaskFormLayout {
+
     @Getter
-    private final Binder<TaskEntry> binder = new BeanValidationBinder<>(TaskEntry.class);
-    //    IntegerField priorityField;
+    private Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    public TaskEntryFormLayout(ClientDataController controller, TaskEntry entry) {
+    public RoutineStepFormLayout(ClientDataController controller, RoutineStep step) {
         super(controller);
-        binder.setBean(entry);
+        binder.setBean(step);
 
-        configureFields();
-        configureInteractions();
-        configureBindings();
-        configureLayout();
-    }
-
-    @Override
-    protected void configureFields() {
-        super.configureFields();
-
-//        priorityField = new IntegerField("Priority");
-//        priorityField.setHelperText("0 -> 9");
-//        priorityField.setMaxWidth("70px");
-//        priorityField.setMax(9);
-//        binder.forField(priorityField)
-//                .bind("importance");
+        recurringCheckbox.removeFromParent();
+        cronField.removeFromParent();
+        this.addClassName("routine-step-form");
     }
 
     @Override
@@ -50,7 +36,7 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
     }
 
     @Override
-    protected void configureBindings() {
+    void configureBindings() {
         binder.forField(nameField)
                 .asRequired("Name must exist and be unique")
                 .bind(
@@ -62,17 +48,6 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
                 .bind(
                         entry -> entry.task().duration(),
                         (entry, duration) -> entry.task().duration(duration));
-
-        binder.forField(cronField)
-                .withConverter(new CronConverter())
-                .bind(
-                        entry -> entry.node().cron(),
-                        (entry, cronString) -> entry.node().cron(cronString));
-
-        binder.forField(recurringCheckbox)
-                .bind(
-                        entry -> entry.node().recurring(),
-                        (entry, recurring) -> entry.node().recurring(recurring));
 
         binder.forField(blockCheckbox)
                 .bind(
@@ -98,6 +73,7 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
         });
     }
 
+
     @Override
     public Response hasValidTask() {
         return new Response(binder.isValid(), "Task in form is invalid");
@@ -106,7 +82,7 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
     @Override
     public Optional<Task> getTask() throws TaskProviderException {
         if (hasValidTask().success()) {
-            return Optional.of(binder.getBean().node().child());
+            return Optional.of(binder.getBean().task());
         } else {
             return Optional.empty();
         }
@@ -114,6 +90,6 @@ public class TaskEntryFormLayout extends AbstractTaskFormLayout {
 
     @Override
     public TaskNodeInfo getNodeInfo() {
-        return binder.getBean().node();
+        return new TaskNodeInfo();
     }
 }

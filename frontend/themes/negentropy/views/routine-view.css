@@ -12,6 +12,10 @@
   background-color: var(--lumo-base-color);
 }
 
+.routine-view vaadin-grid[selected] {
+  box-shadow: var(--lumo-box-shadow-l);
+}
+
 .routine-view .card {
   background-color: var(--lumo-shade-5pct);
   border-radius: var(--lumo-border-radius);

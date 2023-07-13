@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
-import com.trajan.negentropy.server.facade.model.Timeable;
+import com.trajan.negentropy.server.facade.model.interfaces.Timeable;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;

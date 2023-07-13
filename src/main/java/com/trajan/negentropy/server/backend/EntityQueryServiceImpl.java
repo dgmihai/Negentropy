@@ -3,7 +3,7 @@ package com.trajan.negentropy.server.backend;
 import com.querydsl.core.BooleanBuilder;
 import com.trajan.negentropy.server.backend.entity.*;
 import com.trajan.negentropy.server.backend.repository.*;
-import com.trajan.negentropy.server.backend.util.DFS;
+import com.trajan.negentropy.server.backend.util.DFSUtil;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.model.id.*;
 import org.slf4j.Logger;
@@ -101,9 +101,14 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(qTask.name.lower().contains(filter.name().toLowerCase()));
             }
 
-            // Filter if task is a block
+            // Filter out if task isn't a block
             if (filter.options().contains(TaskFilter.ONLY_BLOCKS)) {
                 builder.and(qTask.block.eq(true));
+            }
+
+            // Filter out if task isn't a project
+            if (filter.options().contains(TaskFilter.ONLY_PROJECTS)) {
+                builder.and(qTask.isProject.isNotNull());
             }
 
             if (filter.options().contains(TaskFilter.ALWAYS_INCLUDE_PARENTS)) {
@@ -211,7 +216,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
-        return DFS.getLinks(descendantId,
+        return DFSUtil.traverseFromID(descendantId,
                 childId -> this.findParentLinks(childId, filter),
                 link -> ID.of(link.parent()))
                 .stream();
@@ -224,7 +229,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter) {
-        return DFS.getLinks(ancestorId,
+        return DFSUtil.traverseFromID(ancestorId,
                 parentId -> this.findChildLinks(parentId, filter),
                 link -> ID.of(link.child()))
                 .stream();
@@ -232,7 +237,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
-        return DFS.getLinks(ancestorId,
+        return DFSUtil.traverseFromID(ancestorId,
                         parentId -> this.findChildLinks(parentId, filter),
                         link -> ID.of(link.child()),
                         consumer)

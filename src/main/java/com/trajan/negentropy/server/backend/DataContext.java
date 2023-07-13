@@ -35,6 +35,8 @@ public interface DataContext {
                 taskEntity.description(),
                 taskEntity.duration(),
                 taskEntity.block(),
+                taskEntity.isProject(),
+                ID.of(taskEntity.projectOwner()),
                 taskEntity.tags().stream()
                         .map(DataContext::toDTO)
                         .collect(Collectors.toSet()),
@@ -76,9 +78,12 @@ public interface DataContext {
     static RoutineStep toDTO(RoutineStepEntity routineStepEntity) {
         return new RoutineStep(
                 ID.of(routineStepEntity),
-                toDTO(routineStepEntity.task()),
+                toDTO(routineStepEntity.link()),
                 ID.of(routineStepEntity.routine()),
                 ID.of(routineStepEntity.parent()),
+                routineStepEntity.children().stream()
+                        .map(DataContext::toDTO)
+                        .toList(),
                 routineStepEntity.startTime(),
                 routineStepEntity.finishTime(),
                 routineStepEntity.lastSuspendedTime(),

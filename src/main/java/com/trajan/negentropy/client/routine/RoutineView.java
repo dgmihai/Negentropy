@@ -1,8 +1,8 @@
 package com.trajan.negentropy.client.routine;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.components.TaskTreeGrid;
 import com.trajan.negentropy.client.components.ToolbarTabSheet;
+import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
@@ -37,13 +37,12 @@ import java.util.Set;
 @Accessors(fluent = true)
 @Getter
 public class RoutineView extends VerticalLayout {
-
     @Autowired private ClientDataController controller;
     @Autowired private UserSettings settings;
     @Autowired private RoutineDataProvider routineDataProvider;
     @Autowired private RoutineService routineService;
 
-    @Autowired private TaskTreeGrid taskTreeGrid;
+    @Autowired private RoutineStepTreeGrid routineStepTreeGrid;
     @Autowired private ToolbarTabSheet toolbarTabSheet;
     private Grid<Routine> activeRoutineGrid = new Grid<>();
 
@@ -55,16 +54,15 @@ public class RoutineView extends VerticalLayout {
 
         Set<TimeableStatus> visibleRoutineStatuses = Set.of(
                 TimeableStatus.NOT_STARTED,
-                TimeableStatus.ACTIVE
-        );
+                TimeableStatus.ACTIVE);
 
-        toolbarTabSheet.init(
+        toolbarTabSheet.init(() -> routineStepTreeGrid.clearRoutine(),
+                ToolbarTabSheet.TabType.CLOSE_TAB,
                 ToolbarTabSheet.TabType.SEARCH_AND_FILTER_TAB,
                 ToolbarTabSheet.TabType.OPTIONS_TAB);
 
-        taskTreeGrid.init(settings.routineViewColumnVisibility());
-        taskTreeGrid.treeGrid().setDataProvider(controller.dataProvider());
-        taskTreeGrid.setSizeFull();
+        routineStepTreeGrid.init(settings.routineViewColumnVisibility());
+        routineStepTreeGrid.setSizeFull();
 
         activeRoutineGrid.setItems(routineDataProvider.fetch(new Query<>(
                 visibleRoutineStatuses)).toList());
@@ -74,7 +72,14 @@ public class RoutineView extends VerticalLayout {
         activeRoutineGrid.setAllRowsVisible(true); // TODO: Verify this works
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
 
-        this.add(activeRoutineGrid, toolbarTabSheet, taskTreeGrid);
+        activeRoutineGrid.addSelectionListener(event ->
+                event.getFirstSelectedItem().ifPresent(routine -> {
+                    routineStepTreeGrid.setRoutine(routine);
+                })
+        );
+        activeRoutineGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+
+        this.add(activeRoutineGrid, toolbarTabSheet, routineStepTreeGrid);
     }
 
 }

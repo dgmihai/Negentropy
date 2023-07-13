@@ -25,4 +25,22 @@ public class K {
     public static final String CRON_PLACEHOLDER = "-- -- -- -- -- --";
     public static final String CRON_PATTERN =
             "^(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[?0-9*/LW,-]+(?<![-/,])\\s(?![-/,])[0-9*/JANFEBMARAPRMAYJUNJULAUGSEPOCTNOVDEC,-]+(?<![-/,])\\s(?![-/,])[?L#0-9*/MONTUEWEDTHUFRISATSUN,-]+(?<![-/,])$";
+
+    public static final String COLUMN_KEY_DRAG_HANDLE = "Drag Handle";
+    public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
+    public static final String COLUMN_KEY_NAME = "Name";
+    public static final String COLUMN_KEY_FOCUS = "Focus";
+    public static final String COLUMN_KEY_BLOCK = "Block";
+    public static final String COLUMN_KEY_COMPLETE = "Complete";
+    public static final String COLUMN_KEY_RECURRING = "Recurring";
+    public static final String COLUMN_KEY_CRON = "Cron";
+    public static final String COLUMN_KEY_SCHEDULED_FOR = "Scheduled For";
+    public static final String COLUMN_KEY_TAGS = "Tags";
+    public static final String COLUMN_KEY_DESCRIPTION = "Description";
+    public static final String COLUMN_KEY_DURATION = "Single Step Duration";
+    public static final String COLUMN_KEY_TIME_ESTIMATE = "Total Duration";
+    public static final String COLUMN_KEY_EDIT = "Edit";
+    public static final String COLUMN_KEY_DELETE = "Delete";
+
+    public static final String COLUMN_KEY_STATUS = "Status";
 }

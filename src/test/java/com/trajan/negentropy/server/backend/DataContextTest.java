@@ -9,6 +9,7 @@ import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.id.ID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.helger.commons.mock.CommonsAssert.assertEquals;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,6 +39,14 @@ public class DataContextTest extends TaskTestTemplate {
 
     private static final LocalDateTime TIME = LocalDateTime.now();
 
+    private TaskEntity projectTask;
+
+    @BeforeEach
+    void setup() {
+        projectTask = dataContext.TESTONLY_mergeTask(new TaskEntity()
+                .name("Project"));
+    }
+
     private void assertTask(TaskEntity taskEntity, Task task) {
         assertNotNull(task);
         assertNotNull(task.id());
@@ -45,6 +55,8 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.description(), task.description());
         assertEquals(taskEntity.duration(), task.duration());
         assertEquals(taskEntity.block(), task.block());
+        assertEquals(ID.of(taskEntity.projectOwner()), task.projectOwner());
+        assertEquals(taskEntity.isProject(), task.isProject());
     }
 
     @Test
@@ -53,7 +65,9 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Task Name")
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120)))
-                .block(true);
+                .block(true)
+                .isProject(true)
+                .projectOwner(projectTask);
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -210,7 +224,9 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Original Task Name")
                 .description("Original Task Description")
                 .duration(Duration.ofMinutes(120))
-                .block(true));
+                .block(true)
+                .isProject(true)
+                .projectOwner(projectTask));
 
         Set<TagEntity> originalTagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -224,12 +240,14 @@ public class DataContextTest extends TaskTestTemplate {
                 "Updated Task Description",
                 Duration.ofMinutes(180),
                 true,
+                true,
+                ID.of(projectTask),
                 originalTagEntities.stream().map(DataContext::toDTO).collect(Collectors.toSet()),
                 false);
 
         TaskEntity mergedTaskEntity = dataContext.mergeTask(task);
 
-        assertTask(taskEntity, task);
+        assertTask(mergedTaskEntity, task);
     }
 
     @Test

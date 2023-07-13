@@ -1,6 +1,5 @@
 package com.trajan.negentropy.server.backend.entity;
 
-import com.trajan.negentropy.server.facade.model.interfaces.TaskData;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
@@ -26,7 +25,7 @@ import java.util.Set;
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
 @Slf4j
-public class TaskEntity extends AbstractEntity implements TaskData {
+public class TaskEntity extends AbstractEntity {
 
     @Column(nullable = false, unique = true)
     @NotEmpty(message = "Name is required")
@@ -42,6 +41,15 @@ public class TaskEntity extends AbstractEntity implements TaskData {
 
     @ToString.Include
     private boolean block = false;
+
+    @ToString.Include
+    private boolean isProject = false;
+
+    // TODO: Unidirectional
+    @OneToOne(
+            fetch = FetchType.EAGER,
+            cascade = CascadeType.ALL)
+    private TaskEntity projectOwner = null;
 
     @OneToMany(
             mappedBy = "task",

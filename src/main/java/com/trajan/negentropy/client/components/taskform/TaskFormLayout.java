@@ -22,8 +22,9 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     private final Binder<TaskNodeInfo> nodeBinder = new BeanValidationBinder<>(TaskNodeInfo.class);
 
-    public TaskFormLayout(ClientDataController presenter) {
-        super(presenter);
+    public TaskFormLayout(ClientDataController controller) {
+        super(controller);
+
         taskBinder.setBean(new Task());
         nodeBinder.setBean(new TaskNodeInfo());
 
@@ -55,7 +56,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         taskBinder.forField(descriptionArea)
                 .bind(Task::description, Task::description);
 
-        tagComboBox = new CustomValueTagComboBox(presenter, tag ->
+        tagComboBox = new CustomValueTagComboBox(controller, tag ->
                 taskBinder.getBean().tags().add(tag));
 
         nodeBinder.forField(recurringCheckbox)

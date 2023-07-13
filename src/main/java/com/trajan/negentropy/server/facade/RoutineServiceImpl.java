@@ -5,17 +5,14 @@ import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.backend.entity.QRoutineEntity;
-import com.trajan.negentropy.server.backend.entity.RoutineEntity;
-import com.trajan.negentropy.server.backend.entity.RoutineStepEntity;
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
+import com.trajan.negentropy.server.backend.entity.*;
 import com.trajan.negentropy.server.backend.repository.RoutineRepository;
 import com.trajan.negentropy.server.facade.model.Routine;
 import com.trajan.negentropy.server.facade.model.RoutineStep;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.RoutineID;
-import com.trajan.negentropy.server.facade.model.id.StepID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.model.id.*;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.util.RoutineUtil;
 import jakarta.validation.constraints.NotNull;
@@ -27,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -40,6 +39,10 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Autowired private RoutineRepository routineRepository;
     @Autowired private EntityQueryService entityQueryService;
+    @Autowired private UpdateService updateService;
+    @Autowired private UpdateService queryService;
+
+    @Autowired private DataContext dataContext;
 
     @Override
     public Routine fetchRoutine(RoutineID routineID) {
@@ -70,41 +73,71 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
+    public RoutineResponse createRoutine(LinkID rootId) {
+        return this.createRoutine(rootId, null);
+    }
+
+    @Override
     public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskFilter filter) {
+        TaskEntity rootTask = entityQueryService.getTask(rootId);
+
+        // TODO: We create a temporary root task for a routine started without an associated link
+        Optional<TaskLink> rootLinkOptional = rootTask.parentLinks().stream()
+                .filter(link -> link.parent() == null)
+                .findFirst();
+
+        TaskLink rootLink = rootLinkOptional.orElseGet(() -> {
+                    TaskNode rootNode = updateService.insertTaskNode(new TaskNodeDTO()
+                            .parentId(null)
+                            .childId(rootId)).node();
+                    return entityQueryService.getLink(rootNode.linkId());
+        });
+
+        return this.createRoutine(ID.of(rootLink));
+    }
+
+    @Override
+    public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskFilter filter) {
         return this.process(() -> {
-            if (rootId == null) {
-                throw new IllegalArgumentException("Task ID to start routine from cannot be null");
-            }
+            TaskLink rootLink = entityQueryService.getLink(rootId);
 
             RoutineEntity routine = new RoutineEntity()
-                    .estimatedDuration(entityQueryService.calculateTotalDuration(rootId, filter));
+                    .estimatedDuration(entityQueryService.calculateTotalDuration(
+                            ID.of(rootLink.child()), filter));
 
             RoutineStepEntity rootStep = new RoutineStepEntity()
-                    .task(entityQueryService.getTask(rootId))
+                    .link(rootLink)
                     .routine(routine)
                     .position(0);
 
             routine.steps().add(rootStep);
 
-            entityQueryService.findDescendantTasks(rootId, filter)
-                    .map(task -> new RoutineStepEntity()
-                            .task(task))
-                    .forEachOrdered(step -> {
-                        step.position(routine.steps().size())
-                            .routine(routine);
-                        routine.steps().add(step);
-                    });
-
-            logger.debug("Creating routine " + routine);
-            return routineRepository.save(routine);
+            return this.populateRoutine(ID.of(rootStep.link().child()), routine, filter);
         });
+    }
+
+    private RoutineEntity populateRoutine(TaskID rootId, RoutineEntity routine, TaskFilter filter) {
+        entityQueryService.findDescendantLinks(rootId, filter)
+                .map(link -> new RoutineStepEntity()
+                        .link(link))
+                .forEachOrdered(step -> {
+                    step.position(routine.steps().size())
+                            .routine(routine);
+                    routine.steps().add(step);
+                });
+
+        logger.debug("Creating routine " + routine);
+        return routineRepository.save(routine);
     }
 
     private Predicate filterByStatus(Set<TimeableStatus> statusSet) {
         logger.trace("filterByStatus");
-        QRoutineEntity qRoutine = QRoutineEntity.routineEntity;
+        com.trajan.negentropy.server.backend.entity.QRoutineEntity qRoutine = com.trajan.negentropy.server.backend.entity.QRoutineEntity.routineEntity;
         BooleanBuilder builder = new BooleanBuilder();
         statusSet.forEach(status -> builder.or(qRoutine.status.eq(status)));
+
+        // TODO: Due to old routines that still use TaskID
+        builder.andNot(qRoutine.steps.get(0).link.isNull());
         return builder;
     }
 
@@ -262,6 +295,40 @@ public class RoutineServiceImpl implements RoutineService {
             routine.status(TimeableStatus.COMPLETED);
             routine.currentStep().status(TimeableStatus.SKIPPED);
             routine.currentStep().finishTime(time);
+
+            return routine;
+        });
+    }
+
+    @Override
+    public RoutineResponse moveRoutineStep(StepID childId, StepID parentId, int position) {
+        return process(() -> {
+            RoutineStepEntity step = entityQueryService.getRoutineStep(childId);
+            RoutineEntity routine = step.routine();
+
+            List<RoutineStepEntity> steps;
+            if (parentId == null) {
+                steps = step.routine().steps();
+            } else {
+                RoutineStepEntity parentStep = entityQueryService.getRoutineStep(parentId);
+                if (!routine.equals(parentStep.routine())) {
+                    throw new RuntimeException(step + " and " + parentStep + " do not belong to the same routine.");
+                }
+                steps = parentStep.children();
+            }
+
+            int oldIndex = steps.indexOf(step);
+
+            steps.remove(step);
+            if (position > oldIndex) {
+                steps.add(position-1, step);
+            } else {
+                steps.add(position, step);
+            }
+
+            for (int i = 0; i < steps.size(); i++) {
+                steps.get(i).position(i);
+            }
 
             return routine;
         });

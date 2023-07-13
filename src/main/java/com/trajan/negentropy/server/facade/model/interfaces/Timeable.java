@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server.facade.model;
+package com.trajan.negentropy.server.facade.model.interfaces;
 
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 

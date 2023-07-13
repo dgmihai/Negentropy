@@ -93,7 +93,7 @@ public class DataContextImpl implements DataContext {
         Set<TagEntity> tagEntities = task.tags() == null ?
                 taskEntity.tags() :
                 task.tags().stream()
-                        .map(tag ->entityQueryService.getTag(tag.id()))
+                        .map(tag -> entityQueryService.getTag(tag.id()))
                         .collect(Collectors.toSet());
 
         taskEntity
@@ -105,9 +105,17 @@ public class DataContextImpl implements DataContext {
                         task.description(), taskEntity.description()))
                 .block(Objects.requireNonNullElse(
                         task.block(), taskEntity.block()))
+                .isProject(Objects.requireNonNullElse(
+                        task.isProject(), taskEntity.isProject()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
+
+        // TODO: This makes this a required field
+        TaskEntity projectTaskReference = task.projectOwner() != null
+                ? entityQueryService.getTask(task.projectOwner())
+                : null;
+        taskEntity.projectOwner(projectTaskReference);
 
         log.debug("Merged task: " + taskEntity);
         return taskEntity;
@@ -117,7 +125,7 @@ public class DataContextImpl implements DataContext {
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
-        boolean updatedCron = !node.cron().equals(linkEntity.cron());
+        boolean updatedCron = !(Objects.equals(linkEntity.cron(), node.cron()));
         boolean updatedCompleted = node.completed() && !linkEntity.completed();
 
         linkEntity

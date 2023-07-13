@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.entity;
 
+import com.trajan.negentropy.server.facade.model.interfaces.Descendant;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -23,8 +24,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Slf4j
-public class TaskLink extends AbstractEntity {
-
+public class TaskLink extends AbstractEntity implements Descendant<TaskEntity> {
     @ManyToOne
     @JoinColumn(name = "parent_id")
     private TaskEntity parent;

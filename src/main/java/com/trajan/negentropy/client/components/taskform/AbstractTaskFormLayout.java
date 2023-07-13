@@ -23,9 +23,6 @@ import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
 public abstract class AbstractTaskFormLayout extends FormLayout implements TaskProvider {
-
-    protected final ClientDataController presenter;
-
     protected TextField nameField;
     protected TextField durationField;
     protected TextField cronField;
@@ -45,9 +42,10 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     @Setter
     protected Runnable onSave = () -> { };
 
-    public AbstractTaskFormLayout(ClientDataController presenter) {
-        this.presenter = presenter;
+    protected ClientDataController controller;
 
+    public AbstractTaskFormLayout(ClientDataController controller) {
+        this.controller = controller;
         this.addClassName("task-entry-form");
     }
 

@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.tree;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.components.TaskTreeGrid;
+import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -32,7 +32,7 @@ public class TreeView extends Div {
 
     @Autowired private ToolbarTabSheet toolbarTabSheet;
 
-    @Autowired private TaskTreeGrid taskTreeGrid;
+    @Autowired private TaskEntryTreeGrid taskTreeGrid;
 
     @PostConstruct
     public void init() {

@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.server.facade.model.Timeable;
+import com.trajan.negentropy.server.facade.model.interfaces.Timeable;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;

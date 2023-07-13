@@ -18,18 +18,31 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
+import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 
+@SpringComponent
+@Scope("prototype")
 @Slf4j
 public class ToolbarTabSheet extends TabSheet {
+    @Autowired
     private ClientDataController controller;
+    @Autowired
     private UserSettings settings;
 
+    @Getter
     private Tab closeTab;
+    @Getter
     private Tab quickCreateTab;
+    @Getter
     private Tab searchAndFilterTab;
+    @Getter
     private Tab createNewTaskTab;
+    @Getter
     private Tab optionsTab;
 
     public enum TabType {
@@ -37,7 +50,7 @@ public class ToolbarTabSheet extends TabSheet {
         CREATE_NEW_TASK_TAB,
         SEARCH_AND_FILTER_TAB,
         OPTIONS_TAB,
-        QUICK_CREATE_TAB
+        QUICK_CREATE_TAB,
     }
 
     private TaskFormLayout createTaskForm;
@@ -45,22 +58,21 @@ public class ToolbarTabSheet extends TabSheet {
     private FilterForm filterForm;
     private HorizontalLayout options;
 
-    public ToolbarTabSheet(ClientDataController controller, UserSettings settings) {
-        this.controller = controller;
-        this.settings = settings;
-    }
-
     public void initWithAllTabs() {
         this.init(TabType.values());
     }
 
     public void init(TabType... tabsNames) {
+        init(() -> {}, tabsNames);
+    }
+
+    public void init(Runnable onCloseClick, TabType... tabsNames) {
         UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver -> {
             boolean mobile = (receiver.getWindowInnerWidth() > K.BREAKPOINT_PX);
 
-            initCloseTab(mobile);
             for (TabType tabName : tabsNames) {
                 switch (tabName) {
+                    case CLOSE_TAB -> initCloseTab(mobile);
                     case CREATE_NEW_TASK_TAB -> initCreateNewTaskTab(mobile);
                     case SEARCH_AND_FILTER_TAB -> initSearchAndFilterTab(mobile);
                     case OPTIONS_TAB -> initOptionsTab(mobile);
@@ -81,6 +93,8 @@ public class ToolbarTabSheet extends TabSheet {
 
             this.setWidthFull();
             this.addThemeVariants(TabSheetVariant.LUMO_TABS_CENTERED);
+
+            closeTab.getElement().addEventListener("click", e -> onCloseClick.run());
         });
     }
 
@@ -140,7 +154,6 @@ public class ToolbarTabSheet extends TabSheet {
         add(searchAndFilterTab, this.filterForm);
         return this;
     }
-
 
     private ToolbarTabSheet initOptionsTab(boolean mobile) {
         Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");

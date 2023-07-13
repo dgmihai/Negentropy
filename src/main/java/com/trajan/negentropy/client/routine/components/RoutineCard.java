@@ -144,7 +144,7 @@ public class RoutineCard extends VerticalLayout {
         description.addValueChangeListener(event -> {
             TaskResponse response = controller.updateTask(binder.getBean().task());
             if (response.success()) {
-                binder.getBean().task(response.task());
+                binder.getBean().node().child(response.task());
             }
         });
     }

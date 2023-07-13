@@ -13,7 +13,7 @@ public class RoutineUtil {
 
     public static Duration getStepElapsedActiveDuration(RoutineStepData step, LocalDateTime time) {
         return switch (step.status()) {
-            case NOT_STARTED:
+            case NOT_STARTED, EXCLUDED:
                 yield Duration.ZERO;
             case ACTIVE:
                 yield Duration.between(step.startTime(), time)
@@ -30,11 +30,11 @@ public class RoutineUtil {
     public static Duration getRemainingStepDuration(RoutineStepData step, LocalDateTime time) {
         return switch (step.status()) {
             case NOT_STARTED:
-                yield step.task().duration();
+                yield step.duration();
             case ACTIVE, SUSPENDED:
-                yield step.task().duration().minus(
+                yield step.duration().minus(
                         getStepElapsedActiveDuration(step, time));
-            case SKIPPED, COMPLETED:
+            case SKIPPED, COMPLETED, EXCLUDED:
                 yield Duration.ZERO;
         };
     }
@@ -45,6 +45,8 @@ public class RoutineUtil {
                 yield time.plus(getRemainingStepDuration(step, time));
             case SKIPPED, COMPLETED:
                 yield time;
+            case EXCLUDED:
+                throw new RuntimeException("Routine status cannot be 'Excluded'.");
         };
     }
 

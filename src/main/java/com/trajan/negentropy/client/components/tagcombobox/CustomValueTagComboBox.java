@@ -14,19 +14,19 @@ public class CustomValueTagComboBox extends TagComboBox {
 
     protected Consumer<Tag> onCustomValueSet = tag -> {};
 
-    public CustomValueTagComboBox(ClientDataController presenter) {
-        super(presenter);
+    public CustomValueTagComboBox(ClientDataController controller) {
+        super(controller);
         init();
     }
 
-    public CustomValueTagComboBox(ClientDataController presenter, Consumer<Tag> onCustomValueSet) {
-        super(presenter);
+    public CustomValueTagComboBox(ClientDataController controller, Consumer<Tag> onCustomValueSet) {
+        super(controller);
         this.onCustomValueSet = onCustomValueSet;
         init();
     }
 
-    public CustomValueTagComboBox(String labelText, ClientDataController presenter, Consumer<Tag> onCustomValueSet) {
-        super(labelText, presenter);
+    public CustomValueTagComboBox(String labelText, ClientDataController controller, Consumer<Tag> onCustomValueSet) {
+        super(labelText, controller);
         this.onCustomValueSet = onCustomValueSet;
         init();
     }

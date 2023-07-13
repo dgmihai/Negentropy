@@ -1,15 +1,15 @@
 package com.trajan.negentropy.client.controller;
 
-import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
-import com.trajan.negentropy.client.controller.data.TaskEntry;
-import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
-import com.trajan.negentropy.client.controller.data.TaskProvider;
+import com.trajan.negentropy.client.controller.data.*;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.UpdateService;
-import com.trajan.negentropy.server.facade.model.*;
+import com.trajan.negentropy.server.facade.model.Tag;
+import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.server.facade.model.TaskNode;
+import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.id.StepID;
 import com.trajan.negentropy.server.facade.model.id.TaskID;
@@ -26,7 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -145,7 +146,7 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
-    public void moveNodeInto(TaskEntry moved, TaskEntry target) {
+    public void moveNodeInto(TaskNodeData moved, TaskNodeData target) {
         logger.debug("Moving node: " + moved + " into " + target);
         this.tryServiceCalls(
                 () -> updateService.insertTaskNode(
@@ -157,7 +158,7 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
-    public void moveNodeBefore(TaskEntry moved, TaskEntry target) {
+    public void moveNodeBefore(TaskNodeData moved, TaskNodeData target) {
         logger.debug("Moving node: " + moved + " before " + target);
         this.tryServiceCalls(
                 () -> updateService.insertTaskNode(
@@ -169,7 +170,7 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
-    public void moveNodeAfter(TaskEntry moved, TaskEntry target) {
+    public void moveNodeAfter(TaskNodeData moved, TaskNodeData target) {
         logger.debug("Moving node: " + moved + " after " + target);
         this.tryServiceCalls(
                 () -> updateService.insertTaskNode(

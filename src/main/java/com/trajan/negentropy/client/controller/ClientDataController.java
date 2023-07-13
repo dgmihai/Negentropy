@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.controller;
 
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.controller.data.TaskEntryDataProvider;
+import com.trajan.negentropy.client.controller.data.TaskNodeData;
 import com.trajan.negentropy.client.controller.data.TaskProvider;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.server.facade.QueryService;
@@ -35,10 +36,10 @@ public interface ClientDataController {
 
     void moveNodeToRoot(TaskEntry entry);
 
-    void moveNodeInto(TaskEntry moved, TaskEntry target);
+    void moveNodeInto(TaskNodeData moved, TaskNodeData target);
 
-    void moveNodeBefore(TaskEntry moved, TaskEntry target);
-    void moveNodeAfter(TaskEntry moved, TaskEntry target);
+    void moveNodeBefore(TaskNodeData moved, TaskNodeData target);
+    void moveNodeAfter(TaskNodeData moved, TaskNodeData target);
 
     void activeTaskProvider(TaskProvider activeTaskProvider);
 

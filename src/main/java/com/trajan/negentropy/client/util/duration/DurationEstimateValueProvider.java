@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.util.duration;
 
-import com.trajan.negentropy.client.controller.data.TaskEntry;
+import com.trajan.negentropy.client.controller.data.HasTaskData;
 import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.model.Task;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 
 @SpringComponent
 @UIScope
-public class DurationEstimateValueProvider<T> implements ValueProvider<T, String> {
+public class DurationEstimateValueProvider<T extends HasTaskData> implements ValueProvider<T, String> {
 
     @Autowired private final QueryService queryService;
     private final Supplier<TimeFormat> timeFormatCallback;
@@ -32,17 +32,11 @@ public class DurationEstimateValueProvider<T> implements ValueProvider<T, String
     }
 
     @Override
-    public String apply(T obj) {
-        if (obj instanceof Task task) {
-            return convert(task);
-        } else if (obj instanceof TaskEntry entry) {
-            return convert(entry.node().child());
-        } else {
-            return "Invalid source type.";
-        }
+    public String apply(HasTaskData task) {
+        return apply(task.task());
     }
 
-    private String convert(Task task) {
+    private String apply(Task task) {
         TimeFormat timeFormat = timeFormatCallback.get();
         Duration duration = task.duration();
         if (netDuration) {

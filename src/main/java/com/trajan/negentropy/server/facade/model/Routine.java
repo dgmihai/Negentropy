@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.facade.model;
 import com.trajan.negentropy.server.backend.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.model.id.RoutineID;
 import com.trajan.negentropy.server.facade.model.interfaces.RoutineData;
+import com.trajan.negentropy.server.facade.model.interfaces.Timeable;
 import com.trajan.negentropy.util.RoutineUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
