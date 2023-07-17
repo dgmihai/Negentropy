@@ -25,6 +25,9 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
     @ManyToOne(fetch = FetchType.EAGER)
     private TaskLink link;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    private TaskEntity taskRecord;
+
     @ManyToOne
     @JoinColumn(name = "parent_step_id")
     private RoutineStepEntity parent;

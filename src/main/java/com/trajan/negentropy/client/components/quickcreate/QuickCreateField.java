@@ -20,14 +20,14 @@ import java.util.Optional;
 
 @Accessors(fluent = true)
 public class QuickCreateField extends TextField implements TaskProvider {
-    private ClientDataController presenter;
+    private ClientDataController controller;
 
     private Task task = null;
     private TaskNodeInfo nodeInfo = null;
 
-    public QuickCreateField(ClientDataController presenter) {
+    public QuickCreateField(ClientDataController controller) {
         super();
-        this.presenter = presenter;
+        this.controller = controller;
 
         this.setClearButtonVisible(true);
         this.setValueChangeMode(ValueChangeMode.EAGER);
@@ -61,7 +61,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
             try {
                 parse(input);
 
-                Response response = presenter.addTaskFromProvider(this);
+                Response response = controller.addTaskFromProvider(this);
                 if (response.success()) {
                     this.clear();
                 } else {
@@ -79,7 +79,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
         if (!input.isBlank()) {
             try {
                 parse(input);
-                return new Response(true, K.OK);
+                return Response.OK();
             } catch (QuickCreateParser.ParseException e) {
                 return new Response(false, e.getMessage());
             }

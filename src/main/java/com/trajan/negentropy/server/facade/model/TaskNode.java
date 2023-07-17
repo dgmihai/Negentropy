@@ -7,6 +7,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @AllArgsConstructor
@@ -33,4 +34,6 @@ public class TaskNode extends TaskNodeInfo {
     private Boolean recurring;
     private CronExpression cron;
     private LocalDateTime scheduledFor;
+
+    private Duration projectDuration;
 }

@@ -8,6 +8,8 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
 
+import java.time.Duration;
+
 @NoArgsConstructor
 @Accessors(fluent = true)
 @Getter
@@ -18,7 +20,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
     private TaskID childId;
 
     public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Integer importance,
-                       Boolean completed, Boolean recurring, CronExpression cron) {
+                       Boolean completed, Boolean recurring, CronExpression cron, Duration projectDuration) {
         this.parentId = parentId;
         this.childId = childId;
         this.position = position;
@@ -26,6 +28,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
         this.completed = completed;
         this.recurring = recurring;
         this.cron = cron;
+        this.projectDuration = projectDuration;
     }
 
 
@@ -37,6 +40,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
         this.completed = node.completed();
         this.recurring = node.recurring();
         this.cron = node.cron();
+        this.projectDuration = node.projectDuration();
     }
 
     public TaskNodeDTO(TaskID parentId, TaskID childId, TaskNodeInfo info) {
@@ -48,6 +52,7 @@ public class TaskNodeDTO extends TaskNodeInfo {
             this.completed = info.completed();
             this.recurring = info.recurring();
             this.cron = info.cron();
+            this.projectDuration = info.projectDuration();
         }
     }
 }

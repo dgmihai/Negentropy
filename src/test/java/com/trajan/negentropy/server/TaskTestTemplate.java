@@ -64,6 +64,13 @@ public class TaskTestTemplate {
     protected static final String REPEATSEVERAL = "RepeatSeveral";
     protected static final String REPEATINSAMEPARENT = "RepeatInSameParent";
 
+    protected static final CronExpression daily = CronExpression.parse("@daily");
+    protected static final CronExpression weekly = CronExpression.parse("0 0 0 */7 * ?");
+    protected static final CronExpression everyWednesday = CronExpression.parse("0 0 0 * * WED");
+    protected static final CronExpression onlyEvenings = CronExpression.parse("0 0 17-23 * * ?");
+    protected static final CronExpression afterTheTenth = CronExpression.parse("0 0 0 10/31 * ?");
+    protected static final CronExpression nextMonth = CronExpression.parse("0 0 0 1 * ?");
+
     /* Populate test data
 
         TEST DATA TASK HIERARCHY TREE
@@ -123,17 +130,17 @@ public class TaskTestTemplate {
     protected final Map<TaskID, String> taskIds = new HashMap<>();
     protected final Map<TagID, String> tagIds = new HashMap<>();
 
-    // Init tasks - (Task name, duration in minutes, if block)
-    private void initTasks(String parent, List<Pair<Task, TaskNodeInfo>> children) {
+    protected void initTasks(String parent, List<Pair<Task, TaskNodeInfo>> children) {
         for (int i=0; i<children.size(); i++) {
             Task task = children.get(i).getFirst();
             TaskNodeInfo nodeInfo = children.get(i).getSecond();
             String name = task.name();
+
             if (!tasks.containsKey(name)) {
-                tasks.put(name, updateService.createTask(new Task(null)
-                                .name(name)
-                                .duration(Duration.ofMinutes(1))
-                                .block(task.block()))
+                if (task.duration() == null) {
+                    task.duration(Duration.ofMinutes(1));
+                }
+                tasks.put(name, updateService.createTask(task)
                         .task());
             }
 
@@ -150,7 +157,8 @@ public class TaskTestTemplate {
                     0,
                     false,
                     false,
-                    nodeInfo.cron());
+                    nodeInfo.cron(),
+                    nodeInfo.projectDuration());
 
             TaskNode node = updateService.insertTaskNode(freshNode).node();
 
@@ -175,7 +183,7 @@ public class TaskTestTemplate {
         }
     }
 
-    private void initTags(String tagName, List<String> tasksToTag) {
+    protected void initTags(String tagName, List<String> tasksToTag) {
         Tag tag = updateService.createTag(new Tag(null, tagName)).tag();
         tags.put(tagName, tag);
         for (String taskToTag : tasksToTag) {
@@ -185,7 +193,7 @@ public class TaskTestTemplate {
         }
     }
 
-    private void refreshMaps() {
+    protected void refreshMaps() {
         for (Task task : tasks.values()) {
             tasks.put(task.name(), queryService.fetchTask(task.id()));
             taskIds.put(task.id(), task.name());
@@ -244,68 +252,149 @@ public class TaskTestTemplate {
                 filter), true);
     }
 
-    protected Task task(String name, boolean block) {
-        return new Task()
-                .name(name)
-//                TODO: Implement importance
-//                .importance(importance)
-                .block(block);
-    }
-
     protected void init() {
-        CronExpression daily = CronExpression.parse("@daily");
-        CronExpression weekly = CronExpression.parse("0 0 0 */7 * ?");
-        CronExpression everyWednesday = CronExpression.parse("0 0 0 * * WED");
-        CronExpression onlyEvenings = CronExpression.parse("0 0 17-23 * * ?");
-        CronExpression afterTheTenth = CronExpression.parse("0 0 0 10/31 * ?");
-        CronExpression nextMonth = CronExpression.parse("0 0 0 1 * ?");
-
-        initTasks(null,
-                List.of(
-                        Pair.of(task(ONE, false), new TaskNodeInfo()),
-                        Pair.of(task(TWO, false), new TaskNodeInfo()
-                                .cron(daily)),
-                        Pair.of(task(THREE_AND_FIVE, false), new TaskNodeInfo()
-                                .cron(weekly)),
-                        Pair.of(task(FOUR, false), new TaskNodeInfo()),
-                        Pair.of(task(THREE_AND_FIVE, false), new TaskNodeInfo()),
-                        Pair.of(task(SIX_AND_THREETWOFOUR, false), new TaskNodeInfo()))
+        initTasks(
+                null,
+                List.of(Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(ONE),
+                                new TaskNodeInfo()
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(TWO)
+                                        .project(true),
+                                new TaskNodeInfo()
+                                        .cron(daily)
+                                        .projectDuration(Duration.ofMinutes(1))
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(THREE_AND_FIVE)
+                                        .project(true),
+                                new TaskNodeInfo()
+                                        .cron(weekly)
+                                        .projectDuration(Duration.ofMinutes(1))
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(FOUR)
+                                        .project(true),
+                                new TaskNodeInfo()
+                                        .projectDuration(Duration.ofSeconds(1))
+                        ),Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(THREE_AND_FIVE)
+                                        .project(true),
+                                new TaskNodeInfo()
+                                        .projectDuration(Duration.ofMinutes(5))
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(SIX_AND_THREETWOFOUR),
+                                new TaskNodeInfo()
+                        )
+                )
         );
 
-        initTasks(TWO,
-                List.of(
-                        Pair.of(task(TWOONE, false), new TaskNodeInfo()),
-                        Pair.of(task(TWOTWO, true), new TaskNodeInfo()
-                                .cron(afterTheTenth)),
-                        Pair.of(task(TWOTHREE, false), new TaskNodeInfo()
-                                .cron(everyWednesday)))
+        initTasks(
+                TWO,
+                List.of(Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(TWOONE),
+                                new TaskNodeInfo()
+                        ), Pair.of(
+                                new Task()
+                                        .name(TWOTWO)
+                                        .block(true)
+                                        .project(true),
+                                new TaskNodeInfo()
+                                        .cron(afterTheTenth)
+                                        .projectDuration(Duration.ofMinutes(5))
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(TWOTHREE),
+                                new TaskNodeInfo()
+                                        .cron(everyWednesday)
+                        )
+                )
         );
 
-        initTasks(TWOTWO,
-                List.of(
-                        Pair.of(task(TWOTWOONE, true), new TaskNodeInfo()
-                                .cron(onlyEvenings)),
-                        Pair.of(task(TWOTWOTWO, true), new TaskNodeInfo()
-                                .cron(daily)),
-                        Pair.of(task(TWOTWOTHREE_AND_THREETWOTWO, true), new TaskNodeInfo()
-                                .cron(everyWednesday)))
+        initTasks(
+                TWOTWO,
+                List.of(Pair.of(
+                                new Task()
+                                        .name(TWOTWOONE)
+                                        .block(true),
+                                new TaskNodeInfo()
+                                        .cron(onlyEvenings)
+                        ), Pair.of(
+                                new Task()
+                                        .name(TWOTWOTWO)
+                                        .block(true),
+                                new TaskNodeInfo()
+                                        .cron(daily)
+                        ), Pair.of(
+                                new Task()
+                                        .name(TWOTWOTHREE_AND_THREETWOTWO)
+                                        .block(true),
+                                new TaskNodeInfo()
+                                        .cron(everyWednesday)
+                        )
+                )
         );
 
-        initTasks(THREE_AND_FIVE,
-                List.of(
-                        Pair.of(task(THREEONE, false), new TaskNodeInfo()
-                                .cron(nextMonth)),
-                        Pair.of(task(THREETWO, false), new TaskNodeInfo()
-                                .cron(daily)),
-                        Pair.of(task(THREETHREE, true), new TaskNodeInfo()))
+        initTasks(
+                THREE_AND_FIVE,
+                List.of(Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(THREEONE),
+                                new TaskNodeInfo()
+                                        .cron(nextMonth)
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(THREETWO),
+                                new TaskNodeInfo()
+                                        .cron(daily)
+                        ), Pair.of(
+                                new Task()
+                                        .name(THREETHREE)
+                                        .block(true),
+                                new TaskNodeInfo()
+                        )
+                )
         );
 
-        initTasks(THREETWO,
-                List.of(
-                        Pair.of(task(THREETWOONE_AND_THREETWOTHREE, true), new TaskNodeInfo()),
-                        Pair.of(task(TWOTWOTHREE_AND_THREETWOTWO, true), new TaskNodeInfo()),
-                        Pair.of(task(THREETWOONE_AND_THREETWOTHREE, true), new TaskNodeInfo()),
-                        Pair.of(task(SIX_AND_THREETWOFOUR, false), new TaskNodeInfo()))
+        initTasks(
+                THREETWO,
+                List.of(Pair.of(
+                                new Task()
+                                        .name(THREETWOONE_AND_THREETWOTHREE)
+                                        .block(true),
+                                new TaskNodeInfo()
+                        ), Pair.of(
+                                new Task()
+                                        .name(TWOTWOTHREE_AND_THREETWOTWO)
+                                        .block(true),
+                                new TaskNodeInfo()
+                        ), Pair.of(
+                                new Task()
+                                        .name(THREETWOONE_AND_THREETWOTHREE)
+                                        .block(true),
+                                new TaskNodeInfo()
+                        ), Pair.of(
+                                new Task()
+                                        .block(false)
+                                        .name(SIX_AND_THREETWOFOUR),
+                                new TaskNodeInfo()
+                        )
+                )
         );
 
         initTags(REPEATONCE,

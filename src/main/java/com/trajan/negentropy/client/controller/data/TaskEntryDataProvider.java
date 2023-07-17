@@ -32,7 +32,9 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     @Autowired private QueryService queryService;
     @Autowired private UserSettings settings;
 
+    @Getter
     private final Map<TaskID, Set<TaskEntry>> cachedTaskEntriesByChildTaskId = new HashMap<>();
+    @Getter
     private final Map<TaskID, Task> cachedTasks = new HashMap<>();
 
     @Getter
@@ -128,13 +130,13 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     @Override
     public void refreshAll() {
-        this.updateFilterFromSettings();
         logger.debug("Filter: " + filter);
+        this.updateFilterFromSettings();
         super.refreshAll();
     }
 
     private void updateFilterFromSettings() {
-        filter = settings.filter();
+        this.filter = settings.filter();
         this.filter.availableAtTime(LocalDateTime.now());
     }
 

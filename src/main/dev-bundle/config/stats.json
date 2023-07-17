@@ -236,7 +236,7 @@
   "Frontend/simple-clock/simple-clock.js"
  ],
  "frontendHashes": {
-  "themes/negentropy/components/grid.css": "305fce7a76b0a3d51b707f7069f85631204cb1ccce489927be3d12fa25688dcd",
+  "themes/negentropy/components/grid.css": "80ad805c2be320c385a43f2d527a130538a21aabdd16ec371610a9e8f5f13936",
   "simple-clock/simple-clock.js": "f720f2dd6487c1555fa8125ccabd178047840596cedf22a7635e07ef4c32b50a",
   "buttonFunctions.js": "c852123f9b2c44eb75e555119d3e05a7dbe78b91d0ab616feb9df1654474707d",
   "comboBoxConnector.js": "1d004c3dae9c76f8bcc68678abe1b8f7bdc8b456f5c9c4c7f190df8ed25d66cd",
@@ -261,12 +261,12 @@
   "negentropy": "{\n  \"lumoImports\" : [ \"typography\", \"color\", \"spacing\", \"badge\", \"utility\" ],\n  \"assets\" : {\n    \"@fontsource/pt-sans-narrow\" : {\n      \"*.css\" : \"@fontsource/pt-sans-narrow\",\n      \"files/**\" : \"@fontsource/pt-sans-narrow/files\"\n    }\n  }\n}"
  },
  "entryScripts": [
-  "VAADIN/build/indexhtml-80951604.js"
+  "VAADIN/build/indexhtml-9a1bfa0b.js"
  ],
  "webComponents": [],
  "cvdlModules": {},
  "packageJsonHash": "14a8dac994f5498ff6d941dbf2015de79936f16d72045cd685ec99e67504029a",
  "indexHtmlGenerated": [
-  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-80951604.js\"></script>"
+  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-9a1bfa0b.js\"></script>"
  ]
 }

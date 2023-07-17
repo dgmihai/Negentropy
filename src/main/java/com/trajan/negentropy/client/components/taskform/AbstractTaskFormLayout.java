@@ -10,7 +10,9 @@ import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -29,9 +31,12 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox recurringCheckbox;
     protected Checkbox blockCheckbox;
+    protected Checkbox projectCheckbox;
+    protected TextField projectDurationField;
     protected TextArea descriptionArea;
     protected HorizontalLayout buttonLayout;
-    protected HorizontalLayout checkboxLayout;
+    protected HorizontalLayout taskCheckboxLayout;
+    protected HorizontalLayout nodeCheckboxLayout;
 
     protected Button saveButton;
     protected Button clearButton;
@@ -49,6 +54,13 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         this.addClassName("task-entry-form");
     }
 
+    protected void configureAll() {
+        configureFields();
+        configureInteractions();
+        configureBindings();
+        configureLayout();
+    }
+
     protected void configureFields() {
         nameField = new TextField();
         nameField.setPlaceholder("Name *");
@@ -62,6 +74,12 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
         durationField.setRequired(true);
 
+        projectDurationField = new TextField();
+        projectDurationField.setPlaceholder("Project Duration (?h ?m ?s)");
+        projectDurationField.setPattern(DurationConverter.DURATION_PATTERN);
+        projectDurationField.setErrorMessage("Required format: ?h ?m ?s (ex: 1m 30m, or 2h");
+        projectDurationField.setValueChangeMode(ValueChangeMode.EAGER);
+
         cronField = new TextField();
         cronField.setPlaceholder("Cron (S M H D M W)");
         cronField.setPattern(K.CRON_PATTERN);
@@ -69,6 +87,10 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
         recurringCheckbox = new Checkbox("Recurring");
         blockCheckbox = new Checkbox("Block");
+        projectCheckbox = new Checkbox("Project");
+        projectCheckbox.addValueChangeListener(e -> {
+            projectDurationField.setVisible(e.getValue());
+        });
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -107,6 +129,8 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
     protected void configureLayout() {
         nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -118,18 +142,25 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
         buttonLayout.setWidthFull();
         buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
-        checkboxLayout = new HorizontalLayout(
-                blockCheckbox,
-                recurringCheckbox
-        );
+        taskCheckboxLayout = new HorizontalLayout(
+                blockCheckbox);
 
-        checkboxLayout.setWidthFull();
-        checkboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        nodeCheckboxLayout = new HorizontalLayout(
+                recurringCheckbox,
+                projectCheckbox);
+
+        taskCheckboxLayout.setWidthFull();
+        taskCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        nodeCheckboxLayout.setWidthFull();
+        nodeCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
         tagComboBox.setPlaceholder("Tags");
 
+        Hr hr = new Hr();
+
         setColspan(descriptionArea, 2);
         setColspan(buttonLayout, 2);
+        setColspan(hr, 2);
 
         this.setResponsiveSteps(
                 new ResponsiveStep("0", 1),
@@ -137,8 +168,7 @@ public abstract class AbstractTaskFormLayout extends FormLayout implements TaskP
 
         this.setWidthFull();
 
-        this.add(nameField, durationField, cronField,
-                tagComboBox, checkboxLayout,
-                descriptionArea, buttonLayout);
+        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout, projectDurationField,
+                buttonLayout);
     }
 }

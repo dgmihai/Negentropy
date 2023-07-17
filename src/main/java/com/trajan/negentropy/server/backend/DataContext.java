@@ -35,8 +35,7 @@ public interface DataContext {
                 taskEntity.description(),
                 taskEntity.duration(),
                 taskEntity.block(),
-                taskEntity.isProject(),
-                ID.of(taskEntity.projectOwner()),
+                taskEntity.project(),
                 taskEntity.tags().stream()
                         .map(DataContext::toDTO)
                         .collect(Collectors.toSet()),
@@ -54,7 +53,8 @@ public interface DataContext {
                 link.completed(),
                 link.recurring(),
                 link.cron(),
-                link.scheduledFor());
+                link.scheduledFor(),
+                link.projectDuration());
     }
 
     static Tag toDTO(TagEntity tagEntity) {

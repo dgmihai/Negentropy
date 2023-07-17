@@ -60,6 +60,7 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     private <T extends Response> T tryServiceCall(Supplier<T> serviceCall) {
+        logger.trace("Making service call " + serviceCall);
         T response = serviceCall.get();
 
         if (!response.success()) {
@@ -146,6 +147,17 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
+    public void copyNodeToRoot(TaskEntry entry) {
+        logger.debug("Copying to root: " + entry);
+        this.tryServiceCall(
+                () -> updateService.insertTaskNode(
+                        (TaskNodeDTO) new TaskNodeDTO(entry.node())
+                                .parentId(null)
+                                .position(null)));
+        dataProvider.refreshAll();
+    }
+
+    @Override
     public void moveNodeInto(TaskNodeData moved, TaskNodeData target) {
         logger.debug("Moving node: " + moved + " into " + target);
         this.tryServiceCalls(
@@ -154,6 +166,17 @@ public class ClientDataControllerImpl implements ClientDataController {
                                 .parentId(target.node().child().id())
                                 .position(null)),
                 () -> updateService.deleteNode(moved.node().linkId()));
+        dataProvider.refreshAll();
+    }
+
+    @Override
+    public void copyNodeInto(TaskNodeData copy, TaskNodeData target) {
+        logger.debug("Copying node: " + copy + " into " + target);
+        this.tryServiceCall(
+                () -> updateService.insertTaskNode(
+                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
+                                .parentId(target.node().child().id())
+                                .position(null)));
         dataProvider.refreshAll();
     }
 
@@ -170,6 +193,17 @@ public class ClientDataControllerImpl implements ClientDataController {
     }
 
     @Override
+    public void copyNodeBefore(TaskNodeData copy, TaskNodeData target) {
+        logger.debug("Copying node: " + copy + " before " + target);
+        this.tryServiceCalls(
+                () -> updateService.insertTaskNode(
+                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
+                                .parentId(target.node().parentId())
+                                .position(target.node().position())));
+        dataProvider.refreshAll();
+    }
+
+    @Override
     public void moveNodeAfter(TaskNodeData moved, TaskNodeData target) {
         logger.debug("Moving node: " + moved + " after " + target);
         this.tryServiceCalls(
@@ -178,6 +212,17 @@ public class ClientDataControllerImpl implements ClientDataController {
                                 .parentId(target.node().parentId())
                                 .position(target.node().position() + 1)),
                 () -> updateService.deleteNode(moved.node().linkId()));
+        dataProvider.refreshAll();
+    }
+
+    @Override
+    public void copyNodeAfter(TaskNodeData copy, TaskNodeData target) {
+        logger.debug("Copying node: " + copy + " after " + target);
+        this.tryServiceCalls(
+                () -> updateService.insertTaskNode(
+                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
+                                .parentId(target.node().parentId())
+                                .position(target.node().position() + 1)));
         dataProvider.refreshAll();
     }
 

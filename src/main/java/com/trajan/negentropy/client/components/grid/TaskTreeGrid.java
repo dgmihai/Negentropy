@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.grid.components.RetainOpenedMenuItemDecorator;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
@@ -8,9 +9,8 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.HasTaskData;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.tree.components.InlineIconButton;
-import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
-import com.trajan.negentropy.client.tree.components.RetainOpenedMenuItemDecorator;
+import com.trajan.negentropy.client.components.grid.components.InlineIconButton;
+import com.trajan.negentropy.client.components.grid.components.NestedTaskTabs;
 import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.server.facade.model.Task;

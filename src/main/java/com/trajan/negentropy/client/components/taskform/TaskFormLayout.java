@@ -3,7 +3,7 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.TaskProviderException;
-import com.trajan.negentropy.client.util.CronConverter;
+import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
@@ -28,10 +28,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         taskBinder.setBean(new Task());
         nodeBinder.setBean(new TaskNodeInfo());
 
-        configureFields();
-        configureInteractions();
-        configureBindings();
-        configureLayout();
+        configureAll();
     }
 
     @Override
@@ -63,6 +60,14 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(TaskNodeInfo::recurring, TaskNodeInfo::recurring);
         taskBinder.forField(blockCheckbox)
                 .bind(Task::block, Task::block);
+        blockCheckbox.setValue(true);
+
+        taskBinder.forField(projectCheckbox)
+                .bind(Task::project, Task::project);
+
+        nodeBinder.forField(projectDurationField)
+                .withConverter(new DurationConverter())
+                .bind(TaskNodeInfo::projectDuration, TaskNodeInfo::projectDuration);
 
         taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);

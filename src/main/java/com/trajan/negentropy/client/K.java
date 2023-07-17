@@ -19,6 +19,7 @@ public class K {
     public static final String GRID_PARTNAME_BLOCK = "block-task";
     public static final String GRID_PARTNAME_COMPLETED = "completed-node";
     public static final String GRID_PARTNAME_RECURRING = "recurring-node";
+    public static final String GRID_PARTNAME_PROJECT = "project-task";
 
     public static final int BREAKPOINT_PX = 600;
 
@@ -30,6 +31,7 @@ public class K {
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String COLUMN_KEY_NAME = "Name";
     public static final String COLUMN_KEY_FOCUS = "Focus";
+    public static final String COLUMN_KEY_PROJECT = "Project";
     public static final String COLUMN_KEY_BLOCK = "Block";
     public static final String COLUMN_KEY_COMPLETE = "Complete";
     public static final String COLUMN_KEY_RECURRING = "Recurring";

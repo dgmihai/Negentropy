@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.routine;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.components.ToolbarTabSheet;
+import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.data.RoutineDataProvider;
@@ -58,7 +58,7 @@ public class RoutineView extends VerticalLayout {
 
         toolbarTabSheet.init(() -> routineStepTreeGrid.clearRoutine(),
                 ToolbarTabSheet.TabType.CLOSE_TAB,
-                ToolbarTabSheet.TabType.SEARCH_AND_FILTER_TAB,
+                ToolbarTabSheet.TabType.START_ROUTINE_TAB,
                 ToolbarTabSheet.TabType.OPTIONS_TAB);
 
         routineStepTreeGrid.init(settings.routineViewColumnVisibility());

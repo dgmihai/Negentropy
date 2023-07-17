@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.tagcombobox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.server.facade.model.Tag;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 public class TagComboBox extends MultiSelectComboBox<Tag> {
     protected final ClientDataController controller;
     @Setter
+    @Getter
     protected Set<Tag> items = new HashSet<>();
 
     public TagComboBox(ClientDataController controller) {

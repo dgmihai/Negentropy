@@ -108,7 +108,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
             // Filter out if task isn't a project
             if (filter.options().contains(TaskFilter.ONLY_PROJECTS)) {
-                builder.and(qTask.isProject.isNotNull());
+                builder.and(qTask.project.isNotNull());
             }
 
             if (filter.options().contains(TaskFilter.ALWAYS_INCLUDE_PARENTS)) {
@@ -216,10 +216,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
-        return DFSUtil.traverseFromID(descendantId,
-                childId -> this.findParentLinks(childId, filter),
-                link -> ID.of(link.parent()))
-                .stream();
+        return DFSUtil.traverseTaskLinks(
+                descendantId,
+                link -> ID.of(link.parent()),
+                id -> this.findParentLinks(id, filter),
+                null,
+                null,
+                false);
     }
 
     @Override
@@ -229,19 +232,67 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter) {
-        return DFSUtil.traverseFromID(ancestorId,
-                parentId -> this.findChildLinks(parentId, filter),
-                link -> ID.of(link.child()))
-                .stream();
+        return this.findDescendantLinks(ancestorId, filter, null);
     }
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
-        return DFSUtil.traverseFromID(ancestorId,
-                        parentId -> this.findChildLinks(parentId, filter),
-                        link -> ID.of(link.child()),
-                        consumer)
-                .stream();
+        boolean withDurationLimits =
+                filter != null && filter.options().contains(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
+        Duration durationLimit = null;
+        if (withDurationLimits) {
+            durationLimit = filter.durationLimit();
+            if (durationLimit != null && ancestorId != null) {
+                TaskEntity ancestorTask = this.getTask(ancestorId);
+                durationLimit = durationLimit.minus(ancestorTask.duration());
+                if (durationLimit.isNegative()) {
+                    throw new RuntimeException("Duration of project associated with task " + ancestorTask.name()
+                            + " is shorter than the task's own duration.");
+                }
+            }
+        }
+
+        return DFSUtil.traverseTaskLinks(
+                ancestorId,
+                link -> ID.of(link.child()),
+                parentId -> this.findChildLinks(parentId, filter),
+                durationLimit,
+                consumer,
+                withDurationLimits);
+    }
+
+    @Override
+    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter) {
+        return this.findDescendantLinks(ancestorId, filter, null);
+    }
+
+    @Override
+    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
+        boolean withDurationLimits =
+                filter != null && filter.options().contains(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
+        TaskLink ancestorLink = this.getLink(ancestorId);
+        TaskEntity ancestorTask = ancestorLink.child();
+        Duration durationLimit = null;
+        if (withDurationLimits) {
+            durationLimit = (filter.durationLimit() == null && ancestorTask.project())
+                    ? ancestorLink.projectDuration()
+                    : filter.durationLimit();
+            if (durationLimit != null) {
+                durationLimit = durationLimit.minus(ancestorTask.duration());
+                if (durationLimit.isNegative()) {
+                    throw new RuntimeException("Duration of project associated with task " + ancestorTask.name()
+                            + " is shorter than the task's own duration.");
+                }
+            }
+        }
+
+        return DFSUtil.traverseTaskLinks(
+                ID.of(ancestorTask),
+                link -> ID.of(link.child()),
+                parentId -> this.findChildLinks(parentId, filter),
+                durationLimit,
+                consumer,
+                withDurationLimits);
     }
 
     @Override
@@ -299,9 +350,9 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             return cachedTotalDurations.get(taskId);
         }
 
-        Stream<TaskEntity> descendants = this.findDescendantTasks(taskId, filter);
-        LinkedList<TaskEntity> descendantStack = new LinkedList<>();
-        descendants.takeWhile(t -> hasCachedNetDuration.test(ID.of(t)))
+        Stream<TaskLink> descendants = this.findDescendantLinks(taskId, filter);
+        LinkedList<TaskLink> descendantStack = new LinkedList<>();
+        descendants.takeWhile(t -> hasCachedNetDuration.test(ID.of(t.child())))
                 .forEachOrdered(descendantStack::push);
 
         TaskEntity task = this.getTask(taskId);
@@ -309,11 +360,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             return this.getTask(taskId).duration();
         }
 
-        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll()));
-        TaskEntity next = descendantStack.poll();
+        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll().child()));
+        TaskLink next = descendantStack.poll();
         while (next != null) {
-            durationSum = durationSum.plus(next.duration());
-            cachedTotalDurations.put(ID.of(next), durationSum);
+            durationSum = task.project()
+                    ? durationSum.plus(next.projectDuration())
+                    : durationSum.plus(next.child().duration());
+            cachedTotalDurations.put(ID.of(next.child()), durationSum);
             next = descendantStack.poll();
         }
 

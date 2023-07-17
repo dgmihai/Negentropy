@@ -14,6 +14,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.support.CronExpression;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,6 +44,8 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity> {
     private Boolean recurring = false;
     private String cron;
     private LocalDateTime scheduledFor = null;
+
+    private Duration projectDuration = null;
 
     public String toString() {
         return "LinkEntity[" + super.toString() + ", parent=" + parent + ", child=" + child + "]";

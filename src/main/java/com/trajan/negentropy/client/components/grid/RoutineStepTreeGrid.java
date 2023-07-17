@@ -1,8 +1,10 @@
 package com.trajan.negentropy.client.components.grid;
 
+import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeDataFormLayout;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.server.facade.model.Routine;
@@ -22,6 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
 @Scope("prototype")
@@ -40,29 +45,26 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected void setPartNameGenerator() {
+        treeGrid.setPartNameGenerator(step -> {
+            List<String> partNames = new ArrayList<>();
 
+            if (step.node().completed()) {
+                partNames.add(K.GRID_PARTNAME_COMPLETED);
+            }
+            if (step.task().block()) {
+                partNames.add(K.GRID_PARTNAME_BLOCK);
+            }
+            if (step.task().project()) {
+                partNames.add(K.GRID_PARTNAME_PROJECT);
+            }
+
+            return Joiner.on(" ").join(partNames);
+        });
     }
 
     @Override
     protected void initAdditionalReadColumns(String column) {
         switch (column) {
-//        if (columns.contains(COLUMN_KEY_COMPLETE)) {
-//            completeColumn = treeGrid.addColumn(LitRenderer.<RoutineStep>of(
-//                                    inlineVaadinIconLitExpression("check",
-//                                            "?active=\"${!item.completed}\" "))
-//                            .withFunction("onClick", step ->
-//                                    controller.updateNode(entry.node()
-//                                            .completed(!entry.node().completed())))
-//                            .withProperty("completed", entry ->
-//                                    entry.node().completed())
-//                    )
-//                    .setKey(COLUMN_KEY_COMPLETE)
-//                    .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
-//                    .setWidth(ICON_COL_WIDTH_L)
-//                    .setFlexGrow(0)
-//                    .setTextAlign(ColumnTextAlign.CENTER);
-//        }
-
             case K.COLUMN_KEY_STATUS -> treeGrid.addColumn(
                     step -> timeableStatusValueProvider.apply(step.status()))
                     .setKey(K.COLUMN_KEY_STATUS)
@@ -74,8 +76,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    protected RoutineStepFormLayout getTaskFormLayout(RoutineStep routineStep) {
-        return new RoutineStepFormLayout(controller, routineStep);
+    protected TaskNodeDataFormLayout<RoutineStep> getTaskFormLayout(RoutineStep routineStep) {
+        return new TaskNodeDataFormLayout<>(controller, routineStep, RoutineStep.class);
     }
 
     @Override

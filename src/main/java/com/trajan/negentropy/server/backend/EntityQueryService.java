@@ -217,8 +217,10 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter);
-
     Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer);
+
+    Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter);
+    Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer);
 
     /**
      * Retrieves all descendant tasks of a given task via depth-first search.

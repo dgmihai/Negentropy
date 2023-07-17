@@ -3,8 +3,6 @@ package com.trajan.negentropy.client.util.duration;
 import com.vaadin.flow.data.binder.Result;
 import com.vaadin.flow.data.binder.ValueContext;
 import com.vaadin.flow.data.converter.Converter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -13,8 +11,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DurationConverter implements Converter<String, Duration> {
-    private static final Logger logger = LoggerFactory.getLogger(DurationConverter.class);
-
     public static final String DURATION_PATTERN = "^\\s*(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?\\s*$";
     private static final Pattern COMPILED_DURATION_PATTERN = Pattern.compile(DURATION_PATTERN);
 

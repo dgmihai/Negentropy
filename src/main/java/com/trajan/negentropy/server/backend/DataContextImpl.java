@@ -40,7 +40,7 @@ public class DataContextImpl implements DataContext {
     @Autowired private TagRepository tagRepository;
 
     @PostConstruct
-    public void cleanup() {
+    public void onStart() {
         this.deleteAllOrphanedTags();
     }
 
@@ -103,19 +103,14 @@ public class DataContextImpl implements DataContext {
                         task.duration(), taskEntity.duration()))
                 .description(Objects.requireNonNullElse(
                         task.description(), taskEntity.description()))
-                .block(Objects.requireNonNullElse(
+                .project(Objects.requireNonNullElse(
+                        task.project(), taskEntity.project()))
+                // Task cannot be a block and a project
+                .block(!taskEntity.project() && Objects.requireNonNullElse(
                         task.block(), taskEntity.block()))
-                .isProject(Objects.requireNonNullElse(
-                        task.isProject(), taskEntity.isProject()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
-
-        // TODO: This makes this a required field
-        TaskEntity projectTaskReference = task.projectOwner() != null
-                ? entityQueryService.getTask(task.projectOwner())
-                : null;
-        taskEntity.projectOwner(projectTaskReference);
 
         log.debug("Merged task: " + taskEntity);
         return taskEntity;
@@ -135,12 +130,16 @@ public class DataContextImpl implements DataContext {
                         node.recurring(), linkEntity.recurring()))
                 .completed(Objects.requireNonNullElse(
                         node.completed(), linkEntity.completed()))
-                .cron(Optional.ofNullable(node.cron()).orElse((linkEntity.cron())));
+                .cron(Optional.ofNullable(node.cron()).orElse((linkEntity.cron())))
+                .projectDuration(Optional.ofNullable(
+                        node.projectDuration())
+                        .orElse(linkEntity.projectDuration()));
 
         boolean scheduled = linkEntity.cron() != null;
 
-        if ((scheduled && updatedCron)
-                || (updatedCompleted && scheduled)) {
+        if (updatedCron && scheduled) {
+            linkEntity.scheduledFor(DataContext.now());
+        } else if (updatedCompleted && scheduled) {
             log.debug("Updating scheduled time");
             linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
             if (linkEntity.completed()) {
@@ -208,6 +207,8 @@ public class DataContextImpl implements DataContext {
             scheduledFor = node.cron().next(now);
         }
 
+        Duration projectDuration = node.projectDuration();
+
         TaskLink link = linkRepository.save(new TaskLink(
                 parent,
                 child,
@@ -217,7 +218,8 @@ public class DataContextImpl implements DataContext {
                 completed,
                 recurring,
                 cron,
-                scheduledFor));
+                scheduledFor,
+                projectDuration));
 
         if (parent != null) {
             Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration();

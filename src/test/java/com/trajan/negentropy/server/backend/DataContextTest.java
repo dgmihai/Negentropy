@@ -9,7 +9,6 @@ import com.trajan.negentropy.server.facade.model.Task;
 import com.trajan.negentropy.server.facade.model.TaskNode;
 import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
 import com.trajan.negentropy.server.facade.model.id.ID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +40,6 @@ public class DataContextTest extends TaskTestTemplate {
 
     private TaskEntity projectTask;
 
-    @BeforeEach
-    void setup() {
-        projectTask = dataContext.TESTONLY_mergeTask(new TaskEntity()
-                .name("Project"));
-    }
-
     private void assertTask(TaskEntity taskEntity, Task task) {
         assertNotNull(task);
         assertNotNull(task.id());
@@ -55,8 +48,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.description(), task.description());
         assertEquals(taskEntity.duration(), task.duration());
         assertEquals(taskEntity.block(), task.block());
-        assertEquals(ID.of(taskEntity.projectOwner()), task.projectOwner());
-        assertEquals(taskEntity.isProject(), task.isProject());
+        assertEquals(taskEntity.project(), task.project());
     }
 
     @Test
@@ -66,8 +58,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120)))
                 .block(true)
-                .isProject(true)
-                .projectOwner(projectTask);
+                .project(true);
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -111,6 +102,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.cron(), taskNode.cron());
         assertEquals(taskLink.createdAt(), taskNode.createdAt());
         assertEquals(taskLink.scheduledFor(), taskNode.scheduledFor());
+        assertEquals(taskLink.projectDuration(), taskNode.projectDuration());
         assertEquals(ID.of(taskLink.parent()), taskNode.parentId());
         assertEquals(ID.of(taskLink.child()), taskNode.child().id());
     }
@@ -129,7 +121,8 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 false,
                 DAILY_STRING,
-                LocalDateTime.MIN));
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1)));
 
         TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 parentTaskEntity,
@@ -140,7 +133,8 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 false,
                 DAILY_STRING,
-                LocalDateTime.MIN));
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 parentTaskEntity,
@@ -151,7 +145,8 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 false,
                 DAILY_STRING,
-                LocalDateTime.MIN));
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1)));
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
 
@@ -174,7 +169,8 @@ public class DataContextTest extends TaskTestTemplate {
                 true,
                 false,
                 DAILY_STRING,
-                LocalDateTime.MIN));
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 parentTaskEntity,
@@ -185,7 +181,8 @@ public class DataContextTest extends TaskTestTemplate {
                 true,
                 false,
                 DAILY_STRING,
-                LocalDateTime.MIN));
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1)));
 
         parentTaskEntity.childLinks(List.of(taskLink, nextLink));
 
@@ -224,9 +221,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Original Task Name")
                 .description("Original Task Description")
                 .duration(Duration.ofMinutes(120))
-                .block(true)
-                .isProject(true)
-                .projectOwner(projectTask));
+                .block(false)
+                .project(true));
 
         Set<TagEntity> originalTagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -239,9 +235,8 @@ public class DataContextTest extends TaskTestTemplate {
                 "Updated Task Name",
                 "Updated Task Description",
                 Duration.ofMinutes(180),
+                false,
                 true,
-                true,
-                ID.of(projectTask),
                 originalTagEntities.stream().map(DataContext::toDTO).collect(Collectors.toSet()),
                 false);
 
@@ -279,7 +274,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .completed(false)
                 .position(1)
                 .cron(DAILY_STRING)
-                .scheduledFor(LocalDateTime.MIN));
+                .scheduledFor(LocalDateTime.MIN)
+                .projectDuration(Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
@@ -298,7 +294,8 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 false,
                 DAILY_CRON,
-                LocalDateTime.MIN);
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1));
 
         assertNode(taskLink, taskNode);
 
@@ -332,7 +329,8 @@ public class DataContextTest extends TaskTestTemplate {
                         2,
                         false,
                         false,
-                        DAILY_CRON)));
+                        DAILY_CRON,
+                        Duration.ofMinutes(1))));
     }
 
     @Test
@@ -354,7 +352,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .completed(true)
                 .recurring(false)
                 .cron(DAILY_CRON)
-                .scheduledFor(LocalDateTime.MIN));
+                .scheduledFor(LocalDateTime.MIN)
+                .projectDuration(Duration.ofMinutes(1)));
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink));
 
@@ -368,7 +367,8 @@ public class DataContextTest extends TaskTestTemplate {
                 true,
                 false,
                 DAILY_CRON,
-                LocalDateTime.MIN);
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1));
 
         assertNode(taskLink, taskNode);
 
@@ -391,7 +391,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .completed(true)
                 .recurring(false)
                 .cron(DAILY_CRON)
-                .scheduledFor(LocalDateTime.MIN));
+                .scheduledFor(LocalDateTime.MIN)
+                .projectDuration(Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
@@ -410,7 +411,8 @@ public class DataContextTest extends TaskTestTemplate {
                 true,
                 false,
                 DAILY_CRON,
-                LocalDateTime.MIN);
+                LocalDateTime.MIN,
+                Duration.ofMinutes(1));
 
         assertNode(taskLink, taskNode);
 

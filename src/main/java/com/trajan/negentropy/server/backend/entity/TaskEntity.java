@@ -40,16 +40,10 @@ public class TaskEntity extends AbstractEntity {
     private Duration duration = Duration.ZERO;
 
     @ToString.Include
-    private boolean block = false;
+    private boolean block = true;
 
     @ToString.Include
-    private boolean isProject = false;
-
-    // TODO: Unidirectional
-    @OneToOne(
-            fetch = FetchType.EAGER,
-            cascade = CascadeType.ALL)
-    private TaskEntity projectOwner = null;
+    private boolean project = false;
 
     @OneToMany(
             mappedBy = "task",

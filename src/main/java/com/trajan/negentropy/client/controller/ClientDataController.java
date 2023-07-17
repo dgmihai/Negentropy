@@ -36,10 +36,19 @@ public interface ClientDataController {
 
     void moveNodeToRoot(TaskEntry entry);
 
+    void copyNodeToRoot(TaskEntry entry);
+
     void moveNodeInto(TaskNodeData moved, TaskNodeData target);
 
+    void copyNodeInto(TaskNodeData copy, TaskNodeData target);
+
     void moveNodeBefore(TaskNodeData moved, TaskNodeData target);
+
+    void copyNodeBefore(TaskNodeData copy, TaskNodeData target);
+
     void moveNodeAfter(TaskNodeData moved, TaskNodeData target);
+
+    void copyNodeAfter(TaskNodeData copy, TaskNodeData target);
 
     void activeTaskProvider(TaskProvider activeTaskProvider);
 

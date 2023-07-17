@@ -4,6 +4,8 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
 
+import java.time.Duration;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)
@@ -18,4 +20,6 @@ public class TaskNodeInfo {
 
     protected Boolean recurring;
     protected CronExpression cron;
+
+    protected Duration projectDuration;
 }

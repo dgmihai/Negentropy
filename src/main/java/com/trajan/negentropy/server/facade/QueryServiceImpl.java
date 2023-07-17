@@ -144,6 +144,7 @@ public class QueryServiceImpl implements QueryService {
         return this.fetchNetTimeDuration(taskId, 0);
     }
 
+
     @Override
     public Duration fetchNetTimeDuration(TaskID taskId, int priority) {
         return entityQueryService.getTotalDuration(taskId, 0)

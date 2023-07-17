@@ -20,9 +20,8 @@ public class Task {
     private String name;
     private String description;
     private Duration duration;
-    private Boolean block;
-    private Boolean isProject;
-    private TaskID projectOwner;
+    private Boolean block = true;
+    private Boolean project;
     private Set<Tag> tags;
 
     private Boolean hasChildren;

@@ -2,14 +2,14 @@ package com.trajan.negentropy.client.components.grid;
 
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.grid.components.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.TaskEntryFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeDataFormLayout;
 import com.trajan.negentropy.client.controller.data.TaskEntry;
 import com.trajan.negentropy.client.routine.RoutineView;
-import com.trajan.negentropy.client.tree.components.NestedTaskTabs;
-import com.trajan.negentropy.client.util.CronValueProvider;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.cron.CronValueProvider;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
@@ -53,6 +53,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             K.COLUMN_KEY_DRAG_HANDLE,
             K.COLUMN_KEY_FOCUS,
             K.COLUMN_KEY_BLOCK,
+            K.COLUMN_KEY_PROJECT,
             K.COLUMN_KEY_COMPLETE,
             K.COLUMN_KEY_RECURRING,
             K.COLUMN_KEY_CRON,
@@ -96,13 +97,27 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
 
+            case K.COLUMN_KEY_PROJECT -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                                    inlineVaadinIconLitExpression("file-tree",
+                                            "?active=\"${item.project}\" "))
+                            .withFunction("onClick", entry ->
+                                    controller.updateTask(entry.task()
+                                            .project(!entry.task().project())))
+                            .withProperty("project", entry ->
+                                    entry.task().project()))
+                    .setKey(K.COLUMN_KEY_PROJECT)
+                    .setHeader(headerIcon(VaadinIcon.FILE_TREE))
+                    .setWidth(ICON_COL_WIDTH_L)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
+
             case K.COLUMN_KEY_COMPLETE -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                    inlineVaadinIconLitExpression("check", 
+                    inlineVaadinIconLitExpression("check",
                             "?active=\"${!item.completed}\" "))
-                                    .withFunction("onClick", entry -> 
+                                    .withFunction("onClick", entry ->
                                             controller.updateNode(entry.node()
                                                     .completed(!entry.node().completed())))
-                                    .withProperty("completed", entry -> 
+                                    .withProperty("completed", entry ->
                                             entry.node().completed()))
                     .setKey(K.COLUMN_KEY_COMPLETE)
                     .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
@@ -114,10 +129,10 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                         inlineVaadinIconLitExpression("time-forward",
                                 "?active=\"${item.recurring}\" "))
-                                        .withFunction("onClick", entry -> 
+                                        .withFunction("onClick", entry ->
                                                 controller.updateNode(entry.node()
                                                         .recurring(!entry.node().recurring())))
-                                        .withProperty("recurring", entry -> 
+                                        .withProperty("recurring", entry ->
                                                 entry.node().recurring()))
                     .setKey(K.COLUMN_KEY_RECURRING)
                     .setHeader(headerIcon(VaadinIcon.TIME_FORWARD))
@@ -125,7 +140,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
 
-            case K.COLUMN_KEY_CRON -> treeGrid.addColumn(entry -> 
+            case K.COLUMN_KEY_CRON -> treeGrid.addColumn(entry ->
                             cronValueProvider.apply(entry.node().cron()))
                    .setKey(K.COLUMN_KEY_CRON)
                    .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
@@ -158,9 +173,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     inlineVaadinIconLitExpression("trash",
                             "?hidden=\"${item.isHidden}\" " +
                                     "delete"))
-                                    .withFunction("onClick", entry -> 
+                                    .withFunction("onClick", entry ->
                                             controller.deleteNode(entry))
-                                    .withProperty("isHidden", entry -> 
+                                    .withProperty("isHidden", entry ->
                                             entry.task().hasChildren()))
                     .setKey(K.COLUMN_KEY_DELETE)
                     .setHeader(headerIcon(VaadinIcon.TRASH))
@@ -180,6 +195,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
             if (entry.task().block()) {
                 partNames.add(K.GRID_PARTNAME_BLOCK);
+            }
+            if (entry.task().project()) {
+                partNames.add(K.GRID_PARTNAME_PROJECT);
             }
 
             return Joiner.on(" ").join(partNames);
@@ -207,13 +225,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 //    }
 
     @Override
-    protected TaskEntryFormLayout getTaskFormLayout(TaskEntry entry) {
-        return new TaskEntryFormLayout(controller, entry);
+    protected TaskNodeDataFormLayout<TaskEntry> getTaskFormLayout(TaskEntry entry) {
+        return new TaskNodeDataFormLayout<>(controller, entry, TaskEntry.class);
     }
 
     @Override
     protected Binder<TaskEntry> setEditorBinder(AbstractTaskFormLayout form) {
-        TaskEntryFormLayout teForm = (TaskEntryFormLayout) form;
+        TaskNodeDataFormLayout<TaskEntry> teForm = (TaskNodeDataFormLayout) form;
         return teForm.binder();
     }
 
@@ -234,20 +252,34 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         event.getDropTargetItem().orElseThrow().task().name());
                 if (event.getDropTargetItem().isPresent()) {
                     TaskEntry target = event.getDropTargetItem().get();
-                    if (!draggedItem.equals(target)) {
-                        switch (event.getDropLocation()) {
-                            case ABOVE -> controller.moveNodeBefore(
-                                    draggedItem,
-                                    target);
-                            case BELOW -> controller.moveNodeAfter(
-                                    draggedItem,
-                                    target);
-                            case ON_TOP -> controller.moveNodeInto(
-                                    draggedItem,
-                                    target);
+                    if (!draggedItem.task().id().equals(target.task().id())) {
+                        if (event.getSource().equals(this.treeGrid)) {
+                            switch (event.getDropLocation()) {
+                                case ABOVE -> controller.moveNodeBefore(
+                                        draggedItem,
+                                        target);
+                                case BELOW -> controller.moveNodeAfter(
+                                        draggedItem,
+                                        target);
+                                case ON_TOP -> controller.moveNodeInto(
+                                        draggedItem,
+                                        target);
+                            }
+                        } else {
+                            switch (event.getDropLocation()) {
+                                case ABOVE -> controller.copyNodeBefore(
+                                        draggedItem,
+                                        target);
+                                case BELOW -> controller.copyNodeAfter(
+                                        draggedItem,
+                                        target);
+                                case ON_TOP -> controller.copyNodeInto(
+                                        draggedItem,
+                                        target);
+                            }
                         }
                     } else {
-                        NotificationError.show("Cannot move item onto itself");
+                        NotificationError.show("Cannot move or copy item onto itself");
                     }
                 }
                 draggedItem = null;
@@ -267,17 +299,29 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         // TODO: Needs an in-memory TreeDataProvider to actually work
         Consumer<TaskEntry> detailsVisibilitySwitch = entry -> {
             switch (settings.descriptionViewDefaultSetting()) {
-                case ALL -> treeGrid.setDetailsVisible(entry, true);
-                case IF_PRESENT -> treeGrid.setDetailsVisible(
-                        entry, !entry.task().description().isBlank());
-                case NONE -> treeGrid.setDetailsVisible(entry, false);
+                case ALL ->
+                        controller.dataProvider().getCachedTaskEntriesByChildTaskId().values().forEach(set ->
+                                set.forEach(ntry ->
+                                        treeGrid.setDetailsVisible(ntry, true)));
+                case IF_PRESENT ->
+                        controller.dataProvider().getCachedTasks().values().forEach(task -> {
+                            if (!task.description().isBlank()) {
+                                controller.dataProvider().getCachedTaskEntriesByChildTaskId().get(task.id()).forEach(ntry ->
+                                    treeGrid.setDetailsVisible(ntry, true)
+                                );
+                            }
+                        });
+                case NONE ->
+                        controller.dataProvider().getCachedTaskEntriesByChildTaskId().values().forEach(set ->
+                                set.forEach(ntry ->
+                                        treeGrid.setDetailsVisible(ntry, false)));
             }
         };
 
-        treeGrid.addExpandListener(event -> {
-            Collection<TaskEntry> entries = event.getItems();
-            entries.forEach(detailsVisibilitySwitch);
-        });
+//        treeGrid.addExpandListener(event -> {
+//            Collection<TaskEntry> entries = event.getItems();
+//            entries.forEach(detailsVisibilitySwitch);
+//        });
 
         treeGrid.getDataProvider().addDataProviderListener(event -> {
             treeGrid.expand(settings.expandedEntries());
@@ -285,7 +329,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     protected Collection<Component> configureAdditionalTobBarComponents() {
-        if (visibleColumns.get(K.COLUMN_KEY_FOCUS)) {
+        if (visibleColumns.containsKey(K.COLUMN_KEY_FOCUS) && visibleColumns.get(K.COLUMN_KEY_FOCUS)) {
             this.nestedTabs = new NestedTaskTabs(controller);
 
             DoubleClickListenerUtil.add(treeGrid, entry ->
