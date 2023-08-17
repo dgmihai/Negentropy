@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
+import com.trajan.negentropy.model.RoutineStep;
 
 public class RoutineStepFormLayout extends TaskNodeDataFormLayout<RoutineStep>{
     public RoutineStepFormLayout(ClientDataController controller, RoutineStep node) {

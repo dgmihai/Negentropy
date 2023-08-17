@@ -1,8 +1,8 @@
 package com.trajan.negentropy.server.facade.response;
 
+import com.trajan.negentropy.model.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.server.backend.DataContext;
-import com.trajan.negentropy.server.backend.entity.RoutineEntity;
-import com.trajan.negentropy.server.facade.model.Routine;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -15,6 +15,6 @@ public class RoutineResponse extends Response {
         super(success, message);
         this.routine = routineEntity == null ?
                 null :
-                DataContext.toDTO(routineEntity);
+                DataContext.toDO(routineEntity);
     }
 }

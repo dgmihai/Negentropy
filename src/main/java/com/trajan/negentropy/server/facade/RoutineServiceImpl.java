@@ -3,16 +3,24 @@ package com.trajan.negentropy.server.facade;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.model.Routine;
+import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.routine.QRoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.id.*;
+import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.backend.entity.*;
 import com.trajan.negentropy.server.backend.repository.RoutineRepository;
-import com.trajan.negentropy.server.facade.model.Routine;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.*;
+import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.util.RoutineUtil;
 import jakarta.annotation.PostConstruct;
@@ -43,31 +51,30 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Autowired private RoutineRepository routineRepository;
     @Autowired private EntityQueryService entityQueryService;
-    @Autowired private UpdateService updateService;
-    @Autowired private UpdateService queryService;
+    @Autowired private ChangeService changeService;
 
     @Autowired private DataContext dataContext;
 
     @PostConstruct
     public void onStart() {
-        for (RoutineEntity routine : routineRepository.findAll()) {
-            if (routine.status().equals(TimeableStatus.COMPLETED) ||
-                routine.status().equals(TimeableStatus.SKIPPED)) {
-                this.wrapUpRoutine(routine);
-            }
-        }
+//        for (RoutineEntity routine : routineRepository.findAll()) {
+//            if (routine.status().equals(TimeableStatus.COMPLETED) ||
+//                routine.status().equals(TimeableStatus.SKIPPED)) {
+//                this.cleanUpRoutine(routine);
+//            }
+//        }
     }
 
     @Override
     public Routine fetchRoutine(RoutineID routineID) {
         logger.trace("fetchRoutine");
-        return DataContext.toDTO(entityQueryService.getRoutine(routineID));
+        return DataContext.toDO(entityQueryService.getRoutine(routineID));
     }
 
     @Override
     public RoutineStep fetchRoutineStep(StepID stepID) {
         logger.trace("fetchRoutineStep");
-        return DataContext.toDTO(entityQueryService.getRoutineStep(stepID));
+        return DataContext.toDO(entityQueryService.getRoutineStep(stepID));
     }
 
     private RoutineResponse process(
@@ -101,9 +108,11 @@ public class RoutineServiceImpl implements RoutineService {
                 .findFirst();
 
         TaskLink rootLink = rootLinkOptional.orElseGet(() -> {
-            TaskNode rootNode = updateService.insertTaskNode(new TaskNodeDTO()
+            Change change = Change.persist(new TaskNodeDTO()
                     .parentId(null)
-                    .childId(rootId)).node();
+                    .childId(rootId));
+            DataMapResponse response = changeService.execute(Request.of(change));
+            TaskNode rootNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
             return entityQueryService.getLink(rootNode.linkId());
         });
 
@@ -191,7 +200,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     private Predicate filterByStatus(Set<TimeableStatus> statusSet) {
         logger.trace("filterByStatus");
-        com.trajan.negentropy.server.backend.entity.QRoutineEntity qRoutine = com.trajan.negentropy.server.backend.entity.QRoutineEntity.routineEntity;
+        QRoutineEntity qRoutine = QRoutineEntity.routineEntity;
         BooleanBuilder builder = new BooleanBuilder();
         statusSet.forEach(status -> builder.or(qRoutine.status.eq(status)));
 
@@ -212,7 +221,7 @@ public class RoutineServiceImpl implements RoutineService {
         logger.trace("fetchRoutines");
         return StreamSupport.stream(
                 routineRepository.findAll(this.filterByStatus(statusSet)).spliterator(), false)
-                .map(DataContext::toDTO);
+                .map(DataContext::toDO);
     }
 
     private RoutineEntity startStepSupplier(RoutineStepEntity step, RoutineEntity routine, LocalDateTime time) {
@@ -222,7 +231,7 @@ public class RoutineServiceImpl implements RoutineService {
                 step.lastSuspendedTime(time);
             }
             case SKIPPED, COMPLETED -> {
-                if (step.finishTime() == null) step.finishTime(time); // TODO: Remove when routine stablizied
+                if (step.finishTime() == null) step.finishTime(time); // TODO: Remove when routine stabilized
                 step.elapsedSuspendedDuration(
                         Duration.between(step.finishTime(), time)
                                 .plus(step.elapsedSuspendedDuration()));
@@ -258,6 +267,18 @@ public class RoutineServiceImpl implements RoutineService {
         return process(() -> startStepSupplier(step, routine, time));
     }
 
+    private void cleanUpRoutine(RoutineEntity routine) {
+        for (RoutineStepEntity step : routine.steps()) {
+            if (step.link() != null) {
+                step.taskRecord(step.link().child());
+            }
+            if (step.status().equals(TimeableStatus.ACTIVE) || step.status().equals(TimeableStatus.NOT_STARTED)) {
+                step.status(TimeableStatus.SKIPPED);
+            }
+            step.link(null);
+        }
+    }
+
     @Override
     public RoutineResponse suspendStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
@@ -275,17 +296,11 @@ public class RoutineServiceImpl implements RoutineService {
         });
     }
 
-    private void wrapUpRoutine(RoutineEntity routine) {
-        for (RoutineStepEntity step : routine.steps()) {
-            if (step.link() != null) {
-                step.taskRecord(step.link().child());
-            }
-            step.link(null);
-        }
-    }
+    private RoutineEntity iterateStep(StepID stepId, LocalDateTime time, TimeableStatus newStatus) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        RoutineEntity routine = step.routine();
+        logger.debug("Iterating step " + step + " to " + newStatus + " in routine " + routine.id());
 
-    private RoutineEntity iterateStepSupplier(
-            RoutineStepEntity step, RoutineEntity routine, LocalDateTime time, TimeableStatus newStatus) {
         if (Objects.requireNonNull(step.status()) == TimeableStatus.SUSPENDED) {
             step.elapsedSuspendedDuration(
                     Duration.between(step.lastSuspendedTime(), time)
@@ -294,6 +309,12 @@ public class RoutineServiceImpl implements RoutineService {
 
         step.finishTime(time);
         step.status(newStatus);
+        if (newStatus.equals(TimeableStatus.COMPLETED) &&
+                (step.link().cron() != null || step.link().scheduledFor() != null)) {
+            changeService.execute(Request.of(Change.merge(DataContext.toDO(step.link())
+                    .completed(true))));
+        }
+
         if (step.position().equals(routine.steps().size() - 1)) {
             routine.status(TimeableStatus.COMPLETED);
         } else {
@@ -301,24 +322,14 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         RoutineUtil.setRoutineDuration(routine, time);
-        wrapUpRoutine(routine);
-        return step.routine();
-    }
 
-    private RoutineEntity iterateStep(StepID stepId, LocalDateTime time, TimeableStatus newStatus) {
-        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
-        RoutineEntity routine = step.routine();
-        logger.debug("Iterating step " + step + " to " + newStatus + " in routine " + routine.id());
-
-        routine = iterateStepSupplier(step, routine, time, newStatus);
         if (!routine.status().equals(TimeableStatus.COMPLETED)) {
             step = routine.steps().get(routine.currentPosition());
             logger.debug("Routine " + routine + " now at position " + routine.currentPosition());
             return startStepSupplier(step, routine, time);
         } else {
-            updateService.updateNode(DataContext.toDTO(step.link())
-                            .completed(true));
             logger.debug("Routine " + routine + " complete.");
+            cleanUpRoutine(routine);
             return routine;
         }
     }
@@ -370,14 +381,19 @@ public class RoutineServiceImpl implements RoutineService {
             routine.status(TimeableStatus.SKIPPED);
             routine.currentStep().status(TimeableStatus.SKIPPED);
             routine.currentStep().finishTime(time);
-            wrapUpRoutine(routine);
+
+            routine.steps().stream()
+                    .filter(step -> step.status().equals(TimeableStatus.NOT_STARTED))
+                    .forEach(step -> step.status(TimeableStatus.SKIPPED));
+
+            cleanUpRoutine(routine);
 
             return routine;
         });
     }
 
     @Override
-    public RoutineResponse moveRoutineStep(StepID childId, StepID parentId, int position) {
+    public RoutineResponse moveStep(StepID childId, StepID parentId, int position) {
         return process(() -> {
             RoutineStepEntity step = entityQueryService.getRoutineStep(childId);
             RoutineEntity routine = step.routine();
@@ -407,6 +423,25 @@ public class RoutineServiceImpl implements RoutineService {
             }
 
             return routine;
+        });
+    }
+
+    @Override
+    public RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        RoutineEntity routine = step.routine();
+        logger.debug("Setting step " + step + " in routine " + routine.id() + " as excluded: " + exclude);
+
+        return process(() -> {
+            if (exclude) {
+                step.lastSuspendedTime(time);
+                step.status(TimeableStatus.EXCLUDED);
+            } else {
+                step.status(TimeableStatus.NOT_STARTED);
+            }
+
+            RoutineUtil.setRoutineDuration(routine, time);
+            return step.routine();
         });
     }
 }

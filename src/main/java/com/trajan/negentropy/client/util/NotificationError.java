@@ -10,20 +10,18 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.Route;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 @Route("notification-error")
+@Slf4j
 public class NotificationError extends Div {
-    private static final Logger logger = LoggerFactory.getLogger(NotificationError.class);
-
     public static Notification show(Throwable e) {
-        logger.error(e.getMessage(), e);
+        log.error(e.getMessage(), e);
         return notify(e.getMessage());
     }
 
     public static Notification show(String message) {
-        logger.error(message);
+        log.error(message);
         return notify(message);
     }
 
@@ -44,9 +42,13 @@ public class NotificationError extends Div {
         layout.setAlignItems(Alignment.CENTER);
 
         notification.add(layout);
-        notification.open();
 
-        notification.setPosition(Notification.Position.TOP_CENTER);
+        try {
+            notification.open();
+            notification.setPosition(Notification.Position.TOP_CENTER);
+        } catch (Exception e) {
+            log.warn("Failed to open notification - is UI not available?");
+        }
 
         return notification;
     }

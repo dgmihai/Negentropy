@@ -1,19 +1,28 @@
 package com.trajan.negentropy.server;
 
 import com.google.common.collect.Iterables;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.TagID;
+import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
+import com.trajan.negentropy.server.facade.ChangeService;
 import com.trajan.negentropy.server.facade.QueryService;
-import com.trajan.negentropy.server.facade.UpdateService;
-import com.trajan.negentropy.server.facade.model.*;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.ID;
-import com.trajan.negentropy.server.facade.model.id.TagID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.util.TestServices;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Pair;
@@ -23,21 +32,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Transactional
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Slf4j
+@Transactional
 public class TaskTestTemplate {
     @Autowired protected EntityQueryService entityQueryService;
-    @Autowired protected UpdateService updateService;
+    @Autowired protected ChangeService changeService;
     @Autowired protected QueryService queryService;
     @Autowired private DataContext dataContext;
+    @Autowired protected TestServices testServices;
 
     @Autowired protected TaskRepository taskRepository;
 
@@ -71,7 +79,7 @@ public class TaskTestTemplate {
     protected static final CronExpression afterTheTenth = CronExpression.parse("0 0 0 10/31 * ?");
     protected static final CronExpression nextMonth = CronExpression.parse("0 0 0 1 * ?");
 
-    /* Populate test data
+    /* Populate test changeRelevantDataMap
 
         TEST DATA TASK HIERARCHY TREE
 
@@ -130,21 +138,31 @@ public class TaskTestTemplate {
     protected final Map<TaskID, String> taskIds = new HashMap<>();
     protected final Map<TagID, String> tagIds = new HashMap<>();
 
-    protected void initTasks(String parent, List<Pair<Task, TaskNodeInfo>> children) {
+    protected Task persistTask(Task task) {
+        Change persist = Change.persist(task);
+        int id = persist.id();
+
+        DataMapResponse response = changeService.execute(Request.of(persist));
+        log.debug("Persisted task: " + response.changeRelevantDataMap().getFirst(id));
+        return (Task) response.changeRelevantDataMap().getFirst(id);
+    }
+
+    protected void initTasks(String parent, List<Pair<Task, TaskNodeDTO>> children) {
         for (int i=0; i<children.size(); i++) {
             Task task = children.get(i).getFirst();
-            TaskNodeInfo nodeInfo = children.get(i).getSecond();
+            TaskNodeDTO nodeDTO = children.get(i).getSecond();
             String name = task.name();
 
             if (!tasks.containsKey(name)) {
                 if (task.duration() == null) {
                     task.duration(Duration.ofMinutes(1));
                 }
-                tasks.put(name, updateService.createTask(task)
-                        .task());
+
+                log.debug("Persisting task {}", name);
+                tasks.put(name, persistTask(task));
             }
 
-            TaskID childId = tasks.get(name).id();
+            TaskID childId = tasks.get(task.name()).id();
             TaskID parentId = parent == null ?
                     null : tasks.get(parent).id();
 
@@ -157,10 +175,14 @@ public class TaskTestTemplate {
                     0,
                     false,
                     false,
-                    nodeInfo.cron(),
-                    nodeInfo.projectDuration());
+                    nodeDTO.cron(),
+                    nodeDTO.projectDuration());
 
-            TaskNode node = updateService.insertTaskNode(freshNode).node();
+            Change insertInto = Change.insertInto(freshNode, parentId, InsertLocation.LAST);
+            int id = insertInto.id();
+
+            DataMapResponse response = changeService.execute(Request.of(insertInto));
+            TaskNode node = (TaskNode) response.changeRelevantDataMap().getFirst(id);
 
             Triple<String, String, Integer> linkKey = Triple.of(
                     Objects.requireNonNullElse(parent, NULL),
@@ -184,12 +206,19 @@ public class TaskTestTemplate {
     }
 
     protected void initTags(String tagName, List<String> tasksToTag) {
-        Tag tag = updateService.createTag(new Tag(null, tagName)).tag();
+        Tag tag = queryService.fetchTagByName(tagName);
+        if (tag == null) {
+            Change persistTag = Change.persist(new Tag(null, tagName));
+            tag = (Tag) changeService.execute(Request.of(persistTag))
+                    .changeRelevantDataMap().getFirst(persistTag.id());
+        }
         tags.put(tagName, tag);
         for (String taskToTag : tasksToTag) {
             Task task = tasks.get(taskToTag);
-            task.tags().add(tag);
-            updateService.updateTask(task);
+            Set<Tag> tags = new HashSet<>(task.tags());
+            tags.add(tag);
+            task.tags(tags);
+            changeService.execute(Request.of(Change.merge(task)));
         }
     }
 
@@ -257,44 +286,44 @@ public class TaskTestTemplate {
                 null,
                 List.of(Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(ONE),
-                                new TaskNodeInfo()
+                                        .name(ONE)
+                                        .required(false),
+                                new TaskNodeDTO()
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
                                         .name(TWO)
+                                        .required(false)
                                         .project(true),
-                                new TaskNodeInfo()
+                                new TaskNodeDTO()
                                         .cron(daily)
                                         .projectDuration(Duration.ofMinutes(1))
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
                                         .name(THREE_AND_FIVE)
+                                        .required(false)
                                         .project(true),
-                                new TaskNodeInfo()
+                                new TaskNodeDTO()
                                         .cron(weekly)
                                         .projectDuration(Duration.ofMinutes(1))
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
                                         .name(FOUR)
+                                        .required(false)
                                         .project(true),
-                                new TaskNodeInfo()
+                                new TaskNodeDTO()
                                         .projectDuration(Duration.ofSeconds(1))
                         ),Pair.of(
                                 new Task()
-                                        .block(false)
                                         .name(THREE_AND_FIVE)
+                                        .required(false)
                                         .project(true),
-                                new TaskNodeInfo()
+                                new TaskNodeDTO()
                                         .projectDuration(Duration.ofMinutes(5))
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(SIX_AND_THREETWOFOUR),
-                                new TaskNodeInfo()
+                                        .name(SIX_AND_THREETWOFOUR)
+                                        .required(false),
+                                new TaskNodeDTO()
                         )
                 )
         );
@@ -303,22 +332,22 @@ public class TaskTestTemplate {
                 TWO,
                 List.of(Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(TWOONE),
-                                new TaskNodeInfo()
+                                        .name(TWOONE)
+                                        .required(false),
+                                new TaskNodeDTO()
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWO)
-                                        .block(true)
-                                        .project(true),
-                                new TaskNodeInfo()
+                                        .required(true)
+                                        .project(false),
+                                new TaskNodeDTO()
                                         .cron(afterTheTenth)
                                         .projectDuration(Duration.ofMinutes(5))
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(TWOTHREE),
-                                new TaskNodeInfo()
+                                        .name(TWOTHREE)
+                                        .required(false),
+                                new TaskNodeDTO()
                                         .cron(everyWednesday)
                         )
                 )
@@ -329,20 +358,20 @@ public class TaskTestTemplate {
                 List.of(Pair.of(
                                 new Task()
                                         .name(TWOTWOONE)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                                         .cron(onlyEvenings)
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWOTWO)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                                         .cron(daily)
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWOTHREE_AND_THREETWOTWO)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                                         .cron(everyWednesday)
                         )
                 )
@@ -352,21 +381,21 @@ public class TaskTestTemplate {
                 THREE_AND_FIVE,
                 List.of(Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(THREEONE),
-                                new TaskNodeInfo()
+                                        .name(THREEONE)
+                                        .required(false),
+                                new TaskNodeDTO()
                                         .cron(nextMonth)
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(THREETWO),
-                                new TaskNodeInfo()
+                                        .name(THREETWO)
+                                        .required(false),
+                                new TaskNodeDTO()
                                         .cron(daily)
                         ), Pair.of(
                                 new Task()
                                         .name(THREETHREE)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                         )
                 )
         );
@@ -376,23 +405,23 @@ public class TaskTestTemplate {
                 List.of(Pair.of(
                                 new Task()
                                         .name(THREETWOONE_AND_THREETWOTHREE)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWOTHREE_AND_THREETWOTWO)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                         ), Pair.of(
                                 new Task()
                                         .name(THREETWOONE_AND_THREETWOTHREE)
-                                        .block(true),
-                                new TaskNodeInfo()
+                                        .required(true),
+                                new TaskNodeDTO()
                         ), Pair.of(
                                 new Task()
-                                        .block(false)
-                                        .name(SIX_AND_THREETWOFOUR),
-                                new TaskNodeInfo()
+                                        .name(SIX_AND_THREETWOFOUR)
+                                        .required(false),
+                                new TaskNodeDTO()
                         )
                 )
         );

@@ -1,6 +1,6 @@
 package com.trajan.negentropy.server.backend.repository;
 
-import com.trajan.negentropy.server.backend.entity.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import org.springframework.stereotype.Repository;
 
 @Repository("routineRepository")

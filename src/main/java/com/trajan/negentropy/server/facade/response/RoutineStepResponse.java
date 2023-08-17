@@ -1,9 +1,9 @@
 package com.trajan.negentropy.server.facade.response;
 
+import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.server.backend.DataContext;
-import com.trajan.negentropy.server.backend.entity.RoutineStepEntity;
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -19,8 +19,8 @@ public class RoutineStepResponse extends Response {
                                RoutineStepEntity newStep,
                                TimeableStatus routineStatus) {
         super(success, message);
-        this.oldStep = DataContext.toDTO(oldStep);
-        this.newStep = DataContext.toDTO(newStep);
+        this.oldStep = DataContext.toDO(oldStep);
+        this.newStep = DataContext.toDO(newStep);
         this.routineStatus = routineStatus;
     }
 }

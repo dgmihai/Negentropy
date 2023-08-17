@@ -1,11 +1,17 @@
 package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.trajan.negentropy.server.backend.entity.*;
-import com.trajan.negentropy.server.facade.model.*;
-import com.trajan.negentropy.server.facade.model.id.ID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
-import org.springframework.transaction.annotation.Transactional;
+import com.trajan.negentropy.model.*;
+import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
+import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.TaskID;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -14,39 +20,40 @@ import java.util.stream.Collectors;
 /**
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
-@Transactional
 public interface DataContext {
     void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId);
     void addToTimeEstimateOfTask(Duration change, TaskID taskId);
 
     TaskEntity mergeTask(Task task);
+    TaskEntity mergeTaskTemplate(TaskID id, TaskTemplateData<Task, Tag> template);
 
     TaskLink mergeNode(TaskNode node);
     TaskLink mergeNode(TaskNodeDTO node);
+    TaskLink mergeNodeTemplate(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate);
 
     TagEntity mergeTag(TagEntity tagEntity);
     TagEntity mergeTag(Tag tag);
 
     void deleteLink(TaskLink link);
 
-    static Task toDTO(TaskEntity taskEntity) {
+    static Task toDO(TaskEntity taskEntity) {
         return new Task(ID.of(taskEntity),
                 taskEntity.name(),
                 taskEntity.description(),
                 taskEntity.duration(),
-                taskEntity.block(),
+                taskEntity.required(),
                 taskEntity.project(),
                 taskEntity.tags().stream()
-                        .map(DataContext::toDTO)
+                        .map(DataContext::toDO)
                         .collect(Collectors.toSet()),
                 !taskEntity.childLinks().isEmpty());
     }
 
-    static TaskNode toDTO(TaskLink link) {
+    static TaskNode toDO(TaskLink link) {
         return new TaskNode(
                 ID.of(link),
                 ID.of(link.parent()),
-                toDTO(link.child()),
+                toDO(link.child()),
                 link.position(),
                 link.importance(),
                 link.createdAt(),
@@ -57,17 +64,17 @@ public interface DataContext {
                 link.projectDuration());
     }
 
-    static Tag toDTO(TagEntity tagEntity) {
+    static Tag toDO(TagEntity tagEntity) {
         return new Tag(
                 ID.of(tagEntity),
                 tagEntity.name());
     }
 
-    static Routine toDTO(RoutineEntity routineEntity) {
+    static Routine toDO(RoutineEntity routineEntity) {
         return new Routine(
                 ID.of(routineEntity),
                 routineEntity.steps().stream()
-                        .map(DataContext::toDTO)
+                        .map(DataContext::toDO)
                         .toList(),
                 routineEntity.currentPosition(),
                 routineEntity.estimatedDuration(),
@@ -75,14 +82,19 @@ public interface DataContext {
                 routineEntity.status());
     }
 
-    static RoutineStep toDTO(RoutineStepEntity routineStepEntity) {
+    static RoutineStep toDO(RoutineStepEntity routineStepEntity) {
         return new RoutineStep(
                 ID.of(routineStepEntity),
-                toDTO(routineStepEntity.link()),
+                routineStepEntity.link() != null
+                        ? toDO(routineStepEntity.link())
+                        : null,
+                routineStepEntity.taskRecord() != null
+                        ? toDO(routineStepEntity.taskRecord())
+                        : null,
                 ID.of(routineStepEntity.routine()),
                 ID.of(routineStepEntity.parent()),
                 routineStepEntity.children().stream()
-                        .map(DataContext::toDTO)
+                        .map(DataContext::toDO)
                         .toList(),
                 routineStepEntity.startTime(),
                 routineStepEntity.finishTime(),

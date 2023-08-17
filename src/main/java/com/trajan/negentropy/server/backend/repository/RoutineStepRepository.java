@@ -1,6 +1,6 @@
 package com.trajan.negentropy.server.backend.repository;
 
-import com.trajan.negentropy.server.backend.entity.RoutineStepEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import org.springframework.stereotype.Repository;
 
 @Repository("taskRecordRepository")

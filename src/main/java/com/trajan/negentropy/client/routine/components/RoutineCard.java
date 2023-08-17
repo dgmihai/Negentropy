@@ -2,14 +2,17 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
-import com.trajan.negentropy.server.facade.model.Routine;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
-import com.trajan.negentropy.server.facade.model.id.RoutineID;
-import com.trajan.negentropy.server.facade.model.id.StepID;
+import com.trajan.negentropy.model.Routine;
+import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.id.RoutineID;
+import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
-import com.trajan.negentropy.server.facade.response.TaskResponse;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -22,15 +25,11 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ReadOnlyHasValue;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.function.Function;
 
 public class RoutineCard extends VerticalLayout {
-    private static final Logger logger = LoggerFactory.getLogger(RoutineCard.class);
-
     private final ClientDataController controller;
 
     private TaskInfoBar rootTaskbar;
@@ -52,24 +51,26 @@ public class RoutineCard extends VerticalLayout {
         this.controller = controller;
 
         this.routine = routine;
-        binder.setBean(routine.steps().get(routine.currentPosition()));
 
-        initComponents();
+        if (routine.status().equals(TimeableStatus.COMPLETED)) {
+            this.setCardCompleted();
+        } else {
+            binder.setBean(routine.steps().get(routine.currentPosition()));
+            initComponents();
+        }
         layout();
     }
 
     private void processStep(Function<StepID, RoutineResponse> stepFunction) {
         RoutineResponse response = stepFunction.apply(binder.getBean().id());
         this.routine = response.routine();
-        binder.setBean(routine.steps().get(routine.currentPosition()));
-        updateComponents();
+        this.updateComponents();
     }
 
     private void processRoutine(Function<RoutineID, RoutineResponse> stepFunction) {
         RoutineResponse response = stepFunction.apply(binder.getBean().routineId());
         this.routine = response.routine();
-        binder.setBean(routine.steps().get(routine.currentPosition()));
-        updateComponents();
+        this.updateComponents();
     }
 
     private boolean isActive() {
@@ -78,9 +79,26 @@ public class RoutineCard extends VerticalLayout {
 
     private void updateComponents() {
         if (routine.status().equals(TimeableStatus.COMPLETED)) {
-            this.removeAll();
+            this.setCardCompleted();
+        } else {
+            binder.setBean(routine.steps().get(routine.currentPosition()));
             this.getElement().setAttribute("active", isActive());
+            play.setVisible(!isActive());
+            pause.setVisible(isActive());
+            prev.setEnabled(routine.currentPosition() > 0);
+            timer.setTimeable(binder.getBean());
+            rootTaskbar.timer().run(!isActive());
+        }
+        controller.routineDataProvider().refreshAll();
+    }
 
+    private void setCardCompleted() {
+        this.removeAll();
+        this.getElement().setAttribute("active", isActive());
+
+        if (routine.rootStep().startTime() == null) {
+            NotificationError.show("Start at least one step in a routine before completing!");
+        } else {
             Span completed = new Span("Completed '" + routine.name() + "' in " +
                     DurationConverter.toPresentation(Duration.between(
                             routine.rootStep().startTime(),
@@ -89,13 +107,6 @@ public class RoutineCard extends VerticalLayout {
 
             completed.addClassName("name");
             this.add(completed);
-        } else {
-            this.getElement().setAttribute("active", isActive());
-            play.setVisible(!isActive());
-            pause.setVisible(isActive());
-            prev.setEnabled(routine.currentPosition() > 0);
-            timer.setTimeable(binder.getBean());
-            rootTaskbar.timer().run(!isActive());
         }
     }
 
@@ -111,12 +122,12 @@ public class RoutineCard extends VerticalLayout {
                 controller::previousRoutineStep));
 
         play = new RoutineCardButton(VaadinIcon.PLAY.create());
-        play.addClickListener(event ->
-            this.processStep(controller::startRoutineStep));
+        play.addClickListener(event -> this.processStep(
+                controller::startRoutineStep));
 
         pause = new RoutineCardButton(VaadinIcon.PAUSE.create());
-        pause.addClickListener(event ->
-            this.processStep(controller::pauseRoutineStep));
+        pause.addClickListener(event -> this.processStep(
+                controller::pauseRoutineStep));
 
         skip = new RoutineCardButton(VaadinIcon.TIME_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
@@ -142,9 +153,10 @@ public class RoutineCard extends VerticalLayout {
                         (step, text) -> step.task().description(text));
         description.setValueChangeMode(ValueChangeMode.LAZY);
         description.addValueChangeListener(event -> {
-            TaskResponse response = controller.updateTask(binder.getBean().task());
+            Change change = Change.update(binder.getBean().task());
+            DataMapResponse response = (DataMapResponse) controller.requestChange(change);
             if (response.success()) {
-                binder.getBean().node().child(response.task());
+                binder.getBean().node().child((Task) response.changeRelevantDataMap().getFirst(change.id()));
             }
         });
     }

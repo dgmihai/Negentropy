@@ -1,16 +1,20 @@
 package com.trajan.negentropy.server.facade;
 
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.id.ID.SyncID;
+import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.TagID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.LinkID;
-import com.trajan.negentropy.server.facade.model.id.TagID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -29,6 +33,8 @@ public interface QueryService {
      */
     Task fetchTask(TaskID taskId);
 
+    Stream<Task> fetchTasks(Collection<TaskID> taskIds);
+
     /**
      * Get a task node by link ID.
      *
@@ -38,6 +44,10 @@ public interface QueryService {
      */
     TaskNode fetchNode(LinkID nodeId);
 
+    Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds);
+
+    Stream<LinkID> fetchAllNodesByFilter(TaskFilter filter);
+
     /**
      * Get all tasks that meet a set of filters and tags.
      *
@@ -45,6 +55,7 @@ public interface QueryService {
      * @return A distinct stream of tasks that meet the specified filters and tags.
      */
     Stream<Task> fetchTasks(TaskFilter filter);
+
 
     /**
      * Counts the child tasks of a task by ID.
@@ -176,6 +187,9 @@ public interface QueryService {
 
     Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskFilter filter);
 
+    Stream<LinkID> fetchDescendantNodeIds(TaskID ancestorId, TaskFilter filter);
+
+
     /**
      * Retrieves a tag by its ID.
      *
@@ -183,6 +197,14 @@ public interface QueryService {
      * @return A Tag object.
      */
     Tag fetchTag(TagID tagId);
+
+    /**
+     * Retrieves a tag by its name.
+     *
+     * @param tagName The name of the tag..
+     * @return A Tag object, or null if no matching tag was found.
+     */
+    Tag fetchTagByName(String tag);
 
     /**
      * Retrieves all initialized tags from the repository.
@@ -198,11 +220,13 @@ public interface QueryService {
      */
     Stream<Tag> fetchTags(TaskID taskId);
 
-    Duration fetchNetTimeDuration(TaskID taskId);
+    Map<TaskID, Duration> fetchAllTimeEstimates(TaskFilter filter);
 
-    Duration fetchNetTimeDuration(TaskID taskId, int priority);
-
-    Duration fetchNetTimeDuration(TaskID taskId, TaskFilter filter);
+    Duration fetchTimeEstimate(TaskID taskId, TaskFilter filter);
 
     int fetchLowestImportanceOfDescendants(TaskID ancestorId);
+
+    SyncResponse sync(SyncID syncId);
+
+    SyncID currentSyncId();
 }

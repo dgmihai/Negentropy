@@ -2,33 +2,34 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.TaskProviderException;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-import java.util.Optional;
-
 @Accessors(fluent = true)
 public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     private final Binder<Task> taskBinder = new BeanValidationBinder<>(Task.class);
     @Getter
-    private final Binder<TaskNodeInfo> nodeBinder = new BeanValidationBinder<>(TaskNodeInfo.class);
+    private final Binder<TaskNodeDTO> nodeBinder = new BeanValidationBinder<>(TaskNodeDTO.class);
 
     public TaskFormLayout(ClientDataController controller) {
         super(controller);
 
         taskBinder.setBean(new Task());
-        nodeBinder.setBean(new TaskNodeInfo());
+        nodeBinder.setBean(new TaskNodeDTO());
 
         configureAll();
+
+        projectDurationField.setVisible(false);
     }
 
     @Override
@@ -48,7 +49,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         nodeBinder.forField(cronField)
                 .withConverter(new CronConverter())
-                .bind(TaskNodeInfo::cron, TaskNodeInfo::cron);
+                .bind(TaskNodeDTO::cron, TaskNodeDTO::cron);
 
         taskBinder.forField(descriptionArea)
                 .bind(Task::description, Task::description);
@@ -56,18 +57,17 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
                 taskBinder.getBean().tags().add(tag));
 
-        nodeBinder.forField(recurringCheckbox)
-                .bind(TaskNodeInfo::recurring, TaskNodeInfo::recurring);
-        taskBinder.forField(blockCheckbox)
-                .bind(Task::block, Task::block);
-        blockCheckbox.setValue(true);
-
         taskBinder.forField(projectCheckbox)
                 .bind(Task::project, Task::project);
+        taskBinder.forField(requiredCheckbox)
+                .bind(Task::required, Task::required);
+
+        nodeBinder.forField(recurringCheckbox)
+                .bind(TaskNodeDTO::recurring, TaskNodeDTO::recurring);
 
         nodeBinder.forField(projectDurationField)
                 .withConverter(new DurationConverter())
-                .bind(TaskNodeInfo::projectDuration, TaskNodeInfo::projectDuration);
+                .bind(TaskNodeDTO::projectDuration, TaskNodeDTO::projectDuration);
 
         taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);
@@ -75,6 +75,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         saveButton.setEnabled(taskBinder.isValid());
         taskBinder.addValueChangeListener(e ->
                 saveButton.setEnabled(taskBinder.isValid()));
+
     }
 
     @Override
@@ -83,16 +84,31 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     }
 
     @Override
-    public Optional<Task> getTask() throws TaskProviderException {
-        if (hasValidTask().success()) {
-            return Optional.of(taskBinder.getBean());
-        } else {
-            return Optional.empty();
+    public Task getTask() {
+        return hasValidTask().success()
+                ? taskBinder.getBean()
+                : null;
+    }
+
+    @Override
+    public TaskNodeDTOData<?> getNodeInfo() {
+        return nodeBinder.getBean();
+    }
+
+    @Override
+    public void onSuccessfulSave(HasTaskNodeData data) {
+        switch (OnSuccessfulSave.get(onSaveSelect.getValue()).orElseThrow()) {
+            case CLEAR -> this.clear();
+            case PERSIST -> {
+                nodeBinder.setBean(data.node().toDTO());
+                taskBinder.setBean(data.task());
+            }
+            case KEEP_TEMPLATE -> nameField.clear();
         }
     }
 
     @Override
-    public TaskNodeInfo getNodeInfo() {
-        return nodeBinder.getBean();
+    public void onFailedSave(Response response) {
+        // No-op
     }
 }

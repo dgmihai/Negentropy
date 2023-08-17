@@ -1,13 +1,13 @@
 package com.trajan.negentropy.server.facade;
 
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
-import com.trajan.negentropy.server.facade.model.Routine;
-import com.trajan.negentropy.server.facade.model.RoutineStep;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.LinkID;
-import com.trajan.negentropy.server.facade.model.id.RoutineID;
-import com.trajan.negentropy.server.facade.model.id.StepID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
+import com.trajan.negentropy.model.Routine;
+import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.RoutineID;
+import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 
 import java.time.LocalDateTime;
@@ -34,5 +34,7 @@ public interface RoutineService {
 
     RoutineResponse skipRoutine(RoutineID routineId, LocalDateTime now);
 
-    RoutineResponse moveRoutineStep(StepID childId, StepID parentId, int position);
+    RoutineResponse moveStep(StepID childId, StepID parentId, int position);
+
+    RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude);
 }

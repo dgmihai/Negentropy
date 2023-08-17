@@ -7,10 +7,7 @@
   line-height: var(--lumo-line-height-m);
 }
 
-.routine-view vaadin-grid,
-.routine-view vaadin-grid-cell-content {
-  background-color: var(--lumo-base-color);
-}
+
 
 .routine-view vaadin-grid[selected] {
   box-shadow: var(--lumo-box-shadow-l);

@@ -1,8 +1,8 @@
 package com.trajan.negentropy.util;
 
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
-import com.trajan.negentropy.server.facade.model.interfaces.RoutineData;
-import com.trajan.negentropy.server.facade.model.interfaces.RoutineStepData;
+import com.trajan.negentropy.model.data.RoutineData;
+import com.trajan.negentropy.model.data.RoutineStepData;
+import com.trajan.negentropy.model.entity.TimeableStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;

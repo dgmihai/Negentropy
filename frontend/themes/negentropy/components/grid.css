@@ -30,9 +30,9 @@
       var(--lumo-secondary-text-color);
 }
 
-vaadin-grid::part(block-task) {
-    color:
-      var(--lumo-primary-color);
+vaadin-grid::part(required-task) {
+    font-style:
+        oblique;
 }
 
 vaadin-grid::part(project-task) {
@@ -48,3 +48,9 @@ vaadin-grid::part(completed-node) {
     background-color:
       var(--lumo-shade-5pct-opaque);
 }
+
+vaadin-grid::part(recurring-node) {
+    color:
+      var(--lumo-primary-color);
+}
+

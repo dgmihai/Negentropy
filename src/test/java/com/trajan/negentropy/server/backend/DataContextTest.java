@@ -1,14 +1,14 @@
 package com.trajan.negentropy.server.backend;
 
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.server.TaskTestTemplate;
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
-import com.trajan.negentropy.server.facade.model.id.ID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.name(), task.name());
         assertEquals(taskEntity.description(), task.description());
         assertEquals(taskEntity.duration(), task.duration());
-        assertEquals(taskEntity.block(), task.block());
+        assertEquals(taskEntity.required(), task.required());
         assertEquals(taskEntity.project(), task.project());
     }
 
@@ -57,7 +57,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Task Name")
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120)))
-                .block(true)
+                .required(true)
                 .project(true);
 
         Set<TagEntity> tagEntities = Set.of(
@@ -67,7 +67,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         taskEntity.tags(tagEntities);
 
-        Task task = DataContext.toDTO(taskEntity);
+        Task task = DataContext.toDO(taskEntity);
 
         assertTask(taskEntity, task);
         assertEquals(tagEntities.size(), task.tags().size());
@@ -85,7 +85,7 @@ public class DataContextTest extends TaskTestTemplate {
     @Test
     void testTagEntityToDTO() {
         TagEntity tagEntity = dataContext.mergeTag(new TagEntity().name("Tag Name"));
-        Tag tag = DataContext.toDTO(tagEntity);
+        Tag tag = DataContext.toDO(tagEntity);
 
         assertNotNull(tag);
         assertEquals(ID.of(tagEntity), tag.id());
@@ -150,7 +150,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
 
-        TaskNode taskNode = DataContext.toDTO(taskLink);
+        TaskNode taskNode = DataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -186,7 +186,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(taskLink, nextLink));
 
-        TaskNode taskNode = DataContext.toDTO(taskLink);
+        TaskNode taskNode = DataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -210,7 +210,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink));
 
-        TaskNode taskNode = DataContext.toDTO(taskLink);
+        TaskNode taskNode = DataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -221,7 +221,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .name("Original Task Name")
                 .description("Original Task Description")
                 .duration(Duration.ofMinutes(120))
-                .block(false)
+                .required(false)
                 .project(true));
 
         Set<TagEntity> originalTagEntities = Set.of(
@@ -237,7 +237,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(180),
                 false,
                 true,
-                originalTagEntities.stream().map(DataContext::toDTO).collect(Collectors.toSet()),
+                originalTagEntities.stream().map(DataContext::toDO).collect(Collectors.toSet()),
                 false);
 
         TaskEntity mergedTaskEntity = dataContext.mergeTask(task);
@@ -287,7 +287,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDTO(childTaskEntity),
+                DataContext.toDO(childTaskEntity),
                 1,
                 2,
                 MARK,
@@ -360,7 +360,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDTO(childTaskEntity),
+                DataContext.toDO(childTaskEntity),
                 1,
                 2,
                 MARK,
@@ -404,7 +404,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDTO(childTaskEntity),
+                DataContext.toDO(childTaskEntity),
                 0,
                 2,
                 MARK,

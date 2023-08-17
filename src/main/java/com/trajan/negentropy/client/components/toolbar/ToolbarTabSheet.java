@@ -6,22 +6,24 @@ import com.trajan.negentropy.client.components.filterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.tree.TreeView;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.vaadin.flow.component.Component;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.sync.Change;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
@@ -33,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 @SpringComponent
@@ -53,6 +56,11 @@ public class ToolbarTabSheet extends TabSheet {
     @Getter private Tab optionsTab;
     @Getter private Tab insertTaskTab;
     @Getter private Tab startRoutineTab;
+    @Getter private Tab hideRoutineStepsTab;
+    @Getter private Tab showRoutineStepsTab;
+
+//    @Getter
+//    Map<TabType, Tab> toolbarTabs = new HashMap<>();
 
     public enum TabType {
         CLOSE_TAB,
@@ -62,6 +70,8 @@ public class ToolbarTabSheet extends TabSheet {
         SEARCH_AND_FILTER_TAB,
         OPTIONS_TAB,
         QUICK_CREATE_TAB,
+        HIDE_ROUTINE_STEPS_TAB,
+        SHOW_ROUTINE_STEPS_TAB
     }
 
     private TaskFormLayout createTaskForm;
@@ -70,6 +80,7 @@ public class ToolbarTabSheet extends TabSheet {
 
     public void init(TreeView treeView, TabType... tabsNames) {
         this.treeView = treeView;
+
         init(() -> {}, tabsNames);
     }
 
@@ -86,21 +97,26 @@ public class ToolbarTabSheet extends TabSheet {
                     case SEARCH_AND_FILTER_TAB -> initSearchAndFilterTab(mobile);
                     case OPTIONS_TAB -> initOptionsTab(mobile);
                     case QUICK_CREATE_TAB -> initQuickCreateTab(mobile);
+                    case HIDE_ROUTINE_STEPS_TAB -> initHideRoutineStepsTab(mobile);
+                    case SHOW_ROUTINE_STEPS_TAB -> initShowRoutineStepsTab(mobile);
                 }
             }
 
             addSelectedChangeListener(event -> {
-                if (event.getSelectedTab() instanceof TaskProviderTab taskProviderTab) {
-                    controller.activeTaskProvider(taskProviderTab.taskProvider());
+                Tab tab = event.getSelectedTab();
+                if (tab instanceof TaskProviderTab taskProviderTab) {
+                    controller.activeTaskNodeProvider(taskProviderTab.taskProvider());
                 } else {
-                    controller.activeTaskProvider(null);
+                    controller.activeTaskNodeProvider(null);
                 }
             });
 
             this.setWidthFull();
             this.addThemeVariants(TabSheetVariant.LUMO_TABS_CENTERED);
 
-            closeTab.getElement().addEventListener("click", e -> onCloseClick.run());
+            if (closeTab != null) {
+                closeTab.getElement().addEventListener("click", e -> onCloseClick.run());
+            }
         });
     }
 
@@ -113,16 +129,27 @@ public class ToolbarTabSheet extends TabSheet {
 
     private ToolbarTabSheet initCreateNewTaskTab(boolean mobile) {
         this.createTaskForm = new TaskFormLayout(controller);
-        createTaskForm.taskBinder().setBean(new Task(null));
+        createTaskForm.taskBinder().setBean(new Task());
 
         createTaskForm.onClear(() -> {
-            createTaskForm.taskBinder().setBean(new Task(null));
-            createTaskForm.nodeBinder().setBean(new TaskNodeInfo());
+            createTaskForm.taskBinder().setBean(new Task());
+            createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
         });
         createTaskForm.onSave(() -> {
-            controller.addTaskFromProvider(createTaskForm);
-            createTaskForm.taskBinder().setBean(new Task(null));
-            createTaskForm.nodeBinder().setBean(new TaskNodeInfo());
+            Change taskChange = Change.update(createTaskForm.taskBinder().getBean());
+//            Response response = controller.requestChanges(List.of(
+//                    taskChange,
+//                    Change.referencedInsert(createTaskForm.nodeBinder().getBean(),
+//                            null,
+//                            createTaskForm.saveAsLastCheckbox().getValue()
+//                                    ? InsertLocation.LAST
+//                                    : InsertLocation.FIRST,
+//                            taskChange.id())));
+//
+//            if (response.success()) {
+//                createTaskForm.taskBinder().setBean(new Task());
+//                createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
+//            }
         });
 
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
@@ -167,11 +194,34 @@ public class ToolbarTabSheet extends TabSheet {
         recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         recalculateTimeEstimates.addClickListener(e -> controller.recalculateTimeEstimates());
 
-        RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>();
-        gridTilingRadioButtonGroup.setItems("None", "Vertical", "Horizontal");
+        RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
+        gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+        gridTilingRadioButtonGroup.setItems(Arrays.stream(GridTiling.values())
+                .map(GridTiling::value)
+                .toList());
         gridTilingRadioButtonGroup.setValue(settings.gridTiling().value());
         gridTilingRadioButtonGroup.addValueChangeListener(event ->
-            treeView.setGridTiling(UserSettings.GridTiling.get(event.getValue()).orElseThrow()));
+            treeView.setGridTiling(GridTiling.get(event.getValue()).orElseThrow()));
+
+        RadioButtonGroup<String> sameGridDragInsertModeRadioButtonGroup = new RadioButtonGroup<>("Drag Inside Grid");
+        sameGridDragInsertModeRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+        sameGridDragInsertModeRadioButtonGroup.setItems(Arrays.stream(InsertMode.values())
+                .map(InsertMode::toString)
+                .toList());
+        sameGridDragInsertModeRadioButtonGroup.setValue(settings.sameGridDragInsertMode().toString());
+        sameGridDragInsertModeRadioButtonGroup.addValueChangeListener(event ->
+                settings.sameGridDragInsertMode(
+                        InsertMode.get(event.getValue()).orElseThrow()));
+
+        RadioButtonGroup<String> betweenGridsDragInsertModeRadioButtonGroup = new RadioButtonGroup<>("Drag Between Grids");
+        betweenGridsDragInsertModeRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+        betweenGridsDragInsertModeRadioButtonGroup.setItems(Arrays.stream(InsertMode.values())
+                .map(InsertMode::toString)
+                .toList());
+        betweenGridsDragInsertModeRadioButtonGroup.setValue(settings.differentGridDragInsertMode().toString());
+        betweenGridsDragInsertModeRadioButtonGroup.addValueChangeListener(event ->
+                settings.differentGridDragInsertMode(
+                        InsertMode.get(event.getValue()).orElseThrow()));
 
         Checkbox disableContextMenu = new Checkbox("Disable Context Menu");
         disableContextMenu.setValue(!settings.enableContextMenu());
@@ -180,9 +230,22 @@ public class ToolbarTabSheet extends TabSheet {
             UI.getCurrent().getPage().reload();
         });
 
-        HorizontalLayout layout = new HorizontalLayout(
-                recalculateTimeEstimates, gridTilingRadioButtonGroup, disableContextMenu);
-        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        Checkbox multiSelectCheckbox = new Checkbox("Multi-select");
+        multiSelectCheckbox.setValue(settings.multiSelect());
+        multiSelectCheckbox.addValueChangeListener(e -> {
+            settings.multiSelect(multiSelectCheckbox.getValue());
+            UI.getCurrent().getPage().reload();
+        });
+
+        FormLayout layout = new FormLayout(
+                sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
+                gridTilingRadioButtonGroup, disableContextMenu, multiSelectCheckbox);
+//        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+//        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        layout.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 2),
+                new FormLayout.ResponsiveStep(K.SHORT_WIDTH, 4));
 
         optionsTab = mobile
                 ? new Tab("Options")
@@ -203,13 +266,13 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     public TaskListBox createTaskSetBox(FilterForm form) {
-        taskSetBox = new TaskListBox(controller);
+        taskSetBox = new TaskListBox(controller, form);
         taskSetBox.setWidthFull();
         taskSetBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
         return taskSetBox;
     }
 
-    private Component createTaskSearchProvider(FilterForm filterForm, TaskListBox taskSetBox) {
+    private void configureTaskSearchProvider(FilterForm filterForm, TaskListBox taskSetBox) {
         taskSetBox.addValueChangeListener(event -> {
             Optional<Task> task = taskSetBox.getValue().stream().findFirst();
             task.ifPresent(t -> filterForm.binder().getBean().name(t.name()));
@@ -224,33 +287,36 @@ public class ToolbarTabSheet extends TabSheet {
         taskSetBox.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 Optional<Task> task = taskSetBox.getValue().stream().findFirst();
+                boolean present = task.isPresent();
+                filterForm.setVisible(!present);
+                filterForm.setReadOnly(present);
                 task.ifPresentOrElse(
-                        t -> {
-                            filterForm.setVisible(false);
-                            taskSetBox.hideOtherTasks(t);
-                        },
+                        taskSetBox::hideOtherTasks,
                         () -> {
-                            filterForm.setVisible(true);
                             taskSetBox.fetchTasks(filterForm.binder().getBean());
                         });
             }
         });
-
-        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox);
-        layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
-                LumoUtility.BoxSizing.BORDER);
-        return layout;
     }
 
     private ToolbarTabSheet initInsertTaskTab(boolean mobile) {
         FilterForm filterForm = createTaskFilterForm();
+        filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+                LumoUtility.BoxSizing.BORDER);
+
         taskSetBox = createTaskSetBox(filterForm);
 
         insertTaskTab = mobile
                 ? new TaskProviderTab(taskSetBox, "Insert Task")
-                : new TaskProviderTab(taskSetBox, VaadinIcon.COPY_O.create());
+                : new TaskProviderTab(taskSetBox, VaadinIcon.FILE_SEARCH.create());
 
-        add(insertTaskTab, createTaskSearchProvider(filterForm, taskSetBox));
+        configureTaskSearchProvider(filterForm, taskSetBox);
+
+        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox);
+        layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.NONE,
+                LumoUtility.BoxSizing.BORDER);
+
+        add(insertTaskTab, layout);
         return this;
     }
 
@@ -262,7 +328,33 @@ public class ToolbarTabSheet extends TabSheet {
                 ? new TaskProviderTab(taskSetBox, "Start Routine")
                 : new TaskProviderTab(taskSetBox, VaadinIcon.FIRE.create());
 
-         add(startRoutineTab, createTaskSearchProvider(filterForm, taskSetBox));
-         return this;
+        configureTaskSearchProvider(filterForm, taskSetBox);
+
+        Button startRoutineButton = new Button("Start Routine");
+        startRoutineButton.addClickListener(event ->
+                controller.createRoutine(taskSetBox.getTask().id()));
+
+        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox, startRoutineButton);
+        layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+                LumoUtility.BoxSizing.BORDER);
+
+        add(startRoutineTab, layout);
+        return this;
+    }
+
+    private ToolbarTabSheet initShowRoutineStepsTab(boolean mobile) {
+        showRoutineStepsTab = mobile
+                ? new Tab("Show Routine Steps")
+                : new Tab(VaadinIcon.EYE.create());
+        add(showRoutineStepsTab, new Div());
+        return this;
+    }
+
+    private ToolbarTabSheet initHideRoutineStepsTab(boolean mobile) {
+        hideRoutineStepsTab = mobile
+                ? new Tab("Hide Routine Steps")
+                : new Tab(VaadinIcon.EYE_SLASH.create());
+        add(hideRoutineStepsTab, new Div());
+        return this;
     }
 }

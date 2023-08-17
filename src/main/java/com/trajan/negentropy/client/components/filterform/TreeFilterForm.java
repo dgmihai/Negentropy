@@ -17,7 +17,8 @@ public class TreeFilterForm extends FilterForm {
 
         binder.addValueChangeListener(event -> {
             log.debug("VALUE CHANGE LISTENER");
-            controller.dataProvider().refreshAll();
+            controller.taskEntryDataProviderManager().allProviders().forEach(provider ->
+                    provider.setFilter(binder.getBean()));
         });
     }
 }

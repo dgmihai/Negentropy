@@ -2,28 +2,30 @@ package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.TaskProvider;
-import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.NotificationError;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.springframework.data.util.Pair;
 
-import java.util.Optional;
-
 @Accessors(fluent = true)
-public class QuickCreateField extends TextField implements TaskProvider {
+public class QuickCreateField extends TextField implements TaskNodeProvider {
+    @Getter
     private ClientDataController controller;
 
     private Task task = null;
-    private TaskNodeInfo nodeInfo = null;
+    private TaskNodeInfoData<TaskNodeDTO> nodeDTO = null;
 
     public QuickCreateField(ClientDataController controller) {
         super();
@@ -51,7 +53,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
 
         this.addValueChangeListener(e -> {
             task = null;
-            nodeInfo = null;
+            nodeDTO = null;
         });
     }
 
@@ -61,14 +63,10 @@ public class QuickCreateField extends TextField implements TaskProvider {
             try {
                 parse(input);
 
-                Response response = controller.addTaskFromProvider(this);
-                if (response.success()) {
-                    this.clear();
-                } else {
-                    this.setErrorMessage(response.message());
-                }
+                saveRequest(null, InsertLocation.CHILD);
             } catch (QuickCreateParser.ParseException e) {
                 NotificationError.show(e);
+                onFailedSave(new Response(false, e.getMessage()));
             }
         }
     }
@@ -79,7 +77,7 @@ public class QuickCreateField extends TextField implements TaskProvider {
         if (!input.isBlank()) {
             try {
                 parse(input);
-                return Response.OK();
+                return Response.ok();
             } catch (QuickCreateParser.ParseException e) {
                 return new Response(false, e.getMessage());
             }
@@ -89,22 +87,28 @@ public class QuickCreateField extends TextField implements TaskProvider {
     }
 
     private void parse(String input) throws QuickCreateParser.ParseException {
-        Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+        Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
         task = result.getFirst();
-        nodeInfo = result.getSecond();
+        nodeDTO = result.getSecond();
     }
 
     @Override
-    public Optional<Task> getTask() throws TaskProviderException {
-        if (task != null) {
-            return Optional.of(task);
-        } else {
-            return Optional.empty();
-        }
+    public Task getTask() {
+        return task;
     }
 
     @Override
-    public TaskNodeInfo getNodeInfo() {
-        return nodeInfo;
+    public TaskNodeInfoData<TaskNodeDTO> getNodeInfo() {
+        return nodeDTO;
+    }
+
+    @Override
+    public void onSuccessfulSave(HasTaskNodeData data) {
+        this.clear();
+    }
+
+    @Override
+    public void onFailedSave(Response response) {
+        this.setErrorMessage(response.message());
     }
 }

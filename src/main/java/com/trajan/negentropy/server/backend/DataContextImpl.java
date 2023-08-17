@@ -1,19 +1,22 @@
 package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.trajan.negentropy.server.backend.entity.TagEntity;
-import com.trajan.negentropy.server.backend.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.entity.TaskLink;
-import com.trajan.negentropy.server.backend.entity.TotalDurationEstimate;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
+import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
-import com.trajan.negentropy.server.facade.model.id.ID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +32,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @Slf4j
+@Transactional
 public class DataContextImpl implements DataContext {
-
     @Autowired private EntityQueryService entityQueryService;
 
     @Autowired private TaskRepository taskRepository;
@@ -58,7 +60,7 @@ public class DataContextImpl implements DataContext {
     @Override
     public void addToTimeEstimateOfTask(Duration change, TaskID taskId) {
         log.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
-        TotalDurationEstimate timeEstimate = entityQueryService.getTotalDuration(taskId);
+        TotalDurationEstimate timeEstimate = entityQueryService.getTimeEstimate(taskId);
         timeEstimate.totalDuration(timeEstimate.totalDuration().plus(change));
     }
 
@@ -93,7 +95,7 @@ public class DataContextImpl implements DataContext {
         Set<TagEntity> tagEntities = task.tags() == null ?
                 taskEntity.tags() :
                 task.tags().stream()
-                        .map(tag -> entityQueryService.getTag(tag.id()))
+                        .map(this::mergeTag)
                         .collect(Collectors.toSet());
 
         taskEntity
@@ -105,9 +107,9 @@ public class DataContextImpl implements DataContext {
                         task.description(), taskEntity.description()))
                 .project(Objects.requireNonNullElse(
                         task.project(), taskEntity.project()))
-                // Task cannot be a block and a project
-                .block(!taskEntity.project() && Objects.requireNonNullElse(
-                        task.block(), taskEntity.block()))
+                // Task cannot be required and a project
+                .required(!taskEntity.project() && Objects.requireNonNullElse(
+                        task.required(), taskEntity.required()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
@@ -117,11 +119,27 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
+    public TaskEntity mergeTaskTemplate(TaskID id, TaskTemplateData<Task, Tag> template) {
+        Task task = new Task(
+                id,
+                null,
+                template.description(),
+                template.duration(),
+                template.required(),
+                template.project(),
+                template.tags(),
+                null);
+        return this.mergeTask(task);
+    }
+
+
+    @Override
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
         boolean updatedCron = !(Objects.equals(linkEntity.cron(), node.cron()));
-        boolean updatedCompleted = node.completed() && !linkEntity.completed();
+        boolean updatedCompleted = (node.completed() != null && node.completed()) &&
+                (linkEntity.completed() != null && !linkEntity.completed());
 
         linkEntity
                 .importance(Objects.requireNonNullElse(
@@ -176,10 +194,11 @@ public class DataContextImpl implements DataContext {
 
         log.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
 
-        if (node.position() == null || node.position() == -1) {
+        if (position == null || position == -1) {
             position = parent == null ?
                     entityQueryService.findChildCount(null, null) :
                     parent.childLinks().size();
+            log.trace("Position: " + position);
         } else {
             List<TaskLink> childLinks = parent == null ?
                     entityQueryService.findChildLinks(null, null).toList() :
@@ -195,7 +214,7 @@ public class DataContextImpl implements DataContext {
                 0 :
                 node.importance();
         boolean recurring = node.recurring() != null && node.recurring();
-        boolean completed = node.completed() != null && node.completed();
+        boolean completed = node.completed() != null && (node.completed() && !recurring);
 
         String cron = node.cron() == null ?
                 null :
@@ -222,7 +241,7 @@ public class DataContextImpl implements DataContext {
                 projectDuration));
 
         if (parent != null) {
-            Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration();
+            Duration change = entityQueryService.getTimeEstimate(ID.of(child)).totalDuration();
             TaskID parentId = ID.of(parent);
 
             this.addToTimeEstimateOfAllAncestors(change, parentId);
@@ -240,15 +259,33 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
+    public TaskLink mergeNodeTemplate(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate) {
+        TaskLink link = entityQueryService.getLink(linkId);
+        return this.mergeNode(new TaskNode(
+                linkId,
+                link.parentId(),
+                DataContext.toDO(link.child()),
+                link.position(),
+                nodeTemplate.importance(),
+                link.createdAt(),
+                nodeTemplate.completed(),
+                nodeTemplate.recurring(),
+                nodeTemplate.cron(),
+                link.scheduledFor(),
+                link.projectDuration()));
+    }
+
+
+    @Override
     public TagEntity mergeTag(TagEntity tagEntity) {
         return tagRepository.save(tagEntity);
     }
 
     @Override
     public TagEntity mergeTag(Tag tag) {
-        TagEntity tagEntity = tag.id() != null ?
-                entityQueryService.getTag(tag.id()) :
-                new TagEntity();
+        TagEntity tagEntity = tag.id() != null
+                ? entityQueryService.getTag(tag.id())
+                : new TagEntity();
 
         return this.mergeTag(tagEntity
                 .name(tag.name()));
@@ -277,7 +314,7 @@ public class DataContextImpl implements DataContext {
         linkRepository.delete(link);
 
 
-        Duration change = entityQueryService.getTotalDuration(ID.of(child)).totalDuration()
+        Duration change = entityQueryService.getTimeEstimate(ID.of(child)).totalDuration()
             .negated();
         TaskID parentId = ID.of(parent);
         this.addToTimeEstimateOfAllAncestors(change, parentId);

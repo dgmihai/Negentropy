@@ -1,9 +1,10 @@
 package com.trajan.negentropy.client.util;
 
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateParser;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
@@ -19,17 +20,17 @@ class QuickCreateParserTest {
     void testBasicInput() {
         try {
             String input = "TaskName #desc TaskDescription #tag tag1, tag2 #dur 2m #rec #top";
-            Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+            Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
             Task task = result.getFirst();
-            TaskNodeInfo nodeInfo = result.getSecond();
+            TaskNodeDTO nodeDTO = (TaskNodeDTO) result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
             assertEquals(Duration.ofMinutes(2), task.duration());
-            assertTrue(nodeInfo.recurring());
+            assertTrue(nodeDTO.recurring());
             assertTrue(task.tags().contains(new Tag(null, "tag1")));
             assertTrue(task.tags().contains(new Tag(null, "tag2")));
-            assertEquals(0, nodeInfo.position());
+            assertEquals(0, nodeDTO.position());
         } catch (Exception e) {
             fail(e);
         }
@@ -39,15 +40,15 @@ class QuickCreateParserTest {
     void testIncompleteInput() {
         try {
             String input = "TaskName #desc TaskDescription";
-            Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+            Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
             Task task = result.getFirst();
-            TaskNodeInfo nodeInfo = result.getSecond();
+            TaskNodeDTO nodeDTO = (TaskNodeDTO) result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
             assertTrue(task.duration().isZero());
-            assertFalse(nodeInfo.recurring());
-            assertNull(nodeInfo.position());
+            assertFalse(nodeDTO.recurring());
+            assertNull(nodeDTO.position());
             assertTrue(task.tags().isEmpty());
         } catch (Exception e) {
             fail(e);
@@ -58,17 +59,17 @@ class QuickCreateParserTest {
     void testOutOfOrderInput() {
         try {
             String input = "TaskName #dur 2m #rec #desc TaskDescription #top #tag tag1, tag2";
-            Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+            Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
             Task task = result.getFirst();
-            TaskNodeInfo nodeInfo = result.getSecond();
+            TaskNodeDTO nodeDTO = (TaskNodeDTO) result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertEquals("TaskDescription", task.description());
             assertEquals(Duration.ofMinutes(2), task.duration());
-            assertTrue(nodeInfo.recurring());
+            assertTrue(nodeDTO.recurring());
             assertTrue(task.tags().contains(new Tag(null, "tag1")));
             assertTrue(task.tags().contains(new Tag(null, "tag2")));
-            assertEquals(0, nodeInfo.position());
+            assertEquals(0, nodeDTO.position());
         } catch (Exception e) {
             fail(e);
         }
@@ -78,17 +79,17 @@ class QuickCreateParserTest {
     void testSpacesInNameAndDescription() {
         try {
             String input = "Task Name with Spaces #desc Task Description with Spaces #tag tag1, tag2 #dur 2m #rec";
-            Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+            Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
             Task task = result.getFirst();
-            TaskNodeInfo nodeInfo = result.getSecond();
+            TaskNodeDTO nodeDTO = (TaskNodeDTO) result.getSecond();
 
             assertEquals("Task Name with Spaces", task.name());
             assertEquals("Task Description with Spaces", task.description());
             assertEquals(Duration.ofMinutes(2), task.duration());
-            assertTrue(nodeInfo.recurring());
+            assertTrue(nodeDTO.recurring());
             assertTrue(task.tags().contains(new Tag(null, "tag1")));
             assertTrue(task.tags().contains(new Tag(null, "tag2")));
-            assertNull(nodeInfo.position());
+            assertNull(nodeDTO.position());
         } catch (Exception e) {
             fail(e);
         }
@@ -104,16 +105,16 @@ class QuickCreateParserTest {
     void testOnlyName() {
         try {
             String input = "TaskName";
-            Pair<Task, TaskNodeInfo> result = QuickCreateParser.parse(input);
+            Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
             Task task = result.getFirst();
-            TaskNodeInfo nodeInfo = result.getSecond();
+            TaskNodeDTO nodeDTO = (TaskNodeDTO) result.getSecond();
 
             assertEquals("TaskName", task.name());
             assertTrue(task.description().isBlank());
             assertTrue(task.duration().isZero());
-            assertFalse(nodeInfo.recurring());
+            assertFalse(nodeDTO.recurring());
             assertTrue(task.tags().isEmpty());
-            assertNull(nodeInfo.position());
+            assertNull(nodeDTO.position());
         } catch (Exception e) {
             fail(e);
         }

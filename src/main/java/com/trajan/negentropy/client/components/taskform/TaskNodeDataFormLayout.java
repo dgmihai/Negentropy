@@ -2,35 +2,33 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.TaskNodeData;
-import com.trajan.negentropy.client.controller.data.TaskProviderException;
+import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-import java.util.Optional;
-
 @Accessors(fluent = true)
-public class TaskNodeDataFormLayout<T extends TaskNodeData> extends AbstractTaskFormLayout {
-
+public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
     @Getter
     private Binder<T> binder;
+    private Class<T> clazz;
 
     public TaskNodeDataFormLayout(ClientDataController controller, T node, Class<T> clazz) {
         super(controller);
+        this.clazz = clazz;
         binder = new BeanValidationBinder<>(clazz);
         binder.setBean(node);
 
         configureAll();
 
         projectDurationField.setVisible(node.task().project());
-
-        this.addClassName("routine-node-form");
     }
 
     @Override
@@ -52,10 +50,21 @@ public class TaskNodeDataFormLayout<T extends TaskNodeData> extends AbstractTask
                         node -> node.task().duration(),
                         (node, duration) -> node.task().duration(duration));
 
-        binder.forField(blockCheckbox)
+        binder.forField(cronField)
+                .withConverter(new CronConverter())
                 .bind(
-                        node -> !node.task().block(),
-                        (node, notBlock) -> node.task().block(!notBlock));
+                        node -> node.node().cron(),
+                        (node, cron) -> node.node().cron(cron));
+
+        binder.forField(requiredCheckbox)
+                .bind(
+                        node -> node.task().required(),
+                        (node, required) -> node.task().required(required));
+
+        binder.forField(recurringCheckbox)
+                .bind(
+                        node -> node.node().recurring(),
+                        (node, recurring) -> node.node().recurring(recurring));
 
         binder.forField(projectCheckbox)
                 .bind(
@@ -75,12 +84,17 @@ public class TaskNodeDataFormLayout<T extends TaskNodeData> extends AbstractTask
                         node -> node.task().tags(),
                         (node, tags) -> node.task().tags(tags));
 
+        binder.forField(projectDurationField)
+                .withConverter(new DurationConverter())
+                .bind(
+                        node -> node.node().projectDuration(),
+                        (node, projectDuration) -> node.node().projectDuration(projectDuration));
+
         saveButton.setEnabled(binder.isValid());
         binder.addValueChangeListener(e -> {
             saveButton.setEnabled(binder.isValid());
         });
     }
-
 
     @Override
     public Response hasValidTask() {
@@ -88,16 +102,36 @@ public class TaskNodeDataFormLayout<T extends TaskNodeData> extends AbstractTask
     }
 
     @Override
-    public Optional<Task> getTask() throws TaskProviderException {
-        if (hasValidTask().success()) {
-            return Optional.of(binder.getBean().task());
-        } else {
-            return Optional.empty();
+    public Task getTask() {
+        return hasValidTask().success()
+                ? binder.getBean().task()
+                : null;
+    }
+
+    @Override
+    public TaskNodeDTOData<?> getNodeInfo() {
+        return binder.getBean().node();
+    }
+
+    @Override
+    public void onSuccessfulSave(HasTaskNodeData data) {
+        switch (OnSuccessfulSave.get(onSaveSelect.getValue()).orElseThrow()) {
+            case CLEAR -> this.clear();
+            case PERSIST -> {
+                try {
+                    T binderData = clazz.getConstructor().newInstance();
+                    binder.setBean(binderData);
+                } catch (Exception e) {
+                    NotificationError.show(e);
+                    this.clear();
+                }
+            }
+            case KEEP_TEMPLATE -> nameField.clear();
         }
     }
 
     @Override
-    public TaskNodeInfo getNodeInfo() {
-        return new TaskNodeInfo();
+    public void onFailedSave(Response response) {
+        // No-op
     }
 }

@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.util;
 
-import com.trajan.negentropy.server.backend.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.vaadin.flow.function.ValueProvider;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 

@@ -1,28 +1,33 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.components.grid.components.RetainOpenedMenuItemDecorator;
+import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
+import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
+import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMenuItemDecorator;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.HasTaskData;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.components.grid.components.InlineIconButton;
-import com.trajan.negentropy.client.components.grid.components.NestedTaskTabs;
-import com.trajan.negentropy.client.util.TimeFormat;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
-import com.trajan.negentropy.server.facade.model.Task;
+import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderFactory;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.data.Data;
+import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.sync.Change;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridMultiSelectionModel;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
@@ -55,7 +60,6 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -66,9 +70,11 @@ import java.util.function.Predicate;
 @Slf4j
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
+public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
     @Autowired protected ClientDataController controller;
     @Autowired protected UserSettings settings;
+
+    @Autowired protected DurationEstimateValueProviderFactory<T> durationEstimateValueProviderFactory;
 
     protected TreeGrid<T> treeGrid;
     protected Editor<T> editor;
@@ -77,8 +83,11 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
     protected NestedTaskTabs nestedTabs;
     protected HorizontalLayout topBar;
 
-    protected LinkedHashMap<String, Boolean> visibleColumns;
+    protected LinkedHashMap<ColumnKey, Boolean> visibleColumns;
     protected Grid.Column<T> editColumn;
+
+    protected FormLayout editHeaderLayout;
+    protected List<Checkbox> editCheckboxes;
 
     protected static final String DURATION_COL_WIDTH = "60px";
     protected static final String ICON_COL_WIDTH_S = "31px";
@@ -92,7 +101,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
     }
 
     protected String inlineLineAwesomeIconLitExpression(LineAwesomeIcon lineAwesomeIcon, String attributes) {
-        return "<span class=\"grid-icon-lineawesome\" " + attributes + " style=\"-webkit-mask-position: var(--mask-position); display: inline-block; -webkit-mask-repeat: var(--mask-repeat); vertical-align: middle; --mask-repeat: no-repeat; background-color: currentcolor; --_size: var(--lumo-icon-size-m); flex: 0 0 auto; width: var(--_size); --mask-position: 50%; -webkit-mask-image: var(--mask-image); " +
+        return "<span class=\"grid-icon-lineawesome\" " + attributes + " style=\"-webkit-mask-position: var(--mask-position); display: block; -webkit-mask-repeat: var(--mask-repeat); vertical-align: middle; --mask-repeat: no-repeat; background-color: currentcolor; --_size: var(--lumo-icon-size-m); flex: 0 0 auto; width: var(--_size); --mask-position: 50%; -webkit-mask-image: var(--mask-image); " +
                 "--mask-image: url('line-awesome/svg/" + lineAwesomeIcon.getSvgName() + ".svg'); height: var(--_size);\"></span>";
     }
 
@@ -103,23 +112,35 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
     }
 
     protected abstract TreeGrid<T> createGrid();
-    public void init(LinkedHashMap<String, Boolean> visibleColumns) {
+
+    public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns) {
         treeGrid = createGrid();
         this.visibleColumns = visibleColumns;
 
-        this.editor = treeGrid.getEditor();
+        editor = treeGrid.getEditor();
 
         topBar = new HorizontalLayout();
         topBar.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         topBar.setWidthFull();
 
-        this.initReadColumns();
-        this.initEditColumns();
-        this.initDetails();
-        this.configureDragAndDrop();
-        this.configureAdditionalEvents();
-        this.configureSelectionMode();
-        this.configureAdditionalTobBarComponents().forEach(topBar::add);
+        this.add(topBar);
+
+        editHeaderLayout = new FormLayout();
+        editCheckboxes = new LinkedList<>();
+
+        setSelectionMode();
+        initReadColumns();
+        initEditColumns();
+        initDetails();
+        configureDragAndDrop();
+        configureAdditionalEvents();
+        configureAdditionalTopBarComponents().forEach(topBar::add);
+
+        FormLayout middleBar = configureMiddleBar();
+        if (middleBar != null) {
+            this.add(middleBar);
+            middleBar.setWidthFull();
+        }
 
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
@@ -127,143 +148,275 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
                 GridVariant.LUMO_COMPACT,
                 GridVariant.LUMO_WRAP_CELL_CONTENT);
 
-        this.add(topBar, treeGrid);
+        this.add(treeGrid);
     }
 
     private void initReadColumns() {
-        visibleColumns.forEach((column, visible) -> {
+        visibleColumns.forEach((columnKey, visible) -> {
             if (visible != null && visible) {
-                switch (column) {
-                    case K.COLUMN_KEY_DRAG_HANDLE -> {
-                        SerializableConsumer<T> onDown = t -> {
-                            treeGrid.setRowsDraggable(true);
-                            draggedItem = t;
-                        };
+                initColumn(columnKey);
+            }
+        });
+    }
 
-                        treeGrid.addColumn(LitRenderer.<T>of(
-                                inlineLineAwesomeIconLitExpression(LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID,
-                                        "@mousedown=\"${onDown}\" @touchstart=\"${onDown}\" "))
-                                        .withFunction("onDown", onDown))
-                                .setKey(K.COLUMN_KEY_DRAG_HANDLE)
-                                .setWidth(ICON_COL_WIDTH_L)
-                                .setFrozen(true)
-                                .setFlexGrow(0)
-                                .setTextAlign(ColumnTextAlign.CENTER)
-                                .setId(K.COLUMN_ID_DRAG_HANDLE);
-                    }
+    protected void setMultiEditCheckboxHeader(
+            Grid.Column<T> column,
+            Function<T, Boolean> getter,
+            Function<Boolean, Data> inputFunction,
+            Function<T, ID> idFunction) {
+        Checkbox checkbox = new Checkbox(column.getKey());
 
-                    case K.COLUMN_KEY_NAME -> treeGrid.addHierarchyColumn(
-                            t -> t.task().name())
-                            .setKey(K.COLUMN_KEY_NAME)
-                            .setHeader(K.COLUMN_KEY_NAME)
-                            .setWidth("150px")
-                            .setFrozen(true)
-                            .setFlexGrow(1);
+        editHeaderLayout.add(checkbox);
 
-                    case K.COLUMN_KEY_BLOCK -> treeGrid.addColumn(LitRenderer.<T>of(
-                            inlineVaadinIconLitExpression("bookmark-o",
-                                    "?active=\"${item.block}\" "))
-                                    .withFunction("onClick", t ->
-                                            controller.updateTask(t.task()
-                                                    .block(!t.task().block())))
-                                    .withProperty("block", t ->
-                                            t.task().block()))
-                            .setKey(K.COLUMN_KEY_BLOCK)
-                            .setHeader(headerIcon(VaadinIcon.BOOKMARK))
-                            .setWidth(ICON_COL_WIDTH_L)
-                            .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+        treeGrid.addSelectionListener(event -> {
+            log.debug("Selection changed");
+            if (event.isFromClient()) {
+                Set<T> data = treeGrid.getSelectedItems();
 
-                    case K.COLUMN_KEY_TAGS -> treeGrid.addColumn(new ComponentRenderer<>(
-                            t -> {
-                                TagComboBox tagComboBox = new CustomValueTagComboBox(controller);
-                                tagComboBox.setWidthFull();
-                                tagComboBox.setClassName("grid-combo-box");
-                                tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
-                                tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
-                                tagComboBox.setValue(t.task().tags());
-                                tagComboBox.addValueChangeListener(event -> {
-                                    Task task = new Task(t.task().id())
-                                            .tags(event.getValue());
-                                    controller.updateTask(task);
-                                });
-                                return tagComboBox;
-                            }))
-                            .setKey(K.COLUMN_KEY_TAGS)
-                            .setHeader(K.COLUMN_KEY_TAGS)
-                            .setFlexGrow(1)
-                            .setClassName("tag-column");
+                if (data.isEmpty()) {
+                    return;
+                }
 
-                    case K.COLUMN_KEY_DESCRIPTION -> treeGrid.addColumn(LitRenderer.<T>of(
-                            inlineVaadinIconLitExpression("eye",
-                                    "?active=\"${item.hasDescription}\""))
-                                    .withFunction("onClick", t ->
-                                            treeGrid.setDetailsVisible(
-                                                    t,
-                                                    !treeGrid.isDetailsVisible(t)))
-                                    .withProperty("hasDescription", t ->
-                                            !t.task().description().isBlank()))
-                            .setKey(K.COLUMN_KEY_DESCRIPTION)
-                            .setHeader(headerIcon(VaadinIcon.CLIPBOARD_TEXT))
-                            .setWidth(ICON_COL_WIDTH_L)
-                            .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                boolean firstRequiredValue = data.stream()
+                        .map(getter)
+                        .findFirst().get();
 
-                    case K.COLUMN_KEY_DURATION -> treeGrid.addColumn(new DurationEstimateValueProvider<>(
-                            controller.queryService(),
-                                    () -> TimeFormat.DURATION,
-                                    false))
-                            .setKey(K.COLUMN_KEY_DURATION)
-                            .setHeader(headerIcon(VaadinIcon.CLOCK))
-                            .setWidth(DURATION_COL_WIDTH)
-                            .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                boolean allSame = data.stream()
+                        .allMatch(t -> getter.apply(t) == firstRequiredValue);
 
-                    case K.COLUMN_KEY_TIME_ESTIMATE -> {
-                        HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
-                                headerIcon(VaadinIcon.FILE_TREE_SUB),
-                                headerIcon(VaadinIcon.CLOCK));
-                        timeEstimateColumnHeader.setSpacing(false);
-                        timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-
-                        treeGrid.addColumn(new DurationEstimateValueProvider<>(
-                                controller.queryService(),
-                                        () -> TimeFormat.DURATION,
-                                        true))
-                                .setKey(K.COLUMN_KEY_TIME_ESTIMATE)
-                                .setHeader(timeEstimateColumnHeader)
-                                .setWidth(DURATION_COL_WIDTH)
-                                .setFlexGrow(0)
-                                .setTextAlign(ColumnTextAlign.CENTER);
-                    }
-
-                    case K.COLUMN_KEY_EDIT -> editColumn = treeGrid.addColumn(LitRenderer.<T>of(
-                            inlineVaadinIconLitExpression("edit",
-                                    "active"))
-                                    .withFunction("onClick", t -> {
-                                        if (editor.isOpen()) {
-                                            editor.cancel();
-                                        }
-                                        editor.editItem(t);
-                                    }))
-                            .setKey(K.COLUMN_KEY_EDIT)
-                            .setWidth(ICON_COL_WIDTH_L)
-                            .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
-
-                    default -> {
-                        this.initAdditionalReadColumns(column);
-                    }
+                log.debug("All same: {}", allSame);
+                if (allSame) {
+                    checkbox.setValue(firstRequiredValue);
+                    checkbox.setIndeterminate(false);
+                } else {
+                    checkbox.setIndeterminate(true);
                 }
             }
         });
 
+        checkbox.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                Set<T> toUpdate = treeGrid.getSelectedItems();
+
+                if (!toUpdate.isEmpty()) {
+                    controller.requestChange(Change.multiMerge(
+                            inputFunction.apply(checkbox.getValue()),
+                            toUpdate.stream()
+                                    .map(idFunction)
+                                    .toList()));
+                }
+            }
+        });
+    }
+
+    private void initColumn(ColumnKey columnKey) {
+        if (treeGrid.getColumnByKey(columnKey.toString()) == null) {
+            switch (columnKey) {
+                case DRAG_HANDLE -> {
+                    SerializableConsumer<T> onDown = t -> {
+                        treeGrid.setRowsDraggable(true);
+                        draggedItem = t;
+                    };
+
+                    treeGrid.addColumn(LitRenderer.<T>of(
+                            inlineLineAwesomeIconLitExpression(LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID,
+                                    "@mousedown=\"${onDown}\" @touchstart=\"${onDown}\" "))
+                                    .withFunction("onDown", onDown))
+                            .setKey(ColumnKey.DRAG_HANDLE.toString())
+                            .setWidth(ICON_COL_WIDTH_L)
+                            .setFrozen(true)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setId(K.COLUMN_ID_DRAG_HANDLE);
+                }
+
+                case NAME -> treeGrid.addHierarchyColumn(
+                        t -> t.task().name())
+                        .setKey(ColumnKey.NAME.toString())
+                        .setHeader(ColumnKey.NAME.toString())
+                        .setWidth("150px")
+                        .setFrozen(true)
+                        .setFlexGrow(1);
+
+                case REQUIRED -> {
+                    Grid.Column<T> requiredColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            inlineVaadinIconLitExpression("exclamation-circle-o",
+                                                    "?active=\"${item.required}\" " +
+                                                            "?hidden=\"${item.project}\""))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChange(Change.merge(
+                                                    new Task(t.task().id())
+                                                            .required(!t.task().required()))))
+                                    .withProperty("required", t ->
+                                            t.task().required())
+                                    .withProperty("project", t ->
+                                            t.task().project()))
+                            .setKey(ColumnKey.REQUIRED.toString())
+                            .setHeader(headerIcon(VaadinIcon.EXCLAMATION))
+                            .setWidth(ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+
+                    setMultiEditCheckboxHeader(requiredColumn,
+                            t -> t.task().required(),
+                            (toggle) ->
+                                    new Task().required(toggle),
+                            t -> t.task().id());
+                }
+
+                case PROJECT -> {
+                    Grid.Column<T> projectColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            inlineVaadinIconLitExpression("file-tree",
+                                                    ("?active=\"${item.project}\" " +
+                                                            "?hidden=\"${item.required}\" ")))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChange(Change.merge(
+                                                    new Task(t.task().id())
+                                                            .project(!t.task().project()))))
+                                    .withProperty("project", t ->
+                                            t.task().project())
+                                    .withProperty("required", t ->
+                                            t.task().required()))
+                            .setKey(ColumnKey.PROJECT.toString())
+                            .setHeader(headerIcon(VaadinIcon.FILE_TREE))
+                            .setWidth(ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+
+                    setMultiEditCheckboxHeader(projectColumn,
+                            t -> t.task().project(),
+                            (toggle) ->
+                                    new Task().project(toggle),
+                            t -> t.task().id());
+                }
+
+                case TAGS -> treeGrid.addColumn(new ComponentRenderer<>(
+                        t -> {
+                            TagComboBox tagComboBox = new CustomValueTagComboBox(controller);
+                            tagComboBox.setWidthFull();
+                            tagComboBox.setClassName("grid-combo-box");
+                            tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+                            tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
+                            tagComboBox.setValue(t.task().tags());
+                            tagComboBox.addValueChangeListener(event ->
+                                    controller.requestChange(Change.merge(
+                                            new Task(t.task().id())
+                                                    .tags(event.getValue()))));
+                            return tagComboBox;
+                        }))
+                        .setKey(ColumnKey.TAGS.toString())
+                        .setHeader(ColumnKey.TAGS.toString())
+                        .setFlexGrow(1)
+                        .setClassName("tag-column");
+
+                case DESCRIPTION -> treeGrid.addColumn(LitRenderer.<T>of(
+                        inlineVaadinIconLitExpression("eye",
+                                "?active=\"${item.hasDescription}\""))
+                                .withFunction("onClick", t ->
+                                        treeGrid.setDetailsVisible(
+                                                t,
+                                                !treeGrid.isDetailsVisible(t)))
+                                .withProperty("hasDescription", t ->
+                                        !t.task().description().isBlank()))
+                        .setKey(ColumnKey.DESCRIPTION.toString())
+                        .setHeader(headerIcon(VaadinIcon.CLIPBOARD_TEXT))
+                        .setWidth(ICON_COL_WIDTH_L)
+                        .setFlexGrow(0)
+                        .setTextAlign(ColumnTextAlign.CENTER);
+
+                case DURATION -> treeGrid.addColumn(
+                        durationEstimateValueProviderFactory.get(
+                                DurationEstimateValueProvider.DurationType.TASK_DURATION))
+                        .setKey(ColumnKey.DURATION.toString())
+                        .setHeader(headerIcon(VaadinIcon.CLOCK))
+                        .setWidth(DURATION_COL_WIDTH)
+                        .setFlexGrow(0)
+                        .setTextAlign(ColumnTextAlign.CENTER);
+
+                case PROJECT_DURATION_LIMIT -> {
+                    HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
+                            headerIcon(VaadinIcon.FILE_TREE),
+                            headerIcon(VaadinIcon.CLOCK));
+                    timeEstimateColumnHeader.setSpacing(false);
+                    timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+
+                    treeGrid.addColumn(
+                            durationEstimateValueProviderFactory.get(
+                                    DurationEstimateValueProvider.DurationType.PROJECT_DURATION))
+                            .setKey(ColumnKey.PROJECT_DURATION_LIMIT.toString())
+                            .setHeader(headerIcon(VaadinIcon.FILE_TREE_SMALL))
+                            .setWidth(DURATION_COL_WIDTH)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
+
+                case TIME_ESTIMATE -> {
+                    HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
+                            headerIcon(VaadinIcon.FILE_TREE_SUB),
+                            headerIcon(VaadinIcon.CLOCK));
+                    timeEstimateColumnHeader.setSpacing(false);
+                    timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+
+
+                    DurationEstimateValueProvider<T> provider = durationEstimateValueProviderFactory.get(
+                            DurationEstimateValueProvider.DurationType.NET_DURATION);
+                    timeEstimateColumnHeader.addSingleClickListener(event -> {
+                        log.debug("Toggle time estimate format");
+                        provider.toggleFormat();
+                        treeGrid.getDataProvider().refreshAll();
+                    });
+                    timeEstimateColumnHeader.addClassName(K.ICON_COLOR_COMPLEMENTARY);
+
+                    treeGrid.addColumn(provider)
+                            .setKey(ColumnKey.TIME_ESTIMATE.toString())
+                            .setHeader(timeEstimateColumnHeader)
+                            .setWidth(DURATION_COL_WIDTH)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
+
+                case EDIT -> editColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                        inlineVaadinIconLitExpression("edit",
+                                "active"))
+                                .withFunction("onClick", t -> {
+                                    if (editor.isOpen()) {
+                                        editor.cancel();
+                                    }
+                                    editor.editItem(t);
+                                }))
+                        .setKey(ColumnKey.EDIT.toString())
+                        .setWidth(ICON_COL_WIDTH_L)
+                        .setFlexGrow(0)
+                        .setTextAlign(ColumnTextAlign.CENTER);
+
+                default -> this.initAdditionalReadColumns(columnKey);
+            }
+        }
+
         treeGrid.setSortableColumns();
         treeGrid.setColumnReorderingAllowed(true);
+        this.setColumnSortOrder();
         this.setPartNameGenerator();
     }
 
-    protected abstract void initAdditionalReadColumns(String column);
+    protected abstract void initAdditionalReadColumns(ColumnKey columnKey);
+
+    protected abstract List<ColumnKey> getPossibleColumns();
+
+    private void setColumnSortOrder() {
+        List<String> columns = treeGrid.getColumns().stream()
+                .map(Grid.Column::getKey)
+                .toList();
+        List<Grid.Column<T>> columnOrder = new LinkedList<>();
+
+        getPossibleColumns().forEach(column -> {
+            if(columns.contains(column.toString())) {
+                columnOrder.add(treeGrid.getColumnByKey(column.toString()));
+            }
+        });
+
+        treeGrid.setColumnOrder(columnOrder);
+    }
 
     protected abstract void setPartNameGenerator();
 
@@ -271,6 +424,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
 
     protected FormLayout detailsForm(T t) {
         AbstractTaskFormLayout form = getTaskFormLayout(t);
+        form.saveAsLastCheckbox().setVisible(false);
         form.addClassNames(LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.NONE,
                 LumoUtility.BoxSizing.BORDER);
         form.onClear(() -> editor.cancel());
@@ -310,8 +464,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);
 
-            controller.updateTask(new Task(t.task().id())
-                    .description(descriptionArea.getValue()));
+            controller.requestChange(Change.merge(
+                    new Task(t.task().id())
+                            .description(descriptionArea.getValue())));
         };
 
         Runnable cancelEditingDescription = () -> {
@@ -341,7 +496,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
         ComponentRenderer<Component, T> detailsRenderer = new ComponentRenderer<>(t -> {
             Predicate<T> isBeingEdited = gt -> gt.equals(editor.getItem());
 
-            if (isBeingEdited.test(t) && visibleColumns.get(K.COLUMN_KEY_EDIT)) {
+            if (isBeingEdited.test(t) && visibleColumns.get(ColumnKey.EDIT)) {
                 return detailsForm(t);
             } else {
                 return detailsDescription(t);
@@ -353,7 +508,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
     }
 
     protected void initEditColumns() {
-        if (visibleColumns.getOrDefault(K.COLUMN_KEY_EDIT, false)) {
+        if (visibleColumns.getOrDefault(ColumnKey.EDIT, false)) {
             Editor<T> editor = treeGrid.getEditor();
             this.setEditorSaveListener();
 
@@ -395,21 +550,42 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
 
     protected abstract void configureAdditionalEvents();
 
-    protected void configureSelectionMode() {
-        treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+    protected void setSelectionMode() {
+        treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
+        editHeaderLayout.setVisible(true);
+
+        // Hide checkbox column
+        treeGrid.getElement().executeJs("if (this.querySelector('vaadin-grid-flow-selection-column')) { this.querySelector('vaadin-grid-flow-selection-column').hidden = true }");
     }
 
-    protected Collection<Component> configureAdditionalTobBarComponents() {
+    protected void toggleSelectionMode() {
+        // TODO: Disabled - changing selection mode removes listeners
+        boolean multiSelect = treeGrid.getSelectionModel() instanceof GridMultiSelectionModel;
+        if (multiSelect) {
+            treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        } else {
+            treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
+        }
+        editHeaderLayout.setVisible(!multiSelect);
+    }
+
+    protected Collection<Component> configureAdditionalTopBarComponents() {
         return List.of();
     }
 
-    protected BiConsumer<String, Boolean> setColumnVisibility = (column, visible) ->
-            visibleColumns.put(column, visible);
+    protected FormLayout configureMiddleBar() {
+        return null;
+    }
 
-    protected Function<String, Boolean> getColumnVisibility = column ->
-            visibleColumns.get(column);
+    protected void setColumnVisibility(ColumnKey columnKey, boolean visible) {
+        visibleColumns.put(columnKey, visible);
+    }
 
-    protected Div gridOptionsMenu(List<String> possibleColumns) {
+    protected boolean getColumnVisibility(ColumnKey columnKey) {
+        return visibleColumns.getOrDefault(columnKey, false);
+    }
+
+    protected Div gridOptionsMenu(List<ColumnKey> possibleColumns) {
         MenuBar menuBar = new MenuBar();
         menuBar.setWidth(ICON_COL_WIDTH_S);
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
@@ -420,28 +596,41 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div {
         SubMenu subMenu = menuBar.addItem(menuIcon)
                 .getSubMenu();
 
+        MenuItem multiSelect = subMenu.addItem("Multi-Select");
+        multiSelect.setCheckable(true);
+        multiSelect.addClickListener(e -> {
+            settings.multiSelect(!settings.multiSelect());
+            this.toggleSelectionMode();
+        });
+        multiSelect.setEnabled(false);
+
         MenuItem visibilityMenu = subMenu.addItem("Column Visibility");
 
-        TriConsumer<Grid.Column<T>, MenuItem, Boolean> toggleVisibility = (column, menuItem, checked) -> {
+        TriConsumer<ColumnKey, MenuItem, Boolean> toggleVisibility = (columnKey, menuItem, checked) -> {
             menuItem.setChecked(checked);
-            this.setColumnVisibility.accept(column.getKey(), checked);
-            column.setVisible(checked);
+            this.setColumnVisibility(columnKey, checked);
+            Grid.Column<T> column = treeGrid.getColumnByKey(columnKey.toString());
+            if (column != null) {
+                column.setVisible(checked);
+            } else if (checked) {
+                initColumn(columnKey);
+                setColumnSortOrder();
+            }
         };
 
         possibleColumns.forEach(
                 (columnKey) -> {
-                    Grid.Column<T> column = treeGrid.getColumnByKey(columnKey);
-                    MenuItem menuItem = visibilityMenu.getSubMenu().addItem(columnKey);
+                    String columnName = columnKey.toString();
+                    MenuItem menuItem = visibilityMenu.getSubMenu().addItem(columnName);
                     menuItem.setCheckable(true);
 
-                    // TODO: Use visibleColumns
-                    if (column != null) {
-                        toggleVisibility.accept(column, menuItem, this.getColumnVisibility.apply(columnKey));
-                        menuItem.addClickListener(e -> toggleVisibility.accept(
-                                column, menuItem, menuItem.isChecked()));
+                    toggleVisibility.accept(columnKey, menuItem, this.getColumnVisibility(columnKey));
 
-                        RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
-                    }
+                    menuItem.addClickListener(e -> toggleVisibility.accept(
+                            columnKey, menuItem, menuItem.isChecked()));
+                    // TODO: Use visibleColumns
+
+                    RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
                 }
         );
 

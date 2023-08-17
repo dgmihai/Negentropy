@@ -1,12 +1,18 @@
 package com.trajan.negentropy.server.backend;
 
-import com.trajan.negentropy.server.backend.entity.*;
+import com.trajan.negentropy.model.entity.*;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
+import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
+import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.model.id.*;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -28,6 +34,8 @@ public interface EntityQueryService {
      */
     TaskEntity getTask(TaskID taskId);
 
+    Stream<TaskEntity> getTasks(Collection<TaskID> taskIds);
+
     /**
      * Get a task link entity from the repository by ID.
      *
@@ -37,6 +45,8 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     TaskLink getLink(LinkID linkId);
+
+    Stream<TaskLink> getLinks(Collection<LinkID> linkIds);
 
     /**
      * Get a tag entity from the repository by ID.
@@ -70,6 +80,12 @@ public interface EntityQueryService {
      * @see TaskEntity
      */
     Stream<TaskEntity> findTasks(TaskFilter filter);
+
+    Stream<TaskLink> findLinks(TaskFilter filter);
+
+    Stream<LinkID> findLinkIds(TaskFilter filter);
+
+    Map<TaskEntity, List<TaskEntity>> findTasksWithAncestors(TaskFilter filter);
 
     /**
      * Counts the child tasks of a task.
@@ -190,6 +206,8 @@ public interface EntityQueryService {
      */
     Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter);
 
+    Map<TaskLink, List<TaskLink>> findAncestorLinksAsAdjacencyMap(TaskID descendantId, TaskFilter filter);
+
     /**
      * Retrieves all ancestor tasks of a given task via depth-first search.
      * </p>
@@ -222,6 +240,10 @@ public interface EntityQueryService {
     Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter);
     Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer);
 
+    Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskFilter filter);
+
+    Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskFilter filter, Consumer<TaskLink> consumer);
+
     /**
      * Retrieves all descendant tasks of a given task via depth-first search.
      * </p>
@@ -236,9 +258,11 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskFilter filter);
 
-    TotalDurationEstimate getTotalDuration(TaskID taskId);
+    Map<TaskID, Duration> getAllTimeEstimates(TaskFilter filter);
 
-    TotalDurationEstimate getTotalDuration(TaskID taskId, int importance);
+    TotalDurationEstimate getTimeEstimate(TaskID taskId);
+
+    TotalDurationEstimate getTimeEstimate(TaskID taskId, int importance);
 
     Stream<TotalDurationEstimate> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 

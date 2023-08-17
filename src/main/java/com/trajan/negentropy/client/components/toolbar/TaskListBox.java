@@ -1,36 +1,39 @@
 package com.trajan.negentropy.client.components.toolbar;
 
+import com.trajan.negentropy.client.components.filterform.FilterForm;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.data.TaskProvider;
-import com.trajan.negentropy.client.controller.data.TaskProviderException;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
+import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.listbox.MultiSelectListBox;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class TaskListBox extends MultiSelectListBox<Task> implements TaskProvider {
+public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodeProvider {
+    @Getter
     protected final ClientDataController controller;
+    protected final FilterForm form;
 
-    public TaskListBox(ClientDataController controller) {
+    public TaskListBox(ClientDataController controller, FilterForm form) {
         super();
         this.controller = controller;
+        this.form = form;
         setItemLabelGenerator(Task::name);
     }
 
     public void fetchTasks(TaskFilter filter) {
         log.debug("FETCH TASKS: " + filter);
         if (!filter.isEmpty()) {
-            log.debug("NONEMPTY FILETER");
-            setItems(controller.queryService().fetchTasks(filter).collect(Collectors.toSet()));
+            setItems(controller.services().query().fetchTasks(filter).collect(Collectors.toSet()));
         } else {
-            log.debug("EMPTY FILETER");
             setItems();
         }
     }
@@ -43,19 +46,29 @@ public class TaskListBox extends MultiSelectListBox<Task> implements TaskProvide
     @Override
     public Response hasValidTask() {
         if (this.getValue() != null) {
-            return Response.OK();
+            return Response.ok();
         } else {
             return new Response(false, "No valid existing task selected.");
         }
     }
 
     @Override
-    public Optional<Task> getTask() throws TaskProviderException {
-        return this.getValue().stream().findFirst();
+    public Task getTask() {
+        return this.getValue().stream().findFirst().orElse(null);
     }
 
     @Override
-    public TaskNodeInfo getNodeInfo() {
-        return new TaskNodeInfo();
+    public TaskNodeDTOData<?> getNodeInfo() {
+        return new TaskNodeDTO();
+    }
+
+    @Override
+    public void onSuccessfulSave(HasTaskNodeData node) {
+        // No-op
+    }
+
+    @Override
+    public void onFailedSave(Response response) {
+        // No-op
     }
 }

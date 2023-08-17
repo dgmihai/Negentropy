@@ -1,6 +1,6 @@
 package com.trajan.negentropy.server.backend.repository;
 
-import com.trajan.negentropy.server.backend.entity.TaskLink;
+import com.trajan.negentropy.model.entity.TaskLink;
 import org.springframework.stereotype.Repository;
 
 /**

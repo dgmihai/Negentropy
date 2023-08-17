@@ -12,7 +12,7 @@ public class TimeButton extends ToggleButton {
         this.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
         this.addClickListener(event -> {
             this.toggle();
-            if (this.isToggled()) {
+            if (this.toggled()) {
                 this.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             } else {
                 this.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);

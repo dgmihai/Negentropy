@@ -1,429 +1,297 @@
 package com.trajan.negentropy.client.controller;
 
-import com.trajan.negentropy.client.controller.data.*;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationError;
-import com.trajan.negentropy.server.facade.QueryService;
-import com.trajan.negentropy.server.facade.RoutineService;
-import com.trajan.negentropy.server.facade.UpdateService;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNode;
-import com.trajan.negentropy.server.facade.model.TaskNodeDTO;
-import com.trajan.negentropy.server.facade.model.id.RoutineID;
-import com.trajan.negentropy.server.facade.model.id.StepID;
-import com.trajan.negentropy.server.facade.model.id.TaskID;
-import com.trajan.negentropy.server.facade.response.Response;
+import com.trajan.negentropy.model.*;
+import com.trajan.negentropy.model.entity.sync.SyncRecord;
+import com.trajan.negentropy.model.id.*;
+import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
-import com.trajan.negentropy.server.facade.response.TagResponse;
-import com.trajan.negentropy.server.facade.response.TaskResponse;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @SpringComponent
 @VaadinSessionScope
 @Accessors(fluent = true)
 @Getter
+@Slf4j
 public class ClientDataControllerImpl implements ClientDataController {
-    private static final Logger logger = LoggerFactory.getLogger(ClientDataControllerImpl.class);
-    
-    private TaskProvider activeTaskProvider;
+    private TaskNodeProvider activeTaskNodeProvider;
 
-    @Autowired private TaskEntryDataProvider dataProvider;
-    @Autowired private QueryService queryService;
-    @Autowired private UpdateService updateService;
-    @Autowired private RoutineService routineService;
-    @Autowired private UserSettings settings;
+    @Autowired protected TaskNetworkGraph taskNetworkGraph;
+    @Autowired protected TaskEntryDataProviderManager taskEntryDataProviderManager;
 
-    @Autowired private RoutineDataProvider routineCache;
+    @Autowired protected SessionServices services;
+    @Autowired protected UserSettings settings;
 
-    @Override
-    public TaskEntry getBaseEntry() {
-        return dataProvider.getBaseEntry();
-    }
+    @Autowired private RoutineDataProvider routineDataProvider;
 
-    @Override
-    public void setBaseEntry(TaskEntry entry) {
-        dataProvider.setBaseEntry(entry);
-    }
-
-    private <T extends Response> T tryServiceCall(Supplier<T> serviceCall) {
-        logger.trace("Making service call " + serviceCall);
+    private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
         T response = serviceCall.get();
-
         if (!response.success()) {
             NotificationError.show(response.message());
         }
-
+        this.sync(response);
         return response;
     }
 
-    @SafeVarargs
-    private Response tryServiceCalls(Supplier<Response>... serviceCalls) {
-        Response response = new Response(false, "Call list was empty.");
-
-        for (Supplier<Response> serviceCall : serviceCalls) {
-            response = tryServiceCall(serviceCall);
-            if (!response.success()) {
-                break;
-            }
+    private DataMapResponse tryDataRequest(Supplier<DataMapResponse> serviceCall) {
+        try {
+            return tryRequest(serviceCall);
+        } catch (Throwable t) {
+            NotificationError.show(t);
+            return new DataMapResponse(t.getMessage());
         }
+    }
 
-        return response;
+    private SyncResponse trySyncRequest(Supplier<SyncResponse> serviceCall) {
+        try {
+            return tryRequest(serviceCall);
+        } catch (Throwable t) {
+            NotificationError.show(t);
+            return new SyncResponse(t.getMessage());
+        }
     }
 
     @Override
-    public void updateNode(TaskEntry entry) {
-        logger.debug("Updating node: " + entry);
-        this.tryServiceCall(
-                () -> updateService.updateNode(entry.node()));
-        dataProvider.refreshMatchingItems(entry.node().child().id(), true);
+    public DataMapResponse requestChange(Change change) {
+        return this.requestChanges(List.of(change));
     }
 
     @Override
-    public void updateNode(TaskNode node) {
-        logger.debug("Updating node: " + node);
-        this.tryServiceCall(
-                () -> updateService.updateNode(node));
-        dataProvider.refreshAll();
-        // TODO: Do we need to refresh matching tasks by node?
+    public DataMapResponse requestChanges(List<Change> changes) {
+        return tryDataRequest(() -> services.change().execute(Request.of(taskNetworkGraph.syncId(), changes)));
     }
 
-    @Override
-    public void deleteNode(TaskEntry entry) {
-        logger.debug("Deleting node: " + entry);
-        this.tryServiceCall(
-                () -> updateService.deleteNode(entry.node().linkId()));
-        dataProvider.refreshAll();
+    private synchronized void sync() {
+        try {
+            this.sync(trySyncRequest(() -> services.query().sync(taskNetworkGraph.syncId())));
+        } catch (Throwable t) {
+            NotificationError.show(t);
+        }
     }
 
-    @Override
-    public TaskResponse updateTask(Task task) {
-        logger.debug("Updating task: " + task);
-        TaskResponse response = this.tryServiceCall(
-                () -> updateService.updateTask(task));
-        dataProvider.refreshMatchingItems(task.id(), true);
-        return response;
-    }
+    private synchronized void sync(SyncResponse syncResponse) {
+        SyncRecord aggregateSyncRecord = syncResponse.aggregateSyncRecord();
+        List<Change> changes = syncResponse.aggregateSyncRecord().changes();
+        log.info("Syncing with sync id {}, {} changes, current sync id: {}",
+                (aggregateSyncRecord != null ? aggregateSyncRecord.id() : null),
+                changes.size(), taskNetworkGraph.syncId());
 
-    @Override
-    public TaskResponse updateTask(TaskEntry entry) {
-        return this.updateTask(entry.node().child());
-    }
+        Map<TaskID, Task> taskMap = taskNetworkGraph.taskMap();
+        Map<LinkID, TaskNode> nodeMap = taskNetworkGraph.nodeMap();
+        MultiValueMap<TaskID, LinkID> nodesByTaskMap = taskNetworkGraph.nodesByTaskMap();
 
-    @Override
-    public void updateEntry(TaskEntry entry) {
-        logger.debug("Updating entry: " + entry);
-        this.tryServiceCalls(
-                () -> updateService.updateNode(entry.node()),
-                () -> updateService.updateTask(entry.node().child()));
-        logger.debug("Updating entry 2");
-        dataProvider.refreshAll();
-        logger.debug("Updating entry 3");
-    }
-
-    @Override
-    public void moveNodeToRoot(TaskEntry entry) {
-        logger.debug("Moving to root: " + entry);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(entry.node())
-                                .parentId(null)
-                                .position(null)),
-                () -> updateService.deleteNode(entry.node().linkId()));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void copyNodeToRoot(TaskEntry entry) {
-        logger.debug("Copying to root: " + entry);
-        this.tryServiceCall(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(entry.node())
-                                .parentId(null)
-                                .position(null)));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void moveNodeInto(TaskNodeData moved, TaskNodeData target) {
-        logger.debug("Moving node: " + moved + " into " + target);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(moved.node())
-                                .parentId(target.node().child().id())
-                                .position(null)),
-                () -> updateService.deleteNode(moved.node().linkId()));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void copyNodeInto(TaskNodeData copy, TaskNodeData target) {
-        logger.debug("Copying node: " + copy + " into " + target);
-        this.tryServiceCall(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
-                                .parentId(target.node().child().id())
-                                .position(null)));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void moveNodeBefore(TaskNodeData moved, TaskNodeData target) {
-        logger.debug("Moving node: " + moved + " before " + target);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(moved.node())
-                                .parentId(target.node().parentId())
-                                .position(target.node().position())),
-                () -> updateService.deleteNode(moved.node().linkId()));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void copyNodeBefore(TaskNodeData copy, TaskNodeData target) {
-        logger.debug("Copying node: " + copy + " before " + target);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
-                                .parentId(target.node().parentId())
-                                .position(target.node().position())));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void moveNodeAfter(TaskNodeData moved, TaskNodeData target) {
-        logger.debug("Moving node: " + moved + " after " + target);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(moved.node())
-                                .parentId(target.node().parentId())
-                                .position(target.node().position() + 1)),
-                () -> updateService.deleteNode(moved.node().linkId()));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void copyNodeAfter(TaskNodeData copy, TaskNodeData target) {
-        logger.debug("Copying node: " + copy + " after " + target);
-        this.tryServiceCalls(
-                () -> updateService.insertTaskNode(
-                        (TaskNodeDTO) new TaskNodeDTO(copy.node())
-                                .parentId(target.node().parentId())
-                                .position(target.node().position() + 1)));
-        dataProvider.refreshAll();
-    }
-
-    @Override
-    public void activeTaskProvider(TaskProvider activeTaskProvider) {
-        this.activeTaskProvider = activeTaskProvider;
-    }
-
-    @Override
-    public Response addTaskFromProvider(TaskProvider taskProvider) {
-        TaskEntry parent = dataProvider.getBaseEntry();
-        return this.addTaskFromProviderAsChild(taskProvider, parent);
-    }
-
-    private Response addTaskDTO(TaskProvider taskProvider, TaskNodeDTO taskDTO) {
-        Response validTaskResponse = taskProvider.hasValidTask();
-        if (validTaskResponse.success()) {
-            try {
-                Task task = taskProvider.getTask().orElseThrow();
-                this.processTags(task);
-
-                TaskResponse response = this.tryServiceCall(
-                        () -> updateService.createTask(task));
-
-                if (response.success()) {
-                    this.tryServiceCall(
-                            () -> updateService.insertTaskNode(
-                                    taskDTO.childId(response.task().id())));
-                    dataProvider.refreshAll();
+        for (Change change : changes) {
+            if (change instanceof Change.MergeChange<?> mergeChange) {
+                Object mergeData = mergeChange.data();
+                if (mergeData instanceof Task task) {
+                    log.debug("Got merged task {}", task);
+                    taskMap.put(task.id(), task);
+                    taskEntryDataProviderManager.pendingTaskRefresh().put(task.id(), false);
+                } else if (mergeData instanceof TaskNode node) {
+                    log.debug("Got merged node {}", node);
+                    nodeMap.put(node.id(), node);
+                    taskMap.put(node.task().id(), node.task());
+                    taskEntryDataProviderManager.pendingNodeRefresh().put(node.id(), false);
+                } else if (mergeData instanceof Tag) {
+                    // TODO: No op for now
                 } else {
-                    NotificationError.show(response.message());
+                    throw new IllegalStateException("Unexpected value: " + mergeChange.data());
                 }
-
-                return response;
-            } catch (Exception e) {
-                NotificationError.show(e);
-            }
-        } else {
-            NotificationError.show(validTaskResponse.message());
-        }
-        return validTaskResponse;
-    }
-
-    private Response tryFunctionWithActiveProvider(Function<TaskProvider, Response> function) {
-        if (activeTaskProvider != null) {
-            return function.apply(activeTaskProvider);
-        } else {
-            throw new RuntimeException("No task to add - " +
-                    "open either Quick Create, or Create New Task, or start editing a task");
-        }
-    }
-
-    private Response tryBiFunctionWithActiveProvider(
-            BiFunction<TaskProvider, TaskEntry, Response> biFunction, TaskEntry entry) {
-        if (activeTaskProvider != null) {
-            return biFunction.apply(activeTaskProvider, entry);
-        } else {
-            throw new RuntimeException("No task to add - " +
-                    "open either Quick Create, or Create New Task, or start editing a task");
-        }
-    }
-
-    @Override
-    public Response addTaskFromProviderAsChild(TaskProvider taskProvider, TaskEntry parent) {
-        logger.debug("Adding task as a child of " + parent);
-        TaskID parentId = parent == null ? null : parent.node().child().id();
-        TaskNodeDTO taskNodeDTO = new TaskNodeDTO(
-                parentId,
-                null,
-                taskProvider.getNodeInfo());
-        logger.debug("Provided node info: " + taskProvider.getNodeInfo());
-        return this.addTaskDTO(taskProvider, taskNodeDTO);
-    }
-
-    @Override
-    public Response addTaskFromActiveProviderAsChild(TaskEntry parent) {
-        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderAsChild, parent);
-    }
-
-    @Override
-    public Response addTaskFromProviderBefore(TaskProvider taskProvider, TaskEntry next) {
-        TaskNodeDTO taskDTO = new TaskNodeDTO(
-                next.node().parentId(),
-                null,
-                taskProvider.getNodeInfo()
-                        .position(next.node().position()));
-        logger.debug("Adding task " + taskDTO + " before: " + next);
-        return this.addTaskDTO(taskProvider, taskDTO);
-    }
-
-    @Override
-    public Response addTaskFromActiveProviderBefore(TaskEntry after) {
-        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderBefore, after);
-    }
-
-    @Override
-    public Response addTaskFromProviderAfter(TaskProvider taskProvider, TaskEntry prev) {
-        TaskNodeDTO taskDTO = new TaskNodeDTO(
-                prev.node().parentId(),
-                null,
-                taskProvider.getNodeInfo()
-                        .position(prev.node().position()+1));
-        logger.debug("Adding task " + taskDTO + " after: " + prev);
-        return this.addTaskDTO(taskProvider, taskDTO);
-    }
-
-    @Override
-    public Response addTaskFromActiveProviderAfter(TaskEntry before) {
-        return tryBiFunctionWithActiveProvider(this::addTaskFromProviderAfter, before);
-    }
-
-    @Override
-    public Tag createTag(Tag tag) {
-        TagResponse response = this.tryServiceCall(
-                () -> updateService.createTag(tag));
-        return response.tag();
-    }
-
-    private void processTags(Task task ) {
-        Set<Tag> processedTags = new HashSet<>();
-
-        for (Tag tag : task.tags()) {
-            if (tag.id() == null) {
-                TagResponse response = this.tryServiceCall(
-                        () -> updateService.findTagOrElseCreate(tag.name()));
-                if (response.success()) {
-                    processedTags.add(response.tag());
+            } else if (change instanceof Change.PersistChange<?> persist) {
+                Object persistData = persist.data();
+                if (persistData instanceof Task task) {
+                    log.debug("Got persisted task {}", task);
+                    taskNetworkGraph.addTask(task);
+                } else if (persistData instanceof TaskNode node) {
+                    log.debug("Got persisted node {}", node);
+                    taskNetworkGraph.addTaskNode(node);
+                    taskEntryDataProviderManager.pendingNodeRefresh().put(node.id(), true);
+                } else if (persistData instanceof Tag) {
+                    // TODO: No op for now
                 } else {
-                    throw new RuntimeException("Failed to process tags in new task");
+                    throw new IllegalStateException("Unexpected value: " + persist.data());
                 }
-
-                processedTags.add(response.tag());
+            } else if (change instanceof Change.DeleteChange<?> deleteChange) {
+                Object deleteData = deleteChange.data();
+                if (deleteData instanceof TaskID taskId) {
+                    log.debug("Got deleted task {}", taskMap.get(taskId));
+                    taskNetworkGraph.removeTask(taskId);
+                } else if (deleteData instanceof LinkID linkId) {
+                    log.debug("Got deleted node {}", nodeMap.get(linkId));
+                    TaskNode deletedNode = nodeMap.getOrDefault(linkId, null);
+                    if (deletedNode == null) {
+                        log.warn("Deleted node {} not found in node map, may have already been processed earlier", linkId);
+                    } else {
+                        taskEntryDataProviderManager.pendingNodeRefresh().put(linkId, true);
+                    }
+                    taskNetworkGraph.removeTaskNode(linkId);
+                } else if (deleteData instanceof TagID) {
+                    // TODO: No op for now
+                } else {
+                    throw new IllegalStateException("Unexpected value: " + deleteChange.data());
+                }
             } else {
-                processedTags.add(queryService.fetchTag(tag.id())); // TODO: Filter, list of tags
+                log.warn("Unknown change type: {}", change);
             }
-
         }
-        task.tags(processedTags);
+
+        if (aggregateSyncRecord != null) {
+            taskNetworkGraph.syncId(aggregateSyncRecord.id());
+        }
+        taskEntryDataProviderManager.refreshQueuedItems();
+//        taskEntryDataProviderManager.refreshAllProviders();
+//        taskEntryDataProviderManager.resetAllData();
+    }
+
+    @Override
+    public void activeTaskNodeProvider(TaskNodeProvider activeTaskProvider) {
+        this.activeTaskNodeProvider = activeTaskProvider;
     }
 
     @Override
     public void recalculateTimeEstimates() {
-        logger.debug("Recalculating time estimates");
-        updateService.recalculateTimeEstimates();
-        dataProvider.refreshAll();
+        log.debug("Recalculating time estimates");
+        // NO-OP
+//        changeService.recalculateTimeEstimates();
+//        taskNetworkGraph.sync();
     }
 
+    //==================================================================================================================
     // Routine Management
+    //==================================================================================================================
+
+    private RoutineResponse tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall) {
+        try {
+            RoutineResponse response = serviceCall.get();
+
+            if (!response.success()) {
+                NotificationError.show(response.message());
+            }
+
+            return response;
+        } catch (Throwable t) {
+            NotificationError.show(t);
+            return new RoutineResponse(false, null, t.getMessage());
+        }
+    }
 
     @Override
     public RoutineResponse createRoutine(TaskID taskId) {
-        logger.debug("Creating routine from task: " + taskId);
-        return tryServiceCall(() -> routineService.createRoutine(taskId));
+        log.debug("Creating routine from task: " + taskId);
+        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(taskId));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     private RoutineResponse processStep(
             Supplier<RoutineResponse> serviceCall) {
-        return tryServiceCall(serviceCall);
+        return tryRoutineServiceCall(serviceCall);
     }
 
     @Override
     public RoutineResponse startRoutineStep(StepID stepId) {
-        logger.debug("Starting routine step: " + stepId);
-        return this.processStep(
-                () -> routineService.startStep(stepId, LocalDateTime.now()));
+        log.debug("Starting routine step: " + stepId);
+        RoutineResponse response = this.processStep(
+                () -> services.routine().startStep(stepId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     @Override
     public RoutineResponse pauseRoutineStep(StepID stepId) {
-        logger.debug("Pausing routine step: " + stepId);
-        return this.processStep(
-                () -> routineService.suspendStep(stepId, LocalDateTime.now()));
+        log.debug("Pausing routine step: " + stepId);
+        RoutineResponse response = this.processStep(
+                () -> services.routine().suspendStep(stepId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     @Override
     public RoutineResponse previousRoutineStep(StepID stepId) {
-        logger.debug("Going to previous step of routine step: " + stepId);
-        return this.processStep(
-                () -> routineService.previousStep(stepId, LocalDateTime.now()));
+        log.debug("Going to previous step of routine step: " + stepId);
+        RoutineResponse response = this.processStep(
+                () -> services.routine().previousStep(stepId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     @Override
     public RoutineResponse completeRoutineStep(StepID stepId) {
-        logger.debug("Completing routine step: " + stepId);
-        return this.processStep(
-                () -> routineService.completeStep(stepId, LocalDateTime.now()));
+        log.debug("Completing routine step: " + stepId);
+        RoutineResponse response = this.processStep(
+                () -> services.routine().completeStep(stepId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     @Override
     public RoutineResponse skipRoutineStep(StepID stepId) {
-        logger.debug("Skipping routine step: " + stepId);
-        return this.processStep(
-                () -> routineService.skipStep(stepId, LocalDateTime.now()));
+        log.debug("Skipping routine step: " + stepId);
+        RoutineResponse response = this.processStep(
+                () -> services.routine().skipStep(stepId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
     }
 
     @Override
     public RoutineResponse skipRoutine(RoutineID routineId) {
-        logger.debug("Skipping routine: " + routineId);
+        log.debug("Skipping routine: " + routineId);
         RoutineResponse response = this.processStep(
-                () -> routineService.skipRoutine(routineId, LocalDateTime.now()));
-        routineCache.refreshAll();
+                () -> services.routine().skipRoutine(routineId, LocalDateTime.now()));
+        routineDataProvider.refreshAll();
+        return response;
+    }
+
+    @Override
+    public RoutineResponse moveRoutineStep(InsertLocation insertLocation, RoutineStep step, RoutineStep target) {
+        log.debug("Moving routine step: " + step + " " + insertLocation + " " + target);
+
+        StepID parentId = target.parentId();
+
+        int targetPosition;
+        if (parentId != null) {
+            RoutineStep parentStep = services.routine().fetchRoutineStep(target.parentId());
+            targetPosition =  parentStep.children().indexOf(target);
+        } else {
+            Routine routine = services.routine().fetchRoutine(target.routineId());
+            targetPosition = routine.steps().indexOf(target);
+        }
+
+        int position = switch(insertLocation) {
+            case BEFORE -> targetPosition - 1;
+            case AFTER -> targetPosition + 1;
+            default -> throw new RuntimeException("Invalid insert location specified.");
+        };
+
+        RoutineResponse response = this.processStep(
+                () -> services.routine().moveStep(step.id(), parentId, position));
+        routineDataProvider.refreshAll();
+        return response;
+    }
+
+    @Override
+    public RoutineResponse setRoutineStepExcluded(StepID stepId, boolean exclude) {
+        log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
+        RoutineResponse response =  this.processStep(
+                () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
+        routineDataProvider.refreshAll();
         return response;
     }
 }

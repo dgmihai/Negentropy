@@ -1,13 +1,13 @@
 package com.trajan.negentropy.client.components.filterform;
 
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
+import com.trajan.negentropy.client.components.taskform.ReadOnlySettableFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.filter.TaskFilter;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.filter.TaskFilter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -15,7 +15,6 @@ import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.PropertyId;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @Getter
-public class FilterForm extends FormLayout {
+public class FilterForm extends ReadOnlySettableFormLayout {
     protected final ClientDataController controller;
 
     protected Binder<TaskFilter> binder = new BeanValidationBinder<>(TaskFilter.class);
@@ -52,7 +51,6 @@ public class FilterForm extends FormLayout {
         name.setClearButtonVisible(true);
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         name.setWidthFull();
-        name.setValueChangeMode(ValueChangeMode.EAGER);
         binder.bind(name, TaskFilter::name, TaskFilter::name);
 
         resetButton = new Button("Reset");
@@ -72,7 +70,7 @@ public class FilterForm extends FormLayout {
         tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         binder.bind(tagsToExclude,
                 filter -> filter.excludedTagIds().stream()
-                        .map(tagId -> controller.queryService().fetchTag(tagId))
+                        .map(tagId -> controller.services().query().fetchTag(tagId))
                         .collect(Collectors.toSet()),
                 (filter, excludedTags) -> filter.excludedTagIds(excludedTags.stream()
                         .map(Tag::id)
@@ -83,7 +81,7 @@ public class FilterForm extends FormLayout {
         tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         binder.bind(tagsToInclude,
                 filter -> filter.includedTagIds().stream()
-                        .map(tagId -> controller.queryService().fetchTag(tagId))
+                        .map(tagId -> controller.services().query().fetchTag(tagId))
                         .collect(Collectors.toSet()),
                 (filter, includedTags) -> filter.includedTagIds(includedTags.stream()
                         .map(Tag::id)

@@ -1,9 +1,10 @@
 package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.server.facade.model.Tag;
-import com.trajan.negentropy.server.facade.model.Task;
-import com.trajan.negentropy.server.facade.model.TaskNodeInfo;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.data.binder.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.data.util.Pair;
 
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.Set;
 
 public class QuickCreateParser {
     private static final Logger logger = LoggerFactory.getLogger(QuickCreateParser.class);
@@ -23,13 +25,13 @@ public class QuickCreateParser {
     public static final String RECURRING = "rec";
     public static final String TOP = "top";
 
-    public static Pair<Task, TaskNodeInfo> parse(String input) throws ParseException {
+    public static Pair<Task, TaskNodeInfoData<TaskNodeDTO>> parse(String input) throws ParseException {
         logger.debug("Parsing " + input);
         Task task = new Task()
                 .description("")
                 .duration(Duration.ZERO)
                 .tags(new HashSet<>());
-        TaskNodeInfo nodeInfo = new TaskNodeInfo()
+        TaskNodeInfoData<TaskNodeDTO> nodeDTO = new TaskNodeDTO()
                 .recurring(false);
 
         // Add '#' to the beginning of the input string to handle cases like '#rep' without a trailing space
@@ -58,10 +60,12 @@ public class QuickCreateParser {
             switch (keyword) {
                 case DESCRIPTION -> task.description(value);
                 case TAGS -> {
+                    Set<Tag> tagSet = new HashSet<>();
                     String[] tags = value.split(",");
                     for (String tag : tags) {
-                        task.tags().add(new Tag(null, tag.trim()));
+                        tagSet.add(new Tag(null, tag.trim()));
                     }
+                    task.tags(tagSet);
                 }
                 case DURATION -> {
                     Result<Duration> result = DurationConverter.toModel(value);
@@ -70,12 +74,13 @@ public class QuickCreateParser {
                     }
                     result.ifOk(task::duration);
                 }
-                case RECURRING -> nodeInfo.recurring(true);
-                case TOP -> nodeInfo.position(0);
+                case RECURRING -> nodeDTO.recurring(true);
+                case TOP -> nodeDTO.position(0);
                 default -> throw new ParseException("Invalid keyword specified: " + value);
             }
         }
-        return Pair.of(task, nodeInfo);
+
+        return Pair.of(task, nodeDTO);
     }
 
     public static class ParseException extends Exception{

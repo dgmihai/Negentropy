@@ -55,6 +55,11 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-body-text-color);
 }
 
+.complementary-color-icon {
+    fill:
+      var(--lumo-complementary-color-5pct);
+}
+
 vaadin-multi-select-combo-box-chip {
     background-color:
     var(--lumo-primary-color-10pct);

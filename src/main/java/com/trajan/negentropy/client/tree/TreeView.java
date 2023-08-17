@@ -5,7 +5,9 @@ import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
@@ -33,20 +35,22 @@ import java.util.List;
 public class TreeView extends Div {
     @Autowired private ClientDataController controller;
     @Autowired private UserSettings settings;
+    @Autowired private TaskNetworkGraph networkGraph;
 
     @Autowired private ToolbarTabSheet toolbarTabSheet;
 
     private FlexLayout gridLayout = new FlexLayout();
 
     @Autowired private TaskEntryTreeGrid firstTaskTreeGrid;
-    @Autowired private TaskEntryTreeGrid secondTaskTreeGrid;
+    private TaskEntryTreeGrid secondTaskTreeGrid = null;
 
     @PostConstruct
     public void init() {
         this.addClassName("tree-view");
         this.setSizeFull();
 
-        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
+//        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
+        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid);
 
         toolbarTabSheet.init(this,
                 TabType.CLOSE_TAB,
@@ -61,10 +65,9 @@ public class TreeView extends Div {
         dragSettings.add("Move on drag");
         dragSettings.add("Add on drag");
 
-        for (int i=0; i<2; i++) {
+        for (int i=0; i<grids.size(); i++) {
             TaskEntryTreeGrid grid = grids.get(i);
             grid.init(settings.treeViewColumnVisibilities().get(i));
-            grid.treeGrid().setDataProvider(controller.dataProvider());
             grid.setSizeFull();
         }
 
@@ -80,17 +83,17 @@ public class TreeView extends Div {
         this.add(layout);
     }
 
-    public void setGridTiling(UserSettings.GridTiling gridTiling) {
+    public void setGridTiling(GridTiling gridTiling) {
         gridLayout.removeAll();
         switch (gridTiling) {
             case NONE -> gridLayout.add(firstTaskTreeGrid);
             case VERTICAL -> {
                 gridLayout.add(firstTaskTreeGrid, secondTaskTreeGrid);
-                gridLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
+                gridLayout.setFlexDirection(FlexLayout.FlexDirection.ROW);
             }
             case HORIZONTAL -> {
                 gridLayout.add(firstTaskTreeGrid, secondTaskTreeGrid);
-                gridLayout.setFlexDirection(FlexLayout.FlexDirection.ROW);
+                gridLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
             }
         }
     }
