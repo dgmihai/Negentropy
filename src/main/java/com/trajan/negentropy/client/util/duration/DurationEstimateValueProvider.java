@@ -30,8 +30,10 @@ public class DurationEstimateValueProvider<T extends HasTaskNodeData> implements
     private String apply(TaskNode node) {
         Duration duration = switch (durationType) {
             // TODO: Account for settings?
-            case NET_DURATION -> controller.services().query().fetchTimeEstimate(node.task().id(), null);
-            case TASK_DURATION -> node.task().duration();
+            case NET_DURATION -> controller.taskNetworkGraph().netDurations().get(node.task().id());
+            case TASK_DURATION -> node.task().project()
+                    ? node.projectDuration()
+                    : node.task().duration();
             case PROJECT_DURATION -> node.projectDuration();
         };
 

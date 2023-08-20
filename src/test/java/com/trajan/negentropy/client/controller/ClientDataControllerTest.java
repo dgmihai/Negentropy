@@ -8,7 +8,6 @@ import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
-import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Assertions;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.util.Pair;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,8 +32,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         controller = new TestClientDataControllerImpl(testServices);
     }
 
-    void assertTaskInserted(int position, String parent, DataMapResponse response, int changeId) {
-        TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
+    void assertTaskInserted(int position, String parent, TaskNode resultNode) {
         TaskLink resultLink = entityQueryService.getLink(resultNode.linkId());
         assertEquals(TEST_TASK_NAME, resultLink.child().name());
         assertEquals(TEST_TAG.name(), resultLink.child().tags().stream().findFirst().get().name());
@@ -93,16 +90,14 @@ class ClientDataControllerTest extends ClientTestTemplate {
         System.out.println("Initial sync id: " + syncId);
         assertNotNull(syncId);
 
-        Pair<Response, Integer> resultPair = taskNodeProvider.saveRequest(
+        TaskNode resultNode = taskNodeProvider.save(
                 reference,
                 location);
 
-        DataMapResponse response = (DataMapResponse) resultPair.getFirst();
-
-        assertTaskInserted(position, parent, response, resultPair.getSecond());
+        assertTaskInserted(position, parent, resultNode);
         assertNotEquals(syncId, queryService.currentSyncId());
 
-        return (TaskNode) response.changeRelevantDataMap().getFirst(resultPair.getSecond());
+        return resultNode;
     }
 
     @Test

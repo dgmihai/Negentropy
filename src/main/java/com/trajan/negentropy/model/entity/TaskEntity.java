@@ -1,7 +1,7 @@
 package com.trajan.negentropy.model.entity;
 
 import com.trajan.negentropy.model.data.HasTaskData.TaskData;
-import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
+import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
@@ -53,10 +53,9 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, T
             mappedBy = "task",
             cascade = CascadeType.ALL,
             orphanRemoval = true)
-    private List<TotalDurationEstimate> timeEstimates = new ArrayList<>();
+    private List<NetDuration> netDurations = new ArrayList<>();
 
     @OneToMany(
-            fetch = FetchType.EAGER,
             mappedBy = "parent",
             cascade = CascadeType.ALL)
     @Fetch(FetchMode.SUBSELECT)

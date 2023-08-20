@@ -1,14 +1,15 @@
 package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.QTaskEntity;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.netduration.NetDuration;
+import com.trajan.negentropy.model.entity.netduration.QNetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.entity.totalduration.QTotalDurationEstimate;
-import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.*;
@@ -29,12 +30,13 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @Service
+@Benchmark(millisFloor = 10)
 public class EntityQueryServiceImpl implements EntityQueryService {
     private static final Logger logger = LoggerFactory.getLogger(EntityQueryServiceImpl.class);
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
-    @Autowired private TotalDurationEstimateRepository durationEstimateRepository;
+    @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private TagRepository tagRepository;
     @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository stepRepository;
@@ -417,62 +419,72 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Map<TaskID, Duration> getAllTimeEstimates(TaskFilter filter) {
+    public Map<TaskID, Duration> getAllNetDurations(TaskFilter filter) {
         Iterable<TaskLink> matchingLinks = linkRepository.findAll(filterLink(filter));
         List<TaskEntity> tasks = StreamSupport.stream(matchingLinks.spliterator(), false)
                 .map(TaskLink::child)
                 .collect(Collectors.toList());
 
-        List<TotalDurationEstimate> estimates = durationEstimateRepository.findByTaskIn(tasks);
+        List<NetDuration> estimates = netDurationRepository.findByTaskIn(tasks);
 
         return estimates.stream()
-                .filter(estimate ->
-                        filter.importanceThreshold() == null
-                        || estimate.importance() <= filter.importanceThreshold())
+//                .filter(estimate ->
+//                        filter == null || (filter.importanceThreshold() == null
+//                        || estimate.importance() <= filter.importanceThreshold()))
                 .collect(Collectors.toMap(
                         estimate -> ID.of(estimate.task()),
-                        TotalDurationEstimate::totalDuration
+                        NetDuration::netDuration
                 ));
     }
 
     @Override
-    public TotalDurationEstimate getTimeEstimate(TaskID taskId) {
+    public NetDuration getNetDuration(TaskID taskId) {
         // TODO: Implement importance in time estimate caching
-        return this.getTimeEstimate(taskId, 0);
+        return this.getNetDuration(taskId, 0);
     }
 
     @Override
-    public TotalDurationEstimate getTimeEstimate(TaskID taskId, int importance) {
+    public NetDuration getNetDuration(TaskID taskId, int importance) {
         TaskEntity task = this.getTask(taskId);
-        return task.timeEstimates().stream()
+        return task.netDurations().stream()
                 .filter(
-                timeEstimate -> importance == timeEstimate.importance())
+                netDuration -> importance == netDuration.importance())
                 .findFirst()
                 .orElseThrow();
     }
 
     @Override
-    public Stream<TotalDurationEstimate> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {
+    public Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {
         TaskEntity task = this.getTask(taskId);
         int lowestImportance = this.getLowestImportanceOfDescendants(taskId);
-        return task.timeEstimates().stream()
-                .filter(timeEstimate -> {
+        return task.netDurations().stream()
+                .filter(netDuration -> {
                     int difference = lowestImportance - importanceDifference;
-                    return timeEstimate.importance() <= difference;
+                    return netDuration.importance() <= difference;
                 });
     }
 
     @Override
-    public Duration calculateTotalDuration(TaskID taskId, TaskFilter filter) {
+    public Duration calculateNetDuration(TaskID taskId, TaskFilter filter) {
+        boolean save = false;
+
         if (filter == null) {
-            return getTimeEstimate(taskId).totalDuration();
+            try {
+                return getNetDuration(taskId).netDuration();
+            } catch (NoSuchElementException e) {
+                logger.warn("No net duration found for task " + taskId.val() + ", calculating new.");
+                save = true;
+            }
+        } else {
+            if ((filter.name() == null || filter.name().isBlank())
+                    && filter.includedTagIds().isEmpty()
+                    && filter.excludedTagIds().isEmpty()
+                    && filter.importanceThreshold() != null) {
+                return getNetDuration(taskId, filter.importanceThreshold()).netDuration();
+            }
         }
 
-        if (filter.name().isBlank() && filter.includedTagIds().isEmpty() && filter.excludedTagIds().isEmpty()) {
-            return getTimeEstimate(taskId, filter.importanceThreshold()).totalDuration();
-        }
-
-        boolean filterCached = filter.equals(activeFilter);
+        boolean filterCached = activeFilter.equals(filter);
 
         if (!filterCached) {
             cachedTotalDurations.clear();
@@ -506,14 +518,22 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         }
 
         cachedTotalDurations.put(taskId, durationSum.plus(task.duration()));
+
+        if (save) {
+            netDurationRepository.save(new NetDuration(
+                    task,
+                    0,
+                    durationSum)
+            );
+        }
         return durationSum;
     }
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
-        QTotalDurationEstimate qTotalDurationEstimate = QTotalDurationEstimate.totalDurationEstimate;
-        return durationEstimateRepository.findOne(
-                qTotalDurationEstimate.task.id.eq(ancestorId.val())).orElseThrow()
+        QNetDuration qNetDuration = QNetDuration.netDuration1;
+        return netDurationRepository.findOne(
+                        qNetDuration.task.id.eq(ancestorId.val())).orElseThrow()
                 .importance();
     }
 

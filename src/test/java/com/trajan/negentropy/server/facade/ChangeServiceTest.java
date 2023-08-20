@@ -14,6 +14,7 @@ import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.TaskTestTemplate;
+import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -514,81 +516,81 @@ public class ChangeServiceTest extends TaskTestTemplate {
         assertEquals(Duration.ofMinutes(1), one.duration());
     }
 
-    // TIME ESTIMATES
+    // NET DURATIONS
 
-    void assertTimeEstimate(int expectedMinutes, String taskName) {
+    void assertNetDuration(int expectedMinutes, String taskName) {
         TaskID id = tasks.get(taskName).id();
 
         assertEquals(
                 Duration.ofMinutes(expectedMinutes),
-                queryService.fetchTimeEstimate(id, null));
+                queryService.fetchNetDuration(id, null));
     }
 
     @Test
-    void testTimeEstimateOfTaskWithNoDescendants() {
-        assertTimeEstimate(1, ONE);
+    void testNetDurationOfTaskWithNoDescendants() {
+        assertNetDuration(1, ONE);
     }
 
     @Test
-    void testTimeEstimateOfTaskWithSingleLevelOfDescendants() {
-        assertTimeEstimate(4, TWOTWO);
+    void testNetDurationOfTaskWithSingleLevelOfDescendants() {
+        assertNetDuration(4, TWOTWO);
     }
 
     @Test
-    void testTimeEstimateOfTaskWithMultipleLevelsOfDescendants() {
-        assertTimeEstimate(7, TWO);
+    void testNetDurationOfTaskWithMultipleLevelsOfDescendants() {
+        assertNetDuration(7, TWO);
     }
 
     @Test
-    void testTimeEstimateOfTaskWithDuplicateDescendants() {
-        assertTimeEstimate(5, THREETWO);
+    void testNetDurationOfTaskWithDuplicateDescendants() {
+        assertNetDuration(5, THREETWO);
     }
 
     @Test
-    void testTimeEstimateOfTaskWithComplexHierarchy() {
-        assertTimeEstimate(8, THREE_AND_FIVE);
+    void testNetDurationOfTaskWithComplexHierarchy() {
+        assertNetDuration(8, THREE_AND_FIVE);
     }
 
     @Test
-    void testTimeEstimateAdjustedOnRemoval() {
+    void testNetDurationAdjustedOnRemoval() {
         TaskLink link = links.get(Triple.of(
                 TWOTWO, TWOTWOONE, 0));
 
         deleteNode(ID.of(link));
 
-        assertTimeEstimate(3, TWOTWO);
-        assertTimeEstimate(6, TWO);
+        assertNetDuration(3, TWOTWO);
+        assertNetDuration(6, TWO);
     }
 
     @Test
-    void testTimeEstimateAdjustedOnRemovalNested() {
+    void testNetDurationAdjustedOnRemovalNested() {
         TaskLink link = links.get(Triple.of(
                 THREETWO, THREETWOONE_AND_THREETWOTHREE, 0));
 
         deleteNode(ID.of(link));
 
-        assertTimeEstimate(7, THREE_AND_FIVE);
+        assertNetDuration(7, THREE_AND_FIVE);
 
         link = links.get(Triple.of(
                 THREETWO, THREETWOONE_AND_THREETWOTHREE, 2));
 
         deleteNode(ID.of(link));
 
-        assertTimeEstimate(6, THREE_AND_FIVE);
+        assertNetDuration(6, THREE_AND_FIVE);
     }
 
     @Test
-    void testTimeEstimateOnTaskUpdate() {
+    void testNetDurationOnTaskUpdate() {
         Task task222 = tasks.get(TWOTWOTWO);
 
         mergeTask(task222.duration(Duration.ofMinutes(3)));
 
-        assertTimeEstimate(9, TWO);
-        assertTimeEstimate(6, TWOTWO);
+        assertNetDuration(9, TWO);
+        assertNetDuration(6, TWOTWO);
     }
 
     @Test
-    void testTimeEstimateWhenTaskWithNoDurationAdded() {
+    void testNetDurationWhenTaskWithNoDurationAdded() {
         Task task22 = tasks.get(TWOTWO);
         Task fresh = new Task()
                 .name("Fresh");
@@ -598,8 +600,8 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .parentId(task22.id())
                 .childId(fresh.id()));
 
-        assertTimeEstimate(7, TWO);
-        assertTimeEstimate(4, TWOTWO);
+        assertNetDuration(7, TWO);
+        assertNetDuration(4, TWOTWO);
 
         Task fresh2 = persistTask(new Task()
                 .name("Fresh 2"));
@@ -608,8 +610,8 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .childId(fresh2.id())
                 .position(1));
 
-        assertTimeEstimate(7, TWO);
-        assertTimeEstimate(4, TWOTWO);
+        assertNetDuration(7, TWO);
+        assertNetDuration(4, TWOTWO);
 
         Task fresh3 = persistTask(new Task()
                 .name("Fresh 3")
@@ -618,12 +620,12 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .parentId(task22.id())
                 .childId(fresh3.id()));
 
-        assertTimeEstimate(9, TWO);
-        assertTimeEstimate(6, TWOTWO);
+        assertNetDuration(9, TWO);
+        assertNetDuration(6, TWOTWO);
     }
 
     @Test
-    void testTimeEstimateWhenParentHasNoDuration() {
+    void testNetDurationWhenParentHasNoDuration() {
         Task task22 = tasks.get(TWOTWO);
         Task parent = persistTask(new Task()
                 .name("Parent"));
@@ -646,25 +648,34 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .parentId(parent.id())
                 .childId(child2.id()));
 
-        assertTimeEstimate(11, TWO);
-        assertTimeEstimate(8, TWOTWO);
+        assertNetDuration(11, TWO);
+        assertNetDuration(8, TWOTWO);
         assertEquals(
                 Duration.ofMinutes(4),
-                queryService.fetchTimeEstimate(parent.id(), null));
+                queryService.fetchNetDuration(parent.id(), null));
     }
 
-    @Test
-    @Disabled
-    void testTimeEstimateFullRecalculate() {
-//        changeService.recalculateTimeEstimates();
+    @Autowired private NetDurationRecalculator netDurationRecalculator;
 
-        assertTimeEstimate(1, ONE);
-        assertTimeEstimate(4, TWOTWO);
-        assertTimeEstimate(7, TWO);
-        assertTimeEstimate(5, THREETWO);
-        assertTimeEstimate(8, THREE_AND_FIVE);
-        assertTimeEstimate(1, FOUR);
-        assertTimeEstimate(1, SIX_AND_THREETWOFOUR);
+    @Test
+    void testRecalculateNetDurations() {
+        assertNetDuration(1, ONE);
+        assertNetDuration(4, TWOTWO);
+        assertNetDuration(7, TWO);
+        assertNetDuration(5, THREETWO);
+        assertNetDuration(8, THREE_AND_FIVE);
+        assertNetDuration(1, FOUR);
+        assertNetDuration(1, SIX_AND_THREETWOFOUR);
+
+        netDurationRecalculator.recalculateTimeEstimates();
+
+        assertNetDuration(1, ONE);
+        assertNetDuration(4, TWOTWO);
+        assertNetDuration(7, TWO);
+        assertNetDuration(5, THREETWO);
+        assertNetDuration(8, THREE_AND_FIVE);
+        assertNetDuration(1, FOUR);
+        assertNetDuration(1, SIX_AND_THREETWOFOUR);
     }
 
     private void assertDeepCopy(TaskNode root, List<String> expectedNames, TaskFilter filter) {

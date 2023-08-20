@@ -50,6 +50,11 @@ vaadin-scroller[slot="drawer"] {
     var(--lumo-error-color);
 }
 
+.bright-color-icon {
+    fill:
+      var(--lumo-base-color);
+}
+
 .grayed-color-icon {
     fill:
       var(--lumo-body-text-color);

@@ -107,14 +107,14 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     private void taskRoutineCreationTest (String rootTask, List<String> expectedSteps) {
         taskRoutineCreationTestWithExpectedDuration(
                 rootTask,
-                rootId -> entityQueryService.getTimeEstimate(rootId).totalDuration(),
+                rootId -> entityQueryService.getNetDuration(rootId).netDuration(),
                 expectedSteps);
     }
 
     private void linkRoutineCreationTest(Triple<String, String, Integer> rootLink, List<String> expectedSteps) {
         linkRoutineCreationTestWithExpectedDuration(
                 rootLink,
-                rootTaskId -> entityQueryService.getTimeEstimate(rootTaskId).totalDuration(),
+                rootTaskId -> entityQueryService.getNetDuration(rootTaskId).netDuration(),
                 expectedSteps);
     }
 

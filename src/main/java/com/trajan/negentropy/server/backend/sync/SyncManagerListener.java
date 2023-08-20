@@ -9,30 +9,44 @@ import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordType;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.PostUpdate;
 import jakarta.persistence.PreRemove;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SyncManagerListener {
     @PostUpdate
     public void onUpdate(AbstractEntity entity) {
-        SyncManager.instance.logChange(
-                ChangeRecordType.MERGE,
-                getChangeRecordDataType(entity),
-                entity.id());
+        try {
+            SyncManager.instance.logChange(
+                    ChangeRecordType.MERGE,
+                    getChangeRecordDataType(entity),
+                    entity.id());
+        } catch (NullPointerException e) {
+            log.error("Error logging update change", e);
+        }
     }
 
     @PreRemove
     public void onRemove(AbstractEntity entity) {
-        SyncManager.instance.logChange(
-                ChangeRecordType.DELETE,
-                getChangeRecordDataType(entity),
-                entity.id());
+        try {
+            SyncManager.instance.logChange(
+                    ChangeRecordType.DELETE,
+                    getChangeRecordDataType(entity),
+                    entity.id());
+        } catch (NullPointerException e) {
+            log.error("Error logging delete change", e);
+        }
     }
 
     @PostPersist
     public void onPersist(AbstractEntity entity) {
-        SyncManager.instance.logChange(
-                ChangeRecordType.PERSIST,
-                getChangeRecordDataType(entity),
-                entity.id());
+        try {
+            SyncManager.instance.logChange(
+                    ChangeRecordType.PERSIST,
+                    getChangeRecordDataType(entity),
+                    entity.id());
+        } catch (NullPointerException e) {
+            log.error("Error logging persist change", e);
+        }
     }
 
     public ChangeRecordDataType getChangeRecordDataType(AbstractEntity entity) {

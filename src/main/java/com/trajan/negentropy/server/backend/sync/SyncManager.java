@@ -23,12 +23,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -41,9 +44,11 @@ public class SyncManager {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private SyncRecordRepository syncRecordRepository;
     @Autowired private ChangeRecordRepository changeRecordRepository;
+    @Autowired private DataContext dataContext;
 
     private Map<Long, ChangeRecordType> pendingChangeTypes = new HashMap<>();
     private Map<Long, ChangeRecordEntity> pendingChangeRecords = new HashMap<>();
+    private Map<TaskID, Duration> netDurationRecords = new HashMap<>();
     private SyncRecordEntity pendingSyncRecord = new SyncRecordEntity();
 
     public static SyncManager instance;
@@ -52,6 +57,11 @@ public class SyncManager {
     public void init() {
         log.debug("Initializing SyncManager");
         instance = this;
+
+        syncRecordRepository.findAll().forEach(syncResponse -> {
+            syncResponse.changes().clear();
+            syncRecordRepository.deleteAll();
+        });
     }
 
     private SyncRecordEntity getLatestSyncRecord() {
@@ -68,7 +78,6 @@ public class SyncManager {
         }
     }
 
-    @Async
     public synchronized void logChange(ChangeRecordType changeType, ChangeRecordDataType dataType, Long id) {
         log.trace("Logging change: {} {}, id: {}", dataType, changeType, id);
         ChangeRecordType finalChangeType =
@@ -82,6 +91,10 @@ public class SyncManager {
                 finalChangeType,
                 dataType,
                 id));
+    }
+
+    public synchronized void logDurationChange(TaskID taskId, Duration netDuration) {
+        netDurationRecords.put(taskId, netDuration);
     }
 
     public synchronized SyncRecord aggregatedSyncRecord(SyncID from) {
@@ -108,21 +121,22 @@ public class SyncManager {
         if (from != null) {
             log.trace("Getting sync records from {}", from);
             syncRecordStream = StreamSupport.stream(syncRecordRepository.findAll(new BooleanBuilder(
-                    QSyncRecordEntity.syncRecordEntity.id.goe(from.val()))).spliterator(), true);
+                    QSyncRecordEntity.syncRecordEntity.id.gt(from.val()))).spliterator(), true);
             return toDO(syncRecordStream);
         } else {
             log.warn("No sync id provided, returning empty sync record");
             return new SyncRecord(
                     getLatestSyncRecord().id(),
                     getLatestSyncRecord().timestamp(),
-                    List.of());
+                    List.of(),
+                    new HashMap<>());
         }
     }
 
     private SyncRecord toDO(Stream<SyncRecordEntity> syncRecordStream) {
         List<ChangeRecordEntity> changeRecordEntities = syncRecordStream
                 .flatMap(syncRecordEntity -> syncRecordEntity.changes().stream())
-                .peek(record -> log.debug("Processed change: {} {} {}", record.changeType(), record.dataType(), record.entityId()))
+                .peek(record -> log.debug("Recorded change: {} {} {}", record.changeType(), record.dataType(), record.entityId()))
                 .toList();
 
         Map<Long, Map<ChangeRecordDataType, Set<ChangeRecordType>>> entityChangeTypeMap = changeRecordEntities.stream()
@@ -151,6 +165,7 @@ public class SyncManager {
                         }
                     });
                 })
+                .distinct()
                 .collect(Collectors.toList());
 
         SyncRecordEntity latestSyncRecord = this.getLatestSyncRecord();
@@ -158,7 +173,8 @@ public class SyncManager {
         return new SyncRecord(
                 latestSyncRecord.id(),
                 latestSyncRecord.timestamp(),
-                changes);
+                changes,
+                netDurationRecords);
     }
 
     private Change getDeleteChange(ChangeRecordDataType dataType, Long id) {
@@ -171,9 +187,9 @@ public class SyncManager {
 
     private PersistedDataDO<?> convertData(ChangeRecordDataType dataType, Long id) {
         return switch (dataType) {
-            case TASK -> DataContext.toDO(entityQueryService.getTask(new TaskID(id)));
-            case LINK -> DataContext.toDO(entityQueryService.getLink(new LinkID(id)));
-            case TAG -> DataContext.toDO(entityQueryService.getTag(new TagID(id)));
+            case TASK -> dataContext.toDO(entityQueryService.getTask(new TaskID(id)));
+            case LINK -> dataContext.toDO(entityQueryService.getLink(new LinkID(id)));
+            case TAG -> dataContext.toDO(entityQueryService.getTag(new TagID(id)));
         };
     }
 }

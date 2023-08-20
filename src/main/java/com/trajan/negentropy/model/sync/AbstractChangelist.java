@@ -61,7 +61,7 @@ public abstract class AbstractChangelist <T> {
 
     @Getter
     public static class SyncChangelist extends AbstractChangelist<ChangeRecord<?>> {
-        private final Map<LinkID, Duration> timeEstimatesMap = new HashMap<>();
+        private final Map<LinkID, Duration> netDurationMap = new HashMap<>();
 
         public static SyncChangelist of(ChangeRecord<?>... changes) {
             SyncChangelist changelist = new SyncChangelist();

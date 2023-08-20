@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.components.grid.ColumnKey;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.controller.util.InsertMode;
+import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.model.filter.TaskFilter;
@@ -29,6 +30,7 @@ public class UserSettings {
     @Setter private InsertMode sameGridDragInsertMode = InsertMode.MOVE;
     @Setter private InsertMode differentGridDragInsertMode = InsertMode.MOVE;
     @Setter private boolean routineStepsGridVisible = true;
+    @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
 
     @Setter
     private DescriptionViewDefaultSetting descriptionViewDefaultSetting = DescriptionViewDefaultSetting.IF_PRESENT;
@@ -39,7 +41,7 @@ public class UserSettings {
 
         TaskEntryTreeGrid.possibleColumns.forEach(columnKey -> {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
-                gridColumnVisibility.put(columnKey, true);
+                gridColumnVisibility.put(columnKey, (!columnKey.equals(ColumnKey.TAGS_COMBO)));
             }
         });
 

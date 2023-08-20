@@ -14,10 +14,10 @@ public enum ColumnKey {
     CRON("Cron"),
     SCHEDULED_FOR("Scheduled For"),
     TAGS("Tags"),
+    TAGS_COMBO("Tag Combo Box"),
     DESCRIPTION("Description"),
     DURATION("Single Step Duration"),
-    PROJECT_DURATION_LIMIT("Project Duration Limit"),
-    TIME_ESTIMATE("Total Nested Duration"),
+    NET_DURATION("Total Nested Duration"),
     EDIT("Edit"),
     DELETE("Delete");
 

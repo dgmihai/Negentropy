@@ -59,9 +59,6 @@ public class ToolbarTabSheet extends TabSheet {
     @Getter private Tab hideRoutineStepsTab;
     @Getter private Tab showRoutineStepsTab;
 
-//    @Getter
-//    Map<TabType, Tab> toolbarTabs = new HashMap<>();
-
     public enum TabType {
         CLOSE_TAB,
         CREATE_NEW_TASK_TAB,
@@ -131,11 +128,11 @@ public class ToolbarTabSheet extends TabSheet {
         this.createTaskForm = new TaskFormLayout(controller);
         createTaskForm.taskBinder().setBean(new Task());
 
-        createTaskForm.onClear(() -> {
+        createTaskForm.afterClear(() -> {
             createTaskForm.taskBinder().setBean(new Task());
             createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
         });
-        createTaskForm.onSave(() -> {
+        createTaskForm.afterSuccessfulSave(() -> {
             Change taskChange = Change.update(createTaskForm.taskBinder().getBean());
 //            Response response = controller.requestChanges(List.of(
 //                    taskChange,
@@ -190,9 +187,17 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initOptionsTab(boolean mobile) {
-        Button recalculateTimeEstimates = new Button("Recalculate Time Estimates");
-        recalculateTimeEstimates.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        recalculateTimeEstimates.addClickListener(e -> controller.recalculateTimeEstimates());
+        Button recalculateNetDurations = new Button("Recalculate Net Durations");
+        recalculateNetDurations.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        recalculateNetDurations.addClickListener(e -> controller.recalculateNetDurations());
+
+        Button removeOrphanTasks = new Button("Delete All Orphan Tasks");
+        removeOrphanTasks.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        removeOrphanTasks.addClickListener(e -> controller.deleteAllOrphanedTasks());
+
+        Button forceResync = new Button("Force Data Resync");
+        forceResync.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        forceResync.addClickListener(e -> controller.taskNetworkGraph().reset());
 
         RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
         gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
@@ -237,9 +242,14 @@ public class ToolbarTabSheet extends TabSheet {
             UI.getCurrent().getPage().reload();
         });
 
+        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, recalculateNetDurations,
+                removeOrphanTasks, forceResync);
+        auxiliaryButtonLayout.setPadding(false);
+        auxiliaryButtonLayout.setSpacing(false);
+
         FormLayout layout = new FormLayout(
                 sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
-                gridTilingRadioButtonGroup, disableContextMenu, multiSelectCheckbox);
+                gridTilingRadioButtonGroup, auxiliaryButtonLayout, multiSelectCheckbox);
 //        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 //        layout.setAlignItems(FlexComponent.Alignment.CENTER);
 

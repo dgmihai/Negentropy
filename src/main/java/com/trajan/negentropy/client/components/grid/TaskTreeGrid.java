@@ -8,10 +8,12 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.TaskNodeView;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderFactory;
+import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
@@ -20,6 +22,8 @@ import com.trajan.negentropy.model.sync.Change;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -32,6 +36,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -63,6 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @SpringComponent
 @RouteScope
@@ -70,7 +76,7 @@ import java.util.function.Predicate;
 @Slf4j
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
+public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implements TaskNodeView {
     @Autowired protected ClientDataController controller;
     @Autowired protected UserSettings settings;
 
@@ -89,7 +95,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
     protected FormLayout editHeaderLayout;
     protected List<Checkbox> editCheckboxes;
 
-    protected static final String DURATION_COL_WIDTH = "60px";
+    protected static final String DURATION_COL_WIDTH = "70px";
     protected static final String ICON_COL_WIDTH_S = "31px";
     protected static final String ICON_COL_WIDTH_L = "35px";
 
@@ -97,6 +103,13 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
         Icon icon = vaadinIcon.create();
         icon.setSize(K.INLINE_ICON_SIZE);
         icon.addClassName(K.ICON_COLOR_GRAYED);
+        return icon;
+    }
+
+    protected Icon headerIconPrimary(VaadinIcon vaadinIcon) {
+        Icon icon = vaadinIcon.create();
+        icon.setSize(K.INLINE_ICON_SIZE);
+        icon.addClassName(K.ICON_COLOR_PRIMARY);
         return icon;
     }
 
@@ -136,11 +149,12 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
         configureAdditionalEvents();
         configureAdditionalTopBarComponents().forEach(topBar::add);
 
-        FormLayout middleBar = configureMiddleBar();
-        if (middleBar != null) {
-            this.add(middleBar);
-            middleBar.setWidthFull();
-        }
+        // TODO: Commented until multi-edit fixed
+//        FormLayout middleBar = configureMiddleBar();
+//        if (middleBar != null) {
+//            this.add(middleBar);
+//            middleBar.setWidthFull();
+//        }
 
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
@@ -290,7 +304,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
                             t -> t.task().id());
                 }
 
-                case TAGS -> treeGrid.addColumn(new ComponentRenderer<>(
+                case TAGS_COMBO -> treeGrid.addColumn(new ComponentRenderer<>(
                         t -> {
                             TagComboBox tagComboBox = new CustomValueTagComboBox(controller);
                             tagComboBox.setWidthFull();
@@ -304,10 +318,19 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
                                                     .tags(event.getValue()))));
                             return tagComboBox;
                         }))
-                        .setKey(ColumnKey.TAGS.toString())
-                        .setHeader(ColumnKey.TAGS.toString())
+                        .setKey(ColumnKey.TAGS_COMBO.toString())
+                        .setHeader(ColumnKey.TAGS_COMBO.toString())
+                        .setAutoWidth(true)
                         .setFlexGrow(1)
                         .setClassName("tag-column");
+
+                case TAGS -> treeGrid.addColumn(
+                                t -> t.task().tags().stream()
+                                        .map(Tag::name)
+                                        .collect(Collectors.joining(" | ")))
+                        .setKey(ColumnKey.TAGS.toString())
+                        .setHeader(ColumnKey.TAGS.toString())
+                        .setFlexGrow(1);
 
                 case DESCRIPTION -> treeGrid.addColumn(LitRenderer.<T>of(
                         inlineVaadinIconLitExpression("eye",
@@ -333,43 +356,24 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
-                case PROJECT_DURATION_LIMIT -> {
-                    HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
-                            headerIcon(VaadinIcon.FILE_TREE),
-                            headerIcon(VaadinIcon.CLOCK));
-                    timeEstimateColumnHeader.setSpacing(false);
-                    timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-
-                    treeGrid.addColumn(
-                            durationEstimateValueProviderFactory.get(
-                                    DurationEstimateValueProvider.DurationType.PROJECT_DURATION))
-                            .setKey(ColumnKey.PROJECT_DURATION_LIMIT.toString())
-                            .setHeader(headerIcon(VaadinIcon.FILE_TREE_SMALL))
-                            .setWidth(DURATION_COL_WIDTH)
-                            .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
-                }
-
-                case TIME_ESTIMATE -> {
-                    HorizontalLayout timeEstimateColumnHeader = new HorizontalLayout(
-                            headerIcon(VaadinIcon.FILE_TREE_SUB),
-                            headerIcon(VaadinIcon.CLOCK));
-                    timeEstimateColumnHeader.setSpacing(false);
-                    timeEstimateColumnHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-
+                case NET_DURATION -> {
+                    Button columnHeaderButton = new Button(new Span(
+                            headerIconPrimary(VaadinIcon.FILE_TREE_SUB),
+                            headerIconPrimary(VaadinIcon.CLOCK)));
+                    columnHeaderButton.addThemeVariants(ButtonVariant.LUMO_ICON);
 
                     DurationEstimateValueProvider<T> provider = durationEstimateValueProviderFactory.get(
                             DurationEstimateValueProvider.DurationType.NET_DURATION);
-                    timeEstimateColumnHeader.addSingleClickListener(event -> {
-                        log.debug("Toggle time estimate format");
+                    columnHeaderButton.addSingleClickListener(event -> {
+                        log.debug("Toggle net duration format");
                         provider.toggleFormat();
                         treeGrid.getDataProvider().refreshAll();
                     });
-                    timeEstimateColumnHeader.addClassName(K.ICON_COLOR_COMPLEMENTARY);
+                    columnHeaderButton.addClassName(K.ICON_COLOR_COMPLEMENTARY);
 
                     treeGrid.addColumn(provider)
-                            .setKey(ColumnKey.TIME_ESTIMATE.toString())
-                            .setHeader(timeEstimateColumnHeader)
+                            .setKey(ColumnKey.NET_DURATION.toString())
+                            .setHeader(columnHeaderButton)
                             .setWidth(DURATION_COL_WIDTH)
                             .setFlexGrow(0)
                             .setTextAlign(ColumnTextAlign.CENTER);
@@ -427,8 +431,8 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div {
         form.saveAsLastCheckbox().setVisible(false);
         form.addClassNames(LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.NONE,
                 LumoUtility.BoxSizing.BORDER);
-        form.onClear(() -> editor.cancel());
-        form.onSave(() -> editor.save());
+        form.afterClear(() -> editor.cancel());
+        form.afterSuccessfulSave(() -> editor.save());
 
         editor.setBinder(this.setEditorBinder(form));
 

@@ -7,16 +7,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 public class TagComboBox extends MultiSelectComboBox<Tag> {
     protected final ClientDataController controller;
     @Setter
     @Getter
-    protected Set<Tag> items = new HashSet<>();
+    protected Collection<Tag> items = new HashSet<>();
 
     public TagComboBox(ClientDataController controller) {
         super();
@@ -37,7 +36,7 @@ public class TagComboBox extends MultiSelectComboBox<Tag> {
     }
 
     private void fetchTags() {
-        items = controller.services().query().fetchAllTags().collect(Collectors.toSet());
+        items = controller.taskNetworkGraph().tagMap().values();
         setItems(items);
     }
 }

@@ -27,9 +27,6 @@ public class Task implements TaskData<Task, Tag>, PersistedDataDO<TaskID> {
     private Boolean project;
     private Set<Tag> tags;
 
-    @Setter
-    private Boolean hasChildren;
-
     public Task() {
         id = null;
     }
@@ -51,7 +48,6 @@ public class Task implements TaskData<Task, Tag>, PersistedDataDO<TaskID> {
         if (this.tags != null) {
             copy.tags = new HashSet<>(this.tags);
         }
-        copy.hasChildren = this.hasChildren;
 
         return copy;
     }

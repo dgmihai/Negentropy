@@ -1,10 +1,11 @@
-package com.trajan.negentropy.client.controller;
+package com.trajan.negentropy.client.controller.dataproviders;
 
+import com.trajan.negentropy.client.controller.SessionServices;
+import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
-import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 public class TaskEntryDataProviderManager {
     @Autowired private SessionServices services;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
+
 //
 //    @Getter private final Set<TaskEntryTreeGrid> treeGrids = new HashSet<>();
 
@@ -58,6 +59,9 @@ public class TaskEntryDataProviderManager {
         for (TaskEntryDataProvider provider : allProviders) {
             provider.refreshAll();
         }
+
+        pendingTaskRefresh.clear();
+        pendingNodeRefresh.clear();
     }
 
     public TaskEntryDataProvider create() {
@@ -87,11 +91,19 @@ public class TaskEntryDataProviderManager {
         public void refreshTasks(Map<TaskID, Boolean> taskIdMap) {
             for (Entry<TaskID, Boolean> mapEntry : taskIdMap.entrySet()) {
                 TaskID id = mapEntry.getKey();
-                List<TaskEntry> taskEntries = taskTaskEntriesMap.get(id);
+                if (taskTaskEntriesMap.containsKey(id)) {
+                    List<TaskEntry> taskEntries = taskTaskEntriesMap.get(id);
 
-                for (TaskEntry entry : taskEntries) {
-                    entry.node().child((networkGraph.taskMap().get(id)));
-                    this.refreshItem(entry, mapEntry.getValue());
+                    for (TaskEntry entry : taskEntries) {
+                        entry.node((networkGraph.nodeMap().get(entry.node().id())));
+                        entry.node().child(networkGraph.taskMap().get(id));
+                        if (rootEntry == null ||
+                                (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
+                            refreshAll();
+                            return;
+                        }
+                        this.refreshItem(entry, mapEntry.getValue());
+                    }
                 }
             }
         }
@@ -99,11 +111,18 @@ public class TaskEntryDataProviderManager {
         public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {
             for (Entry<LinkID, Boolean> mapEntry : linkIdMap.entrySet()) {
                 LinkID id = mapEntry.getKey();
-                List<TaskEntry> taskEntries = linkTaskEntriesMap.get(id);
+                log.debug("Refreshing node with id {}", id);
+                if (linkTaskEntriesMap.containsKey(id)) {
+                    List<TaskEntry> taskEntries = linkTaskEntriesMap.get(id);
 
-                for (TaskEntry entry : taskEntries) {
-                    entry.node(networkGraph.nodeMap().get(id));
-                    this.refreshItem(entry, mapEntry.getValue());
+                    for (TaskEntry entry : taskEntries) {
+                        entry.node((networkGraph.nodeMap().get(entry.node().id())));
+                        if (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id())) {
+                            refreshAll();
+                            return;
+                        }
+                        this.refreshItem(entry, mapEntry.getValue());
+                    }
                 }
             }
         }
@@ -120,6 +139,7 @@ public class TaskEntryDataProviderManager {
 
         public void setFilter(TaskFilter filter) {
             this.filteredLinks = networkGraph.getFilteredLinks(getRootTaskID(), filter);
+            this.refreshAll();
         }
 
         @Override
@@ -128,13 +148,8 @@ public class TaskEntryDataProviderManager {
         }
 
         @Override
-        public int size(Query<TaskEntry, Void> query) {
-            return super.size(query);
-        }
-
-        @Override
         public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
-            log.debug("Getting child count for query: " + query);
+            log.debug("Getting child count for " + query.getParent());
             TaskID parentTaskID = query.getParent() != null ? query.getParent().task().id() : getRootTaskID();
             return networkGraph.getChildCount(parentTaskID, this.filteredLinks);
         }
@@ -151,21 +166,21 @@ public class TaskEntryDataProviderManager {
             }
 
             log.debug("Fetching children for parent " + parent);
-            return networkGraph.getChildren(parentTaskID, this.filteredLinks).stream()
+            Stream<TaskEntry> results = networkGraph.getChildren(parentTaskID, this.filteredLinks).stream()
                     .map(node -> {
                         log.trace("Fetching child: " + node);
-                        TaskEntry entry = new TaskEntry(parent, networkGraph.nodeMap().get(node.id()), Duration.ZERO);
-                        taskTaskEntriesMap.add(node.task().id(), entry);
+                        TaskEntry entry = new TaskEntry(parent, networkGraph.nodeMap().get(node.id()));taskTaskEntriesMap.add(node.task().id(), entry);
                         linkTaskEntriesMap.add(node.id(), entry);
                         log.trace("Adding new entry: " + entry);
                         return entry;
                     });
+            return results;
         }
 
         @Override
         public boolean hasChildren(TaskEntry item) {
-            boolean result = item.task().hasChildren();
-            log.debug("Item {} has children: {}", item.task().name(), result);
+            boolean result = networkGraph.hasChildren(item.task().id());
+            log.trace("Item {} has children: {}", item.task().name(), result);
             return result;
         }
     }

@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.controller;
+package com.trajan.negentropy.client.controller.dataproviders;
 
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.entity.TimeableStatus;

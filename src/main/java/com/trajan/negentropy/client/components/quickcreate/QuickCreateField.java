@@ -6,10 +6,9 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
-import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.textfield.TextField;
@@ -55,6 +54,8 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
             task = null;
             nodeDTO = null;
         });
+
+        afterSave(this::clear);
     }
 
     public void save() {
@@ -63,26 +64,30 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
             try {
                 parse(input);
 
-                saveRequest(null, InsertLocation.CHILD);
+                TaskNode result = save(controller.activeTaskNodeView().rootNodeId().orElse(null),
+                        InsertLocation.LAST);
+                if (result != null) {
+                    this.clear();
+                }
             } catch (QuickCreateParser.ParseException e) {
                 NotificationError.show(e);
-                onFailedSave(new Response(false, e.getMessage()));
+                this.setErrorMessage(e.getMessage());
             }
         }
     }
 
     @Override
-    public Response hasValidTask() {
+    public boolean isValid() {
         String input = this.getValue();
         if (!input.isBlank()) {
             try {
                 parse(input);
-                return Response.ok();
+                return true;
             } catch (QuickCreateParser.ParseException e) {
-                return new Response(false, e.getMessage());
+                return false;
             }
         } else {
-            return new Response(false, K.QUICK_CREATE + " input is blank");
+            return false;
         }
     }
 
@@ -100,15 +105,5 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
     @Override
     public TaskNodeInfoData<TaskNodeDTO> getNodeInfo() {
         return nodeDTO;
-    }
-
-    @Override
-    public void onSuccessfulSave(HasTaskNodeData data) {
-        this.clear();
-    }
-
-    @Override
-    public void onFailedSave(Response response) {
-        this.setErrorMessage(response.message());
     }
 }

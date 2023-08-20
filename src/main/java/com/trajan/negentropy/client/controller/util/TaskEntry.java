@@ -7,8 +7,6 @@ import com.trajan.negentropy.model.interfaces.Descendant;
 import lombok.*;
 import lombok.experimental.Accessors;
 
-import java.time.Duration;
-
 @AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
@@ -19,8 +17,6 @@ public class TaskEntry implements HasTaskNodeData, Descendant<TaskEntry> {
     @ToString.Exclude
     private TaskEntry parent;
     private TaskNode node;
-    @EqualsAndHashCode.Exclude
-    private Duration netDuration;
 
     @Override
     public Task task() {

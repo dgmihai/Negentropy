@@ -11,6 +11,7 @@ import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
@@ -30,10 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
@@ -237,5 +235,10 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
         this.routine = null;
         TreeData<RoutineStep> treeData = new TreeData<>();
         treeGrid.setTreeData(treeData);
+    }
+
+    @Override
+    public Optional<LinkID> rootNodeId() {
+        return Optional.of(routine.rootStep().node().id());
     }
 }

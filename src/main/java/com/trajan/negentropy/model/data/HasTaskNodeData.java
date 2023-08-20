@@ -10,7 +10,6 @@ import java.time.Duration;
 
 public interface HasTaskNodeData extends HasTaskData {
     TaskNode node();
-
     default Task task() {
         return node().task();
     }

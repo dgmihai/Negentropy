@@ -3,7 +3,7 @@ package com.trajan.negentropy.server.backend;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
+import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
@@ -258,15 +258,15 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskFilter filter);
 
-    Map<TaskID, Duration> getAllTimeEstimates(TaskFilter filter);
+    Map<TaskID, Duration> getAllNetDurations(TaskFilter filter);
 
-    TotalDurationEstimate getTimeEstimate(TaskID taskId);
+    NetDuration getNetDuration(TaskID taskId);
 
-    TotalDurationEstimate getTimeEstimate(TaskID taskId, int importance);
+    NetDuration getNetDuration(TaskID taskId, int importance);
 
-    Stream<TotalDurationEstimate> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
+    Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 
-    Duration calculateTotalDuration(TaskID taskId, TaskFilter filter);
+    Duration calculateNetDuration(TaskID taskId, TaskFilter filter);
 
     int getLowestImportanceOfDescendants(TaskID ancestorId);
 

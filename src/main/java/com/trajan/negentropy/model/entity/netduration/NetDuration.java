@@ -1,6 +1,7 @@
-package com.trajan.negentropy.model.entity.totalduration;
+package com.trajan.negentropy.model.entity.netduration;
 
 import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.server.backend.sync.NetDurationSyncListener;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,14 +12,15 @@ import lombok.experimental.Accessors;
 import java.time.Duration;
 
 @Entity
-@Table(name = "task_duration_estimates")
+@EntityListeners(NetDurationSyncListener.class)
+@Table(name = "net_durations")
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
-@IdClass(TotalDurationEstimateID.class)
-public class TotalDurationEstimate {
+@IdClass(NetDurationID.class)
+public class NetDuration {
     @Id
     @ManyToOne(cascade = {
             CascadeType.PERSIST,
@@ -29,5 +31,5 @@ public class TotalDurationEstimate {
     @Id
     private int importance = 0;
 
-    private Duration totalDuration = Duration.ZERO;
+    private Duration netDuration = Duration.ZERO;
 }

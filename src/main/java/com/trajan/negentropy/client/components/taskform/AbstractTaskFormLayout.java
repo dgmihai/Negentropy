@@ -5,7 +5,11 @@ import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.ClearEvents;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.model.TaskNode;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
@@ -24,14 +28,14 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
-public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout implements TaskNodeProvider {
+public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
+        implements TaskNodeProvider, ClearEvents {
     protected TextField nameField;
     protected TextField durationField;
     protected TextField cronField;
@@ -47,15 +51,10 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout 
 
     protected Button saveButton;
     protected Button clearButton;
+
     @Getter
     protected Checkbox saveAsLastCheckbox;
     protected Select<String> onSaveSelect;
-
-    @Setter
-    private Runnable onClear = () -> { };
-
-    @Setter
-    protected Runnable onSave = () -> { };
 
     @Getter
     protected ClientDataController controller;
@@ -103,38 +102,41 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout 
         clearButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
         onSaveSelect = new Select<>();
-        onSaveSelect.setItems(Arrays.stream(OnSuccessfulSave.values())
-                .map(OnSuccessfulSave::toString)
+        onSaveSelect.setItems(Arrays.stream(OnSuccessfulSaveActions.values())
+                .map(OnSuccessfulSaveActions::toString)
                 .collect(Collectors.toSet()));
-        onSaveSelect.setValue(OnSuccessfulSave.CLEAR.toString());
+    }
+
+    public TaskNode save() {
+        InsertLocation location = saveAsLastCheckbox.getValue() ?
+                InsertLocation.LAST :
+                InsertLocation.FIRST;
+        // TODO: Location
+        TaskNode result = save(
+                controller.activeTaskNodeView().rootNodeId().orElse(null),
+                location);
+
+        if (result != null) {
+            this.clear();
+        }
+
+        return result;
     }
 
     protected void configureInteractions() {
-        Runnable onSaveValid = () -> {
-            if (this.isValid()) {
-                onSave.run();
-                nameField.focus();
-            }
-        };
-
-        saveButton.addClickListener(event -> {
-            onSaveValid.run();
-            nameField.focus();
-        });
+        saveButton.addClickListener(event -> this.save());
         clearButton.addClickListener(event -> this.clear());
 
         Shortcuts.addShortcutListener(this,
-                onSaveValid::run,
+                this::save,
                 Key.ENTER);
 
         Shortcuts.addShortcutListener(this,
                 this::clear,
                 Key.ESCAPE);
 
-        clearButton.addClickListener(e -> onClear.run());
+        afterSave(() -> nameField.focus());
     }
-
-    abstract boolean isValid();
 
     abstract void configureBindings();
 
@@ -187,10 +189,5 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout 
 
         this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout, projectDurationField,
                 buttonLayout);
-    }
-
-    public void clear() {
-        this.onClear.run();
-        this.clearAllFields();
     }
 }

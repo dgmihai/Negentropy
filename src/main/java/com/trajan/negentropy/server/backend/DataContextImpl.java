@@ -1,22 +1,22 @@
 package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.trajan.negentropy.model.Tag;
-import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.entity.totalduration.TotalDurationEstimate;
+import com.trajan.negentropy.model.entity.netduration.NetDuration;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
+import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +40,7 @@ public class DataContextImpl implements DataContext {
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
     @Autowired private TagRepository tagRepository;
+    @Autowired private NetDurationRecalculator netDurationRecalculator;
 
     @PostConstruct
     public void onStart() {
@@ -47,21 +48,21 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public void addToTimeEstimateOfAllAncestors(Duration change, TaskID descendantId) {
+    public void addToNetDurationOfAllAncestors(Duration change, TaskID descendantId) {
         entityQueryService.findAncestorLinks(descendantId, null)
                 .map(TaskLink::child)
                 .filter(Objects::nonNull)
                 .distinct()
                 .forEach(task -> {
-                    this.addToTimeEstimateOfTask(change, ID.of(task));
+                    this.addToNetDurationOfTask(change, ID.of(task));
                 });
     }
 
     @Override
-    public void addToTimeEstimateOfTask(Duration change, TaskID taskId) {
+    public void addToNetDurationOfTask(Duration change, TaskID taskId) {
         log.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
-        TotalDurationEstimate timeEstimate = entityQueryService.getTimeEstimate(taskId);
-        timeEstimate.totalDuration(timeEstimate.totalDuration().plus(change));
+        NetDuration netDuration = entityQueryService.getNetDuration(taskId);
+        netDuration.netDuration(netDuration.netDuration().plus(change));
     }
 
     @Override
@@ -77,7 +78,7 @@ public class DataContextImpl implements DataContext {
             taskEntity = taskRepository.save(new TaskEntity()
                     .name(task.name()));
 
-            taskEntity.timeEstimates().add(new TotalDurationEstimate(
+            taskEntity.netDurations().add(new NetDuration(
                     taskEntity,
                     0,
                     Objects.requireNonNullElse(
@@ -88,7 +89,7 @@ public class DataContextImpl implements DataContext {
 
             if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
                 Duration change = task.duration().minus(taskEntity.duration());
-                this.addToTimeEstimateOfAllAncestors(change, task.id());
+                this.addToNetDurationOfAllAncestors(change, task.id());
             }
         }
 
@@ -127,8 +128,7 @@ public class DataContextImpl implements DataContext {
                 template.duration(),
                 template.required(),
                 template.project(),
-                template.tags(),
-                null);
+                template.tags());
         return this.mergeTask(task);
     }
 
@@ -137,9 +137,8 @@ public class DataContextImpl implements DataContext {
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
-        boolean updatedCron = !(Objects.equals(linkEntity.cron(), node.cron()));
-        boolean updatedCompleted = (node.completed() != null && node.completed()) &&
-                (linkEntity.completed() != null && !linkEntity.completed());
+        boolean cronChanged = (node.cron() != null && !(Objects.equals(linkEntity.cron(), node.cron())));
+        boolean isBeingCompleted = (node.completed() != null && !linkEntity.completed() && node.completed());
 
         linkEntity
                 .importance(Objects.requireNonNullElse(
@@ -153,16 +152,17 @@ public class DataContextImpl implements DataContext {
                         node.projectDuration())
                         .orElse(linkEntity.projectDuration()));
 
-        boolean scheduled = linkEntity.cron() != null;
+        boolean hasCron = linkEntity.cron() != null;
 
-        if (updatedCron && scheduled) {
+        if (cronChanged && hasCron) {
             linkEntity.scheduledFor(DataContext.now());
-        } else if (updatedCompleted && scheduled) {
+        }
+        if (isBeingCompleted && linkEntity.recurring()) {
             log.debug("Updating scheduled time");
-            linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
-            if (linkEntity.completed()) {
-                linkEntity.completed(false);
+            if (hasCron) {
+                linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
             }
+            linkEntity.completed(false);
         }
         
         log.debug("Merged task link from node: " + linkEntity);
@@ -241,10 +241,10 @@ public class DataContextImpl implements DataContext {
                 projectDuration));
 
         if (parent != null) {
-            Duration change = entityQueryService.getTimeEstimate(ID.of(child)).totalDuration();
+            Duration change = entityQueryService.getNetDuration(ID.of(child)).netDuration();
             TaskID parentId = ID.of(parent);
 
-            this.addToTimeEstimateOfAllAncestors(change, parentId);
+            this.addToNetDurationOfAllAncestors(change, parentId);
             try {
                 parent.childLinks().add(link.position(), link);
             } catch (IndexOutOfBoundsException e) {
@@ -264,7 +264,7 @@ public class DataContextImpl implements DataContext {
         return this.mergeNode(new TaskNode(
                 linkId,
                 link.parentId(),
-                DataContext.toDO(link.child()),
+                this.toDO(link.child()),
                 link.position(),
                 nodeTemplate.importance(),
                 link.createdAt(),
@@ -310,14 +310,12 @@ public class DataContextImpl implements DataContext {
         }
 
         child.parentLinks().remove(link);
-
         linkRepository.delete(link);
 
-
-        Duration change = entityQueryService.getTimeEstimate(ID.of(child)).totalDuration()
+        Duration change = entityQueryService.getNetDuration(ID.of(child)).netDuration()
             .negated();
         TaskID parentId = ID.of(parent);
-        this.addToTimeEstimateOfAllAncestors(change, parentId);
+        this.addToNetDurationOfAllAncestors(change, parentId);
     }
 
     @Override
@@ -335,5 +333,76 @@ public class DataContextImpl implements DataContext {
     @VisibleForTesting
     public TaskLink TESTONLY_mergeLink(TaskLink link) {
         return linkRepository.save(link);
+    }
+
+    @Override
+    public Tag toDO(TagEntity tagEntity) {
+        return new Tag(
+                ID.of(tagEntity),
+                tagEntity.name());
+    }
+
+    @Override
+    public Task toDO(TaskEntity taskEntity) {
+        return new Task(ID.of(taskEntity),
+                taskEntity.name(),
+                taskEntity.description(),
+                taskEntity.duration(),
+                taskEntity.required(),
+                taskEntity.project(),
+                taskEntity.tags().stream()
+                        .map(this::toDO)
+                        .collect(Collectors.toSet()));
+    }
+
+    @Override
+    public TaskNode toDO(TaskLink link) {
+        return new TaskNode(
+                ID.of(link),
+                ID.of(link.parent()),
+                toDO(link.child()),
+                link.position(),
+                link.importance(),
+                link.createdAt(),
+                link.completed(),
+                link.recurring(),
+                link.cron(),
+                link.scheduledFor(),
+                link.projectDuration());
+    }
+
+    @Override
+    public Routine toDO(RoutineEntity routineEntity) {
+        return new Routine(
+                ID.of(routineEntity),
+                routineEntity.steps().stream()
+                        .map(this::toDO)
+                        .toList(),
+                routineEntity.currentPosition(),
+                routineEntity.estimatedDuration(),
+                routineEntity.estimatedDurationLastUpdatedTime(),
+                routineEntity.status());
+    }
+
+    @Override
+    public RoutineStep toDO(RoutineStepEntity routineStepEntity) {
+        return new RoutineStep(
+                ID.of(routineStepEntity),
+                routineStepEntity.link() != null
+                        ? toDO(routineStepEntity.link())
+                        : null,
+                routineStepEntity.taskRecord() != null
+                        ? toDO(routineStepEntity.taskRecord())
+                        : null,
+                ID.of(routineStepEntity.routine()),
+                ID.of(routineStepEntity.parent()),
+                routineStepEntity.children().stream()
+                        .map(this::toDO)
+                        .toList(),
+                routineStepEntity.startTime(),
+                routineStepEntity.finishTime(),
+                routineStepEntity.lastSuspendedTime(),
+                routineStepEntity.elapsedSuspendedDuration(),
+                routineStepEntity.status());
     }
 }

@@ -5,10 +5,8 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.filter.TaskFilter;
-import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.component.listbox.MultiSelectListBox;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +42,8 @@ public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodePro
     }
 
     @Override
-    public Response hasValidTask() {
-        if (this.getValue() != null) {
-            return Response.ok();
-        } else {
-            return new Response(false, "No valid existing task selected.");
-        }
+    public boolean isValid() {
+        return this.getValue() != null;
     }
 
     @Override
@@ -60,15 +54,5 @@ public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodePro
     @Override
     public TaskNodeDTOData<?> getNodeInfo() {
         return new TaskNodeDTO();
-    }
-
-    @Override
-    public void onSuccessfulSave(HasTaskNodeData node) {
-        // No-op
-    }
-
-    @Override
-    public void onFailedSave(Response response) {
-        // No-op
     }
 }

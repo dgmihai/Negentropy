@@ -2,16 +2,17 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
-import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
@@ -20,6 +21,10 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     private final Binder<Task> taskBinder = new BeanValidationBinder<>(Task.class);
     @Getter
     private final Binder<TaskNodeDTO> nodeBinder = new BeanValidationBinder<>(TaskNodeDTO.class);
+
+    @Getter
+    @Setter
+    protected Runnable onClose = () -> {};
 
     public TaskFormLayout(ClientDataController controller) {
         super(controller);
@@ -33,8 +38,24 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     }
 
     @Override
-    boolean isValid() {
-        return taskBinder.isValid();
+    public TaskNode save() {
+        TaskNode result = super.save();
+        switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+            case CLEAR -> this.onClear();
+            case PERSIST -> {
+                nodeBinder.setBean(result.toDTO());
+                taskBinder.setBean(result.task());
+            }
+            case KEEP_TEMPLATE -> nameField.clear();
+            case CLOSE -> onClose.run();
+        }
+
+        return result;
+    }
+
+    @Override
+    public void onClear() {
+        this.clearAllFields();
     }
 
     @Override
@@ -49,7 +70,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         nodeBinder.forField(cronField)
                 .withConverter(new CronConverter())
-                .bind(TaskNodeDTO::cron, TaskNodeDTO::cron);
+                .bind(TaskNodeDTOData::cron, TaskNodeDTOData::cron);
 
         taskBinder.forField(descriptionArea)
                 .bind(Task::description, Task::description);
@@ -63,11 +84,11 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(Task::required, Task::required);
 
         nodeBinder.forField(recurringCheckbox)
-                .bind(TaskNodeDTO::recurring, TaskNodeDTO::recurring);
+                .bind(TaskNodeDTOData::recurring, TaskNodeDTOData::recurring);
 
         nodeBinder.forField(projectDurationField)
                 .withConverter(new DurationConverter())
-                .bind(TaskNodeDTO::projectDuration, TaskNodeDTO::projectDuration);
+                .bind(TaskNodeDTOData::projectDuration, TaskNodeDTOData::projectDuration);
 
         taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);
@@ -79,13 +100,13 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     }
 
     @Override
-    public Response hasValidTask() {
-        return new Response(taskBinder.isValid(), "Task in form is invalid");
+    public boolean isValid() {
+        return taskBinder.isValid();
     }
 
     @Override
     public Task getTask() {
-        return hasValidTask().success()
+        return isValid()
                 ? taskBinder.getBean()
                 : null;
     }
@@ -93,22 +114,5 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     @Override
     public TaskNodeDTOData<?> getNodeInfo() {
         return nodeBinder.getBean();
-    }
-
-    @Override
-    public void onSuccessfulSave(HasTaskNodeData data) {
-        switch (OnSuccessfulSave.get(onSaveSelect.getValue()).orElseThrow()) {
-            case CLEAR -> this.clear();
-            case PERSIST -> {
-                nodeBinder.setBean(data.node().toDTO());
-                taskBinder.setBean(data.task());
-            }
-            case KEEP_TEMPLATE -> nameField.clear();
-        }
-    }
-
-    @Override
-    public void onFailedSave(Response response) {
-        // No-op
     }
 }

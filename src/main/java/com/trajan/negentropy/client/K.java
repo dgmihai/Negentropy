@@ -14,6 +14,8 @@ public class K {
     public static final String ICON_COLOR_COMPLEMENTARY = "complementary-color-icon";
     public static final String ICON_COLOR_ERROR = "error-color-icon";
     public static final String ICON_COLOR_GRAYED = "grayed-color-icon";
+    public static final String ICON_COLOR_BRIGHT = "bright-color-icon";
+
 
     public static final String QUICK_CREATE = "Quick Create";
 

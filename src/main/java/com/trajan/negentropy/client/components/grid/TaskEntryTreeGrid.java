@@ -6,9 +6,9 @@ import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeDataFormLayout;
-import com.trajan.negentropy.client.controller.TaskEntryDataProviderManager;
-import com.trajan.negentropy.client.controller.TaskEntryDataProviderManager.TaskEntryDataProvider;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
+import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
+import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager.TaskEntryDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -19,7 +19,6 @@ import com.trajan.negentropy.client.util.cron.CronValueProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
 import com.vaadin.flow.component.Component;
@@ -70,9 +69,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     @Autowired private TaskEntryDataProviderManager dataProviderManager;
     private TaskEntryDataProvider gridDataProvider;
 
-    private TaskEntry rootEntry = null;
-    private TaskFilter filter = null;
-    private List<LinkID> filteredList = null;
+    protected static final String CRON_WIDTH = "120px";
+    protected static final String DATE_WIDTH = "120px";
 
     public static final List<ColumnKey> excludedColumns = List.of(
             ColumnKey.STATUS,
@@ -153,14 +151,19 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             case COMPLETE -> {
                 Grid.Column<TaskEntry> completedColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                         inlineVaadinIconLitExpression("check",
-                                                "?active=\"${!item.completed}\" "))
+                                                "?active=\"${!item.completed}\" " +
+                                                        "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry -> {
                                     controller.requestChange(Change.merge(
                                             new TaskNode(entry.node().linkId())
                                                     .completed(!entry.node().completed())));
                                 })
                                 .withProperty("completed", entry ->
-                                        entry.node().completed()))
+                                        entry.node().completed())
+                                .withProperty("hidden", entry ->
+                                        entry.node().recurring()
+                                        && entry.node().cron() == null
+                                        && !entry.node().completed()))
                         .setKey(ColumnKey.COMPLETE.toString())
                         .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
                         .setWidth(ICON_COL_WIDTH_L)
@@ -202,7 +205,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 cronValueProvider.apply(entry.node().cron()))
                         .setKey(ColumnKey.CRON.toString())
                         .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
-                        .setAutoWidth(false)
+                        .setWidth(CRON_WIDTH)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -216,7 +219,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     })
                     .setKey(ColumnKey.SCHEDULED_FOR.toString())
                     .setHeader(headerIcon(VaadinIcon.CALENDAR))
-                    .setAutoWidth(false)
+                    .setWidth(DATE_WIDTH)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -440,6 +443,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         return null;
     }
 
+    @Override
+    public Optional<LinkID> rootNodeId() {
+        return gridDataProvider.rootEntry() != null
+                ? Optional.of(gridDataProvider.rootEntry().node().id())
+                : Optional.empty();
+    }
+
     private class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {
 
         public TaskTreeContextMenu(TreeGrid<TaskEntry> grid) {
@@ -539,7 +549,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 } else {
                     boolean hasActiveTaskProvider =
                             controller.activeTaskNodeProvider() != null &&
-                                    controller.activeTaskNodeProvider().hasValidTask().success();
+                                    controller.activeTaskNodeProvider().isValid();
 
                     if (hasActiveTaskProvider) {
                         try {
@@ -558,7 +568,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     multiEdit.setVisible(treeGrid.getSelectedItems().size() > 1);
                     multiEdit.setText("Edit " + treeGrid.getSelectedItems().size() + " tasks");
 
-                    activeTaskSubMenu.getItems().forEach(menuItem -> setEnabled(hasActiveTaskProvider));
+                    activeTaskSubMenu.getItems().forEach(menuItem -> menuItem.setEnabled(hasActiveTaskProvider));
 
                     startRoutine.setEnabled(true);
                     remove.setEnabled(true);

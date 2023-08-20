@@ -288,7 +288,7 @@ package com.trajan.negentropy.server.facade;//package com.trajan.negentropy.serv
 //    @Override
 //    public void recalculateTimeEstimates() {
 //        timeEstimateRepository.findAll()
-//                .forEach(estimate -> estimate.totalDuration(Duration.ZERO));
+//                .forEach(estimate -> estimate.netDuration(Duration.ZERO));
 //
 //        entityQueryService.findTasks(null)
 //                .forEach(task -> {
@@ -300,7 +300,7 @@ package com.trajan.negentropy.server.facade;//package com.trajan.negentropy.serv
 //                            )
 //                            .reduce(task.duration(),
 //                                    Duration::plus);
-//                    task.timeEstimates().get(0).totalDuration(sum);
+//                    task.netDurations().get(0).netDuration(sum);
 //        });
 //    }
 //}

@@ -2,13 +2,13 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
-import com.trajan.negentropy.server.facade.response.Response;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
@@ -29,11 +29,6 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
         configureAll();
 
         projectDurationField.setVisible(node.task().project());
-    }
-
-    @Override
-    boolean isValid() {
-        return binder.isValid();
     }
 
     @Override
@@ -90,6 +85,10 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
                         node -> node.node().projectDuration(),
                         (node, projectDuration) -> node.node().projectDuration(projectDuration));
 
+        onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
+        onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(
+                OnSuccessfulSaveActions.valueOf(onSaveSelect.getValue())));
+
         saveButton.setEnabled(binder.isValid());
         binder.addValueChangeListener(e -> {
             saveButton.setEnabled(binder.isValid());
@@ -97,13 +96,13 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
     }
 
     @Override
-    public Response hasValidTask() {
-        return new Response(binder.isValid(), "Task in form is invalid");
+    public boolean isValid() {
+        return binder.isValid();
     }
 
     @Override
     public Task getTask() {
-        return hasValidTask().success()
+        return isValid()
                 ? binder.getBean().task()
                 : null;
     }
@@ -114,24 +113,23 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
     }
 
     @Override
-    public void onSuccessfulSave(HasTaskNodeData data) {
-        switch (OnSuccessfulSave.get(onSaveSelect.getValue()).orElseThrow()) {
-            case CLEAR -> this.clear();
-            case PERSIST -> {
-                try {
-                    T binderData = clazz.getConstructor().newInstance();
-                    binder.setBean(binderData);
-                } catch (Exception e) {
-                    NotificationError.show(e);
-                    this.clear();
-                }
-            }
-            case KEEP_TEMPLATE -> nameField.clear();
-        }
-    }
+    public void onClear() { }
 
     @Override
-    public void onFailedSave(Response response) {
-        // No-op
+    public TaskNode save() {
+        return super.save();
+//        switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+//            case CLEAR -> this.clear();
+//            case PERSIST -> {
+//                try {
+//                    T binderData = clazz.getConstructor().newInstance();
+//                    binder.setBean(binderData);
+//                } catch (Exception e) {
+//                    NotificationError.show(e);
+//                    this.clear();
+//                }
+//            }
+//            case KEEP_TEMPLATE -> nameField.clear();
+//        }
     }
 }

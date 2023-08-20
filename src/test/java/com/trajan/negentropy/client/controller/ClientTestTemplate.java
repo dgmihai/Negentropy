@@ -4,10 +4,8 @@ import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.server.TaskTestTemplate;
-import com.trajan.negentropy.server.facade.response.Response;
 
 import java.util.Set;
 
@@ -21,11 +19,6 @@ public class ClientTestTemplate extends TaskTestTemplate {
         }
 
         @Override
-        public Response hasValidTask() {
-            return Response.ok();
-        }
-
-        @Override
         public Task getTask() {
             return new Task()
                     .name(TEST_TASK_NAME)
@@ -36,12 +29,6 @@ public class ClientTestTemplate extends TaskTestTemplate {
         public TaskNodeInfoData<?> getNodeInfo() {
             return new TaskNodeDTO().recurring(true);
         }
-
-        @Override
-        public void onSuccessfulSave(HasTaskNodeData data) { }
-
-        @Override
-        public void onFailedSave(Response response) { }
     };
 
     protected static final String TEST_TASK_NAME = "TestTaskName";

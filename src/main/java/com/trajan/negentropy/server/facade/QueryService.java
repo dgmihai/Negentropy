@@ -220,9 +220,9 @@ public interface QueryService {
      */
     Stream<Tag> fetchTags(TaskID taskId);
 
-    Map<TaskID, Duration> fetchAllTimeEstimates(TaskFilter filter);
+    Map<TaskID, Duration> fetchAllNetDurations(TaskFilter filter);
 
-    Duration fetchTimeEstimate(TaskID taskId, TaskFilter filter);
+    Duration fetchNetDuration(TaskID taskId, TaskFilter filter);
 
     int fetchLowestImportanceOfDescendants(TaskID ancestorId);
 

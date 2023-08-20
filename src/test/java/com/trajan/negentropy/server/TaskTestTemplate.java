@@ -110,7 +110,7 @@ public class TaskTestTemplate {
                 ThreeThree
             SixAndThreeTwoFour
 
-        TAGS
+        TAGS_COMBO
 
             RepeatOnce:
                 ThreeAndFive

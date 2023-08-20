@@ -15,6 +15,7 @@ import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.PropertyId;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -51,6 +52,8 @@ public class FilterForm extends ReadOnlySettableFormLayout {
         name.setClearButtonVisible(true);
         name.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         name.setWidthFull();
+        name.setValueChangeMode(ValueChangeMode.LAZY);
+        name.setValueChangeTimeout(100);
         binder.bind(name, TaskFilter::name, TaskFilter::name);
 
         resetButton = new Button("Reset");

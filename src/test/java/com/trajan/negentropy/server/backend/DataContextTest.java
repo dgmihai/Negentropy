@@ -67,7 +67,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         taskEntity.tags(tagEntities);
 
-        Task task = DataContext.toDO(taskEntity);
+        Task task = dataContext.toDO(taskEntity);
 
         assertTask(taskEntity, task);
         assertEquals(tagEntities.size(), task.tags().size());
@@ -85,7 +85,7 @@ public class DataContextTest extends TaskTestTemplate {
     @Test
     void testTagEntityToDTO() {
         TagEntity tagEntity = dataContext.mergeTag(new TagEntity().name("Tag Name"));
-        Tag tag = DataContext.toDO(tagEntity);
+        Tag tag = dataContext.toDO(tagEntity);
 
         assertNotNull(tag);
         assertEquals(ID.of(tagEntity), tag.id());
@@ -150,7 +150,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
 
-        TaskNode taskNode = DataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -186,7 +186,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(taskLink, nextLink));
 
-        TaskNode taskNode = DataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -210,7 +210,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink));
 
-        TaskNode taskNode = DataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -237,8 +237,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(180),
                 false,
                 true,
-                originalTagEntities.stream().map(DataContext::toDO).collect(Collectors.toSet()),
-                false);
+                originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));
 
         TaskEntity mergedTaskEntity = dataContext.mergeTask(task);
 
@@ -287,7 +286,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDO(childTaskEntity),
+                dataContext.toDO(childTaskEntity),
                 1,
                 2,
                 MARK,
@@ -360,7 +359,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDO(childTaskEntity),
+                dataContext.toDO(childTaskEntity),
                 1,
                 2,
                 MARK,
@@ -404,7 +403,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                DataContext.toDO(childTaskEntity),
+                dataContext.toDO(childTaskEntity),
                 0,
                 2,
                 MARK,

@@ -68,20 +68,20 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public Routine fetchRoutine(RoutineID routineID) {
         logger.trace("fetchRoutine");
-        return DataContext.toDO(entityQueryService.getRoutine(routineID));
+        return dataContext.toDO(entityQueryService.getRoutine(routineID));
     }
 
     @Override
     public RoutineStep fetchRoutineStep(StepID stepID) {
         logger.trace("fetchRoutineStep");
-        return DataContext.toDO(entityQueryService.getRoutineStep(stepID));
+        return dataContext.toDO(entityQueryService.getRoutineStep(stepID));
     }
 
     private RoutineResponse process(
             Supplier<RoutineEntity> routineSupplier) {
         try {
             RoutineEntity routine = routineSupplier.get();
-            return new RoutineResponse(true, routine, K.OK);
+            return new RoutineResponse(true, dataContext.toDO(routine), K.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new RoutineResponse(false, null, e.getMessage());
@@ -221,7 +221,7 @@ public class RoutineServiceImpl implements RoutineService {
         logger.trace("fetchRoutines");
         return StreamSupport.stream(
                 routineRepository.findAll(this.filterByStatus(statusSet)).spliterator(), false)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     private RoutineEntity startStepSupplier(RoutineStepEntity step, RoutineEntity routine, LocalDateTime time) {
@@ -311,7 +311,7 @@ public class RoutineServiceImpl implements RoutineService {
         step.status(newStatus);
         if (newStatus.equals(TimeableStatus.COMPLETED) &&
                 (step.link().cron() != null || step.link().scheduledFor() != null)) {
-            changeService.execute(Request.of(Change.merge(DataContext.toDO(step.link())
+            changeService.execute(Request.of(Change.merge(dataContext.toDO(step.link())
                     .completed(true))));
         }
 

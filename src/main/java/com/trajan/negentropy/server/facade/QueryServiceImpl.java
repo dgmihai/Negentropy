@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.facade;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -12,7 +13,7 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.TagService;
-import com.trajan.negentropy.server.backend.repository.TotalDurationEstimateRepository;
+import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import com.trajan.negentropy.server.backend.sync.SyncManager;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,34 +28,36 @@ import java.util.stream.Stream;
 
 @Service
 @Transactional
+@Benchmark
 public class QueryServiceImpl implements QueryService {
     
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private TagService tagService;
-    @Autowired private TotalDurationEstimateRepository timeRepository;
+    @Autowired private NetDurationRepository timeRepository;
     @Autowired private SyncManager syncManager;
+    @Autowired private DataContext dataContext;
 
     @Override
     public Task fetchTask(TaskID taskId) {
-        return DataContext.toDO(entityQueryService.getTask(taskId));
+        return dataContext.toDO(entityQueryService.getTask(taskId));
     }
 
     @Override
     public Stream<Task> fetchTasks(Collection<TaskID> taskIds) {
         return entityQueryService.getTasks(taskIds)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
 
     @Override
     public TaskNode fetchNode(LinkID linkId) {
-        return DataContext.toDO(entityQueryService.getLink(linkId));
+        return dataContext.toDO(entityQueryService.getLink(linkId));
     }
 
     @Override
     public Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds) {
         return entityQueryService.getLinks(linkIds)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
@@ -66,7 +69,7 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<Task> fetchTasks(TaskFilter filter) {
         return entityQueryService.findTasks(filter)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
@@ -102,13 +105,13 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter) {
         return entityQueryService.findChildLinks(parentTaskId, filter)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(parentTaskId, filter, offset, limit)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
@@ -134,19 +137,19 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskFilter filter) {
         return entityQueryService.findChildLinks(null, filter)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(null, filter, offset, limit)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
     public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskFilter filter) {
         return entityQueryService.findDescendantLinks(ancestorId, filter)
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
@@ -157,36 +160,36 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Tag fetchTag(TagID tagId) {
-        return DataContext.toDO(tagService.getTagEntity(tagId));
+        return dataContext.toDO(tagService.getTagEntity(tagId));
     }
 
     @Override
     public Tag fetchTagByName(String tagName) {
         Optional<TagEntity> tagEntity = tagService.getTagEntityByName(tagName);
-        return tagEntity.map(DataContext::toDO).orElse(null);
+        return tagEntity.map(dataContext::toDO).orElse(null);
     }
 
 
     @Override
     public Stream<Tag> fetchAllTags() {
         return tagService.findAll().stream()
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
     public Stream<Tag> fetchTags(TaskID taskId) {
         return entityQueryService.getTask(taskId).tags().stream()
-                .map(DataContext::toDO);
+                .map(dataContext::toDO);
     }
 
     @Override
-    public Map<TaskID, Duration> fetchAllTimeEstimates(TaskFilter filter) {
-        return entityQueryService.getAllTimeEstimates(filter);
+    public Map<TaskID, Duration> fetchAllNetDurations(TaskFilter filter) {
+        return entityQueryService.getAllNetDurations(filter);
     }
 
     @Override
-    public Duration fetchTimeEstimate(TaskID taskId, TaskFilter filter) {
-        return entityQueryService.calculateTotalDuration(taskId, filter);
+    public Duration fetchNetDuration(TaskID taskId, TaskFilter filter) {
+        return entityQueryService.calculateNetDuration(taskId, filter);
         // TODO: Cache: return this.fetchNetTimeDuration(taskId, 0);
     }
 

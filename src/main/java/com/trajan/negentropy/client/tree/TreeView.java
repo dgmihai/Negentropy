@@ -47,10 +47,10 @@ public class TreeView extends Div {
     @PostConstruct
     public void init() {
         this.addClassName("tree-view");
-        this.setSizeFull();
 
 //        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
         List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid);
+        controller.activeTaskNodeView(firstTaskTreeGrid);
 
         toolbarTabSheet.init(this,
                 TabType.CLOSE_TAB,
@@ -68,7 +68,8 @@ public class TreeView extends Div {
         for (int i=0; i<grids.size(); i++) {
             TaskEntryTreeGrid grid = grids.get(i);
             grid.init(settings.treeViewColumnVisibilities().get(i));
-            grid.setSizeFull();
+            grid.setWidthFull();
+            grid.setHeight("86%");
         }
 
         setGridTiling(settings.gridTiling());
@@ -81,6 +82,7 @@ public class TreeView extends Div {
         layout.setSizeFull();
         layout.setSpacing(false);
         this.add(layout);
+        this.setSizeFull();
     }
 
     public void setGridTiling(GridTiling gridTiling) {

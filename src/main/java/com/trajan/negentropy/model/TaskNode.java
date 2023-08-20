@@ -6,7 +6,6 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.HasTaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
@@ -23,11 +22,9 @@ import java.util.Objects;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, HasTaskNodeDTOData<TaskNode>, PersistedDataDO<LinkID>, Comparable<TaskNode> {
     @EqualsAndHashCode.Include
-    @NonNull
-    private LinkID linkId;
+    private final LinkID linkId;
 
     private TaskID parentId;
-    @NotNull
     private Task child;
     private Integer position;
     private Integer importance;
@@ -42,6 +39,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
     private Duration projectDuration;
 
     public TaskNode(TaskNodeInfoData<?> taskNodeBaseData) {
+        this.linkId = null;
         this.completed = taskNodeBaseData.completed();
         this.cron = taskNodeBaseData.cron();
         this.importance = taskNodeBaseData.importance();
