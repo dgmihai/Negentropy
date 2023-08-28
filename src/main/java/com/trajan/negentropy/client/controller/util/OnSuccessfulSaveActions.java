@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 public enum OnSuccessfulSaveActions {
-    CLOSE("CLose window on save"),
+    CLOSE("Close window on save"),
     CLEAR("Clear task on save"),
     PERSIST("Keep task on save"),
     KEEP_TEMPLATE("Keep only options on save");

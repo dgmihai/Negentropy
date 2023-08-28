@@ -23,6 +23,10 @@ public interface HasTaskNodeData extends HasTaskData {
         Boolean recurring();
         T cron(CronExpression cron);
         CronExpression cron();
+
+        default String typeName() {
+            return "Task Node";
+        }
     }
 
     interface TaskNodeInfoData<T extends TaskNodeInfoData<T>> extends TaskNodeTemplateData<T> {

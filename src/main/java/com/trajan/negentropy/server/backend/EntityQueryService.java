@@ -1,9 +1,11 @@
 package com.trajan.negentropy.server.backend;
 
-import com.trajan.negentropy.model.entity.*;
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
@@ -11,7 +13,6 @@ import com.trajan.negentropy.server.backend.repository.TaskRepository;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -84,8 +85,6 @@ public interface EntityQueryService {
     Stream<TaskLink> findLinks(TaskFilter filter);
 
     Stream<LinkID> findLinkIds(TaskFilter filter);
-
-    Map<TaskEntity, List<TaskEntity>> findTasksWithAncestors(TaskFilter filter);
 
     /**
      * Counts the child tasks of a task.
@@ -205,8 +204,6 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter);
-
-    Map<TaskLink, List<TaskLink>> findAncestorLinksAsAdjacencyMap(TaskID descendantId, TaskFilter filter);
 
     /**
      * Retrieves all ancestor tasks of a given task via depth-first search.

@@ -64,7 +64,7 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
             try {
                 parse(input);
 
-                TaskNode result = save(controller.activeTaskNodeView().rootNodeId().orElse(null),
+                TaskNode result = createNode(controller.activeTaskNodeView().rootNodeId().orElse(null),
                         InsertLocation.LAST);
                 if (result != null) {
                     this.clear();

@@ -9,4 +9,8 @@ public interface RoutineData extends Data {
     RoutineData estimatedDuration(Duration duration);
     RoutineData estimatedDurationLastUpdatedTime(LocalDateTime time);
     LocalDateTime finishTime();
+
+    default String typeName() {
+        return "Routine";
+    }
 }

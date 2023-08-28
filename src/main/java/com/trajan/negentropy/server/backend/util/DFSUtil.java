@@ -43,39 +43,23 @@ public class DFSUtil {
      * @return A list of tasks from the DFS, with cumulative duration not exceeding the limit.
      * @throws IllegalArgumentException if the durationLimit is non-positive.
      */
-    public static Stream<TaskLink> traverseTaskLinksAsStream(TaskID rootId,
-                                                             Function<TaskLink, TaskID> getNextID,
-                                                             Function<TaskID, Stream<TaskLink>> getNextLinks,
-                                                             Duration durationLimit,
-                                                             Consumer<TaskLink> consumer,
-                                                             boolean withDurationLimits) {
+    public static Stream<TaskLink> traverseTaskLinks(TaskID rootId,
+                                                     Function<TaskLink, TaskID> getNextID,
+                                                     Function<TaskID, Stream<TaskLink>> getNextLinks,
+                                                     Duration durationLimit,
+                                                     Consumer<TaskLink> consumer,
+                                                     boolean withDurationLimits) {
         Stream.Builder<TaskLink> streamBuilder = Stream.builder();
         for (TaskLink nextLink : getNextLinks.apply(rootId).toList()) {
-            durationLimit = recurseTaskLinks(nextLink, streamBuilder, null, getNextID, getNextLinks, consumer,
+            durationLimit = recurseTaskLinks(nextLink, streamBuilder, getNextID, getNextLinks, consumer,
                     durationLimit, withDurationLimits);
         }
         return streamBuilder.build();
     }
 
-    public static Map<TaskLink, List<TaskLink>> traverseTaskLinksAsAdjacencyMap(
-            TaskID rootId,
-            Function<TaskLink, TaskID> getNextID,
-            Function<TaskID, Stream<TaskLink>> getNextLinks,
-            Duration durationLimit,
-            Consumer<TaskLink> consumer,
-            boolean withDurationLimits) {
-        Map<TaskLink, List<TaskLink>> adjacencyMap = new LinkedHashMap<>();
-        for (TaskLink nextLink : getNextLinks.apply(rootId).toList()) {
-            durationLimit = recurseTaskLinks(nextLink, null, adjacencyMap, getNextID, getNextLinks, consumer,
-                    durationLimit, withDurationLimits);
-        }
-        return adjacencyMap;
-    }
-
     private static Duration recurseTaskLinks(
             TaskLink currentLink,
             Stream.Builder<TaskLink> streamBuilder,
-            Map<TaskLink, List<TaskLink>> adjacencyMap,
             Function<TaskLink, TaskID> getNextID,
             Function<TaskID, Stream<TaskLink>> getNextLinks,
             Consumer<TaskLink> consumer,
@@ -83,24 +67,25 @@ public class DFSUtil {
             boolean withDurationLimits) {
         log.trace("Recursing at : " + currentLink.child().name() + ", " + remainingDuration + ", withDurationLimit: " + withDurationLimits);
 
+        Duration continuedDuration = null;
         if (withDurationLimits) {
             if (remainingDuration != null) {
-                remainingDuration = remainingDuration.minus(currentLink.child().duration());
-                if (remainingDuration.isNegative()) {
+                continuedDuration = remainingDuration.minus(currentLink.child().duration());
+                if (continuedDuration.isNegative()) {
                     if (!currentLink.child().required()) {
-                        return remainingDuration;
+                        return continuedDuration;
                     }
                 }
             }
 
             if (currentLink.child().project()) {
                 Duration projectDurationLimit = currentLink.projectDuration();
-                if (remainingDuration != null && projectDurationLimit != null) {
-                    remainingDuration = remainingDuration.compareTo(projectDurationLimit) < 0
-                            ? remainingDuration
+                if (continuedDuration != null && projectDurationLimit != null) {
+                    continuedDuration = continuedDuration.compareTo(projectDurationLimit) < 0
+                            ? continuedDuration
                             : projectDurationLimit;
                 } else {
-                    remainingDuration = projectDurationLimit;
+                    continuedDuration = projectDurationLimit;
                 }
             }
         }
@@ -110,32 +95,20 @@ public class DFSUtil {
         if (streamBuilder != null) {
             streamBuilder.add(currentLink);
         }
-        if (adjacencyMap != null) {
-            adjacencyMap.put(currentLink, new LinkedList<>());
-        }
 
-        if (remainingDuration == null || !remainingDuration.isZero()) {
+        if (continuedDuration == null || !continuedDuration.isZero()) {
             List<TaskLink> nextLinks = getNextLinks.apply(getNextID.apply(currentLink)).toList();
             for (TaskLink nextLink : nextLinks) {
-                remainingDuration = recurseTaskLinks(nextLink, streamBuilder, adjacencyMap, getNextID, getNextLinks, consumer, remainingDuration, withDurationLimits);
+                continuedDuration = recurseTaskLinks(nextLink, streamBuilder, getNextID, getNextLinks, consumer, remainingDuration, withDurationLimits);
 
-                if (adjacencyMap != null) {
-                    adjacencyMap.get(currentLink).add(nextLink);
-                }
-
-                if (remainingDuration != null && withDurationLimits && nextLink.child().required()) {
-                    if (remainingDuration.isNegative()) {
+                if (continuedDuration != null && withDurationLimits && nextLink.child().required()) {
+                    if (continuedDuration.isNegative()) {
                         break;
                     }
                 }
             }
         }
 
-        return remainingDuration;
-    }
-
-    public Stream<TaskLink> flattenAdjacencyMap(Map<TaskLink, TaskLink> adjacencyMap) {
-        return adjacencyMap.entrySet().stream()
-                .flatMap(entry -> Stream.of(entry.getKey(), entry.getValue()));
+        return continuedDuration;
     }
 }

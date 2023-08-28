@@ -19,13 +19,8 @@ public class Response {
     public static class SyncResponse extends Response {
         protected final SyncRecord aggregateSyncRecord;
 
-        public SyncResponse(String message, SyncRecord aggregateSyncRecord) {
-            super(false, message);
-            this.aggregateSyncRecord = aggregateSyncRecord;
-        }
-
-        public SyncResponse(SyncRecord aggregateSyncRecord) {
-            super(true, K.OK);
+        public SyncResponse(boolean success, String message, SyncRecord aggregateSyncRecord) {
+            super(success, message);
             this.aggregateSyncRecord = aggregateSyncRecord;
         }
 
@@ -39,12 +34,12 @@ public class Response {
     public static class DataResponse<T> extends SyncResponse {
         protected T changeRelevantDataMap = null;
 
-        public DataResponse(String message, SyncRecord aggregateSyncRecord) {
-            super(message, aggregateSyncRecord);
+        public DataResponse(boolean success, String message, SyncRecord aggregateSyncRecord) {
+            super(success, message, aggregateSyncRecord);
         }
 
-        public DataResponse(T changeRelevantDataMap, SyncRecord aggregateSyncRecord) {
-            super(aggregateSyncRecord);
+        public DataResponse(boolean success, String message, T changeRelevantDataMap, SyncRecord aggregateSyncRecord) {
+            super(success, message, aggregateSyncRecord);
             this.changeRelevantDataMap = changeRelevantDataMap;
         }
 
@@ -55,12 +50,12 @@ public class Response {
 
     @Getter
     public static class DataMapResponse extends DataResponse<MultiValueMap<Integer, PersistedDataDO<?>>> {
-        public DataMapResponse(String message, SyncRecord aggregateSyncRecord) {
-            super(message, aggregateSyncRecord);
+        public DataMapResponse(boolean success, String message, SyncRecord aggregateSyncRecord) {
+            super(success, message, aggregateSyncRecord);
         }
 
-        public DataMapResponse(MultiValueMap<Integer, PersistedDataDO<?>> resultsMap, SyncRecord aggregateSyncRecord) {
-            super(resultsMap, aggregateSyncRecord);
+        public DataMapResponse(boolean success, String message, MultiValueMap<Integer, PersistedDataDO<?>> resultsMap, SyncRecord aggregateSyncRecord) {
+            super(success, message, resultsMap, aggregateSyncRecord);
         }
 
         public DataMapResponse(String message) {

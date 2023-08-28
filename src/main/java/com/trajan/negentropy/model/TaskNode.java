@@ -38,14 +38,24 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
 
     private Duration projectDuration;
 
-    public TaskNode(TaskNodeInfoData<?> taskNodeBaseData) {
+    public TaskNode(TaskNodeInfoData<?> taskNodeInfoData) {
         this.linkId = null;
-        this.completed = taskNodeBaseData.completed();
-        this.cron = taskNodeBaseData.cron();
-        this.importance = taskNodeBaseData.importance();
-        this.position = taskNodeBaseData.position();
-        this.projectDuration = taskNodeBaseData.projectDuration();
-        this.recurring = taskNodeBaseData.recurring();
+        this.completed = taskNodeInfoData.completed();
+        this.cron = taskNodeInfoData.cron();
+        this.importance = taskNodeInfoData.importance();
+        this.position = taskNodeInfoData.position();
+        this.projectDuration = taskNodeInfoData.projectDuration();
+        this.recurring = taskNodeInfoData.recurring();
+    }
+
+    public TaskNode(LinkID linkId, TaskNodeInfoData<?> taskNodeInfoData) {
+        this.linkId = linkId;
+        this.completed = taskNodeInfoData.completed();
+        this.cron = taskNodeInfoData.cron();
+        this.importance = taskNodeInfoData.importance();
+        this.position = taskNodeInfoData.position();
+        this.projectDuration = taskNodeInfoData.projectDuration();
+        this.recurring = taskNodeInfoData.recurring();
     }
 
     @Override
@@ -99,5 +109,10 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
 
         result.append(")");
         return result.toString();
+    }
+
+    @Override
+    public String name() {
+        return child.name();
     }
 }

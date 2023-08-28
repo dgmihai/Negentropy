@@ -2,7 +2,6 @@ package com.trajan.negentropy.server;
 
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.server.TaskTestTemplate;
 import org.springframework.data.util.Pair;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,7 +94,8 @@ public class RoutineTestTemplateWithRequiredTasks extends TaskTestTemplate {
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWOTHREE_AND_THREETWOTWO)
-                                        .duration(Duration.ofHours(1)),
+                                        .duration(Duration.ofHours(1))
+                                        .required(true),
                                 new TaskNodeDTO()
                         )
                 )

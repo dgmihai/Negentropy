@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.TenetEntity;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
@@ -16,6 +17,7 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TagRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
+import com.trajan.negentropy.server.backend.repository.TenetRepository;
 import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class DataContextImpl implements DataContext {
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
     @Autowired private TagRepository tagRepository;
+    @Autowired private TenetRepository tenetRepository;
     @Autowired private NetDurationRecalculator netDurationRecalculator;
 
     @PostConstruct
@@ -292,6 +295,15 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
+    public TenetEntity mergeTenet(Tenet tenet) {
+        TenetEntity tenetEntity = tenet.id() != null
+                ? tenetRepository.getReferenceById(tenet.id())
+                : new TenetEntity();
+
+        return tenetRepository.save(tenetEntity.body(tenet.body()));
+    }
+
+    @Override
     public void deleteLink(TaskLink link) {
         TaskEntity parent = link.parent();
         TaskEntity child = link.child();
@@ -316,6 +328,11 @@ public class DataContextImpl implements DataContext {
             .negated();
         TaskID parentId = ID.of(parent);
         this.addToNetDurationOfAllAncestors(change, parentId);
+    }
+
+    @Override
+    public void deleteTenet(Long id) {
+        tenetRepository.deleteById(id);
     }
 
     @Override
@@ -404,5 +421,12 @@ public class DataContextImpl implements DataContext {
                 routineStepEntity.lastSuspendedTime(),
                 routineStepEntity.elapsedSuspendedDuration(),
                 routineStepEntity.status());
+    }
+
+    @Override
+    public Tenet toDO(TenetEntity tenetEntity) {
+        return new Tenet(
+                tenetEntity.id(),
+                tenetEntity.body());
     }
 }

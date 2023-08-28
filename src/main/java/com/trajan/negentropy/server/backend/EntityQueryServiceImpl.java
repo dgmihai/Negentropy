@@ -190,22 +190,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return findLinks(filter).map(ID::of);
     }
 
-    @Override
-    public Map<TaskEntity, List<TaskEntity>> findTasksWithAncestors(TaskFilter filter) {
-        return findTasks(filter)
-                .map(task -> findAncestorLinksAsAdjacencyMap(ID.of(task), null))
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().child(),
-                        entry -> entry.getValue().stream()
-                                .map(TaskLink::child)
-                                .collect(Collectors.toList()),
-                        (oldValue, newValue) -> {
-                            oldValue.addAll(newValue);
-                            return oldValue;
-                        }));
-    }
-
     private BooleanBuilder byParent(TaskID taskId, TaskFilter filter) {
         return this.filter(filter, Q_LINK.child)
                 .and(taskId == null ?
@@ -270,18 +254,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
-        return DFSUtil.traverseTaskLinksAsStream(
-                descendantId,
-                link -> ID.of(link.parent()),
-                id -> this.findParentLinks(id, filter),
-                null,
-                null,
-                false);
-    }
-
-    @Override
-    public Map<TaskLink, List<TaskLink>> findAncestorLinksAsAdjacencyMap(TaskID descendantId, TaskFilter filter) {
-        return DFSUtil.traverseTaskLinksAsAdjacencyMap(
+        return DFSUtil.traverseTaskLinks(
                 descendantId,
                 link -> ID.of(link.parent()),
                 id -> this.findParentLinks(id, filter),
@@ -340,7 +313,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
-        return DFSUtil.traverseTaskLinksAsStream(
+        return DFSUtil.traverseTaskLinks(
                 ancestorId,
                 link -> ID.of(link.child()),
                 parentId -> this.findChildLinks(parentId, filter),
@@ -361,7 +334,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
         TaskLink ancestorLink = this.getLink(ancestorId);
 
-        return DFSUtil.traverseTaskLinksAsStream(
+        return DFSUtil.traverseTaskLinks(
                 ID.of(ancestorLink.child()),
                 link -> ID.of(link.child()),
                 parentId -> this.findChildLinks(parentId, filter),
@@ -369,22 +342,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 consumer,
                 withDurationLimits);
     }
-
-    public Map<TaskLink, List<TaskLink>> findDescendantLinksAsAdjacencyMap(LinkID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
-        boolean withDurationLimits =
-                filter != null && filter.options().contains(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
-
-        TaskLink ancestorLink = this.getLink(ancestorId);
-
-        return DFSUtil.traverseTaskLinksAsAdjacencyMap(
-                ID.of(ancestorLink.child()),
-                link -> ID.of(link.child()),
-                parentId -> this.findChildLinks(parentId, filter),
-                getLinkDurationLimit(ID.of(ancestorLink), filter),
-                consumer,
-                withDurationLimits);
-    }
-
 
     @Override
     public Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskFilter filter) {

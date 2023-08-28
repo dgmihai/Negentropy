@@ -96,13 +96,17 @@ public class TaskEntryDataProviderManager {
 
                     for (TaskEntry entry : taskEntries) {
                         entry.node((networkGraph.nodeMap().get(entry.node().id())));
-                        entry.node().child(networkGraph.taskMap().get(id));
-                        if (rootEntry == null ||
-                                (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
-                            refreshAll();
-                            return;
+                        if (entry.node() != null) {
+                            entry.node().child(networkGraph.taskMap().get(id));
+                            if (rootEntry == null ||
+                                    (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
+                                refreshAll();
+                                return;
+                            }
+                            this.refreshItem(entry, mapEntry.getValue());
+                        } else {
+                            log.warn("TaskEntry {} has null node", entry);
                         }
-                        this.refreshItem(entry, mapEntry.getValue());
                     }
                 }
             }

@@ -6,7 +6,6 @@ import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.ClearEvents;
-import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.TaskNode;
@@ -107,21 +106,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
                 .collect(Collectors.toSet()));
     }
 
-    public TaskNode save() {
-        InsertLocation location = saveAsLastCheckbox.getValue() ?
-                InsertLocation.LAST :
-                InsertLocation.FIRST;
-        // TODO: Location
-        TaskNode result = save(
-                controller.activeTaskNodeView().rootNodeId().orElse(null),
-                location);
-
-        if (result != null) {
-            this.clear();
-        }
-
-        return result;
-    }
+    public abstract TaskNode save();
 
     protected void configureInteractions() {
         saveButton.addClickListener(event -> this.save());

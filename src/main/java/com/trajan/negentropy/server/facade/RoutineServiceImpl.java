@@ -141,7 +141,8 @@ public class RoutineServiceImpl implements RoutineService {
 
         logger.trace("Populate routine filter: " + filter);
 
-        Consumer<TaskLink> duringDFS = link -> {
+        Consumer<TaskLink> computeEstimatedDuration = link -> {
+            logger.debug("Adding to routine: " + link.child().name());
             Duration estimatedDuration = estimatedDurationReference.get();
             estimatedDurationReference.set(estimatedDuration.plus(addStepToRoutine(link, routine)));
             logger.debug("Estimated duration: " + estimatedDurationReference + " for " + link.child().name());
@@ -152,14 +153,15 @@ public class RoutineServiceImpl implements RoutineService {
                 : new TaskFilter();
         filterWithProjects
                 .options()
-                    .add(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
+                    .addAll(List.of(TaskFilter.WITH_PROJECT_DURATION_LIMITS,
+                            TaskFilter.HIDE_COMPLETED));
         if (filterWithProjects.durationLimit() == null) {
             if (rootLink.child().project()) {
                 filterWithProjects.durationLimit(rootLink.projectDuration());
             }
         }
 
-        entityQueryService.findDescendantLinks(ID.of(rootLink), filterWithProjects, duringDFS);
+        entityQueryService.findDescendantLinks(ID.of(rootLink), filterWithProjects, computeEstimatedDuration);
 //                .forEachOrdered(link -> {
 //                    logger.trace("For each: " + link.child().name());
 //                    TaskEntity task = link.child();

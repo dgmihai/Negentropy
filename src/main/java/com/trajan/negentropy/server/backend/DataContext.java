@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.TenetEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.LinkID;
@@ -32,7 +33,10 @@ public interface DataContext {
     TagEntity mergeTag(TagEntity tagEntity);
     TagEntity mergeTag(Tag tag);
 
+    TenetEntity mergeTenet(Tenet tenet);
+
     void deleteLink(TaskLink link);
+    void deleteTenet(Long id);
 
     TaskLink TESTONLY_mergeLink(TaskLink link);
 
@@ -54,4 +58,6 @@ public interface DataContext {
     Routine toDO(RoutineEntity routineEntity);
 
     RoutineStep toDO(RoutineStepEntity routineStepEntity);
+
+    Tenet toDO(TenetEntity tenetEntity);
 }

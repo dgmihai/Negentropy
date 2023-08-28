@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
@@ -39,15 +40,27 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
     @Override
     public TaskNode save() {
-        TaskNode result = super.save();
-        switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
-            case CLEAR -> this.onClear();
-            case PERSIST -> {
-                nodeBinder.setBean(result.toDTO());
-                taskBinder.setBean(result.task());
+        InsertLocation location = saveAsLastCheckbox.getValue() ?
+                InsertLocation.LAST :
+                InsertLocation.FIRST;
+
+        TaskNode result = createNode(
+                controller.activeTaskNodeView().rootNodeId().orElse(null),
+                location);
+
+        if (result != null) {
+            switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+                case CLEAR -> this.clear();
+                case PERSIST -> {
+                    nodeBinder.setBean(result.toDTO());
+                    taskBinder.setBean(result.task());
+                }
+                case KEEP_TEMPLATE -> nameField.clear();
+                case CLOSE -> {
+                    this.clear();
+                    onClose.run();
+                }
             }
-            case KEEP_TEMPLATE -> nameField.clear();
-            case CLOSE -> onClose.run();
         }
 
         return result;
@@ -92,6 +105,10 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);
+
+        onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
+        onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(
+                OnSuccessfulSaveActions.valueOf(onSaveSelect.getValue())));
 
         saveButton.setEnabled(taskBinder.isValid());
         taskBinder.addValueChangeListener(e ->

@@ -4,7 +4,7 @@ import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
-import com.trajan.negentropy.client.components.taskform.TaskNodeDataFormLayout;
+import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
@@ -91,7 +91,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             case STATUS -> treeGrid.addColumn(
                     step -> timeableStatusValueProvider.apply(step.status()))
                     .setKey(ColumnKey.STATUS.toString())
-                    .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
                     .setAutoWidth(false)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
@@ -106,7 +106,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                         TimeableStatus.COMPLETED
                 );
                 treeGrid.addColumn(LitRenderer.<RoutineStep>of(
-                                inlineVaadinIconLitExpression("minus-circle-o",
+                                        GridUtil.inlineVaadinIconLitExpression("minus-circle-o",
                                         "?active=\"${item.excludable}\" " +
                                                 "?hidden=\"${item.hidden}\""))
                         .withFunction("onClick", step -> {
@@ -124,14 +124,14 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                         .withProperty("hidden", step ->
                                 hidden.contains(step.status())))
                         .setKey(ColumnKey.EXCLUDE.toString())
-                        .setHeader(headerIcon(VaadinIcon.MINUS_CIRCLE))
-                        .setWidth(ICON_COL_WIDTH_L)
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.MINUS_CIRCLE))
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
             }
 
             case GOTO -> treeGrid.addColumn(LitRenderer.<RoutineStep>of(
-                                    inlineVaadinIconLitExpression("crosshairs",
+                                    GridUtil.inlineVaadinIconLitExpression("crosshairs",
                                             ""))
                             .withFunction("onClick", step -> {
                                 controller.pauseRoutineStep(routine.currentStep().id());
@@ -144,8 +144,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                             })
                     )
                     .setKey(ColumnKey.GOTO.toString())
-                    .setHeader(headerIcon(VaadinIcon.CROSSHAIRS))
-                    .setWidth(ICON_COL_WIDTH_L)
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.CROSSHAIRS))
+                    .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
         }
@@ -157,8 +157,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    protected TaskNodeDataFormLayout<RoutineStep> getTaskFormLayout(RoutineStep routineStep) {
-        return new TaskNodeDataFormLayout<>(controller, routineStep, RoutineStep.class);
+    protected GridInlineEditorTaskFormLayout<RoutineStep> getTaskFormLayout(RoutineStep routineStep) {
+        return new GridInlineEditorTaskFormLayout<>(controller, routineStep, RoutineStep.class);
     }
 
     @Override

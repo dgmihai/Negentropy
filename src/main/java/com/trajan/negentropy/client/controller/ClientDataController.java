@@ -8,6 +8,7 @@ import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.id.*;
@@ -54,6 +55,8 @@ public class ClientDataController {
         T response = serviceCall.get();
         if (!response.success()) {
             NotificationError.show(response.message());
+        } else {
+            NotificationMessage.result(response.message());
         }
         this.sync(response);
         return response;
@@ -87,7 +90,8 @@ public class ClientDataController {
         return tryDataRequest(() -> services.change().execute(Request.of(taskNetworkGraph.syncId(), changes)));
     }
 
-    private synchronized void sync() {
+    public synchronized void sync() {
+        log.info("Checking for sync");
         try {
             this.sync(trySyncRequest(() -> services.query().sync(taskNetworkGraph.syncId())));
         } catch (Throwable t) {
@@ -139,7 +143,9 @@ public class ClientDataController {
                     taskNetworkGraph.addTaskNode(node);
                     TaskID parentId = node.parentId();
                     if (parentId != null) {
-                        taskEntryDataProviderManager.pendingTaskRefresh().put(parentId, true);
+                        // TODO: Needs to be fixed
+//                        taskEntryDataProviderManager.pendingTaskRefresh().put(parentId, true);
+                        refreshAll = true;
                     } else {
                         refreshAll = true;
                     }
@@ -230,10 +236,16 @@ public class ClientDataController {
         }
     }
 
-    //@Override
-    public RoutineResponse createRoutine(TaskID taskId) {
-        log.debug("Creating routine from task: " + taskId);
-        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(taskId));
+    public RoutineResponse createRoutine(TaskNode rootNode) {
+        log.debug("Creating routine from node: " + rootNode.task().name());
+        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()));
+        routineDataProvider.refreshAll();
+        return response;
+    }
+
+    public RoutineResponse createRoutine(Task rootTask) {
+        log.debug("Creating routine from task: " + rootTask.name());
+        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()));
         routineDataProvider.refreshAll();
         return response;
     }

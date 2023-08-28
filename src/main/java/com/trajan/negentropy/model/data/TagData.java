@@ -4,4 +4,8 @@ import com.trajan.negentropy.model.interfaces.Named;
 
 public interface TagData<T extends TagData<T>> extends Data, Named {
     T name(String name);
+
+    default String typeName() {
+        return "Tag";
+    }
 }

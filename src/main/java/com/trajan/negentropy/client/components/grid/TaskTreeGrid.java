@@ -37,7 +37,6 @@ import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
@@ -94,35 +93,6 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
     protected FormLayout editHeaderLayout;
     protected List<Checkbox> editCheckboxes;
-
-    protected static final String DURATION_COL_WIDTH = "70px";
-    protected static final String ICON_COL_WIDTH_S = "31px";
-    protected static final String ICON_COL_WIDTH_L = "35px";
-
-    protected Icon headerIcon(VaadinIcon vaadinIcon) {
-        Icon icon = vaadinIcon.create();
-        icon.setSize(K.INLINE_ICON_SIZE);
-        icon.addClassName(K.ICON_COLOR_GRAYED);
-        return icon;
-    }
-
-    protected Icon headerIconPrimary(VaadinIcon vaadinIcon) {
-        Icon icon = vaadinIcon.create();
-        icon.setSize(K.INLINE_ICON_SIZE);
-        icon.addClassName(K.ICON_COLOR_PRIMARY);
-        return icon;
-    }
-
-    protected String inlineLineAwesomeIconLitExpression(LineAwesomeIcon lineAwesomeIcon, String attributes) {
-        return "<span class=\"grid-icon-lineawesome\" " + attributes + " style=\"-webkit-mask-position: var(--mask-position); display: block; -webkit-mask-repeat: var(--mask-repeat); vertical-align: middle; --mask-repeat: no-repeat; background-color: currentcolor; --_size: var(--lumo-icon-size-m); flex: 0 0 auto; width: var(--_size); --mask-position: 50%; -webkit-mask-image: var(--mask-image); " +
-                "--mask-image: url('line-awesome/svg/" + lineAwesomeIcon.getSvgName() + ".svg'); height: var(--_size);\"></span>";
-    }
-
-    protected String inlineVaadinIconLitExpression(String iconName, String attributes) {
-        return "<vaadin-icon class=\"grid-icon-vaadin\" icon=\"vaadin:" + iconName + "\" " +
-                "@click=\"${onClick}\" " +
-                attributes + "></vaadin-icon>";
-    }
 
     protected abstract TreeGrid<T> createGrid();
 
@@ -233,11 +203,11 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                     };
 
                     treeGrid.addColumn(LitRenderer.<T>of(
-                            inlineLineAwesomeIconLitExpression(LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID,
+                            GridUtil.inlineLineAwesomeIconLitExpression(LineAwesomeIcon.GRIP_LINES_VERTICAL_SOLID,
                                     "@mousedown=\"${onDown}\" @touchstart=\"${onDown}\" "))
                                     .withFunction("onDown", onDown))
                             .setKey(ColumnKey.DRAG_HANDLE.toString())
-                            .setWidth(ICON_COL_WIDTH_L)
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFrozen(true)
                             .setFlexGrow(0)
                             .setTextAlign(ColumnTextAlign.CENTER)
@@ -254,7 +224,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
                 case REQUIRED -> {
                     Grid.Column<T> requiredColumn = treeGrid.addColumn(LitRenderer.<T>of(
-                                            inlineVaadinIconLitExpression("exclamation-circle-o",
+                                            GridUtil.inlineVaadinIconLitExpression("exclamation-circle-o",
                                                     "?active=\"${item.required}\" " +
                                                             "?hidden=\"${item.project}\""))
                                     .withFunction("onClick", t ->
@@ -266,8 +236,8 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                     .withProperty("project", t ->
                                             t.task().project()))
                             .setKey(ColumnKey.REQUIRED.toString())
-                            .setHeader(headerIcon(VaadinIcon.EXCLAMATION))
-                            .setWidth(ICON_COL_WIDTH_L)
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.EXCLAMATION))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
                             .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -280,7 +250,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
                 case PROJECT -> {
                     Grid.Column<T> projectColumn = treeGrid.addColumn(LitRenderer.<T>of(
-                                            inlineVaadinIconLitExpression("file-tree",
+                                            GridUtil.inlineVaadinIconLitExpression("file-tree",
                                                     ("?active=\"${item.project}\" " +
                                                             "?hidden=\"${item.required}\" ")))
                                     .withFunction("onClick", t ->
@@ -292,8 +262,8 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                     .withProperty("required", t ->
                                             t.task().required()))
                             .setKey(ColumnKey.PROJECT.toString())
-                            .setHeader(headerIcon(VaadinIcon.FILE_TREE))
-                            .setWidth(ICON_COL_WIDTH_L)
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.FILE_TREE))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
                             .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -333,7 +303,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                         .setFlexGrow(1);
 
                 case DESCRIPTION -> treeGrid.addColumn(LitRenderer.<T>of(
-                        inlineVaadinIconLitExpression("eye",
+                                        GridUtil.inlineVaadinIconLitExpression("eye",
                                 "?active=\"${item.hasDescription}\""))
                                 .withFunction("onClick", t ->
                                         treeGrid.setDetailsVisible(
@@ -342,8 +312,8 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                 .withProperty("hasDescription", t ->
                                         !t.task().description().isBlank()))
                         .setKey(ColumnKey.DESCRIPTION.toString())
-                        .setHeader(headerIcon(VaadinIcon.CLIPBOARD_TEXT))
-                        .setWidth(ICON_COL_WIDTH_L)
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.CLIPBOARD_TEXT))
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -351,15 +321,15 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                         durationEstimateValueProviderFactory.get(
                                 DurationEstimateValueProvider.DurationType.TASK_DURATION))
                         .setKey(ColumnKey.DURATION.toString())
-                        .setHeader(headerIcon(VaadinIcon.CLOCK))
-                        .setWidth(DURATION_COL_WIDTH)
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.CLOCK))
+                        .setWidth(GridUtil.DURATION_COL_WIDTH)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
                 case NET_DURATION -> {
                     Button columnHeaderButton = new Button(new Span(
-                            headerIconPrimary(VaadinIcon.FILE_TREE_SUB),
-                            headerIconPrimary(VaadinIcon.CLOCK)));
+                            GridUtil.headerIconPrimary(VaadinIcon.FILE_TREE_SUB),
+                            GridUtil.headerIconPrimary(VaadinIcon.CLOCK)));
                     columnHeaderButton.addThemeVariants(ButtonVariant.LUMO_ICON);
 
                     DurationEstimateValueProvider<T> provider = durationEstimateValueProviderFactory.get(
@@ -374,13 +344,13 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                     treeGrid.addColumn(provider)
                             .setKey(ColumnKey.NET_DURATION.toString())
                             .setHeader(columnHeaderButton)
-                            .setWidth(DURATION_COL_WIDTH)
+                            .setWidth(GridUtil.DURATION_COL_WIDTH)
                             .setFlexGrow(0)
                             .setTextAlign(ColumnTextAlign.CENTER);
                 }
 
                 case EDIT -> editColumn = treeGrid.addColumn(LitRenderer.<T>of(
-                        inlineVaadinIconLitExpression("edit",
+                                        GridUtil.inlineVaadinIconLitExpression("edit",
                                 "active"))
                                 .withFunction("onClick", t -> {
                                     if (editor.isOpen()) {
@@ -389,7 +359,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                     editor.editItem(t);
                                 }))
                         .setKey(ColumnKey.EDIT.toString())
-                        .setWidth(ICON_COL_WIDTH_L)
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -591,7 +561,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
     protected Div gridOptionsMenu(List<ColumnKey> possibleColumns) {
         MenuBar menuBar = new MenuBar();
-        menuBar.setWidth(ICON_COL_WIDTH_S);
+        menuBar.setWidth(GridUtil.ICON_COL_WIDTH_S);
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
 
         menuBar.getElement().setProperty("closeOn", "vaadin-overlay-outside-click");

@@ -7,6 +7,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
@@ -38,6 +39,7 @@ import java.util.Set;
 @Accessors(fluent = true)
 @Getter
 public class RoutineView extends VerticalLayout {
+    @Autowired private BannerProvider bannerProvider;
     @Autowired private ClientDataController controller;
     @Autowired private UserSettings settings;
     @Autowired private RoutineDataProvider routineDataProvider;
@@ -49,6 +51,7 @@ public class RoutineView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
+        controller.sync();
         this.addClassName("routine-view");
         this.setSizeFull();
         this.setJustifyContentMode(JustifyContentMode.START);

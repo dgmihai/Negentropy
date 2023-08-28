@@ -9,6 +9,7 @@ import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
@@ -27,7 +28,9 @@ public class ChangeService {
                 request.changes().size());
         boolean sync = request.syncId() != null;
         try {
-            MultiValueMap<Integer, PersistedDataDO<?>> dataResults = processor.process(request);
+            Pair<String, MultiValueMap<Integer, PersistedDataDO<?>>> processResults = processor.process(request);
+            String resultMessage = processResults.getFirst();
+            MultiValueMap<Integer, PersistedDataDO<?>> dataResults = processResults.getSecond();
 
             log.trace("Data results: " + dataResults);
 
@@ -35,14 +38,14 @@ public class ChangeService {
                     ? syncManager.aggregatedSyncRecord(request.syncId())
                     : null;
 
-            return new DataMapResponse(dataResults, aggregateSyncRecord);
+            return new DataMapResponse(true, resultMessage, dataResults, aggregateSyncRecord);
         } catch (Exception e) {
             e.printStackTrace();
             SyncRecord aggregateSyncRecord = sync
                     ? syncManager.aggregatedSyncRecord(request.syncId())
                     : null;
 
-            return new DataMapResponse(e.getMessage(), aggregateSyncRecord);
+            return new DataMapResponse(false, e.getMessage(), aggregateSyncRecord);
         }
     }
 }

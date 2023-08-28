@@ -90,7 +90,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         System.out.println("Initial sync id: " + syncId);
         assertNotNull(syncId);
 
-        TaskNode resultNode = taskNodeProvider.save(
+        TaskNode resultNode = taskNodeProvider.createNode(
                 reference,
                 location);
 

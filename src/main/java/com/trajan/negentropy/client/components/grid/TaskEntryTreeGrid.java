@@ -5,7 +5,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.TaskNodeDataFormLayout;
+import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager.TaskEntryDataProvider;
@@ -138,19 +138,19 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         // TODO: Generify
         switch (columnKey) {
             case FOCUS -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                    inlineVaadinIconLitExpression("expand-full",
+                                    GridUtil.inlineVaadinIconLitExpression("expand-full",
                             "expand "))
                                     .withFunction("onClick", t ->
                                             nestedTabs.onSelectNewRootEntry(t)))
                     .setKey(ColumnKey.FOCUS.toString())
-                    .setHeader(headerIcon(VaadinIcon.EXPAND_SQUARE))
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.EXPAND_SQUARE))
                     .setAutoWidth(true)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
 
             case COMPLETE -> {
                 Grid.Column<TaskEntry> completedColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                                        inlineVaadinIconLitExpression("check",
+                                        GridUtil.inlineVaadinIconLitExpression("check",
                                                 "?active=\"${!item.completed}\" " +
                                                         "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry -> {
@@ -165,8 +165,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                         && entry.node().cron() == null
                                         && !entry.node().completed()))
                         .setKey(ColumnKey.COMPLETE.toString())
-                        .setHeader(headerIcon(VaadinIcon.CHECK_SQUARE_O))
-                        .setWidth(ICON_COL_WIDTH_L)
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.CHECK_SQUARE_O))
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -179,7 +179,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             case RECURRING -> {
                 Grid.Column<TaskEntry> recurringColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                                        inlineVaadinIconLitExpression("time-forward",
+                                        GridUtil.inlineVaadinIconLitExpression("time-forward",
                                                 "?active=\"${item.recurring}\" "))
                                 .withFunction("onClick", entry -> {
                                     controller.requestChange(Change.merge(
@@ -189,7 +189,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withProperty("recurring", entry ->
                                         entry.node().recurring()))
                         .setKey(ColumnKey.RECURRING.toString())
-                        .setHeader(headerIcon(VaadinIcon.TIME_FORWARD))
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.TIME_FORWARD))
                         .setAutoWidth(true)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
@@ -204,7 +204,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             case CRON -> treeGrid.addColumn(entry ->
                                 cronValueProvider.apply(entry.node().cron()))
                         .setKey(ColumnKey.CRON.toString())
-                        .setHeader(headerIcon(VaadinIcon.CALENDAR_CLOCK))
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
                         .setWidth(CRON_WIDTH)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
@@ -218,7 +218,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         }
                     })
                     .setKey(ColumnKey.SCHEDULED_FOR.toString())
-                    .setHeader(headerIcon(VaadinIcon.CALENDAR))
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR))
                     .setWidth(DATE_WIDTH)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
@@ -231,14 +231,14 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             //                .setFlexGrow(0);
 
             case DELETE -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                    inlineVaadinIconLitExpression("trash",
+                                    GridUtil.inlineVaadinIconLitExpression("trash",
                                     " delete"))
                                     .withFunction("onClick", entry ->
                                             controller.requestChange(Change.delete(
                                                     entry.node().linkId()))))
                     .setKey(ColumnKey.DELETE.toString())
-                    .setHeader(headerIcon(VaadinIcon.TRASH))
-                    .setWidth(ICON_COL_WIDTH_L)
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.TRASH))
+                    .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
         }
@@ -272,13 +272,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    protected TaskNodeDataFormLayout<TaskEntry> getTaskFormLayout(TaskEntry entry) {
-        return new TaskNodeDataFormLayout<>(controller, entry, TaskEntry.class);
+    protected GridInlineEditorTaskFormLayout<TaskEntry> getTaskFormLayout(TaskEntry entry) {
+        return new GridInlineEditorTaskFormLayout<>(controller, entry, TaskEntry.class);
     }
 
     @Override
     protected Binder<TaskEntry> setEditorBinder(AbstractTaskFormLayout form) {
-        TaskNodeDataFormLayout<TaskEntry> teForm = (TaskNodeDataFormLayout<TaskEntry>) form;
+        GridInlineEditorTaskFormLayout<TaskEntry> teForm = (GridInlineEditorTaskFormLayout<TaskEntry>) form;
         return teForm.binder();
     }
 
@@ -460,7 +460,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine", e -> e.getItem().ifPresent(
                     entry -> {
-                        controller.createRoutine(entry.task().id());
+                        controller.createRoutine(entry.node());
                         UI.getCurrent().navigate(RoutineView.class);
                     }
             ));

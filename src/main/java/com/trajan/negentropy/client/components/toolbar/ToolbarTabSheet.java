@@ -13,7 +13,6 @@ import com.trajan.negentropy.client.tree.TreeView;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.filter.TaskFilter;
-import com.trajan.negentropy.model.sync.Change;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -132,22 +131,7 @@ public class ToolbarTabSheet extends TabSheet {
             createTaskForm.taskBinder().setBean(new Task());
             createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
         });
-        createTaskForm.afterSuccessfulSave(() -> {
-            Change taskChange = Change.update(createTaskForm.taskBinder().getBean());
-//            Response response = controller.requestChanges(List.of(
-//                    taskChange,
-//                    Change.referencedInsert(createTaskForm.nodeBinder().getBean(),
-//                            null,
-//                            createTaskForm.saveAsLastCheckbox().getValue()
-//                                    ? InsertLocation.LAST
-//                                    : InsertLocation.FIRST,
-//                            taskChange.id())));
-//
-//            if (response.success()) {
-//                createTaskForm.taskBinder().setBean(new Task());
-//                createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
-//            }
-        });
+        createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
 
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
@@ -342,7 +326,7 @@ public class ToolbarTabSheet extends TabSheet {
 
         Button startRoutineButton = new Button("Start Routine");
         startRoutineButton.addClickListener(event ->
-                controller.createRoutine(taskSetBox.getTask().id()));
+                controller.createRoutine(taskSetBox.getTask()));
 
         VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox, startRoutineButton);
         layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,

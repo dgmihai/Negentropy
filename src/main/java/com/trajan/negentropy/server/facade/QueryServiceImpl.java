@@ -200,7 +200,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public SyncResponse sync(SyncID syncId) {
-        return new SyncResponse(syncManager.aggregatedSyncRecord(syncId));
+        return new SyncResponse(true, "Synced", syncManager.aggregatedSyncRecord(syncId));
     }
 
     @Override

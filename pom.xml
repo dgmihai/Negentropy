@@ -165,9 +165,6 @@
     <profiles>
         <profile>
             <id>local</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
             <properties>
                 <spring.profiles.active>local</spring.profiles.active>
             </properties>
@@ -208,6 +205,9 @@
             <properties>
                 <spring.profiles.active>h2</spring.profiles.active>
             </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
         </profile>
 
         <profile>

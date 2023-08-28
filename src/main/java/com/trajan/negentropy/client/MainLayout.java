@@ -13,8 +13,10 @@ import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import lombok.extern.slf4j.Slf4j;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
+@Slf4j
 public class MainLayout extends AppLayout {
 
     private H2 viewTitle;
@@ -52,8 +54,11 @@ public class MainLayout extends AppLayout {
 
         nav.addItem(new AppNavItem("Task Tree", TreeView.class, LineAwesomeIcon.TREE_SOLID.create()));
         nav.addItem(new AppNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
+        nav.addItem(new AppNavItem("Tenets", TenetView.class, LineAwesomeIcon.COMPASS.create()));
 
+//        nav.setWidth("5em");
         return nav;
+
     }
 
     private Footer createFooter() {

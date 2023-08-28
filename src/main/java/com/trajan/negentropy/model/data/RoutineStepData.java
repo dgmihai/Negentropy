@@ -12,4 +12,8 @@ public interface RoutineStepData extends Data, HasDuration {
     LocalDateTime finishTime();
     LocalDateTime lastSuspendedTime();
     Duration elapsedSuspendedDuration();
+
+    default String typeName() {
+        return "Routine Step";
+    }
 }

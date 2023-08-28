@@ -2,7 +2,6 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
@@ -15,12 +14,12 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
-public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
+public class GridInlineEditorTaskFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
     @Getter
     private Binder<T> binder;
     private Class<T> clazz;
 
-    public TaskNodeDataFormLayout(ClientDataController controller, T node, Class<T> clazz) {
+    public GridInlineEditorTaskFormLayout(ClientDataController controller, T node, Class<T> clazz) {
         super(controller);
         this.clazz = clazz;
         binder = new BeanValidationBinder<>(clazz);
@@ -29,6 +28,18 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
         configureAll();
 
         projectDurationField.setVisible(node.task().project());
+        saveAsLastCheckbox.setVisible(false);
+    }
+
+    @Override
+    public TaskNode save() {
+        TaskNode result = modifyNode(binder.getBean().node().id());
+
+        if (result != null) {
+            this.clear();
+        }
+
+        return result;
     }
 
     @Override
@@ -85,9 +96,8 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
                         node -> node.node().projectDuration(),
                         (node, projectDuration) -> node.node().projectDuration(projectDuration));
 
-        onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
-        onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(
-                OnSuccessfulSaveActions.valueOf(onSaveSelect.getValue())));
+        onSaveSelect.setVisible(false);
+        saveAsLastCheckbox.setVisible(false);
 
         saveButton.setEnabled(binder.isValid());
         binder.addValueChangeListener(e -> {
@@ -114,22 +124,4 @@ public class TaskNodeDataFormLayout<T extends HasTaskNodeData> extends AbstractT
 
     @Override
     public void onClear() { }
-
-    @Override
-    public TaskNode save() {
-        return super.save();
-//        switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
-//            case CLEAR -> this.clear();
-//            case PERSIST -> {
-//                try {
-//                    T binderData = clazz.getConstructor().newInstance();
-//                    binder.setBean(binderData);
-//                } catch (Exception e) {
-//                    NotificationError.show(e);
-//                    this.clear();
-//                }
-//            }
-//            case KEEP_TEMPLATE -> nameField.clear();
-//        }
-    }
 }

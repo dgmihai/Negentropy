@@ -23,11 +23,34 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         return result.success();
     }
 
-    default TaskNode save(LinkID reference, InsertLocation location) {
+    default TaskNode modifyNode(LinkID nodeId) {
         Task task = getTask();
         Change taskChange = task.id() != null
-                ? Change.persist(task)
-                : Change.merge(task);
+                ? Change.merge(task)
+                : Change.persist(task);
+
+        Change nodeChange = Change.merge(
+                new TaskNode(nodeId, getNodeInfo()));
+
+        Supplier<DataMapResponse> trySave = () ->
+                controller().requestChanges(List.of(
+                        taskChange,
+                        nodeChange));
+
+        Optional<DataMapResponse> response = handleSave(trySave);
+
+        if (response.isPresent() && response.get().success()) {
+            return (TaskNode) response.get().changeRelevantDataMap().getFirst(nodeChange.id());
+        } else {
+            return null;
+        }
+    }
+
+    default TaskNode createNode(LinkID reference, InsertLocation location) {
+        Task task = getTask();
+        Change taskChange = task.id() != null
+                ? Change.merge(task)
+                : Change.persist(task);
 
         Change referencedInsertChange = Change.referencedInsert(
                 new TaskNodeDTO(getNodeInfo()),

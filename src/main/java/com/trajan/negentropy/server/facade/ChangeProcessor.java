@@ -25,13 +25,16 @@ import com.trajan.negentropy.server.facade.response.Request;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 @Component
@@ -41,56 +44,80 @@ public class ChangeProcessor {
     @Autowired private DataContext dataContext;
     @Autowired private EntityQueryService entityQueryService;
 
-    public MultiValueMap<Integer, PersistedDataDO<?>> process(Request request) {
+    public Pair<String, MultiValueMap<Integer, PersistedDataDO<?>>> process(Request request) {
         MultiValueMap<Integer, PersistedDataDO<?>> dataResults = new LinkedMultiValueMap<>();
-        Map<Task, TaskEntity> newTasks = new HashMap<>();
+
+        String message = "UPDATE MESSAGE MISSING";
+        BiFunction<String, PersistedDataDO<?>, String> messageSupplier = request.changes().size() > 1
+            ? (str, data) -> "Synced " + request.changes().size() + " changes."
+            : (str, data) -> str + " " + data.typeName().toLowerCase() + " \"" + data.name() + "\"";
+
+        BiFunction<String, String, String> biMessageSupplier = request.changes().size() > 1
+                ? (str, body) -> "Synced " + request.changes().size() + " changes."
+                : (str, body) -> str + " " + body;
 
         for (Change change : request.changes()) {
+            String prefix;
             if (change instanceof PersistChange) {
+                prefix = "Created ";
                 Data data = ((PersistChange<?>) change).data();
                 if (data instanceof Task task) {
                     if (task.id() != null)
                         throw new IllegalArgumentException("Cannot persist task with ID: " + task.id());
                     log.debug("Persisting task: {}", task);
-                    TaskEntity taskEntity = dataContext.mergeTask(task);
-                    dataResults.add(change.id(), dataContext.toDO(taskEntity));
-                    newTasks.put(task, taskEntity);
+                    Task result = dataContext.toDO(dataContext.mergeTask(task));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, task);
                 } else if (data instanceof TaskNodeDTO taskNodeDTO) {
                     log.debug("Persisting task node: {}", taskNodeDTO);
-                    dataResults.add(change.id(), dataContext.toDO(dataContext.mergeNode(taskNodeDTO)));
+                    TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNodeDTO));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, result);
                 } else if (data instanceof Tag tag) {
                     if (tag.id() != null)
                         throw new IllegalArgumentException("Cannot persist task with ID: " + tag.id());
                     log.debug("Persisting tag: {}", tag);
-                    dataResults.add(change.id(), dataContext.toDO(dataContext.mergeTag(tag)));
+                    Tag result = dataContext.toDO(dataContext.mergeTag(tag));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, result);
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + data);
                 }
             } else if (change instanceof MergeChange) {
+                prefix = "Updated ";
                 Data data = ((MergeChange<?>) change).data();
                 if (data instanceof Task task) {
                     if (task.id() == null) throw new IllegalArgumentException("Cannot merge task without ID: " + task);
                     log.debug("Merging task: {}", task);
-                    dataResults.add(change.id(), dataContext.toDO(dataContext.mergeTask(task)));
+                    Task result = dataContext.toDO(dataContext.mergeTask(task));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, result);
                 } else if (data instanceof TaskNode taskNode) {
                     log.debug("Merging node: {}", taskNode);
-                    dataResults.add(change.id(), dataContext.toDO(dataContext.mergeNode(taskNode)));
+                    TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNode));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, result);
                 } else if (data instanceof Tag tag) {
                     if (tag.id() != null)
                         throw new IllegalArgumentException("Cannot merge tag without ID: " + tag.id());
                     log.debug("Merging tag: {}", tag);
-                    dataResults.add(change.id(), dataContext.toDO(dataContext.mergeTag(tag)));
+                    Tag result = dataContext.toDO(dataContext.mergeTag(tag));
+                    dataResults.add(change.id(), result);
+                    message = messageSupplier.apply(prefix, result);
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + data);
                 }
             } else if (change instanceof DeleteChange) {
+                prefix = "Deleted ";
                 ID id = ((DeleteChange<?>) change).data();
                 if (id instanceof TaskID taskId) {
                     log.debug("Deleting task: {}", taskId);
                     throw new NotImplementedException();
                 } else if (id instanceof LinkID linkId) {
                     log.debug("Deleting link: {}", linkId);
-                    dataContext.deleteLink(entityQueryService.getLink(linkId));
+                    TaskLink target = entityQueryService.getLink(linkId);
+                    message = biMessageSupplier.apply(prefix, "task node \"" + target.child().name() + "\"");
+                    dataContext.deleteLink(target);
                 } else if (id instanceof TagID tagId) {
                     log.debug("Deleting tag: {}", tagId);
                     throw new NotImplementedException();
@@ -98,6 +125,7 @@ public class ChangeProcessor {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + id);
                 }
             } else if (change instanceof InsertChange insertChange) {
+                prefix = "Added ";
                 TaskNodeDTO taskNodeDTO = insertChange.nodeDTO();
 
                 if (insertChange instanceof ReferencedInsertChange referencedInsertChange) {
@@ -106,36 +134,52 @@ public class ChangeProcessor {
                     log.debug("Persisting task node with task from referenced change: {}, {}", task, taskNodeDTO);
                 }
 
-                TaskNodeDTO finalDTO = taskNodeDTO;
-                insertChange.locations().forEach((linkId, insertLocations) -> {
-                    TaskLink reference = linkId == null ? null : entityQueryService.getLink(linkId);
-                    insertLocations.forEach(location -> {
+                for (Map.Entry<LinkID, List<InsertLocation>> entry : insertChange.locations().entrySet()) {
+                    LinkID linkId = entry.getKey();
+                    List<InsertLocation> insertLocations = entry.getValue();
+
+                    TaskLink reference = (linkId == null) ? null : entityQueryService.getLink(linkId);
+                    for (InsertLocation location : insertLocations) {
                         log.debug("Inserting task node dto {} \n to {} {}", insertChange.nodeDTO(), location.name(), reference);
-                        setPositionBasedOnLocation(finalDTO, reference, location);
-                        dataResults.add(insertChange.id(), dataContext.toDO(dataContext.mergeNode(finalDTO)));
-                    });
-                });
+                        setPositionBasedOnLocation(taskNodeDTO, reference, location);
+                        TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNodeDTO));
+                        dataResults.add(insertChange.id(), result);
+                        message = messageSupplier.apply(prefix, result);
+                    }
+                }
             } else if (change instanceof InsertIntoChange insertIntoChange) {
-                insertIntoChange.locations().forEach((taskId, insertLocations) -> {
+                prefix = "Added ";
+                for (Map.Entry<TaskID, List<InsertLocation>> entry : insertIntoChange.locations().entrySet()) {
+                    TaskID taskId = entry.getKey();
+                    List<InsertLocation> insertLocations = entry.getValue();
+
                     TaskEntity reference = (taskId != null) ? entityQueryService.getTask(taskId) : null;
-                    insertLocations.forEach(location -> {
+                    for (InsertLocation location : insertLocations) {
                         log.debug("Inserting task node dto {} \n into {} {}", insertIntoChange.nodeDTO(), location.name(), reference);
                         setPositionBasedOnLocation(insertIntoChange.nodeDTO(), reference, location);
-                        dataResults.add(insertIntoChange.id(), dataContext.toDO(dataContext.mergeNode(insertIntoChange.nodeDTO())));
-                    });
-                });
+                        TaskNode result = dataContext.toDO(dataContext.mergeNode(insertIntoChange.nodeDTO()));
+                        dataResults.add(insertIntoChange.id(), result);
+                        message = messageSupplier.apply(prefix, result);
+                    }
+                }
             } else if (change instanceof MoveChange moveChange) {
+                prefix = "Moved ";
                 TaskLink original = entityQueryService.getLink(moveChange.originalId());
                 TaskNodeDTO dto = new TaskNodeDTO(original);
-                moveChange.locations().forEach((referenceId, insertLocations) -> {
+                for (Map.Entry<LinkID, List<InsertLocation>> entry : moveChange.locations().entrySet()) {
+                    LinkID referenceId = entry.getKey();
+                    List<InsertLocation> insertLocations = entry.getValue();
+
                     TaskLink reference = (referenceId == null) ? null : entityQueryService.getLink(referenceId);
-                    insertLocations.forEach(location -> {
+                    for (InsertLocation location : insertLocations) {
                         log.debug("Moving task node {} \n to {} {}", original, location.name(), reference);
                         setPositionBasedOnLocation(dto, reference, location);
-                        dataResults.add(moveChange.id(), dataContext.toDO(dataContext.mergeNode(dto)));
+                        TaskNode result = dataContext.toDO(dataContext.mergeNode(dto));
+                        dataResults.add(moveChange.id(), result);
+                        message = messageSupplier.apply(prefix, result);
                         dataContext.deleteLink(original);
-                    });
-                });
+                    }
+                }
             } else if (change instanceof MultiMergeChange<?, ?> multiMerge) {
                 Data template = multiMerge.template();
 
@@ -147,6 +191,7 @@ public class ChangeProcessor {
                                         (TaskID) taskId,
                                         (TaskTemplateData<Task, Tag>) taskTemplate)));
                     }
+                    message = "Merged " + multiMerge.ids().size() + " task changes.";
                 } else if (template instanceof TaskNodeTemplateData<?> nodeTemplate) {
                     log.debug("Merging node template: {}", nodeTemplate);
                     for (ID linkId : multiMerge.ids()) {
@@ -155,15 +200,18 @@ public class ChangeProcessor {
                                         (LinkID) linkId,
                                         nodeTemplate)));
                     }
+                    message = "Merged " + multiMerge.ids().size() + " task node changes.";
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type");
                 }
             } else if (change instanceof CopyChange copyChange) {
                 switch (copyChange.copyType()) {
                     case SHALLOW -> {
+                        prefix = "Shallow copied ";
                         throw new NotImplementedException();
                     }
                     case DEEP -> {
+                        prefix = "Deep copied ";
                         log.debug("Deep copying task node: {}", copyChange);
                         TaskLink original = entityQueryService.getLink(copyChange.originalId());
                         copyChange.locations().forEach((referenceId, insertLocations) -> {
@@ -177,45 +225,21 @@ public class ChangeProcessor {
                                 dataResults.add(copyChange.id(), dataContext.toDO(newRootLink));
                             });
                         });
+                        message = biMessageSupplier.apply(prefix, original.typeName() + " \"" + original.child().name() + "\"");
                     }
                 }
             } else if (change instanceof OverrideScheduledForChange overrideScheduledForChange) {
                 TaskLink link = entityQueryService.getLink(overrideScheduledForChange.linkId());
                 link.scheduledFor(overrideScheduledForChange.manualScheduledFor());
-                dataResults.add(overrideScheduledForChange.id(), dataContext.toDO(link));
+                TaskNode result = dataContext.toDO(link);
+                dataResults.add(overrideScheduledForChange.id(), result);
+                message = messageSupplier.apply("Set scheduled time for", result);
             } else {
                 throw new UnsupportedOperationException("Unexpected change type: " + change.getClass());
             }
         }
 
-
-
-
-
-
-
-//                    case ReferencedInsertChange referencedPersist -> {
-//                        Task task = (Task) dataResults.getFirst(referencedPersist.changeTaskReference());
-//                        TaskNodeDTO taskNodeDTO = referencedPersist.nodeDTO()
-//                                .childId(task.id());
-//
-//                        referencedPersist.locations().forEach((linkId, insertLocations) -> {
-//                            TaskLink reference = entityQueryService.getLink(linkId);
-//                            insertLocations.forEach(location -> {
-//                                setPositionBasedOnLocation(referencedPersist.nodeDTO(), reference, location);
-//
-//                                dataResults.add(referencedPersist.id(), dataContext.toDO(
-//                                        dataContext.mergeNode(referencedPersist.nodeDTO())));
-//                            });
-//                        });
-//
-//                        TaskNodeDTO taskNodeDTO = referencedPersist.nodeDTO()
-//                                .childId(task.id());
-//                        log.debug("Persisting task node with task from referenced change: {}, {}", task, taskNodeDTO);
-//                        dataResults.add(referencedPersist.id(), dataContext.toDO(dataContext.mergeNode(taskNodeDTO)));
-//                    }
-
-        return dataResults;
+        return Pair.of(message, dataResults);
     }
 
     private void setPositionBasedOnLocation(TaskNodeDTOData<?> nodeDTO, TaskEntity referenceTask, InsertLocation location) {

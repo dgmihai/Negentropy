@@ -26,5 +26,11 @@ public interface HasTaskData {
     interface TaskData<TASK extends TaskData<TASK, TAG>, TAG extends TagData<TAG>>
             extends TaskTemplateData<TASK, TAG>, Named {
         TASK name(String name);
+
+        default String typeName() {
+            return project() != null
+                    ? project() ? "Project" : "Task"
+                    : "Task";
+        }
     }
 }
