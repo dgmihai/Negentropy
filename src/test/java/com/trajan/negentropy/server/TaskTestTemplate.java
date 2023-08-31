@@ -14,6 +14,9 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.InsertIntoChange;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
@@ -139,7 +142,7 @@ public class TaskTestTemplate {
     protected final Map<TagID, String> tagIds = new HashMap<>();
 
     protected Task persistTask(Task task) {
-        Change persist = Change.persist(task);
+        Change persist = new PersistChange<>(task);
         int id = persist.id();
 
         DataMapResponse response = changeService.execute(Request.of(persist));
@@ -178,7 +181,7 @@ public class TaskTestTemplate {
                     nodeDTO.cron(),
                     nodeDTO.projectDuration());
 
-            Change insertInto = Change.insertInto(freshNode, parentId, InsertLocation.LAST);
+            Change insertInto = new InsertIntoChange(freshNode, parentId, InsertLocation.LAST);
             int id = insertInto.id();
 
             DataMapResponse response = changeService.execute(Request.of(insertInto));
@@ -208,7 +211,7 @@ public class TaskTestTemplate {
     protected void initTags(String tagName, List<String> tasksToTag) {
         Tag tag = queryService.fetchTagByName(tagName);
         if (tag == null) {
-            Change persistTag = Change.persist(new Tag(null, tagName));
+            Change persistTag = new PersistChange<>(new Tag(null, tagName));
             tag = (Tag) changeService.execute(Request.of(persistTag))
                     .changeRelevantDataMap().getFirst(persistTag.id());
         }
@@ -218,7 +221,7 @@ public class TaskTestTemplate {
             Set<Tag> tags = new HashSet<>(task.tags());
             tags.add(tag);
             task.tags(tags);
-            changeService.execute(Request.of(Change.merge(task)));
+            changeService.execute(Request.of(new MergeChange<>(task)));
         }
     }
 

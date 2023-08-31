@@ -13,6 +13,9 @@ import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.DeleteChange;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
 import com.trajan.negentropy.server.backend.util.OrphanTaskCleaner;
 import com.trajan.negentropy.server.facade.response.Request;
@@ -117,7 +120,7 @@ public class ClientDataController {
         boolean refreshAll = false;
 
         for (Change change : changes) {
-            if (change instanceof Change.MergeChange<?> mergeChange) {
+            if (change instanceof MergeChange<?> mergeChange) {
                 Object mergeData = mergeChange.data();
                 if (mergeData instanceof Task task) {
                     log.debug("Got merged task {}", task);
@@ -133,7 +136,7 @@ public class ClientDataController {
                 } else {
                     throw new IllegalStateException("Unexpected value: " + mergeChange.data());
                 }
-            } else if (change instanceof Change.PersistChange<?> persist) {
+            } else if (change instanceof PersistChange<?> persist) {
                 Object persistData = persist.data();
                 if (persistData instanceof Task task) {
                     log.debug("Got persisted task {}", task);
@@ -154,7 +157,7 @@ public class ClientDataController {
                 } else {
                     throw new IllegalStateException("Unexpected value: " + persist.data());
                 }
-            } else if (change instanceof Change.DeleteChange<?> deleteChange) {
+            } else if (change instanceof DeleteChange<?> deleteChange) {
                 Object deleteData = deleteChange.data();
                 if (deleteData instanceof TaskID taskId) {
                     log.debug("Got deleted task {}", taskId);

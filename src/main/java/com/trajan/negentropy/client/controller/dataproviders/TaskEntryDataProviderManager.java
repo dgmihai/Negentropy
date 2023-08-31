@@ -170,7 +170,7 @@ public class TaskEntryDataProviderManager {
             }
 
             log.debug("Fetching children for parent " + parent);
-            Stream<TaskEntry> results = networkGraph.getChildren(parentTaskID, this.filteredLinks).stream()
+            return networkGraph.getChildren(parentTaskID, this.filteredLinks).stream()
                     .map(node -> {
                         log.trace("Fetching child: " + node);
                         TaskEntry entry = new TaskEntry(parent, networkGraph.nodeMap().get(node.id()));taskTaskEntriesMap.add(node.task().id(), entry);
@@ -178,7 +178,6 @@ public class TaskEntryDataProviderManager {
                         log.trace("Adding new entry: " + entry);
                         return entry;
                     });
-            return results;
         }
 
         @Override

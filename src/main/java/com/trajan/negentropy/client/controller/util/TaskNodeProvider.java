@@ -7,6 +7,9 @@ import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
+import com.trajan.negentropy.model.sync.Change.ReferencedInsertChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 
 import java.util.List;
@@ -26,10 +29,10 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
     default TaskNode modifyNode(LinkID nodeId) {
         Task task = getTask();
         Change taskChange = task.id() != null
-                ? Change.merge(task)
-                : Change.persist(task);
+                ? new MergeChange<>(task)
+                : new PersistChange<>(task);
 
-        Change nodeChange = Change.merge(
+        Change nodeChange = new MergeChange<>(
                 new TaskNode(nodeId, getNodeInfo()));
 
         Supplier<DataMapResponse> trySave = () ->
@@ -49,10 +52,10 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
     default TaskNode createNode(LinkID reference, InsertLocation location) {
         Task task = getTask();
         Change taskChange = task.id() != null
-                ? Change.merge(task)
-                : Change.persist(task);
+                ? new MergeChange<>(task)
+                : new PersistChange<>(task);
 
-        Change referencedInsertChange = Change.referencedInsert(
+        Change referencedInsertChange = new ReferencedInsertChange(
                 new TaskNodeDTO(getNodeInfo()),
                 reference,
                 location,

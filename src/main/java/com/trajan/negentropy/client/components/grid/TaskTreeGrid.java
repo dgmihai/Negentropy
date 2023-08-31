@@ -18,7 +18,8 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.id.ID;
-import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -183,7 +184,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                 Set<T> toUpdate = treeGrid.getSelectedItems();
 
                 if (!toUpdate.isEmpty()) {
-                    controller.requestChange(Change.multiMerge(
+                    controller.requestChange(new MultiMergeChange<>(
                             inputFunction.apply(checkbox.getValue()),
                             toUpdate.stream()
                                     .map(idFunction)
@@ -228,7 +229,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                                     "?active=\"${item.required}\" " +
                                                             "?hidden=\"${item.project}\""))
                                     .withFunction("onClick", t ->
-                                            controller.requestChange(Change.merge(
+                                            controller.requestChange(new MergeChange<>(
                                                     new Task(t.task().id())
                                                             .required(!t.task().required()))))
                                     .withProperty("required", t ->
@@ -254,7 +255,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                                                     ("?active=\"${item.project}\" " +
                                                             "?hidden=\"${item.required}\" ")))
                                     .withFunction("onClick", t ->
-                                            controller.requestChange(Change.merge(
+                                            controller.requestChange(new MergeChange<>(
                                                     new Task(t.task().id())
                                                             .project(!t.task().project()))))
                                     .withProperty("project", t ->
@@ -283,7 +284,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                             tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
                             tagComboBox.setValue(t.task().tags());
                             tagComboBox.addValueChangeListener(event ->
-                                    controller.requestChange(Change.merge(
+                                    controller.requestChange(new MergeChange<>(
                                             new Task(t.task().id())
                                                     .tags(event.getValue()))));
                             return tagComboBox;
@@ -438,7 +439,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);
 
-            controller.requestChange(Change.merge(
+            controller.requestChange(new MergeChange<>(
                     new Task(t.task().id())
                             .description(descriptionArea.getValue())));
         };

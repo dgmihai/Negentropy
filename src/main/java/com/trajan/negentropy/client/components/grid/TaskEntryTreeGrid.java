@@ -21,6 +21,8 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.*;
+import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -154,7 +156,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                                 "?active=\"${!item.completed}\" " +
                                                         "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry -> {
-                                    controller.requestChange(Change.merge(
+                                    controller.requestChange(new MergeChange<>(
                                             new TaskNode(entry.node().linkId())
                                                     .completed(!entry.node().completed())));
                                 })
@@ -182,7 +184,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                         GridUtil.inlineVaadinIconLitExpression("time-forward",
                                                 "?active=\"${item.recurring}\" "))
                                 .withFunction("onClick", entry -> {
-                                    controller.requestChange(Change.merge(
+                                    controller.requestChange(new MergeChange<>(
                                             new TaskNode(entry.node().linkId())
                                                     .recurring(!entry.node().recurring())));
                                 })
@@ -234,7 +236,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                     GridUtil.inlineVaadinIconLitExpression("trash",
                                     " delete"))
                                     .withFunction("onClick", entry ->
-                                            controller.requestChange(Change.delete(
+                                            controller.requestChange(new DeleteChange<>(
                                                     entry.node().linkId()))))
                     .setKey(ColumnKey.DELETE.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.TRASH))
@@ -285,8 +287,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     @Override
     protected Registration setEditorSaveListener() {
         return editor.addSaveListener(e -> controller.requestChanges(List.of(
-                Change.merge(e.getItem().task()),
-                Change.merge(e.getItem().node()))));
+                new MergeChange<>(e.getItem().task()),
+                new MergeChange<>(e.getItem().node()))));
     }
 
     @Override
@@ -310,21 +312,23 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         }
 
                         Consumer<InsertLocation> changeSupplier = switch (operation) {
-                            case MOVE -> location -> controller.requestChange(Change.move(
+                            case MOVE -> location -> controller.requestChange(new MoveChange(
                                     draggedItem.node().linkId(),
                                     target.node().linkId(),
                                     location));
-                            case ADD -> location -> controller.requestChange(Change.insert(
+                            case ADD -> location -> controller.requestChange(new InsertChange(
                                     draggedItem.node().toDTO(),
                                     target.node().linkId(),
                                     location));
-                            case SHALLOW_COPY -> location -> controller.requestChange(Change.shallowCopy(
+                            case SHALLOW_COPY -> location -> controller.requestChange(new CopyChange(
+                                    CopyType.SHALLOW,
                                     draggedItem.node().linkId(),
                                     target.node().linkId(),
                                     location,
                                     controller.settings().filter(),
                                     " (copy)"));
-                            case DEEP_COPY -> location -> controller.requestChange(Change.deepCopy(
+                            case DEEP_COPY -> location -> controller.requestChange(new CopyChange(
+                                    CopyType.DEEP,
                                     draggedItem.node().linkId(),
                                     target.node().linkId(),
                                     location,
@@ -414,7 +418,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 try {
                     if (!cronField.getValue().isBlank()) {
                         CronExpression cron = CronExpression.parse(cronField.getValue());
-                        controller.requestChange(Change.multiMerge(
+                        controller.requestChange(new MultiMergeChange<>(
                                 new TaskNodeDTO()
                                         .cron(cron),
                                 data.stream()
@@ -466,7 +470,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             ));
 
             GridMenuItem<TaskEntry> resetSchedule = addItem("Reset Schedule", e -> e.getItem().ifPresent(
-                    entry -> controller.requestChange(Change.setScheduledFor(
+                    entry -> controller.requestChange(new OverrideScheduledForChange(
                             entry.node().linkId(), LocalDateTime.now()))));
 
             BiConsumer<String, InsertLocation> addItemAction = (label, location) -> {
@@ -475,7 +479,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
                             controller.requestChanges(List.of(
                                     taskPersist,
-                                    Change.referencedInsert(
+                                    new ReferencedInsertChange(
                                             (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
                                             entry.node().linkId(),
                                             location,
@@ -492,7 +496,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             add(new Hr());
 
             GridMenuItem<TaskEntry> remove = addItem("Remove", e -> e.getItem().ifPresent(
-                    entry -> controller.requestChange(Change.delete(entry.node().linkId()))));
+                    entry -> controller.requestChange(new DeleteChange<>(entry.node().linkId()))));
             
             add(new Hr());
 
@@ -505,7 +509,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             GridMenuItem<TaskEntry> delete = multiEditSubMenu.addItem("Delete?");
 
             Consumer<Boolean> requestCompletedChange = isCompleted -> {
-                controller.requestChange(Change.multiMerge(
+                controller.requestChange(new MultiMergeChange<>(
                         new TaskNodeDTO().completed(isCompleted),
                         treeGrid.getSelectedItems().stream()
                                 .map(entry -> entry.node().id())
@@ -516,7 +520,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             completed.getSubMenu().addItem("False", e -> requestCompletedChange.accept(false));
 
             Consumer<Boolean> requestRecurringChange = isRecurring -> {
-                controller.requestChange(Change.multiMerge(
+                controller.requestChange(new MultiMergeChange<>(
                         new TaskNodeDTO().recurring(isRecurring),
                         treeGrid.getSelectedItems().stream()
                                 .map(entry -> entry.node().id())
@@ -527,7 +531,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             recurring.getSubMenu().addItem("False", e -> requestRecurringChange.accept(false));
 
             Consumer<Boolean> requestRequiredChange = isRequired -> {
-                controller.requestChange(Change.multiMerge(
+                controller.requestChange(new MultiMergeChange<>(
                         new Task().required(isRequired),
                         treeGrid.getSelectedItems().stream()
                                 .map(entry -> entry.task().id())
@@ -539,7 +543,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             
             delete.getSubMenu().addItem("Confirm", e -> controller.requestChanges(
                     treeGrid.getSelectedItems().stream()
-                            .map(entry -> (Change) Change.delete(entry.node().linkId()))
+                            .map(entry -> (Change) new DeleteChange<>(entry.node().linkId()))
                             .toList()));
 
             // Do not show context menu when header is clicked

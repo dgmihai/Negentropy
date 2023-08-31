@@ -3,8 +3,8 @@ package com.trajan.negentropy.client.components.grid;
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
+import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
@@ -12,7 +12,7 @@ import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.LinkID;
-import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
@@ -170,7 +170,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     @Override
     protected Registration setEditorSaveListener() {
         return editor.addSaveListener(e ->
-                controller.requestChange(Change.merge(e.getItem().task())));
+                controller.requestChange(new MergeChange<>(e.getItem().task())));
     }
 
     @Override

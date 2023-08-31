@@ -11,6 +11,9 @@ import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.DeleteChange;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordDataType;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordType;
 import com.trajan.negentropy.server.backend.DataContext;
@@ -46,9 +49,9 @@ public class SyncManager {
     @Autowired private ChangeRecordRepository changeRecordRepository;
     @Autowired private DataContext dataContext;
 
-    private Map<Long, ChangeRecordType> pendingChangeTypes = new HashMap<>();
-    private Map<Long, ChangeRecordEntity> pendingChangeRecords = new HashMap<>();
-    private Map<TaskID, Duration> netDurationRecords = new HashMap<>();
+    private final Map<Long, ChangeRecordType> pendingChangeTypes = new HashMap<>();
+    private final Map<Long, ChangeRecordEntity> pendingChangeRecords = new HashMap<>();
+    private final Map<TaskID, Duration> netDurationRecords = new HashMap<>();
     private SyncRecordEntity pendingSyncRecord = new SyncRecordEntity();
 
     public static SyncManager instance;
@@ -159,9 +162,9 @@ public class SyncManager {
                         if (changeTypes.contains(ChangeRecordType.DELETE)) {
                             return getDeleteChange(dataType, entityId);
                         } else if (changeTypes.contains(ChangeRecordType.PERSIST)) {
-                            return Change.persist(convertData(dataType, entityId));
+                            return new PersistChange<>(convertData(dataType, entityId));
                         } else {
-                            return Change.merge(convertData(dataType, entityId));
+                            return new MergeChange<>(convertData(dataType, entityId));
                         }
                     });
                 })
@@ -179,9 +182,9 @@ public class SyncManager {
 
     private Change getDeleteChange(ChangeRecordDataType dataType, Long id) {
         return switch (dataType) {
-            case TASK -> Change.delete(new TaskID(id));
-            case LINK -> Change.delete(new LinkID(id));
-            case TAG -> Change.delete(new TagID(id));
+            case TASK -> new DeleteChange<>(new TaskID(id));
+            case LINK -> new DeleteChange<>(new LinkID(id));
+            case TAG -> new DeleteChange<>(new TagID(id));
         };
     }
 

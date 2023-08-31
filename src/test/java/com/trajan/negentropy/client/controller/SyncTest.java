@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
+import com.trajan.negentropy.model.sync.Change.MoveChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import org.apache.commons.lang3.tuple.Triple;
@@ -29,7 +30,7 @@ public class SyncTest extends ClientTestTemplate {
     }
 
     private SyncRecord assertMoveChanges(TaskNode input, TaskNode reference, InsertLocation location) {
-        DataMapResponse response = controller.requestChange(Change.move(
+        DataMapResponse response = controller.requestChange(new MoveChange(
                 input.id(),
                 reference.id(),
                 location));

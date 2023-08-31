@@ -8,8 +8,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
-import com.trajan.negentropy.model.sync.Change;
-
+import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.RoutineTestTemplateNoRequiredTasks;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
@@ -169,7 +168,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(2);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
         linkRoutineCreationTestWithExpectedDuration(
@@ -184,7 +183,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(3);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(Duration.ofHours(3)))));
 
         linkRoutineCreationTestWithExpectedDuration(
@@ -200,7 +199,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(Duration.ofHours(5)))));
 
         linkRoutineCreationTestWithExpectedDuration(
@@ -219,7 +218,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(6);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
         linkRoutineCreationTestWithExpectedDuration(
@@ -239,7 +238,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
         TaskFilter filter = new TaskFilter();
@@ -262,7 +261,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
         TaskFilter filter = new TaskFilter();
@@ -285,7 +284,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(6);
 
-        changeService.execute(Request.of(Change.merge(
+        changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
         linkRoutineCreationTestWithExpectedDuration(

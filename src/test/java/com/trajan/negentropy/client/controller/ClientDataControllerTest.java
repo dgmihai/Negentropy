@@ -8,6 +8,9 @@ import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.DeleteChange;
+import com.trajan.negentropy.model.sync.Change.MoveChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Assertions;
@@ -315,7 +318,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode reference = nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 reference.linkId(),
                 InsertLocation.FIRST);
@@ -349,7 +352,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_MoveFirstOfRoot() {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 null,
                 InsertLocation.FIRST);
@@ -374,7 +377,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_MoveLastOfRoot() {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 null,
                 InsertLocation.LAST);
@@ -400,7 +403,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode reference = nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 reference.linkId(),
                 InsertLocation.LAST);
@@ -434,13 +437,13 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_MoveChildOfRoot() {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
 
-        Change change = Change.persist(input.toDTO()
+        Change change = new PersistChange<>(input.toDTO()
                         .childId(input.child().id())
                         .parentId(null)
                         .position(4));
 
         DataMapResponse response = (DataMapResponse) controller.requestChanges(List.of(
-                change, Change.delete(input.linkId())));
+                change, new DeleteChange<>(input.linkId())));
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 
         List<Object> expectedTasks = List.of(
@@ -461,13 +464,13 @@ class ClientDataControllerTest extends ClientTestTemplate {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode reference = nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2));
 
-        Change change = Change.persist(input.toDTO()
+        Change change = new PersistChange<>(input.toDTO()
                 .childId(input.child().id())
                 .parentId(reference.childId())
                 .position(2));
 
         DataMapResponse response = (DataMapResponse) controller.requestChanges(List.of(
-                change, Change.delete(input.linkId())));
+                change, new DeleteChange<>(input.linkId())));
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 
         List<Object> expectedTasks = List.of(
@@ -496,7 +499,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_MoveBeforeOfRoot() {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 null,
                 InsertLocation.BEFORE);
@@ -509,7 +512,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         TaskNode input = nodes.get(Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
         TaskNode reference = nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 reference.linkId(),
                 InsertLocation.BEFORE);
@@ -534,7 +537,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_MoveAfterOfRoot() {
         TaskNode input = nodes.get(Triple.of(NULL, TWO, 1));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 null,
                 InsertLocation.AFTER);
@@ -547,7 +550,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
         TaskNode input = nodes.get(Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
         TaskNode reference = nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2));
 
-        Change change = Change.move(
+        Change change = new MoveChange(
                 input.linkId(),
                 reference.linkId(),
                 InsertLocation.AFTER);

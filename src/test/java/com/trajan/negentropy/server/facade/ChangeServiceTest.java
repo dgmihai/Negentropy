@@ -13,6 +13,8 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.*;
+import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
 import com.trajan.negentropy.server.TaskTestTemplate;
 import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
 import com.trajan.negentropy.server.facade.response.Request;
@@ -149,15 +151,15 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     private Task mergeTask(Task task) {
-        return (Task) execute(Change.merge(task));
+        return (Task) execute(new MergeChange<>(task));
     }
 
     private TaskNode persistTaskNode(TaskNodeDTO taskNodeDTO) {
-        return (TaskNode) execute(Change.persist(taskNodeDTO));
+        return (TaskNode) execute(new PersistChange<>(taskNodeDTO));
     }
 
     private TaskNode insertTaskInto(TaskID taskId, TaskID parentId, InsertLocation location) {
-        return (TaskNode) execute(Change.insertInto(
+        return (TaskNode) execute(new InsertIntoChange(
                 new TaskNodeDTO()
                         .childId(taskId),
                 parentId,
@@ -165,14 +167,14 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     private TaskNode insertTask(TaskID taskId, LinkID linkId, InsertLocation location) {
-        return (TaskNode) execute(Change.insert(
+        return (TaskNode) execute(new InsertChange(
                 new TaskNodeDTO()
                         .childId(taskId),
                 linkId,
                 location));
     }
 
-//    Change insertTask = Change.insertInto(
+//    Change insertTask = new InsertIntoChange(
 //            new TaskNodeDTO()
 //                    .childId(fresh.changes()),
 //            parent.changes(),
@@ -315,7 +317,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     private void deleteNode(LinkID linkId) {
-        execute(Change.delete(linkId));
+        execute(new DeleteChange<>(linkId));
     }
 
     @Test
@@ -341,7 +343,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     private TaskNode moveNode(LinkID linkId, LinkID newParentId, InsertLocation location) {
-        return (TaskNode) execute(Change.move(linkId, newParentId, location));
+        return (TaskNode) execute(new MoveChange(linkId, newParentId, location));
     }
 
     @Test
@@ -413,7 +415,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
         Task task2 = tasks.get(TWO);
         Task task22 = tasks.get(TWOTWO);
 
-        DataMapResponse response = changeService.execute(Request.of(Change.persist(new TaskNodeDTO()
+        DataMapResponse response = changeService.execute(Request.of(new PersistChange<>(new TaskNodeDTO()
                 .parentId(task22.id())
                 .childId( task2.id()))));
 
@@ -425,7 +427,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
         Task task2 = tasks.get(TWO);
         Task task222 = tasks.get(TWOTWOTWO);
 
-        DataMapResponse response = changeService.execute(Request.of(Change.persist(new TaskNodeDTO()
+        DataMapResponse response = changeService.execute(Request.of(new PersistChange<>(new TaskNodeDTO()
                 .parentId(task222.id())
                 .childId( task2.id()))));
 
@@ -436,7 +438,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     void testCyclicalConnectionSelf() {
         Task task1 = tasks.get(ONE);
 
-        DataMapResponse response = changeService.execute(Request.of(Change.persist(new TaskNodeDTO()
+        DataMapResponse response = changeService.execute(Request.of(new PersistChange<>(new TaskNodeDTO()
                 .parentId(task1.id())
                 .childId( task1.id()))));
 
@@ -685,7 +687,8 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .map(taskName -> taskName + suffix)
                 .toList();
 
-        Change deepCopy = Change.deepCopy(
+        Change deepCopy = new CopyChange(
+                CopyType.DEEP,
                 root.linkId(),
                 null,
                 InsertLocation.LAST,
@@ -755,7 +758,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 .importance(5);
 
         SyncResponse response = changeService.execute(Request.of(
-                Change.multiMerge(nodeDTO, linkIds)));
+                new MultiMergeChange<>(nodeDTO, linkIds)));
         assertTrue(response.success());
 
         Consumer<TaskNode> assertNodes = node -> {

@@ -16,6 +16,8 @@ import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.RoutineRepository;
@@ -108,7 +110,7 @@ public class RoutineServiceImpl implements RoutineService {
                 .findFirst();
 
         TaskLink rootLink = rootLinkOptional.orElseGet(() -> {
-            Change change = Change.persist(new TaskNodeDTO()
+            Change change = new PersistChange<>(new TaskNodeDTO()
                     .parentId(null)
                     .childId(rootId));
             DataMapResponse response = changeService.execute(Request.of(change));
@@ -313,7 +315,7 @@ public class RoutineServiceImpl implements RoutineService {
         step.status(newStatus);
         if (newStatus.equals(TimeableStatus.COMPLETED) &&
                 (step.link().cron() != null || step.link().scheduledFor() != null)) {
-            changeService.execute(Request.of(Change.merge(dataContext.toDO(step.link())
+            changeService.execute(Request.of(new MergeChange<>(dataContext.toDO(step.link())
                     .completed(true))));
         }
 

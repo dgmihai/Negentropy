@@ -22,9 +22,9 @@ public abstract class AbstractChangelist <T> {
 //        Set<T> results = new HashSet<>();
 //        for (Change change : changes) {
 //            Data changes = null;
-//            if (change instanceof Change.PersistChange<?> persist) {
+//            if (change instanceof new PersistChange<>Change<?> persist) {
 //                changes = persist.changes();
-//            } else if (change instanceof Change.MergeChange<?> merge) {
+//            } else if (change instanceof new MergeChange<>Change<?> merge) {
 //                changes = merge.changes();
 //            }
 //
@@ -39,9 +39,9 @@ public abstract class AbstractChangelist <T> {
 //        Map<ID, PersistedDataDO<? extends ID>> results = new HashMap<>();
 //        for (Change change : changes) {
 //            PersistedDataDO<?> changes = null;
-//            if (change instanceof Change.PersistChange<?> persist) {
+//            if (change instanceof new PersistChange<>Change<?> persist) {
 //                changes = (PersistedDataDO<?>) persist.changes();
-//            } else if (change instanceof Change.MergeChange<?> merge) {
+//            } else if (change instanceof new MergeChange<>Change<?> merge) {
 //                changes = merge.changes();
 //
 //            }

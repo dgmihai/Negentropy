@@ -2,7 +2,12 @@ package com.trajan.negentropy.client.components.tagcombobox;
 
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class CustomValueTagComboBox extends TagComboBox {
@@ -34,16 +39,16 @@ public class CustomValueTagComboBox extends TagComboBox {
 
         addCustomValueSetListener(event -> {
             String name = event.getDetail();
-//            Change persistTagChange = Change.persist(
-//                    new Tag(null, name));
-//            DataMapResponse response = (DataMapResponse) controller.requestChange(persistTagChange);
-//            Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
-//            items.add(newTag);
-//            Set<Tag> tags = new HashSet<>(this.getValue());
-//            this.setItems(items);
-//            tags.add(newTag);
-//            this.setValue(tags);
-//            onCustomValueSet.accept(newTag);
+            Change persistTagChange = new PersistChange<>(
+                    new Tag(null, name));
+            DataMapResponse response =  controller.requestChange(persistTagChange);
+            Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
+            items.add(newTag);
+            this.setItems(items);
+            Set<Tag> tags = new HashSet<>(this.getValue());
+            tags.add(newTag);
+            this.setValue(tags);
+            onCustomValueSet.accept(newTag);
         });
     }
 }

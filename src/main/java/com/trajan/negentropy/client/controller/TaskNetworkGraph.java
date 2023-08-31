@@ -133,7 +133,7 @@ public class TaskNetworkGraph {
 
     public List<TaskNode> getChildren(TaskID parentId, List<LinkID> filteredLinks) {
         log.debug("Getting children for parent " + taskMap.get(parentId) + " where filtered tasks "
-                + (filteredLinks != null ? "equals" + filteredLinks.size() : "is null"));
+                + (filteredLinks != null ? "count is " + filteredLinks.size() : "is null"));
         try {
             Set<LinkID> children = parentId != null
                     ? network.outEdges(parentId)
@@ -143,8 +143,7 @@ public class TaskNetworkGraph {
                     .map(nodeMap::get)
                     .filter(node ->
                             filteredLinks == null
-                                    || filteredLinks.isEmpty()
-                                    || filteredLinks.contains(node.linkId()))
+                            || filteredLinks.contains(node.linkId()))
                     .toList());
             log.debug("Got " + filteredChildren.size() + " child links for parent " + taskMap.get(parentId));
             return filteredChildren;
