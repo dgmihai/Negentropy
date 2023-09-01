@@ -49,7 +49,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         TaskNode rootNode = controller.activeTaskNodeView().rootNode().orElse(null);
         TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
         TaskNode result = createNode(
-                projectComboBox.getValue().id() == null
+                projectComboBox.getValue() == null
                         ? rootTaskID
                         : projectComboBox.getValue().id(),
                 location);
