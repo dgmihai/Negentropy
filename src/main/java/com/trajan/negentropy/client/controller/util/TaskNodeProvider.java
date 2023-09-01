@@ -5,11 +5,14 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
-import com.trajan.negentropy.model.sync.Change.ReferencedInsertChange;
+import com.trajan.negentropy.model.sync.Change.ReferencedInsertAtChange;
+import com.trajan.negentropy.model.sync.Change.ReferencedInsertIntoChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 
 import java.util.List;
@@ -49,18 +52,14 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
     }
 
-    default TaskNode createNode(LinkID reference, InsertLocation location) {
+    private Change getTaskChange() {
         Task task = getTask();
-        Change taskChange = task.id() != null
+        return task.id() != null
                 ? new MergeChange<>(task)
                 : new PersistChange<>(task);
+    }
 
-        Change referencedInsertChange = new ReferencedInsertChange(
-                new TaskNodeDTO(getNodeInfo()),
-                reference,
-                location,
-                taskChange.id());
-
+    private TaskNode tryChange(Change taskChange, Change referencedInsertChange) {
         Supplier<DataMapResponse> trySave = () ->
                 controller().requestChanges(List.of(
                         taskChange,
@@ -73,5 +72,35 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         } else {
             return null;
         }
+
+    }
+
+    default TaskNode createNode(TaskOrLinkID reference, InsertLocation location) {
+        Change taskChange = getTaskChange();
+
+        Change referencedInsertChange;
+        if (reference == null) {
+            referencedInsertChange = new ReferencedInsertIntoChange(
+                    new TaskNodeDTO(getNodeInfo()),
+                    null,
+                    location,
+                    taskChange.id());
+        } else if (reference instanceof TaskID taskId) {
+            referencedInsertChange = new ReferencedInsertIntoChange(
+                    new TaskNodeDTO(getNodeInfo()),
+                    taskId,
+                    location,
+                    taskChange.id());
+        } else if (reference instanceof LinkID linkId) {
+            referencedInsertChange = new ReferencedInsertAtChange(
+                    new TaskNodeDTO(getNodeInfo()),
+                    linkId,
+                    location,
+                    taskChange.id());
+        } else  {
+            throw new IllegalArgumentException("Invalid reference type: " + reference.getClass());
+        }
+
+        return tryChange(taskChange, referencedInsertChange);
     }
 }

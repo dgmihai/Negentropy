@@ -14,12 +14,11 @@ import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
-import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.cron.CronValueProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
@@ -316,7 +315,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                     draggedItem.node().linkId(),
                                     target.node().linkId(),
                                     location));
-                            case ADD -> location -> controller.requestChange(new InsertChange(
+                            case ADD -> location -> controller.requestChange(new InsertAtChange(
                                     draggedItem.node().toDTO(),
                                     target.node().linkId(),
                                     location));
@@ -342,7 +341,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             case ON_TOP -> changeSupplier.accept(InsertLocation.CHILD);
                         }
                     } else {
-                        NotificationError.show("Cannot move or copy item onto itself");
+                        NotificationMessage.error("Cannot move or copy item onto itself");
                     }
                 }
                 draggedItem = null;
@@ -427,7 +426,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                         .toList()));
                     }
                 } catch (IllegalArgumentException e) {
-                    NotificationError.show(e);
+                    NotificationMessage.error(e);
                 }
             });
 
@@ -448,9 +447,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    public Optional<LinkID> rootNodeId() {
+    public Optional<TaskNode> rootNode() {
         return gridDataProvider.rootEntry() != null
-                ? Optional.of(gridDataProvider.rootEntry().node().id())
+                ? Optional.of(gridDataProvider.rootEntry().node())
                 : Optional.empty();
     }
 
@@ -479,9 +478,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
                             controller.requestChanges(List.of(
                                     taskPersist,
-                                    new ReferencedInsertChange(
+                                    new ReferencedInsertIntoChange(
                                             (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
-                                            entry.node().linkId(),
+                                            entry.task().id(),
                                             location,
                                             taskPersist.id())));
                         })
@@ -563,7 +562,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 activeTask.setVisible(true);
                             }
                         } catch (Exception e) {
-                            NotificationError.show(e);
+                            NotificationMessage.error(e);
                         }
                     } else {
                         activeTask.setVisible(false);

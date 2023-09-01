@@ -2,10 +2,7 @@ package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.model.entity.QTaskEntity;
-import com.trajan.negentropy.model.entity.TagEntity;
-import com.trajan.negentropy.model.entity.TaskEntity;
-import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
@@ -135,7 +132,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
             // Filter out if task isn't a project
             if (filter.options().contains(TaskFilter.ONLY_PROJECTS)) {
-                builder.and(qTask.project.isNotNull());
+                builder.and(qTask.project.isTrue());
             }
 
             if (filter.options().contains(TaskFilter.ALWAYS_INCLUDE_PARENTS)) {
@@ -512,9 +509,17 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TagEntity> findOrphanedTags() {
-        com.trajan.negentropy.model.entity.QTagEntity qTag = com.trajan.negentropy.model.entity.QTagEntity.tagEntity;
+        QTagEntity qTag = QTagEntity.tagEntity;
         return StreamSupport.stream(tagRepository.findAll(
                         qTag.tasks.isEmpty())
+                .spliterator(), false);
+    }
+
+    @Override
+    public Stream<TaskEntity> findProjects() {
+        QTaskEntity qTask = QTaskEntity.taskEntity;
+        return StreamSupport.stream(taskRepository.findAll(
+                        qTask.project.isTrue())
                 .spliterator(), false);
     }
 }

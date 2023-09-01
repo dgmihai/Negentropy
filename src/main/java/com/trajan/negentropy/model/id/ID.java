@@ -1,7 +1,8 @@
 package com.trajan.negentropy.model.id;
 
-import com.trajan.negentropy.client.controller.util.TaskEntry;
-import com.trajan.negentropy.model.entity.*;
+import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import lombok.AllArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode
 public abstract class ID {
     protected final long val;
+
+    public interface TaskOrLinkID {}
 
     public static TaskID of(TaskEntity taskEntity) {
         return taskEntity == null ?

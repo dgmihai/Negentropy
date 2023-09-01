@@ -4,11 +4,12 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.model.id.TaskID;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.textfield.TextField;
@@ -21,7 +22,7 @@ import org.springframework.data.util.Pair;
 @Accessors(fluent = true)
 public class QuickCreateField extends TextField implements TaskNodeProvider {
     @Getter
-    private ClientDataController controller;
+    private final ClientDataController controller;
 
     private Task task = null;
     private TaskNodeInfoData<TaskNodeDTO> nodeDTO = null;
@@ -64,13 +65,15 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
             try {
                 parse(input);
 
-                TaskNode result = createNode(controller.activeTaskNodeView().rootNodeId().orElse(null),
+                TaskNode rootNode = controller.activeTaskNodeView().rootNode().orElse(null);
+                TaskID rootTaskId = rootNode == null ? null : rootNode.task().id();
+                TaskNode result = createNode(rootTaskId,
                         InsertLocation.LAST);
                 if (result != null) {
                     this.clear();
                 }
             } catch (QuickCreateParser.ParseException e) {
-                NotificationError.show(e);
+                NotificationMessage.error(e);
                 this.setErrorMessage(e.getMessage());
             }
         }

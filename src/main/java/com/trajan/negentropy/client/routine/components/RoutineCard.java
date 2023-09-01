@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
@@ -97,7 +97,7 @@ public class RoutineCard extends VerticalLayout {
         this.getElement().setAttribute("active", isActive());
 
         if (routine.rootStep().startTime() == null) {
-            NotificationError.show("Start at least one step in a routine before completing!");
+            NotificationMessage.error("Start at least one step in a routine before completing!");
         } else {
             Span completed = new Span("Completed '" + routine.name() + "' in " +
                     DurationConverter.toPresentation(Duration.between(

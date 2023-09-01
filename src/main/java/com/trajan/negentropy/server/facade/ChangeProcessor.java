@@ -124,7 +124,7 @@ public class ChangeProcessor {
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + id);
                 }
-            } else if (change instanceof InsertChange insertChange) {
+            } else if (change instanceof InsertChange<?> insertChange) {
                 prefix = "Added ";
                 TaskNodeDTO taskNodeDTO = insertChange.nodeDTO();
 
@@ -134,33 +134,36 @@ public class ChangeProcessor {
                     log.debug("Persisting task node with task from referenced change: {}, {}", task, taskNodeDTO);
                 }
 
-                for (Map.Entry<LinkID, List<InsertLocation>> entry : insertChange.locations().entrySet()) {
-                    LinkID linkId = entry.getKey();
-                    List<InsertLocation> insertLocations = entry.getValue();
+                if (insertChange instanceof InsertIntoChange insertIntoChange) {
+                    for (Map.Entry<TaskID, List<InsertLocation>> entry : insertIntoChange.locations().entrySet()) {
+                        TaskID taskId = entry.getKey();
+                        List<InsertLocation> insertLocations = entry.getValue();
 
-                    TaskLink reference = (linkId == null) ? null : entityQueryService.getLink(linkId);
-                    for (InsertLocation location : insertLocations) {
-                        log.debug("Inserting task node dto {} \n to {} {}", insertChange.nodeDTO(), location.name(), reference);
-                        setPositionBasedOnLocation(taskNodeDTO, reference, location);
-                        TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNodeDTO));
-                        dataResults.add(insertChange.id(), result);
-                        message = messageSupplier.apply(prefix, result);
+                        TaskEntity reference = (taskId != null) ? entityQueryService.getTask(taskId) : null;
+                        for (InsertLocation location : insertLocations) {
+                            log.debug("Inserting task node dto {} \n into {} {}", insertIntoChange.nodeDTO(), location.name(), reference);
+                            setPositionBasedOnLocation(taskNodeDTO, reference, location);
+                            TaskNode result = dataContext.toDO(dataContext.mergeNode(insertIntoChange.nodeDTO()));
+                            dataResults.add(insertIntoChange.id(), result);
+                            message = messageSupplier.apply(prefix, result);
+                        }
                     }
-                }
-            } else if (change instanceof InsertIntoChange insertIntoChange) {
-                prefix = "Added ";
-                for (Map.Entry<TaskID, List<InsertLocation>> entry : insertIntoChange.locations().entrySet()) {
-                    TaskID taskId = entry.getKey();
-                    List<InsertLocation> insertLocations = entry.getValue();
+                } else if (insertChange instanceof InsertAtChange insertAtChange) {
+                    for (Map.Entry<LinkID, List<InsertLocation>> entry : insertAtChange.locations().entrySet()) {
+                        LinkID linkId = entry.getKey();
+                        List<InsertLocation> insertLocations = entry.getValue();
+                        TaskLink reference = (linkId == null) ? null : entityQueryService.getLink(linkId);
 
-                    TaskEntity reference = (taskId != null) ? entityQueryService.getTask(taskId) : null;
-                    for (InsertLocation location : insertLocations) {
-                        log.debug("Inserting task node dto {} \n into {} {}", insertIntoChange.nodeDTO(), location.name(), reference);
-                        setPositionBasedOnLocation(insertIntoChange.nodeDTO(), reference, location);
-                        TaskNode result = dataContext.toDO(dataContext.mergeNode(insertIntoChange.nodeDTO()));
-                        dataResults.add(insertIntoChange.id(), result);
-                        message = messageSupplier.apply(prefix, result);
+                        for (InsertLocation location : insertLocations) {
+                            log.debug("Inserting task node dto {} \n to {} {}", insertAtChange.nodeDTO(), location.name(), reference);
+                            setPositionBasedOnLocation(taskNodeDTO, reference, location);
+                            TaskNode result = dataContext.toDO(dataContext.mergeNode(insertAtChange.nodeDTO()));
+                            dataResults.add(insertAtChange.id(), result);
+                            message = messageSupplier.apply(prefix, result);
+                        }
                     }
+                } else {
+                    throw new IllegalArgumentException("Unexpected changeRelevantDataMap type");
                 }
             } else if (change instanceof MoveChange moveChange) {
                 prefix = "Moved ";
@@ -242,64 +245,38 @@ public class ChangeProcessor {
         return Pair.of(message, dataResults);
     }
 
-    private void setPositionBasedOnLocation(TaskNodeDTOData<?> nodeDTO, TaskEntity referenceTask, InsertLocation location) {
-        switch (location) {
-            case FIRST -> {
-                nodeDTO
-                        .parentId(referenceTask == null
-                                ? null
-                                : ID.of(referenceTask))
+    private void setPositionBasedOnLocation(TaskNodeDTOData<?> nodeDTO, Data reference, InsertLocation location) {
+        if (reference == null) {
+            nodeDTO.parentId(null);
+            switch (location) {
+                case FIRST -> nodeDTO.position(0);
+                case CHILD, LAST -> nodeDTO.position(null);
+                case BEFORE, AFTER -> throw new IllegalArgumentException("Must provide a TaskLink as a reference for inserting BEFORE, AFTER");
+            }
+        } else if (reference instanceof TaskEntity referenceTask) {
+            nodeDTO.parentId(ID.of(referenceTask));
+            switch (location) {
+                case FIRST -> nodeDTO.position(0);
+                case CHILD, LAST -> nodeDTO.position(null);
+                case BEFORE, AFTER -> throw new IllegalArgumentException("Must provide a TaskLink as a reference for inserting BEFORE, AFTER");
+            }
+        } else if (reference instanceof TaskLink referenceLink) {
+            switch (location) {
+                case FIRST -> nodeDTO
+                        .parentId(ID.of(referenceLink.child()))
                         .position(0);
-            }
-            case CHILD, LAST -> {
-                nodeDTO
-                        .parentId(referenceTask == null
-                                ? null
-                                : ID.of(referenceTask))
+                case CHILD, LAST -> nodeDTO
+                        .parentId(ID.of(referenceLink.child()))
                         .position(null);
+                case BEFORE -> nodeDTO
+                        .parentId(ID.of(referenceLink.parent()))
+                        .position(referenceLink.position());
+                case AFTER -> nodeDTO
+                        .parentId(ID.of(referenceLink.parent()))
+                        .position(referenceLink.position() + 1);
             }
-            case BEFORE, AFTER -> {
-                throw new IllegalArgumentException("Must provide a TaskLink as a reference for inserting BEFORE, AFTER");
-            }
-        }
-    }
-
-    private void setPositionBasedOnLocation(TaskNodeDTOData<?> nodeDTO, TaskLink referenceLink, InsertLocation location) {
-        switch (location) {
-            case FIRST -> {
-                nodeDTO
-                        .parentId(referenceLink == null
-                                ? null
-                                : ID.of(referenceLink.child()))
-                        .position(0);
-            }
-            case CHILD, LAST -> {
-                nodeDTO
-                        .parentId(referenceLink == null
-                                ? null
-                                : ID.of(referenceLink.child()))
-                        .position(null);
-            }
-            case BEFORE -> {
-                if (referenceLink == null) {
-                    throw new IllegalArgumentException("Link ID cannot be null" +
-                            " with insert location BEFORE");
-                } else {
-                    nodeDTO
-                            .parentId(ID.of(referenceLink.parent()))
-                            .position(referenceLink.position());
-                }
-            }
-            case AFTER -> {
-                if (referenceLink == null) {
-                    throw new IllegalArgumentException("Link ID cannot be null" +
-                            " with insert location AFTER");
-                } else {
-                    nodeDTO
-                            .parentId(ID.of(referenceLink.parent()))
-                            .position(referenceLink.position()+1);
-                }
-            }
+        } else {
+            throw new IllegalArgumentException("Unexpected reference type: " + reference.getClass());
         }
     }
 

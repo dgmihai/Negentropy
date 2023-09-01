@@ -6,12 +6,12 @@ import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
-import com.trajan.negentropy.client.util.NotificationError;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
@@ -116,7 +116,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                             if (response.success()) {
                                 this.setRoutine(response.routine());
                             } else {
-                                NotificationError.show("Failed to skip/unskip routine step: " + response.message());
+                                NotificationMessage.error("Failed to skip/unskip routine step: " + response.message());
                             }
                         })
                         .withProperty("excludable", step ->
@@ -139,7 +139,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                                 if (response.success()) {
                                     this.setRoutine(response.routine());
                                 } else {
-                                    NotificationError.show("Failed to set current routine step: " + response.message());
+                                    NotificationMessage.error("Failed to set current routine step: " + response.message());
                                 }
                             })
                     )
@@ -208,7 +208,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                             }
                         }
                     } else {
-                        NotificationError.show("Cannot move item onto itself");
+                        NotificationMessage.error("Cannot move item onto itself");
                     }
                 }
                 draggedItem = null;
@@ -238,7 +238,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    public Optional<LinkID> rootNodeId() {
-        return Optional.of(routine.rootStep().node().id());
+    public Optional<TaskNode> rootNode() {
+        return Optional.of(routine.rootStep().node());
     }
 }

@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.id.ID.SyncID;
+import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
@@ -88,14 +89,27 @@ class ClientDataControllerTest extends ClientTestTemplate {
         }
     }
     
-    TaskNode testTaskInserted(LinkID reference, InsertLocation location, int position, String parent) {
+    TaskNode testTaskInserted(TaskOrLinkID reference, InsertLocation location, int position, String parent) {
         SyncID syncId = queryService.currentSyncId();
         System.out.println("Initial sync id: " + syncId);
         assertNotNull(syncId);
 
-        TaskNode resultNode = taskNodeProvider.createNode(
-                reference,
-                location);
+        TaskNode resultNode;
+        if (reference == null) {
+            resultNode = taskNodeProvider.createNode(
+                    null,
+                    location);
+        } else if (reference instanceof TaskID taskReference) {
+            resultNode = taskNodeProvider.createNode(
+                    taskReference,
+                    location);
+        } else if (reference instanceof LinkID linkReference) {
+            resultNode = taskNodeProvider.createNode(
+                    linkReference,
+                    location);
+        } else  {
+            throw new RuntimeException("Invalid reference type");
+        }
 
         assertTaskInserted(position, parent, resultNode);
         assertNotEquals(syncId, queryService.currentSyncId());
@@ -217,7 +231,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_AddFirstToParent() {
         TaskNode parentNode = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode resultNode = testTaskInserted(
-                parentNode.linkId(),
+                parentNode.childId(),
                 InsertLocation.FIRST,
                 0,
                 TWO);
@@ -237,7 +251,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_AddLastToParent() {
         TaskNode parentNode = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode resultNode = testTaskInserted(
-                parentNode.linkId(),
+                parentNode.childId(),
                 InsertLocation.LAST,
                 3,
                 TWO);
@@ -257,7 +271,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void testInsertNode_AddChildToParent() {
         TaskNode parentNode = nodes.get(Triple.of(NULL, TWO, 1));
         TaskNode resultNode = testTaskInserted(
-                parentNode.linkId(),
+                parentNode.childId(),
                 InsertLocation.CHILD,
                 3,
                 TWO);
@@ -357,7 +371,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
                 null,
                 InsertLocation.FIRST);
 
-        DataMapResponse response = (DataMapResponse) controller.requestChange(change);
+        DataMapResponse response = controller.requestChange(change);
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 
         List<Object> expectedTasks = List.of(
@@ -517,7 +531,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
                 reference.linkId(),
                 InsertLocation.BEFORE);
 
-        DataMapResponse response = (DataMapResponse) controller.requestChange(change);
+        DataMapResponse response = controller.requestChange(change);
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 
         List<Object> expectedTasks = List.of(

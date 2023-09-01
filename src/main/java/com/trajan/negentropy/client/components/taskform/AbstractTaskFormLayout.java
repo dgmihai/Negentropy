@@ -8,12 +8,16 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.ClearEvents;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.filter.TaskFilter;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.combobox.ComboBoxVariant;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Hr;
@@ -29,7 +33,9 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
@@ -44,6 +50,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected Checkbox projectCheckbox;
     protected TextField projectDurationField;
     protected TextArea descriptionArea;
+    protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
     protected HorizontalLayout taskCheckboxLayout;
     protected HorizontalLayout nodeCheckboxLayout;
@@ -89,13 +96,34 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         recurringCheckbox = new Checkbox("Recurring");
         requiredCheckbox = new Checkbox("Required");
         projectCheckbox = new Checkbox("Project");
-        projectCheckbox.addValueChangeListener(e -> {
-            projectDurationField.setVisible(e.getValue());
-        });
+        projectCheckbox.addValueChangeListener(e ->
+                projectDurationField.setEnabled(e.getValue()));
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
         descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+
+        projectComboBox = new ComboBox<>();
+        TaskFilter filter = new TaskFilter();
+        filter.options().add(TaskFilter.ONLY_PROJECTS);
+        List<Task> projects = controller.services().query().fetchTasks(filter)
+                .sorted((a, b) -> a.name().compareToIgnoreCase(b.name()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        projectComboBox.setItems(projects);
+        projectComboBox.setClearButtonVisible(true);
+        projectComboBox.setItemLabelGenerator(Task::name);
+        projectComboBox.setPlaceholder("Add directly to project");
+        projectComboBox.setVisible(false);
+        projectComboBox.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                saveButton.setText(e.getValue().name());
+            } else {
+                controller.activeTaskNodeView().rootNode().ifPresentOrElse(
+                        node -> saveButton.setText("Save to " + node.task().name()),
+                        () -> saveButton.setText("Save"));
+                saveButton.setText("Save as Root Task");
+            }
+        });
 
         saveButton = new Button("Save");
         clearButton = new Button("Cancel");
@@ -134,6 +162,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
+        projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
 
         buttonLayout = new FormLayout(
                 saveButton,
@@ -172,7 +201,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
         this.setWidthFull();
 
-        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout, projectDurationField,
-                buttonLayout);
+        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout,
+                projectDurationField, projectComboBox, buttonLayout);
     }
 }

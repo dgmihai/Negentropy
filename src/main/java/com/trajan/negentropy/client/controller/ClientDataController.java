@@ -7,7 +7,6 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeView;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.util.NotificationError;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
@@ -57,7 +56,7 @@ public class ClientDataController {
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
         T response = serviceCall.get();
         if (!response.success()) {
-            NotificationError.show(response.message());
+            NotificationMessage.error(response.message());
         } else {
             NotificationMessage.result(response.message());
         }
@@ -69,7 +68,7 @@ public class ClientDataController {
         try {
             return tryRequest(serviceCall);
         } catch (Throwable t) {
-            NotificationError.show(t);
+            NotificationMessage.error(t);
             return new DataMapResponse(t.getMessage());
         }
     }
@@ -78,7 +77,7 @@ public class ClientDataController {
         try {
             return tryRequest(serviceCall);
         } catch (Throwable t) {
-            NotificationError.show(t);
+            NotificationMessage.error(t);
             return new SyncResponse(t.getMessage());
         }
     }
@@ -98,7 +97,7 @@ public class ClientDataController {
         try {
             this.sync(trySyncRequest(() -> services.query().sync(taskNetworkGraph.syncId())));
         } catch (Throwable t) {
-            NotificationError.show(t);
+            NotificationMessage.error(t);
         }
     }
 
@@ -216,7 +215,7 @@ public class ClientDataController {
             this.sync();
         } catch (Throwable t) {
             t.printStackTrace();
-            NotificationError.show(t);
+            NotificationMessage.error(t);
         }
     }
 
@@ -229,12 +228,12 @@ public class ClientDataController {
             RoutineResponse response = serviceCall.get();
 
             if (!response.success()) {
-                NotificationError.show(response.message());
+                NotificationMessage.error(response.message());
             }
 
             return response;
         } catch (Throwable t) {
-            NotificationError.show(t);
+            NotificationMessage.error(t);
             return new RoutineResponse(false, null, t.getMessage());
         }
     }

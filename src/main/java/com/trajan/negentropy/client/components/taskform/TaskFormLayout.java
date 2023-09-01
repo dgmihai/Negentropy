@@ -10,6 +10,7 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
+import com.trajan.negentropy.model.id.TaskID;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
@@ -35,7 +36,8 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         configureAll();
 
-        projectDurationField.setVisible(false);
+        projectDurationField.setEnabled(false);
+        projectComboBox.setVisible(true);
     }
 
     @Override
@@ -44,8 +46,12 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 InsertLocation.LAST :
                 InsertLocation.FIRST;
 
+        TaskNode rootNode = controller.activeTaskNodeView().rootNode().orElse(null);
+        TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
         TaskNode result = createNode(
-                controller.activeTaskNodeView().rootNodeId().orElse(null),
+                projectComboBox.getValue().id() == null
+                        ? rootTaskID
+                        : projectComboBox.getValue().id(),
                 location);
 
         if (result != null) {

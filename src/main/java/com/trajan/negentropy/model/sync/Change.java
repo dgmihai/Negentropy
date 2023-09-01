@@ -10,6 +10,7 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
+import org.springframework.lang.NonNull;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -79,25 +80,36 @@ public abstract class Change {
         }
     }
 
+    @Getter
+    public abstract static class InsertChange<I extends ID> extends Change {
+        protected final TaskNodeDTO nodeDTO;
+        protected final MultiValueMap<I, InsertLocation> locations;
+
+        public InsertChange(TaskNodeDTO nodeDTO,I reference, InsertLocation location) {
+            this.nodeDTO = nodeDTO;
+            this.locations = new LinkedMultiValueMap<>();
+            locations.add(reference, location);
+        }
+
+        public InsertChange(TaskNodeDTO nodeDTO, MultiValueMap<I, InsertLocation> locations) {
+            this.nodeDTO = nodeDTO;
+            this.locations = locations;
+        }
+    }
+
     // Additional change types
 
     /*
      * Adds an existing Task to a new location in the Task tree based on a LinkID reference.
      */
     @Getter
-    public static class InsertChange extends Change {
-        protected final TaskNodeDTO nodeDTO;
-        protected final MultiValueMap<LinkID, InsertLocation> locations;
-
-        public InsertChange(TaskNodeDTO nodeDTO, LinkID reference, InsertLocation location) {
-            this.nodeDTO = nodeDTO;
-            this.locations = new LinkedMultiValueMap<>();
-            locations.add(reference, location);
+    public static class InsertAtChange extends InsertChange<LinkID> {
+        public InsertAtChange(TaskNodeDTO nodeDTO, @NonNull LinkID reference, InsertLocation location) {
+            super(nodeDTO, reference, location);
         }
 
-        public InsertChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations) {
-            this.nodeDTO = nodeDTO;
-            this.locations = locations;
+        public InsertAtChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations) {
+            super(nodeDTO, locations);
         }
 
         @Override
@@ -106,27 +118,28 @@ public abstract class Change {
         }
     }
 
+    public interface ReferencedInsertChange {
+        int changeTaskReference();
+        TaskNodeDTO nodeDTO();
+    }
+
     /*
      * Persists a new TaskNode that does not exist in the database.
      * References another change that is expected to return a Task.
      */
+
     @Getter
-    public static class ReferencedInsertChange extends InsertChange {
+    public static class ReferencedInsertAtChange extends InsertAtChange implements ReferencedInsertChange {
         private final int changeTaskReference;
 
-        public ReferencedInsertChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations, int changeTaskReference) {
+        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations, int changeTaskReference) {
             super(nodeDTO, locations);
             this.changeTaskReference = changeTaskReference;
         }
 
-        public ReferencedInsertChange(TaskNodeDTO nodeDTO, LinkID reference, InsertLocation location, int changeTaskReference) {
+        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, @NonNull LinkID reference, InsertLocation location, int changeTaskReference) {
             super(nodeDTO, reference, location);
             this.changeTaskReference = changeTaskReference;
-        }
-
-        @Override
-        public String toString() {
-            return "ReferencedInsertChange(" + nodeDTO + " " + locations + ")";
         }
     }
 
@@ -134,24 +147,33 @@ public abstract class Change {
      * Adds an existing Task to a new location in the Task tree based on a Task ID reference.
      */
     @Getter
-    public static class InsertIntoChange extends Change {
-        private final TaskNodeDTO nodeDTO;
-        private final MultiValueMap<TaskID, InsertLocation> locations;
-
+    public static class InsertIntoChange extends InsertChange<TaskID> {
         public InsertIntoChange(TaskNodeDTO nodeDTO, TaskID reference, InsertLocation location) {
-            this.nodeDTO = nodeDTO;
-            this.locations = new LinkedMultiValueMap<>();
-            locations.add(reference, location);
+            super(nodeDTO, reference, location);
         }
 
         public InsertIntoChange(TaskNodeDTO nodeDTO, MultiValueMap<TaskID, InsertLocation> locations) {
-            this.nodeDTO = nodeDTO;
-            this.locations = locations;
+            super(nodeDTO, locations);
         }
 
         @Override
         public String toString() {
             return "InsertIntoChange(" + nodeDTO + " " + locations + ")";
+        }
+    }
+
+    @Getter
+    public static class ReferencedInsertIntoChange extends InsertIntoChange implements ReferencedInsertChange {
+        private final int changeTaskReference;
+
+        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, MultiValueMap<TaskID, InsertLocation> locations, int changeTaskReference) {
+            super(nodeDTO, locations);
+            this.changeTaskReference = changeTaskReference;
+        }
+
+        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, TaskID reference, InsertLocation location, int changeTaskReference) {
+            super(nodeDTO, reference, location);
+            this.changeTaskReference = changeTaskReference;
         }
     }
 

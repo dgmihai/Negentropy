@@ -27,7 +27,7 @@ public class GridInlineEditorTaskFormLayout<T extends HasTaskNodeData> extends A
 
         configureAll();
 
-        projectDurationField.setVisible(node.task().project());
+        projectDurationField.setEnabled(node.task().project());
         saveAsLastCheckbox.setVisible(false);
     }
 

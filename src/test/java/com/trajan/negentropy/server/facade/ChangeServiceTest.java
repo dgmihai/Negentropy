@@ -166,11 +166,11 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 location));
     }
 
-    private TaskNode insertTask(TaskID taskId, LinkID linkId, InsertLocation location) {
-        return (TaskNode) execute(new InsertChange(
+    private TaskNode insertTask(TaskID taskId, LinkID referenceId, InsertLocation location) {
+        return (TaskNode) execute(new InsertAtChange(
                 new TaskNodeDTO()
                         .childId(taskId),
-                linkId,
+                referenceId,
                 location));
     }
 

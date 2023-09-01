@@ -1,6 +1,8 @@
 package com.trajan.negentropy.model.id;
 
-public class LinkID extends ID {
+import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
+
+public class LinkID extends ID implements TaskOrLinkID {
     public LinkID(long val) {
         super(val);
     }
