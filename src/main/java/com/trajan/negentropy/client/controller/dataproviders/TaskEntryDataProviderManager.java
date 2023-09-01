@@ -83,6 +83,7 @@ public class TaskEntryDataProviderManager {
 
         private TaskEntry rootEntry;
         private List<LinkID> filteredLinks;
+        private TaskFilter filter;
 
         public TaskEntryDataProvider(TaskNetworkGraph networkGraph) {
             log.info("TaskEntryGridDataProvider init");
@@ -144,7 +145,17 @@ public class TaskEntryDataProviderManager {
             return rootEntry != null ? rootEntry.task().id() : null;
         }
 
+        @Override
+        public void refreshAll() {
+            refreshFilter();
+            super.refreshAll();
+        }
+        public void refreshFilter() {
+            this.filteredLinks = networkGraph.getFilteredLinks(getRootTaskID(), filter);
+        }
+
         public void setFilter(TaskFilter filter) {
+            this.filter = filter;
             this.filteredLinks = networkGraph.getFilteredLinks(getRootTaskID(), filter);
             this.refreshAll();
         }

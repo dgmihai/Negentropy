@@ -478,9 +478,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
                             controller.requestChanges(List.of(
                                     taskPersist,
-                                    new ReferencedInsertIntoChange(
+                                    new ReferencedInsertAtChange(
                                             (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
-                                            entry.task().id(),
+                                            entry.node().id(),
                                             location,
                                             taskPersist.id())));
                         })
