@@ -61,13 +61,13 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Stream<LinkID> fetchAllNodesByFilter(TaskFilter filter) {
+    public Stream<LinkID> fetchAllNodes(TaskFilter filter) {
         return entityQueryService.findLinkIds(filter);
     }
 
 
     @Override
-    public Stream<Task> fetchTasks(TaskFilter filter) {
+    public Stream<Task> fetchAllTasks(TaskFilter filter) {
         return entityQueryService.findTasks(filter)
                 .map(dataContext::toDO);
     }

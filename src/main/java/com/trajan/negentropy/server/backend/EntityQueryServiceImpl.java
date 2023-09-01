@@ -19,6 +19,7 @@ import org.springframework.data.querydsl.QSort;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -105,12 +106,14 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.importance.loe(filter.importanceThreshold()));
             }
 
-            if (filter.availableAtTime() != null && !filter.options().contains(TaskFilter.IGNORE_SCHEDULING)) {
-                builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime()));
+            if (!filter.options().contains(TaskFilter.IGNORE_SCHEDULING)) {
+                builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime() != null
+                        ? filter.availableAtTime()
+                        : LocalDateTime.now()));
             }
 
-            if (filter.options().contains(TaskFilter.HIDE_COMPLETED)) {
-                builder.andNot(Q_LINK.completed.eq(true));
+            if (filter.completed() != null) {
+                builder.and(Q_LINK.completed.eq(filter.completed()));
             }
        }
         return builder;

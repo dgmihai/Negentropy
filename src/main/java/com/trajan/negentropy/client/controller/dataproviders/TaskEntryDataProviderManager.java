@@ -27,7 +27,6 @@ public class TaskEntryDataProviderManager {
     @Autowired private SessionServices services;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
 
-//
 //    @Getter private final Set<TaskEntryTreeGrid> treeGrids = new HashSet<>();
 
 //    public void resetAllData() {
@@ -68,6 +67,10 @@ public class TaskEntryDataProviderManager {
         TaskEntryDataProvider gridDataProvider = new TaskEntryDataProvider(taskNetworkGraph);
         this.allProviders().add(gridDataProvider);
         return gridDataProvider;
+    }
+
+    public void setFilter(TaskFilter filter) {
+        allProviders().forEach(provider -> provider.setFilter(filter));
     }
 
     @Slf4j

@@ -172,16 +172,20 @@ public class ToolbarTabSheet extends TabSheet {
 
     private ToolbarTabSheet initOptionsTab(boolean mobile) {
         Button recalculateNetDurations = new Button("Recalculate Net Durations");
-        recalculateNetDurations.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        recalculateNetDurations.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         recalculateNetDurations.addClickListener(e -> controller.recalculateNetDurations());
 
         Button removeOrphanTasks = new Button("Delete All Orphan Tasks");
-        removeOrphanTasks.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        removeOrphanTasks.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         removeOrphanTasks.addClickListener(e -> controller.deleteAllOrphanedTasks());
 
         Button forceResync = new Button("Force Data Resync");
-        forceResync.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        forceResync.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         forceResync.addClickListener(e -> controller.taskNetworkGraph().reset());
+
+        Button deleteCompleted = new Button("Delete All Completed Tasks");
+        deleteCompleted.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        deleteCompleted.addClickListener(e -> controller.deleteAllCompletedTasks());
 
         RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
         gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
@@ -227,7 +231,7 @@ public class ToolbarTabSheet extends TabSheet {
         });
 
         VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, recalculateNetDurations,
-                removeOrphanTasks, forceResync);
+                removeOrphanTasks, forceResync, deleteCompleted);
         auxiliaryButtonLayout.setPadding(false);
         auxiliaryButtonLayout.setSpacing(false);
 

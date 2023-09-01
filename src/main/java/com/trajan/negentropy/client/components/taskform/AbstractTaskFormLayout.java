@@ -106,7 +106,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox = new ComboBox<>();
         TaskFilter filter = new TaskFilter();
         filter.options().add(TaskFilter.ONLY_PROJECTS);
-        List<Task> projects = controller.services().query().fetchTasks(filter)
+        List<Task> projects = controller.services().query().fetchAllTasks(filter)
                 .sorted((a, b) -> a.name().compareToIgnoreCase(b.name()))
                 .collect(Collectors.toCollection(ArrayList::new));
         projectComboBox.setItems(projects);

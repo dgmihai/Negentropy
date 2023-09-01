@@ -46,7 +46,7 @@ public interface QueryService {
 
     Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds);
 
-    Stream<LinkID> fetchAllNodesByFilter(TaskFilter filter);
+    Stream<LinkID> fetchAllNodes(TaskFilter filter);
 
     /**
      * Get all tasks that meet a set of filters and tags.
@@ -54,7 +54,7 @@ public interface QueryService {
      * @param filter The filter criteria to be applied.
      * @return A distinct stream of tasks that meet the specified filters and tags.
      */
-    Stream<Task> fetchTasks(TaskFilter filter);
+    Stream<Task> fetchAllTasks(TaskFilter filter);
 
 
     /**

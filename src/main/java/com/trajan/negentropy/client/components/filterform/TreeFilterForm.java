@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TreeFilterForm extends FilterForm {
     public TreeFilterForm(ClientDataController controller) {
         super(controller);
+        controller.taskEntryDataProviderManager().setFilter(binder.getBean());
     }
 
     @Override
@@ -17,8 +18,7 @@ public class TreeFilterForm extends FilterForm {
 
         binder.addValueChangeListener(event -> {
             log.debug("VALUE CHANGE LISTENER");
-            controller.taskEntryDataProviderManager().allProviders().forEach(provider ->
-                    provider.setFilter(binder.getBean()));
+            controller.taskEntryDataProviderManager().setFilter(binder.getBean());
         });
     }
 }

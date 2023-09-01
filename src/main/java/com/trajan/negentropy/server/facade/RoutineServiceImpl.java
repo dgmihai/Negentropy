@@ -154,9 +154,9 @@ public class RoutineServiceImpl implements RoutineService {
                 ? filter
                 : new TaskFilter();
         filterWithProjects
+                .completed(false)
                 .options()
-                    .addAll(List.of(TaskFilter.WITH_PROJECT_DURATION_LIMITS,
-                            TaskFilter.HIDE_COMPLETED));
+                    .add(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
         if (filterWithProjects.durationLimit() == null) {
             if (rootLink.child().project()) {
                 filterWithProjects.durationLimit(rootLink.projectDuration());

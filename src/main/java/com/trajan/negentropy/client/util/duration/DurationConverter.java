@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DurationConverter implements Converter<String, Duration> {
-    public static final String DURATION_PATTERN = "^\\s*(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?\\s*$";
+    public static final String DURATION_PATTERN = "^(?i)\\s*(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?\\s*$";
     private static final Pattern COMPILED_DURATION_PATTERN = Pattern.compile(DURATION_PATTERN);
 
     @Override

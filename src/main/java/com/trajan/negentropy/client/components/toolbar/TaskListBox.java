@@ -30,7 +30,7 @@ public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodePro
     public void fetchTasks(TaskFilter filter) {
         log.debug("FETCH TASKS: " + filter);
         if (!filter.isEmpty()) {
-            setItems(controller.services().query().fetchTasks(filter).collect(Collectors.toSet()));
+            setItems(controller.services().query().fetchAllTasks(filter).collect(Collectors.toSet()));
         } else {
             setItems();
         }

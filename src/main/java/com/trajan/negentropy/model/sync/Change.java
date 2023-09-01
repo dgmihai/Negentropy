@@ -67,7 +67,7 @@ public abstract class Change {
      * Deletes an existing Task, TaskNode, or Tag.
      */
     @Getter
-    public static class DeleteChange<UID extends ID> extends Change  implements ChangeRecord<UID> {
+    public static class DeleteChange<UID extends ID> extends Change implements ChangeRecord<UID> {
         private final UID data;
 
         public DeleteChange(UID data) {

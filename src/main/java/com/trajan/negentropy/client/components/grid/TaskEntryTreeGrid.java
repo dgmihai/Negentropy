@@ -494,9 +494,23 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             add(new Hr());
 
+            GridMenuItem<TaskEntry> moveToTop = addItem("Move to Top", e -> e.getItem().ifPresent(
+                    entry -> controller.requestChange(new MoveChange(
+                            entry.node().linkId(),
+                            entry.parent().node().id(),
+                            InsertLocation.FIRST))));
+
+            GridMenuItem<TaskEntry> moveToBottom = addItem("Move to Bottom", e -> e.getItem().ifPresent(
+                    entry -> controller.requestChange(new MoveChange(
+                            entry.node().linkId(),
+                            entry.parent().node().id(),
+                            InsertLocation.FIRST))));
+
+            add(new Hr());
+
             GridMenuItem<TaskEntry> remove = addItem("Remove", e -> e.getItem().ifPresent(
                     entry -> controller.requestChange(new DeleteChange<>(entry.node().linkId()))));
-            
+
             add(new Hr());
 
             GridMenuItem<TaskEntry> multiEdit = addItem("");
