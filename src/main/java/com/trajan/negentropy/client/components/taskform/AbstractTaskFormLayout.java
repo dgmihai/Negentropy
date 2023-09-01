@@ -103,6 +103,9 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         descriptionArea.setPlaceholder("Description");
         descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
+        saveButton = new Button();
+        setSaveButtonText(null);
+
         projectComboBox = new ComboBox<>();
         TaskFilter filter = new TaskFilter();
         filter.options().add(TaskFilter.ONLY_PROJECTS);
@@ -114,24 +117,26 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setItemLabelGenerator(Task::name);
         projectComboBox.setPlaceholder("Add directly to project");
         projectComboBox.setVisible(false);
-        projectComboBox.addValueChangeListener(e -> {
-            if (e.getValue() != null) {
-                saveButton.setText(e.getValue().name());
-            } else {
-                controller.activeTaskNodeView().rootNode().ifPresentOrElse(
-                        node -> saveButton.setText("Save to " + node.task().name()),
-                        () -> saveButton.setText("Save"));
-                saveButton.setText("Save as Root Task");
-            }
-        });
+        projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
 
-        saveButton = new Button("Save");
         clearButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
         onSaveSelect = new Select<>();
         onSaveSelect.setItems(Arrays.stream(OnSuccessfulSaveActions.values())
                 .map(OnSuccessfulSaveActions::toString)
                 .collect(Collectors.toSet()));
+    }
+
+    private void setSaveButtonText(Task project) {
+        if (project != null) {
+            saveButton.setText("Save to " + project.name());
+        } else {
+//             TODO: This requires a callback to the active task node view
+//            controller.activeTaskNodeView().rootNode().ifPresentOrElse(
+//                    node -> saveButton.setText("Save to " + node.task().name()),
+//                    () -> saveButton.setText("Save"));
+            saveButton.setText("Save");
+        }
     }
 
     public abstract TaskNode save();
