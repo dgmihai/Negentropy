@@ -70,7 +70,8 @@ public class TreeView extends Div {
 
         for (int i=0; i<grids.size(); i++) {
             TaskEntryTreeGrid grid = grids.get(i);
-            grid.init(settings.treeViewColumnVisibilities().get(i));
+            grid.init(settings.treeViewColumnVisibilities().get(i),
+                    settings.gridSelectionMode());
             grid.setWidthFull();
             grid.setHeight("86%");
         }

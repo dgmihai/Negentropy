@@ -15,7 +15,6 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.treegrid.TreeGrid;
@@ -171,11 +170,6 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     protected Registration setEditorSaveListener() {
         return editor.addSaveListener(e ->
                 controller.requestChange(new MergeChange<>(e.getItem().task())));
-    }
-
-    @Override
-    protected void setSelectionMode(boolean multiSelect) {
-        treeGrid.setSelectionMode(Grid.SelectionMode.NONE);
     }
 
     @Override

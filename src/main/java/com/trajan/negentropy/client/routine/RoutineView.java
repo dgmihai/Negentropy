@@ -13,6 +13,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -67,7 +68,7 @@ public class RoutineView extends VerticalLayout {
                 ToolbarTabSheet.TabType.OPTIONS_TAB);
 
         routineStepTreeGrid.setVisible(settings.routineStepsGridVisible());
-        routineStepTreeGrid.init(settings.routineViewColumnVisibility());
+        routineStepTreeGrid.init(settings.routineViewColumnVisibility(), SelectionMode.NONE);
         routineStepTreeGrid.setSizeFull();
 
         toolbarTabSheet.addSelectedChangeListener(event -> {

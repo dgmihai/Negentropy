@@ -95,9 +95,11 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
     protected FormLayout editHeaderLayout;
     protected List<Checkbox> editCheckboxes;
 
+    protected SelectionMode selectionMode;
+
     protected abstract TreeGrid<T> createGrid();
 
-    public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns) {
+    public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns, SelectionMode selectionMode) {
         treeGrid = createGrid();
         this.visibleColumns = visibleColumns;
 
@@ -112,7 +114,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
         editHeaderLayout = new FormLayout();
         editCheckboxes = new LinkedList<>();
 
-        setSelectionMode(settings.multiSelect());
+        setSelectionMode(selectionMode);
         initReadColumns();
         initEditColumns();
         initDetails();
@@ -148,49 +150,53 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
             Function<T, Boolean> getter,
             Function<Boolean, Data> inputFunction,
             Function<T, ID> idFunction) {
-        Checkbox checkbox = new Checkbox(column.getKey());
 
-        editHeaderLayout.add(checkbox);
+        if (!selectionMode.equals(SelectionMode.NONE)) {
+            Checkbox checkbox = new Checkbox(column.getKey());
 
-        treeGrid.addSelectionListener(event -> {
-            log.debug("Selection changed");
-            if (event.isFromClient()) {
-                Set<T> data = treeGrid.getSelectedItems();
+            editHeaderLayout.add(checkbox);
 
-                if (data.isEmpty()) {
-                    return;
+            editCheckboxes.add(checkbox);
+            treeGrid.addSelectionListener(event -> {
+                log.debug("Selection changed");
+                if (event.isFromClient()) {
+                    Set<T> data = treeGrid.getSelectedItems();
+
+                    if (data.isEmpty()) {
+                        return;
+                    }
+
+                    boolean firstRequiredValue = data.stream()
+                            .map(getter)
+                            .findFirst().get();
+
+                    boolean allSame = data.stream()
+                            .allMatch(t -> getter.apply(t) == firstRequiredValue);
+
+                    log.debug("All same: {}", allSame);
+                    if (allSame) {
+                        checkbox.setValue(firstRequiredValue);
+                        checkbox.setIndeterminate(false);
+                    } else {
+                        checkbox.setIndeterminate(true);
+                    }
                 }
+            });
 
-                boolean firstRequiredValue = data.stream()
-                        .map(getter)
-                        .findFirst().get();
+            checkbox.addValueChangeListener(event -> {
+                if (event.isFromClient()) {
+                    Set<T> toUpdate = treeGrid.getSelectedItems();
 
-                boolean allSame = data.stream()
-                        .allMatch(t -> getter.apply(t) == firstRequiredValue);
-
-                log.debug("All same: {}", allSame);
-                if (allSame) {
-                    checkbox.setValue(firstRequiredValue);
-                    checkbox.setIndeterminate(false);
-                } else {
-                    checkbox.setIndeterminate(true);
+                    if (!toUpdate.isEmpty()) {
+                        controller.requestChange(new MultiMergeChange<>(
+                                inputFunction.apply(checkbox.getValue()),
+                                toUpdate.stream()
+                                        .map(idFunction)
+                                        .toList()));
+                    }
                 }
-            }
-        });
-
-        checkbox.addValueChangeListener(event -> {
-            if (event.isFromClient()) {
-                Set<T> toUpdate = treeGrid.getSelectedItems();
-
-                if (!toUpdate.isEmpty()) {
-                    controller.requestChange(new MultiMergeChange<>(
-                            inputFunction.apply(checkbox.getValue()),
-                            toUpdate.stream()
-                                    .map(idFunction)
-                                    .toList()));
-                }
-            }
-        });
+            });
+        }
     }
 
     private void initColumn(ColumnKey columnKey) {
@@ -330,7 +336,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
                     Button columnHeaderButton = new Button(new Span(
                             GridUtil.headerIconPrimary(VaadinIcon.FILE_TREE_SUB),
                             GridUtil.headerIconPrimary(VaadinIcon.CLOCK)));
-                    columnHeaderButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+                    columnHeaderButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
 
                     DurationEstimateValueProvider<T> provider = durationEstimateValueProviderFactory.get(
                             DurationEstimateValueProvider.DurationType.NET_DURATION);
@@ -524,13 +530,10 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
     protected abstract void configureAdditionalEvents();
 
-    protected void setSelectionMode(boolean multiSelect) {
-        if (multiSelect) {
-            treeGrid.setSelectionMode(SelectionMode.MULTI);
-        } else {
-            treeGrid.setSelectionMode(SelectionMode.SINGLE);
-        }
-        editHeaderLayout.setVisible(multiSelect);
+    protected void setSelectionMode(SelectionMode selectionMode) {
+        this.selectionMode = selectionMode;
+        treeGrid.setSelectionMode(selectionMode);
+        editHeaderLayout.setVisible(selectionMode.equals(SelectionMode.MULTI));
     }
 
     protected Collection<Component> configureAdditionalTopBarComponents() {
@@ -560,13 +563,16 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
         SubMenu subMenu = menuBar.addItem(menuIcon)
                 .getSubMenu();
 
-        MenuItem multiSelect = subMenu.addItem("Multi-Select");
-        multiSelect.setCheckable(true);
-        multiSelect.setChecked(settings.multiSelect());
-        multiSelect.addClickListener(e -> {
-            settings.multiSelect(!settings.multiSelect());
-            this.setSelectionMode(settings.multiSelect());
-        });
+        if (!this.selectionMode.equals(SelectionMode.NONE)) {
+            MenuItem multiSelect = subMenu.addItem("Multi-Select");
+            multiSelect.setCheckable(true);
+            multiSelect.setChecked(settings.gridSelectionMode().equals(SelectionMode.MULTI));
+            multiSelect.addClickListener(e -> {
+                settings.gridSelectionMode(multiSelect.isChecked()
+                        ? SelectionMode.MULTI : SelectionMode.SINGLE);
+                this.setSelectionMode(settings.gridSelectionMode());
+            });
+        }
 
         MenuItem visibilityMenu = subMenu.addItem("Column Visibility");
 

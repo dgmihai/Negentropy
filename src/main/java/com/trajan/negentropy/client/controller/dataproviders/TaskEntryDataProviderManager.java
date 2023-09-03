@@ -90,13 +90,16 @@ public class TaskEntryDataProviderManager {
                     List<TaskEntry> taskEntries = linkTaskEntriesMap.get(id);
 
                     for (TaskEntry entry : taskEntries) {
-                        entry.node((networkGraph.nodeMap().get(entry.node().id())));
-                        entry.node().child(networkGraph.taskMap().get(entry.node().child().id()));
-                        if (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id())) {
-                            refreshAll();
-                            return;
+                        // TODO: This is a band-aid
+                        if (entry.node() != null) {
+                            entry.node((networkGraph.nodeMap().get(entry.node().id())));
+                            entry.node().child(networkGraph.taskMap().get(entry.node().child().id()));
+                            if (rootEntry == null || (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
+                                refreshAll();
+                                return;
+                            }
+                            this.refreshItem(entry, mapEntry.getValue());
                         }
-                        this.refreshItem(entry, mapEntry.getValue());
                     }
                 }
             }

@@ -226,13 +226,6 @@ public class ToolbarTabSheet extends TabSheet {
             UI.getCurrent().getPage().reload();
         });
 
-        Checkbox multiSelectCheckbox = new Checkbox("Multi-select");
-        multiSelectCheckbox.setValue(settings.multiSelect());
-        multiSelectCheckbox.addValueChangeListener(e -> {
-            settings.multiSelect(multiSelectCheckbox.getValue());
-            UI.getCurrent().getPage().reload();
-        });
-
         VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, recalculateNetDurations,
                 removeOrphanTasks, forceResync, deleteCompleted);
         auxiliaryButtonLayout.setPadding(false);
@@ -240,9 +233,7 @@ public class ToolbarTabSheet extends TabSheet {
 
         FormLayout layout = new FormLayout(
                 sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
-                gridTilingRadioButtonGroup, auxiliaryButtonLayout, multiSelectCheckbox);
-//        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
-//        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+                gridTilingRadioButtonGroup, auxiliaryButtonLayout);
 
         layout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 2),

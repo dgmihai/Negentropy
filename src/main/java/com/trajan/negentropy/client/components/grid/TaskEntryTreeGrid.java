@@ -19,6 +19,7 @@ import com.trajan.negentropy.client.util.cron.CronValueProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
@@ -27,6 +28,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.grid.contextmenu.GridSubMenu;
@@ -89,8 +91,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns) {
-        super.init(visibleColumns);
+    public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns, SelectionMode selectionMode) {
+        super.init(visibleColumns, selectionMode);
 
         if (settings.enableContextMenu()) {
             log.debug("Enabled context menu");
@@ -406,10 +408,15 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         }
 
         if (editHeaderLayout.getElement().getChildCount() > 0) {
-            editHeaderLayout.addComponentAsFirst(new Span("Edit selected:"));
+            Span label = new Span("Edit selected:");
+            editHeaderLayout.addComponentAsFirst(label);
+            treeGrid.addSelectionListener(e -> label.setText("Edit selected: " + treeGrid.getSelectedItems().size()
+                    + " items"));
+
             editHeaderLayout.setResponsiveSteps(
                     new FormLayout.ResponsiveStep("0", 3),
                     new FormLayout.ResponsiveStep(K.SHORT_WIDTH, 6));
+
             return editHeaderLayout;
         }
 
@@ -486,14 +493,14 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 moveSelectedSubMenu.addItem(label, e -> {
                     controller.requestChanges(grid.getSelectedItems().stream()
                             .collect(Collectors.groupingBy(
-                                    entry -> entry.node().parentId(),
+                                    entry -> Objects.requireNonNullElse(
+                                            entry.node().parentId(), TaskID.nil()),
                                     Collectors.collectingAndThen(
                                             Collectors.toList(),
                                             list -> list.stream()
                                                     .sorted(Comparator.comparingInt(a ->
                                                             reverse * a.node().position()))
-                                                    .collect(Collectors.toList())
-                                    )
+                                                    .collect(Collectors.toList()))
                             )).values().stream()
                             .flatMap(List::stream)
                             .map(entry -> (Change) new MoveChange(

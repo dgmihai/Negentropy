@@ -8,6 +8,7 @@ import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.model.filter.TaskFilter;
+import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +26,7 @@ public class UserSettings {
 
     @Setter private TaskFilter filter = new TaskFilter();
     @Setter private boolean enableContextMenu = true;
-    @Setter private boolean multiSelect = true;
+    @Setter private SelectionMode gridSelectionMode = SelectionMode.MULTI;
     @Setter private GridTiling gridTiling = GridTiling.NONE;
     @Setter private InsertMode sameGridDragInsertMode = InsertMode.MOVE;
     @Setter private InsertMode differentGridDragInsertMode = InsertMode.MOVE;

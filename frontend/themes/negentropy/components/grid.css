@@ -54,3 +54,7 @@ vaadin-grid::part(recurring-node) {
       var(--lumo-primary-color);
 }
 
+vaadin-grid::part(details-cell) {
+    user-select: none;
+}
+
