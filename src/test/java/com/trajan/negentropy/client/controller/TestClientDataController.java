@@ -2,8 +2,8 @@ package com.trajan.negentropy.client.controller;
 
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
 
-public class TestClientDataControllerImpl extends ClientDataController {
-    public TestClientDataControllerImpl(SessionServices services) {
+public class TestClientDataController extends ClientDataController {
+    public TestClientDataController(SessionServices services) {
         this.services = services;
         this.taskNetworkGraph = new TestTaskNetworkGraph(services);
         this.taskEntryDataProviderManager = new TaskEntryDataProviderManager();

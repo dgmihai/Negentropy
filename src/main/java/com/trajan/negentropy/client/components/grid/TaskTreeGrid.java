@@ -32,7 +32,7 @@ import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridMultiSelectionModel;
+import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
@@ -112,7 +112,7 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
         editHeaderLayout = new FormLayout();
         editCheckboxes = new LinkedList<>();
 
-        setSelectionMode();
+        setSelectionMode(settings.multiSelect());
         initReadColumns();
         initEditColumns();
         initDetails();
@@ -120,12 +120,11 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
         configureAdditionalEvents();
         configureAdditionalTopBarComponents().forEach(topBar::add);
 
-        // TODO: Commented until multi-edit fixed
-//        FormLayout middleBar = configureMiddleBar();
-//        if (middleBar != null) {
-//            this.add(middleBar);
-//            middleBar.setWidthFull();
-//        }
+        FormLayout middleBar = configureMiddleBar();
+        if (middleBar != null) {
+            this.add(middleBar);
+            middleBar.setWidthFull();
+        }
 
         treeGrid.setHeightFull();
         treeGrid.setWidthFull();
@@ -525,23 +524,13 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
     protected abstract void configureAdditionalEvents();
 
-    protected void setSelectionMode() {
-        treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
-        editHeaderLayout.setVisible(true);
-
-        // Hide checkbox column
-        treeGrid.getElement().executeJs("if (this.querySelector('vaadin-grid-flow-selection-column')) { this.querySelector('vaadin-grid-flow-selection-column').hidden = true }");
-    }
-
-    protected void toggleSelectionMode() {
-        // TODO: Disabled - changing selection mode removes listeners
-        boolean multiSelect = treeGrid.getSelectionModel() instanceof GridMultiSelectionModel;
+    protected void setSelectionMode(boolean multiSelect) {
         if (multiSelect) {
-            treeGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+            treeGrid.setSelectionMode(SelectionMode.MULTI);
         } else {
-            treeGrid.setSelectionMode(Grid.SelectionMode.MULTI);
+            treeGrid.setSelectionMode(SelectionMode.SINGLE);
         }
-        editHeaderLayout.setVisible(!multiSelect);
+        editHeaderLayout.setVisible(multiSelect);
     }
 
     protected Collection<Component> configureAdditionalTopBarComponents() {
@@ -573,11 +562,11 @@ public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implem
 
         MenuItem multiSelect = subMenu.addItem("Multi-Select");
         multiSelect.setCheckable(true);
+        multiSelect.setChecked(settings.multiSelect());
         multiSelect.addClickListener(e -> {
             settings.multiSelect(!settings.multiSelect());
-            this.toggleSelectionMode();
+            this.setSelectionMode(settings.multiSelect());
         });
-        multiSelect.setEnabled(false);
 
         MenuItem visibilityMenu = subMenu.addItem("Column Visibility");
 

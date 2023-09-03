@@ -61,10 +61,15 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Stream<LinkID> fetchAllNodes(TaskFilter filter) {
-        return entityQueryService.findLinkIds(filter);
+    public Stream<TaskNode> fetchAllNodes(TaskFilter filter) {
+        return entityQueryService.findLinks(filter)
+                .map(dataContext::toDO);
     }
 
+    @Override
+    public Stream<LinkID> fetchAllNodesAsIds(TaskFilter filter) {
+        return entityQueryService.findLinkIds(filter);
+    }
 
     @Override
     public Stream<Task> fetchAllTasks(TaskFilter filter) {
@@ -112,21 +117,6 @@ public class QueryServiceImpl implements QueryService {
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(parentTaskId, filter, offset, limit)
                 .map(dataContext::toDO);
-    }
-
-    @Override
-    public int fetchRootCount() {
-        return entityQueryService.findChildCount(null, null);
-    }
-
-    @Override
-    public int fetchRootCount(TaskFilter filter) {
-        return entityQueryService.findChildCount(null, filter);
-    }
-
-    @Override
-    public int fetchRootCount(TaskFilter filter, int offset, int limit) {
-        return entityQueryService.findChildCount(null, filter, offset, limit);
     }
 
     @Override

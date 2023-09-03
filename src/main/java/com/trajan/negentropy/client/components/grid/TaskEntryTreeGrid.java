@@ -57,6 +57,7 @@ import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
@@ -86,37 +87,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     protected TreeGrid<TaskEntry> createGrid() {
         return new TreeGrid<>(TaskEntry.class);
     }
-
-//    public void setData(TaskEntry rootEntry) {
-//        this.setData(rootEntry, this.filter);
-//    }
-//
-//    public void setFilter(TaskFilter filter) {
-//        this.setData(this.rootEntry, filter);
-//    }
-
-//    public void setData(TaskEntry rootEntry, TaskFilter filter) {
-//        this.rootEntry = rootEntry;
-//
-//        TaskID rootId = rootEntry != null ? rootEntry.task().id() : null;
-//        if (filter == null || filter.equals(new TaskFilter())) {
-//            this.filteredList = null;
-//            this.filter = null;
-//        } else if (!filter.equals(this.filter)) {
-//            log.debug("Filter changed from {} to {}", this.filter, filter);
-//            this.filter = filter;
-//            this.filteredList = controller.services().query().fetchDescendantNodeIds(rootId, filter).toList();
-//        }
-//
-//        List<TaskEntry> rootEntries = taskNetworkGraph.getChildren(rootId, this.filteredList).stream()
-//                .map(node -> new TaskEntry(null, node, Duration.ZERO))
-//                .toList();
-//
-//        treeGrid.setItems(rootEntries,
-//                entry -> taskNetworkGraph.getChildren(entry.task().id(), this.filteredList).stream()
-//                        .map(node -> new TaskEntry(entry, node, Duration.ZERO))
-//                        .toList());
-//    }
 
     @Override
     public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns) {
@@ -443,7 +413,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             return editHeaderLayout;
         }
 
-        return null;
+        return editHeaderLayout;
     }
 
     @Override
@@ -472,7 +442,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     entry -> controller.requestChange(new OverrideScheduledForChange(
                             entry.node().linkId(), LocalDateTime.now()))));
 
-            BiConsumer<String, InsertLocation> addItemAction = (label, location) -> {
+            BiConsumer<String, InsertLocation> addInsertItem = (label, location) -> {
                 activeTaskSubMenu.addItem(label, e -> e.getItem().ifPresent(
                         entry -> {
                             Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
@@ -487,24 +457,59 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 );
             };
 
-            addItemAction.accept("Before", InsertLocation.BEFORE);
-            addItemAction.accept("After", InsertLocation.AFTER);
-            addItemAction.accept("As First Subtask", InsertLocation.FIRST);
-            addItemAction.accept("As Last Subtask", InsertLocation.LAST);
+            addInsertItem.accept("Before", InsertLocation.BEFORE);
+            addInsertItem.accept("After", InsertLocation.AFTER);
+            addInsertItem.accept("As First Subtask", InsertLocation.FIRST);
+            addInsertItem.accept("As Last Subtask", InsertLocation.LAST);
 
             add(new Hr());
 
-            GridMenuItem<TaskEntry> moveToTop = addItem("Move to Top", e -> e.getItem().ifPresent(
-                    entry -> controller.requestChange(new MoveChange(
-                            entry.node().linkId(),
-                            entry.parent().node().id(),
-                            InsertLocation.FIRST))));
+            GridMenuItem<TaskEntry> moveTarget = addItem("");
+            GridSubMenu<TaskEntry> moveTargetSubMenu = moveTarget.getSubMenu();
 
-            GridMenuItem<TaskEntry> moveToBottom = addItem("Move to Bottom", e -> e.getItem().ifPresent(
-                    entry -> controller.requestChange(new MoveChange(
-                            entry.node().linkId(),
-                            entry.parent().node().id(),
-                            InsertLocation.FIRST))));
+            BiConsumer<String, InsertLocation> addMoveTargetItem = (label, location) -> {
+                moveTargetSubMenu.addItem(label, e -> e.getItem().ifPresent(
+                            entry -> controller.requestChange(new MoveChange(
+                                    entry.node().linkId(),
+                                    entry.parent().node().id(),
+                                    location))));
+            };
+
+            addMoveTargetItem.accept("To Top", InsertLocation.FIRST);
+            addMoveTargetItem.accept("To Bottom", InsertLocation.LAST);
+
+            GridMenuItem<TaskEntry> moveSelected = addItem("");
+            GridSubMenu<TaskEntry> moveSelectedSubMenu = moveSelected.getSubMenu();
+
+            BiConsumer<String, InsertLocation> addMoveSelectedItem = (label, location) -> {
+                int reverse = (location == InsertLocation.AFTER || location == InsertLocation.FIRST) ? -1 : 1;
+                moveSelectedSubMenu.addItem(label, e -> {
+                    controller.requestChanges(grid.getSelectedItems().stream()
+                            .collect(Collectors.groupingBy(
+                                    entry -> entry.node().parentId(),
+                                    Collectors.collectingAndThen(
+                                            Collectors.toList(),
+                                            list -> list.stream()
+                                                    .sorted(Comparator.comparingInt(a ->
+                                                            reverse * a.node().position()))
+                                                    .collect(Collectors.toList())
+                                    )
+                            )).values().stream()
+                            .flatMap(List::stream)
+                            .map(entry -> (Change) new MoveChange(
+                                    entry.node().linkId(),
+                                    e.getItem().get().node().id(),
+                                    location))
+                            .toList());
+
+                    grid.getSelectionModel().deselectAll();
+                });
+            };
+
+            addMoveSelectedItem.accept("As Subtasks At Front", InsertLocation.FIRST);
+            addMoveSelectedItem.accept("As Subtasks At Back",  InsertLocation.LAST);
+            addMoveSelectedItem.accept("Before", InsertLocation.BEFORE);
+            addMoveSelectedItem.accept("After", InsertLocation.AFTER);
 
             add(new Hr());
 
@@ -582,8 +587,19 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         activeTask.setVisible(false);
                     }
 
-                    multiEdit.setVisible(treeGrid.getSelectedItems().size() > 1);
-                    multiEdit.setText("Edit " + treeGrid.getSelectedItems().size() + " tasks");
+                    Set<TaskEntry> selected = grid.getSelectedItems();
+                    int selectedSize = selected.size();
+                    multiEdit.setVisible(selectedSize > 1);
+                    if (selectedSize == 0) {
+                        moveTarget.setVisible(true);
+                        moveSelected.setVisible(false);
+                        moveTarget.setText("Move " + entry.task().name());
+                    } else {
+                        moveTarget.setVisible(false);
+                        moveSelected.setVisible(true);
+                        moveSelected.setText("Move " + selectedSize + " tasks");
+                        multiEdit.setText("Edit " + selectedSize + " tasks");
+                    }
 
                     activeTaskSubMenu.getItems().forEach(menuItem -> menuItem.setEnabled(hasActiveTaskProvider));
 

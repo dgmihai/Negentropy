@@ -125,7 +125,9 @@ public class ClientDataController {
                 if (mergeData instanceof Task task) {
                     log.debug("Got merged task {}", task);
                     taskMap.put(task.id(), task);
-                    taskEntryDataProviderManager.pendingTaskRefresh().put(task.id(), false);
+                    for (LinkID linkId : taskNetworkGraph.nodesByTaskMap().getOrDefault(task.id(), List.of())) {
+                        taskEntryDataProviderManager.pendingNodeRefresh().put(linkId, false);
+                    }
                 } else if (mergeData instanceof TaskNode node) {
                     log.debug("Got merged node {}", node);
                     nodeMap.put(node.id(), node);
@@ -141,9 +143,13 @@ public class ClientDataController {
                 if (persistData instanceof Task task) {
                     log.debug("Got persisted task {}", task);
                     taskNetworkGraph.addTask(task);
+                    for (LinkID linkId : taskNetworkGraph.nodesByTaskMap().getOrDefault(task.id(), List.of())) {
+                        taskEntryDataProviderManager.pendingNodeRefresh().put(linkId, false);
+                    }
                 } else if (persistData instanceof TaskNode node) {
                     log.debug("Got persisted node {}", node);
                     taskNetworkGraph.addTaskNode(node);
+                    taskEntryDataProviderManager.pendingNodeRefresh().put(node.id(), false);
                     TaskID parentId = node.parentId();
                     if (parentId != null) {
                         // TODO: Needs to be fixed
@@ -172,7 +178,9 @@ public class ClientDataController {
                     } else {
                         TaskID parentId = deletedNode.parentId();
                         if (parentId != null) {
-                            taskEntryDataProviderManager.pendingTaskRefresh().put(parentId, true);
+                            for (LinkID lid : taskNetworkGraph.nodesByTaskMap().getOrDefault(parentId, List.of())) {
+                                taskEntryDataProviderManager.pendingNodeRefresh().put(lid, true);
+                            }
                         } else {
                             refreshAll = true;
                         }
@@ -222,10 +230,9 @@ public class ClientDataController {
 
     public void deleteAllCompletedTasks() {
         log.debug("Deleting completed tasks");
-        TaskFilter filter = new TaskFilter();
-        filter.completed(true);
+        TaskFilter filter = new TaskFilter(TaskFilter.HIDE_COMPLETED);
 
-        requestChanges(services.query().fetchAllNodes(filter)
+        requestChanges(services.query().fetchAllNodesAsIds(filter)
                 .map(DeleteChange::new)
                 .map(change -> (Change) change)
                 .toList());

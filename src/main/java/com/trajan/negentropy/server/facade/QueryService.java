@@ -46,7 +46,9 @@ public interface QueryService {
 
     Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds);
 
-    Stream<LinkID> fetchAllNodes(TaskFilter filter);
+    Stream<TaskNode> fetchAllNodes(TaskFilter filter);
+
+    Stream<LinkID> fetchAllNodesAsIds(TaskFilter filter);
 
     /**
      * Get all tasks that meet a set of filters and tags.
@@ -140,26 +142,6 @@ public interface QueryService {
     // TODO: Not yet implemented
 //    Map<TaskID, Duration> fetchNetDurations(TaskID taskId, TaskFilter filter);
 
-    int fetchRootCount();
-
-    /**
-     * Counts the tasks that have at least one instance associated with the root parent.
-     *
-     * @param filter The filter criteria to be applied.
-     * @return The number of root tasks.
-     */
-    int fetchRootCount(TaskFilter filter);
-
-    /**
-     * Counts the tasks that have at least one instance associated with the root parent.
-     *
-     * @param filter The filter criteria to be applied.
-     * @param offset zero-based offset.
-     * @param limit the size of the elements to be returned.
-     * @return The number of root tasks.
-     */
-    int fetchRootCount(TaskFilter filter, int offset, int limit);
-
     /**
      * Returns the task nodes associated with the root parent.
      *
@@ -204,7 +186,7 @@ public interface QueryService {
      * @param tagName The name of the tag..
      * @return A Tag object, or null if no matching tag was found.
      */
-    Tag fetchTagByName(String tag);
+    Tag fetchTagByName(String tagName);
 
     /**
      * Retrieves all initialized tags from the repository.

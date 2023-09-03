@@ -11,9 +11,19 @@ public class StackLog {
 
     public static void print(int additionalFrames) {
         List<StackWalker.StackFrame> frames = StackWalker.getInstance().walk(s -> s
-                .filter(f -> f.getClassName().startsWith("com.trajan.negentropy") &&
-                        !f.getClassName().equals("com.trajan.negentropy.vaadin.util.StackLog"))
+                .filter(f -> !f.getClassName().contains("StackLog") &&
+                        !f.getClassName().contains("org.springframework.aop"))
                 .limit(additionalFrames)
+                .collect(Collectors.toList()));
+        for (StackWalker.StackFrame frame : frames) {
+            logger.debug("    " + frame.toString());
+        }
+    }
+
+    public static void print() {
+        List<StackWalker.StackFrame> frames = StackWalker.getInstance().walk(s -> s
+                .filter(f -> !f.getClassName().contains("StackLog") &&
+                        !f.getClassName().contains("org.springframework.aop"))
                 .collect(Collectors.toList()));
         for (StackWalker.StackFrame frame : frames) {
             logger.debug("    " + frame.toString());

@@ -20,7 +20,6 @@ public class TaskFilter {
     private String name;
     private Set<TagID> includedTagIds = new HashSet<>();
     private Set<TagID> excludedTagIds = new HashSet<>();
-    private Boolean completed;
     private LocalDateTime availableAtTime;
     private Integer importanceThreshold;
     private Duration durationLimit;
@@ -28,6 +27,7 @@ public class TaskFilter {
 
     public static final String ONLY_REQUIRED = "Only Required";
     public static final String ONLY_PROJECTS = "Only Projects";
+    public static final String HIDE_COMPLETED = "Hide Completed Tasks";
     public static final String ALWAYS_INCLUDE_PARENTS = "Include Parents";
     public static final String IGNORE_SCHEDULING = "Ignore Scheduling";
     public static final String INNER_JOIN_INCLUDED_TAGS = "Inner Join Included Tags";
@@ -43,6 +43,7 @@ public class TaskFilter {
         return Set.of(
                 ONLY_REQUIRED,
                 ONLY_PROJECTS,
+                HIDE_COMPLETED,
                 ALWAYS_INCLUDE_PARENTS,
                 IGNORE_SCHEDULING,
                 INNER_JOIN_INCLUDED_TAGS);

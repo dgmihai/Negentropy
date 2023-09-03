@@ -174,7 +174,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    protected void toggleSelectionMode() {
+    protected void setSelectionMode(boolean multiSelect) {
         treeGrid.setSelectionMode(Grid.SelectionMode.NONE);
     }
 

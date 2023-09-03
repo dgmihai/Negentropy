@@ -10,7 +10,7 @@ import com.trajan.negentropy.server.TaskTestTemplate;
 import java.util.Set;
 
 public class ClientTestTemplate extends TaskTestTemplate {
-    protected TestClientDataControllerImpl controller;
+    protected TestClientDataController controller;
 
     protected TaskNodeProvider taskNodeProvider = new TaskNodeProvider() {
         @Override
@@ -38,6 +38,6 @@ public class ClientTestTemplate extends TaskTestTemplate {
     protected void init() {
         super.init();
 
-        controller = new TestClientDataControllerImpl(testServices);
+        controller = new TestClientDataController(testServices);
     }
 }

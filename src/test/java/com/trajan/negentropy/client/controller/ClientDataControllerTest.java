@@ -33,7 +33,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
     void setup() {
         init();
 
-        controller = new TestClientDataControllerImpl(testServices);
+        controller = new TestClientDataController(testServices);
     }
 
     void assertTaskInserted(int position, String parent, TaskNode resultNode) {

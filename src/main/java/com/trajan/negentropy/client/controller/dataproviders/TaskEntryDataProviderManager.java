@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.controller.dataproviders;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.controller.SessionServices;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -23,34 +24,23 @@ import java.util.stream.Stream;
 @SpringComponent
 @VaadinSessionScope
 @Slf4j
+@Benchmark(millisFloor = 10)
 public class TaskEntryDataProviderManager {
     @Autowired private SessionServices services;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
 
-//    @Getter private final Set<TaskEntryTreeGrid> treeGrids = new HashSet<>();
-
-//    public void resetAllData() {
-//        log.debug("Refreshing all grids");
-//        for (TaskEntryTreeGrid grid : treeGrids) {
-//            grid.setData(grid.rootEntry());
-//        }
-//    }
+    // ID, Boolean = true to recurse through all children, false for only that single entry
+    @Getter private final Map<LinkID, Boolean> pendingNodeRefresh = new HashMap<>();
 
     @Getter private final Set<TaskEntryDataProvider> allProviders = new LinkedHashSet<>();
-
-    // ID, Boolean = true to recurse through all children, false for only that single entry
-    @Getter private final Map<TaskID, Boolean> pendingTaskRefresh = new HashMap<>();
-    @Getter private final Map<LinkID, Boolean> pendingNodeRefresh = new HashMap<>();
 
     public void refreshQueuedItems() {
         log.debug("Refreshing providers");
         for (TaskEntryDataProvider provider : allProviders) {
-            provider.refreshTasks(pendingTaskRefresh);
-            provider.refreshNodes(pendingNodeRefresh);
+            provider.refreshNodes(this.pendingNodeRefresh);
         }
 
-        pendingTaskRefresh.clear();
-        pendingNodeRefresh.clear();
+        this.pendingNodeRefresh.clear();
     }
 
     public void refreshAllProviders() {
@@ -59,8 +49,7 @@ public class TaskEntryDataProviderManager {
             provider.refreshAll();
         }
 
-        pendingTaskRefresh.clear();
-        pendingNodeRefresh.clear();
+        this.pendingNodeRefresh.clear();
     }
 
     public TaskEntryDataProvider create() {
@@ -88,32 +77,9 @@ public class TaskEntryDataProviderManager {
         public TaskEntryDataProvider(TaskNetworkGraph networkGraph) {
             log.info("TaskEntryGridDataProvider init");
             this.networkGraph = networkGraph;
-            this.rootEntry(null);
-            this.refreshAll();
-        }
-
-        public void refreshTasks(Map<TaskID, Boolean> taskIdMap) {
-            for (Entry<TaskID, Boolean> mapEntry : taskIdMap.entrySet()) {
-                TaskID id = mapEntry.getKey();
-                if (taskTaskEntriesMap.containsKey(id)) {
-                    List<TaskEntry> taskEntries = taskTaskEntriesMap.get(id);
-
-                    for (TaskEntry entry : taskEntries) {
-                        entry.node((networkGraph.nodeMap().get(entry.node().id())));
-                        if (entry.node() != null) {
-                            entry.node().child(networkGraph.taskMap().get(id));
-                            if (rootEntry == null ||
-                                    (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
-                                refreshAll();
-                                return;
-                            }
-                            this.refreshItem(entry, mapEntry.getValue());
-                        } else {
-                            log.warn("TaskEntry {} has null node", entry);
-                        }
-                    }
-                }
-            }
+            this.rootEntry = null;
+            log.debug("Refreshing all");
+            super.refreshAll();
         }
 
         public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {
@@ -125,6 +91,7 @@ public class TaskEntryDataProviderManager {
 
                     for (TaskEntry entry : taskEntries) {
                         entry.node((networkGraph.nodeMap().get(entry.node().id())));
+                        entry.node().child(networkGraph.taskMap().get(entry.node().child().id()));
                         if (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id())) {
                             refreshAll();
                             return;
@@ -147,17 +114,19 @@ public class TaskEntryDataProviderManager {
 
         @Override
         public void refreshAll() {
+            log.debug("Refreshing all");
             refreshFilter();
             super.refreshAll();
         }
         public void refreshFilter() {
-            this.filteredLinks = networkGraph.getFilteredLinks(getRootTaskID(), filter);
+            log.debug("Refreshing filter");
+            this.filteredLinks = networkGraph.getFilteredLinks(filteredLinks, filter);
         }
 
         public void setFilter(TaskFilter filter) {
             this.filter = filter;
-            this.filteredLinks = networkGraph.getFilteredLinks(getRootTaskID(), filter);
-            this.refreshAll();
+            this.filteredLinks = networkGraph.getFilteredLinks(filteredLinks, filter);
+            super.refreshAll();
         }
 
         @Override

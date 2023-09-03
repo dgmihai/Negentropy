@@ -181,7 +181,10 @@ public class ToolbarTabSheet extends TabSheet {
 
         Button forceResync = new Button("Force Data Resync");
         forceResync.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        forceResync.addClickListener(e -> controller.taskNetworkGraph().reset());
+        forceResync.addClickListener(e -> {
+            controller.taskNetworkGraph().reset();
+            controller.taskEntryDataProviderManager().refreshAllProviders();
+        });
 
         Button deleteCompleted = new Button("Delete All Completed Tasks");
         deleteCompleted.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);

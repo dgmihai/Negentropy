@@ -102,6 +102,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     private BooleanBuilder filterLink(TaskFilter filter) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
+
             if (filter.importanceThreshold() != null) {
                 builder.and(Q_LINK.importance.loe(filter.importanceThreshold()));
             }
@@ -112,11 +113,11 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                         : LocalDateTime.now()));
             }
 
-            if (filter.completed() != null) {
-                builder.and(Q_LINK.completed.eq(filter.completed()));
+            if (filter.options().contains(TaskFilter.HIDE_COMPLETED)) {
+                builder.and(Q_LINK.completed.eq(false));
             }
        }
-        return builder;
+        return builder.and(filterTask(filter, Q_LINK.child));
     }
 
     private BooleanBuilder filterTask(TaskFilter filter, QTaskEntity qTask) {

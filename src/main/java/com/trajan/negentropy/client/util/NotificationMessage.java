@@ -46,7 +46,6 @@ public class NotificationMessage extends Div {
         });
 
         notification.add(layout);
-        notification.setPosition(Position.TOP_CENTER);
 
         try {
             notification.open();
@@ -65,6 +64,7 @@ public class NotificationMessage extends Div {
 
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         notification.setDuration(duration);
+        notification.setPosition(Position.BOTTOM_CENTER);
 
         return notify(notification);
     }
@@ -76,6 +76,7 @@ public class NotificationMessage extends Div {
 
         notification.addThemeVariants(NotificationVariant.LUMO_PRIMARY);
         notification.setDuration(duration);
+        notification.setPosition(Position.TOP_CENTER);
 
         return notify(notification);
     }
@@ -85,6 +86,7 @@ public class NotificationMessage extends Div {
         Notification notification = create(message);
 
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        notification.setPosition(Position.TOP_CENTER);
 
         return notify(notification);
     }

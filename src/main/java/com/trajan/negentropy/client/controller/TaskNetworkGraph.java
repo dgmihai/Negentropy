@@ -4,6 +4,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -23,15 +24,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SpringComponent
 @VaadinSessionScope
 @Slf4j
+@Benchmark(millisFloor = 10)
 public class TaskNetworkGraph {
     @Autowired protected SessionServices services;
 
@@ -153,8 +152,9 @@ public class TaskNetworkGraph {
         }
     }
 
-    public List<LinkID> getFilteredLinks(TaskID rootTaskID, TaskFilter filter) {
-        return services.query().fetchDescendantNodeIds(rootTaskID, filter)
+    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskFilter filter) {
+        log.debug("Getting filtered links with filter " + filter);
+        return services.query().fetchAllNodesAsIds(filter)
                 .toList();
     }
 }
