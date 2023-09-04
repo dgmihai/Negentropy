@@ -12,7 +12,7 @@ import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.tree.TreeView;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -140,7 +140,13 @@ public class ToolbarTabSheet extends TabSheet {
                 ? new TaskProviderTab(createTaskForm, "Create New Task")
                 : new TaskProviderTab(createTaskForm, VaadinIcon.FILE_ADD.create());
 
-        add(createNewTaskTab, this.createTaskForm);
+        Button showAndHide = new Button(VaadinIcon.CHEVRON_UP.create());
+        showAndHide.setWidthFull();
+        showAndHide.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        showAndHide.addClickListener(e -> createTaskForm.setVisible(!createTaskForm.isVisible()));
+        VerticalLayout layout = new VerticalLayout(createTaskForm, showAndHide);
+
+        add(createNewTaskTab, layout);
         return this;
     }
 
@@ -252,7 +258,7 @@ public class ToolbarTabSheet extends TabSheet {
         filterForm.name().setPlaceholder("Search for individual task");
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
-        filterForm.binder().setBean(new TaskFilter());
+        filterForm.binder().setBean(new TaskTreeFilter());
         filterForm.name().setValueChangeMode(ValueChangeMode.TIMEOUT);
         return filterForm;
     }

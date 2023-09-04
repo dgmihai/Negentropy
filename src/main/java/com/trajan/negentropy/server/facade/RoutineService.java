@@ -3,7 +3,7 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
@@ -20,8 +20,8 @@ public interface RoutineService {
 
     RoutineResponse createRoutine(TaskID rootId);
     RoutineResponse createRoutine(LinkID rootId);
-    RoutineResponse createRoutine(TaskID rootId, TaskFilter filter);
-    RoutineResponse createRoutine(LinkID rootId, TaskFilter filter);
+    RoutineResponse createRoutine(TaskID rootId, TaskTreeFilter filter);
+    RoutineResponse createRoutine(LinkID rootId, TaskTreeFilter filter);
 
     long countCurrentRoutines(Set<TimeableStatus> statusSet);
     Stream<Routine> fetchRoutines(Set<TimeableStatus> statusSet);

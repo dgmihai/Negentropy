@@ -12,7 +12,7 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -304,7 +304,7 @@ public class ChangeProcessor {
         return copy.name(copy.name() + suffix);
     }
 
-    private TaskLink tryDeepCopy(TaskNodeDTO original, TaskFilter filter, String suffix) {
+    private TaskLink tryDeepCopy(TaskNodeDTO original, TaskTreeFilter filter, String suffix) {
         log.debug("Deep copy from " + original + " with filter " + filter);
 
         TaskEntity rootTaskEntity = entityQueryService.getTask(original.childId());

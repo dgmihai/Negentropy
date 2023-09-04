@@ -7,7 +7,7 @@ import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.*;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
@@ -43,7 +43,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     private static final QTaskEntity Q_TASK = QTaskEntity.taskEntity;
 
     private Map<TaskID, Duration> cachedTotalDurations = new HashMap<>();
-    private TaskFilter activeFilter = new TaskFilter();
+    private TaskTreeFilter activeFilter = new TaskTreeFilter();
 
     @Override
     public TaskEntity getTask(@NotNull TaskID taskId) {
@@ -99,7 +99,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return tagRepository.findFirstByName(name);
     }
 
-    private BooleanBuilder filterLink(TaskFilter filter) {
+    private BooleanBuilder filterLink(TaskTreeFilter filter) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
 
@@ -107,20 +107,20 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.importance.loe(filter.importanceThreshold()));
             }
 
-            if (!filter.options().contains(TaskFilter.IGNORE_SCHEDULING)) {
+            if (!filter.options().contains(TaskTreeFilter.IGNORE_SCHEDULING)) {
                 builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime() != null
                         ? filter.availableAtTime()
                         : LocalDateTime.now()));
             }
 
-            if (filter.options().contains(TaskFilter.HIDE_COMPLETED)) {
+            if (filter.options().contains(TaskTreeFilter.HIDE_COMPLETED)) {
                 builder.and(Q_LINK.completed.eq(false));
             }
        }
         return builder.and(filterTask(filter, Q_LINK.child));
     }
 
-    private BooleanBuilder filterTask(TaskFilter filter, QTaskEntity qTask) {
+    private BooleanBuilder filterTask(TaskTreeFilter filter, QTaskEntity qTask) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
 
@@ -130,16 +130,16 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             }
 
             // Filter out if task isn't required
-            if (filter.options().contains(TaskFilter.ONLY_REQUIRED)) {
+            if (filter.options().contains(TaskTreeFilter.ONLY_REQUIRED)) {
                 builder.and(qTask.required.isTrue());
             }
 
             // Filter out if task isn't a project
-            if (filter.options().contains(TaskFilter.ONLY_PROJECTS)) {
+            if (filter.options().contains(TaskTreeFilter.ONLY_PROJECTS)) {
                 builder.and(qTask.project.isTrue());
             }
 
-            if (filter.options().contains(TaskFilter.ALWAYS_INCLUDE_PARENTS)) {
+            if (filter.options().contains(TaskTreeFilter.ALWAYS_INCLUDE_PARENTS)) {
                 if (filter.options().size() > 1) {
                     // 'or' doesn't work well if it's the only option
                     builder.or(qTask.childLinks.isNotEmpty());
@@ -149,7 +149,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             // Filter by included task IDs, and if this filter is by inner join or not
             if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
                 Consumer<TagEntity> filterFunction =
-                        (filter.options().contains(TaskFilter.INNER_JOIN_INCLUDED_TAGS)) ?
+                        (filter.options().contains(TaskTreeFilter.INNER_JOIN_INCLUDED_TAGS)) ?
                         tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
                         tagEntity -> builder.or(qTask.tags.contains(tagEntity));
 
@@ -169,36 +169,36 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return builder;
     }
 
-    private BooleanBuilder filter(TaskFilter filter, QTaskEntity qTask) {
+    private BooleanBuilder filter(TaskTreeFilter filter, QTaskEntity qTask) {
         return this.filterLink(filter).and(
             this.filterTask(filter, qTask));
     }
 
     @Override
-    public Stream<TaskEntity> findTasks(TaskFilter filter) {
+    public Stream<TaskEntity> findTasks(TaskTreeFilter filter) {
         return StreamSupport.stream(taskRepository.findAll(this.filterTask(filter, Q_TASK))
                         .spliterator(), true);
     }
 
     @Override
-    public Stream<TaskLink> findLinks(TaskFilter filter) {
+    public Stream<TaskLink> findLinks(TaskTreeFilter filter) {
         return StreamSupport.stream(linkRepository.findAll(this.filterLink(filter))
                 .spliterator(), true);
     }
 
     @Override
-    public Stream<LinkID> findLinkIds(TaskFilter filter) {
+    public Stream<LinkID> findLinkIds(TaskTreeFilter filter) {
         return findLinks(filter).map(ID::of);
     }
 
-    private BooleanBuilder byParent(TaskID taskId, TaskFilter filter) {
+    private BooleanBuilder byParent(TaskID taskId, TaskTreeFilter filter) {
         return this.filter(filter, Q_LINK.child)
                 .and(taskId == null ?
                         Q_LINK.parent.isNull() :
                         Q_LINK.parent.id.eq(taskId.val()));
     }
 
-    private BooleanBuilder byChild(TaskID taskId, TaskFilter filter) {
+    private BooleanBuilder byChild(TaskID taskId, TaskTreeFilter filter) {
         return this.filter(filter, Q_LINK.parent)
                 .and(taskId == null ?
                         Q_LINK.child.isNull() :
@@ -206,29 +206,29 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public int findChildCount(TaskID parentId, TaskFilter filter) {
+    public int findChildCount(TaskID parentId, TaskTreeFilter filter) {
         return (int) linkRepository.count(byParent(parentId, filter));
     }
 
     @Override
-    public int findChildCount(TaskID parentId, TaskFilter filter, int offset, int limit) {
+    public int findChildCount(TaskID parentId, TaskTreeFilter filter, int offset, int limit) {
         return (int) this.findChildLinks(parentId, filter, offset, limit).count();
     }
 
     @Override
-    public boolean hasChildren(TaskID parentId, TaskFilter filter) {
+    public boolean hasChildren(TaskID parentId, TaskTreeFilter filter) {
         return linkRepository.exists(byParent(parentId, filter));
     }
 
     @Override
-    public Stream<TaskLink> findChildLinks(TaskID parentId, TaskFilter filter) {
+    public Stream<TaskLink> findChildLinks(TaskID parentId, TaskTreeFilter filter) {
         QSort sort = new QSort(Q_LINK.position.asc());
         return StreamSupport.stream(linkRepository.findAll(byParent(parentId, filter), sort)
                 .spliterator(), false);
   }
 
     @Override
-    public Stream<TaskLink> findChildLinks(TaskID parentId, TaskFilter filter, int offset, int limit) {
+    public Stream<TaskLink> findChildLinks(TaskID parentId, TaskTreeFilter filter, int offset, int limit) {
         QSort sort = new QSort(Q_LINK.position.asc());
         return StreamSupport.stream(linkRepository.findAll(
                 byParent(parentId, filter),
@@ -237,24 +237,24 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskEntity> findChildTasks(TaskID parentId, TaskFilter filter) {
+    public Stream<TaskEntity> findChildTasks(TaskID parentId, TaskTreeFilter filter) {
         return this.findChildLinks(parentId, filter).map(TaskLink::child);
     }
 
     @Override
-    public Stream<TaskLink> findParentLinks(TaskID childId, TaskFilter filter) {
+    public Stream<TaskLink> findParentLinks(TaskID childId, TaskTreeFilter filter) {
         QSort sort = new QSort(Q_LINK.position.asc());
         return StreamSupport.stream(linkRepository.findAll(byChild(childId, filter), sort)
                 .spliterator(), false);
     }
 
     @Override
-    public Stream<TaskEntity> findParentTasks(TaskID childId, TaskFilter filter) {
+    public Stream<TaskEntity> findParentTasks(TaskID childId, TaskTreeFilter filter) {
         return this.findParentLinks(childId, filter).map(TaskLink::parent);
     }
 
     @Override
-    public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskFilter filter) {
+    public Stream<TaskLink> findAncestorLinks(TaskID descendantId, TaskTreeFilter filter) {
         return DFSUtil.traverseTaskLinks(
                 descendantId,
                 link -> ID.of(link.parent()),
@@ -265,20 +265,20 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskEntity> findAncestorTasks(TaskID descendantId, TaskFilter filter) {
+    public Stream<TaskEntity> findAncestorTasks(TaskID descendantId, TaskTreeFilter filter) {
         return this.findAncestorLinks(descendantId, filter).map(TaskLink::parent);
     }
 
     @Override
-    public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter) {
+    public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskTreeFilter filter) {
         return this.findDescendantLinks(ancestorId, filter, null);
     }
 
-    private boolean withDurationLimits(TaskFilter filter) {
-        return filter != null && filter.options().contains(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
+    private boolean withDurationLimits(TaskTreeFilter filter) {
+        return filter != null && filter.options().contains(TaskTreeFilter.WITH_PROJECT_DURATION_LIMITS);
     }
 
-    private Duration getTaskDurationLimit(TaskID ancestorId, TaskFilter filter) {
+    private Duration getTaskDurationLimit(TaskID ancestorId, TaskTreeFilter filter) {
         Duration durationLimit = null;
         if (withDurationLimits(filter)) {
             durationLimit = filter.durationLimit();
@@ -294,7 +294,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return durationLimit;
     }
 
-    private Duration getLinkDurationLimit(LinkID ancestorId, TaskFilter filter) {
+    private Duration getLinkDurationLimit(LinkID ancestorId, TaskTreeFilter filter) {
         Duration durationLimit = null;
         if (withDurationLimits(filter)) {
             TaskLink ancestorLink = this.getLink(ancestorId);
@@ -313,7 +313,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
+    public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskTreeFilter filter, Consumer<TaskLink> consumer) {
         return DFSUtil.traverseTaskLinks(
                 ancestorId,
                 link -> ID.of(link.child()),
@@ -324,14 +324,14 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter) {
+    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskTreeFilter filter) {
         return this.findDescendantLinks(ancestorId, filter, null);
     }
 
     @Override
-    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskFilter filter, Consumer<TaskLink> consumer) {
+    public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskTreeFilter filter, Consumer<TaskLink> consumer) {
         boolean withDurationLimits =
-                filter != null && filter.options().contains(TaskFilter.WITH_PROJECT_DURATION_LIMITS);
+                filter != null && filter.options().contains(TaskTreeFilter.WITH_PROJECT_DURATION_LIMITS);
 
         TaskLink ancestorLink = this.getLink(ancestorId);
 
@@ -345,12 +345,12 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskFilter filter) {
+    public Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskTreeFilter filter) {
         return this.findDescendantTasksFromLink(linkId, filter, null);
     }
 
     @Override
-    public Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskFilter filter, Consumer<TaskLink> consumer) {
+    public Stream<TaskLink> findDescendantTasksFromLink(LinkID linkId, TaskTreeFilter filter, Consumer<TaskLink> consumer) {
         TaskLink rootLink = this.getLink(linkId);
         Stream<TaskLink> siblings = this.findChildLinks(ID.of(rootLink.parent()), filter)
                 .filter(link -> link.position() < rootLink.position());
@@ -372,12 +372,12 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskFilter filter) {
+    public Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskTreeFilter filter) {
         return this.findDescendantLinks(ancestorId, filter).map(TaskLink::child);
     }
 
     @Override
-    public Map<TaskID, Duration> getAllNetDurations(TaskFilter filter) {
+    public Map<TaskID, Duration> getAllNetDurations(TaskTreeFilter filter) {
         Iterable<TaskLink> matchingLinks = linkRepository.findAll(filterLink(filter));
         List<TaskEntity> tasks = StreamSupport.stream(matchingLinks.spliterator(), false)
                 .map(TaskLink::child)
@@ -423,7 +423,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Duration calculateNetDuration(TaskID taskId, TaskFilter filter) {
+    public Duration calculateNetDuration(TaskID taskId, TaskTreeFilter filter) {
         boolean save = false;
 
         if (filter == null) {
@@ -496,7 +496,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<TaskLink> findLeafTaskLinks(TaskFilter filter) {
+    public Stream<TaskLink> findLeafTaskLinks(TaskTreeFilter filter) {
         return StreamSupport.stream(linkRepository.findAll(
                 Q_LINK.child.childLinks.isEmpty()
                         .and(this.filterLink(filter)))

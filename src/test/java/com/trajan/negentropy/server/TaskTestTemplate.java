@@ -9,7 +9,7 @@ import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -266,7 +266,7 @@ public class TaskTestTemplate {
                 Iterables.size(expected) == resultNameList.size());
     }
 
-    protected void testFindDescendantLinks(String ancestor, TaskFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    protected void testFindDescendantLinks(String ancestor, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findDescendantLinks(
                 ancestor == null ?
                         null :
@@ -276,7 +276,7 @@ public class TaskTestTemplate {
 
     // Testing findDescendantTasks
 
-    protected void testFindDescendantTasks(String ancestor, TaskFilter filter, Iterable<String> expected) {
+    protected void testFindDescendantTasks(String ancestor, TaskTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findDescendantTasks(
                 ancestor == null ?
                         null :

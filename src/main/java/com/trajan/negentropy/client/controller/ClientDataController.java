@@ -10,7 +10,7 @@ import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -230,7 +230,7 @@ public class ClientDataController {
 
     public void deleteAllCompletedTasks() {
         log.debug("Deleting completed tasks");
-        TaskFilter filter = new TaskFilter(TaskFilter.HIDE_COMPLETED);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.HIDE_COMPLETED);
 
         requestChanges(services.query().fetchAllNodesAsIds(filter)
                 .map(DeleteChange::new)

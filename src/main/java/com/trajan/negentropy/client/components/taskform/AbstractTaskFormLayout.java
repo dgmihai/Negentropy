@@ -10,7 +10,7 @@ import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
@@ -107,8 +107,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         setSaveButtonText(null);
 
         projectComboBox = new ComboBox<>();
-        TaskFilter filter = new TaskFilter();
-        filter.options().add(TaskFilter.ONLY_PROJECTS);
+        TaskTreeFilter filter = new TaskTreeFilter();
+        filter.options().add(TaskTreeFilter.ONLY_PROJECTS);
         List<Task> projects = controller.services().query().fetchAllTasks(filter)
                 .sorted((a, b) -> a.name().compareToIgnoreCase(b.name()))
                 .collect(Collectors.toCollection(ArrayList::new));

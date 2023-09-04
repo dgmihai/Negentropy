@@ -5,7 +5,7 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TagEntity;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -61,18 +61,18 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Stream<TaskNode> fetchAllNodes(TaskFilter filter) {
+    public Stream<TaskNode> fetchAllNodes(TaskTreeFilter filter) {
         return entityQueryService.findLinks(filter)
                 .map(dataContext::toDO);
     }
 
     @Override
-    public Stream<LinkID> fetchAllNodesAsIds(TaskFilter filter) {
+    public Stream<LinkID> fetchAllNodesAsIds(TaskTreeFilter filter) {
         return entityQueryService.findLinkIds(filter);
     }
 
     @Override
-    public Stream<Task> fetchAllTasks(TaskFilter filter) {
+    public Stream<Task> fetchAllTasks(TaskTreeFilter filter) {
         return entityQueryService.findTasks(filter)
                 .map(dataContext::toDO);
     }
@@ -83,12 +83,12 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public int fetchChildCount(TaskID parentTaskId, TaskFilter filter) {
+    public int fetchChildCount(TaskID parentTaskId, TaskTreeFilter filter) {
         return entityQueryService.findChildCount(parentTaskId, filter);
     }
 
     @Override
-    public int fetchChildCount(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
+    public int fetchChildCount(TaskID parentTaskId, TaskTreeFilter filter, int offset, int limit) {
         return entityQueryService.findChildCount(parentTaskId, filter, offset, limit);
     }
 
@@ -98,7 +98,7 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public boolean hasChildren(TaskID parentTaskId, TaskFilter filter) {
+    public boolean hasChildren(TaskID parentTaskId, TaskTreeFilter filter) {
         return entityQueryService.hasChildren(parentTaskId, filter);
     }
 
@@ -108,13 +108,13 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter) {
+    public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskTreeFilter filter) {
         return entityQueryService.findChildLinks(parentTaskId, filter)
                 .map(dataContext::toDO);
     }
 
     @Override
-    public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskFilter filter, int offset, int limit) {
+    public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskTreeFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(parentTaskId, filter, offset, limit)
                 .map(dataContext::toDO);
     }
@@ -125,25 +125,25 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Stream<TaskNode> fetchRootNodes(TaskFilter filter) {
+    public Stream<TaskNode> fetchRootNodes(TaskTreeFilter filter) {
         return entityQueryService.findChildLinks(null, filter)
                 .map(dataContext::toDO);
     }
 
     @Override
-    public Stream<TaskNode> fetchRootNodes(TaskFilter filter, int offset, int limit) {
+    public Stream<TaskNode> fetchRootNodes(TaskTreeFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(null, filter, offset, limit)
                 .map(dataContext::toDO);
     }
 
     @Override
-    public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskFilter filter) {
+    public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskTreeFilter filter) {
         return entityQueryService.findDescendantLinks(ancestorId, filter)
                 .map(dataContext::toDO);
     }
 
     @Override
-    public Stream<LinkID> fetchDescendantNodeIds(TaskID ancestorId, TaskFilter filter) {
+    public Stream<LinkID> fetchDescendantNodeIds(TaskID ancestorId, TaskTreeFilter filter) {
         return fetchDescendantNodes(ancestorId, filter)
                 .map(TaskNode::id);
     }
@@ -173,12 +173,12 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Map<TaskID, Duration> fetchAllNetDurations(TaskFilter filter) {
+    public Map<TaskID, Duration> fetchAllNetDurations(TaskTreeFilter filter) {
         return entityQueryService.getAllNetDurations(filter);
     }
 
     @Override
-    public Duration fetchNetDuration(TaskID taskId, TaskFilter filter) {
+    public Duration fetchNetDuration(TaskID taskId, TaskTreeFilter filter) {
         return entityQueryService.calculateNetDuration(taskId, filter);
         // TODO: Cache: return this.fetchNetTimeDuration(taskId, 0);
     }

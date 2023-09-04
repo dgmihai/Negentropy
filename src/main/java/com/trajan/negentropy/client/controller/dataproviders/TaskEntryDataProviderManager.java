@@ -4,7 +4,7 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.controller.SessionServices;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
@@ -58,7 +58,7 @@ public class TaskEntryDataProviderManager {
         return gridDataProvider;
     }
 
-    public void setFilter(TaskFilter filter) {
+    public void setFilter(TaskTreeFilter filter) {
         allProviders().forEach(provider -> provider.setFilter(filter));
     }
 
@@ -72,7 +72,7 @@ public class TaskEntryDataProviderManager {
 
         private TaskEntry rootEntry;
         private List<LinkID> filteredLinks;
-        private TaskFilter filter;
+        private TaskTreeFilter filter;
 
         public TaskEntryDataProvider(TaskNetworkGraph networkGraph) {
             log.info("TaskEntryGridDataProvider init");
@@ -126,7 +126,7 @@ public class TaskEntryDataProviderManager {
             this.filteredLinks = networkGraph.getFilteredLinks(filteredLinks, filter);
         }
 
-        public void setFilter(TaskFilter filter) {
+        public void setFilter(TaskTreeFilter filter) {
             this.filter = filter;
             this.filteredLinks = networkGraph.getFilteredLinks(filteredLinks, filter);
             super.refreshAll();

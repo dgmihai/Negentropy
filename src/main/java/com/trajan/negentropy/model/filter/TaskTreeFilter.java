@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Getter
 @Setter
-public class TaskFilter {
+public class TaskTreeFilter {
     private String name;
     private Set<TagID> includedTagIds = new HashSet<>();
     private Set<TagID> excludedTagIds = new HashSet<>();
@@ -35,7 +35,7 @@ public class TaskFilter {
     // Hidden
     public static final String WITH_PROJECT_DURATION_LIMITS = "With Project Duration Limits";
 
-    public TaskFilter(String... options) {
+    public TaskTreeFilter(String... options) {
         this.options.addAll(Set.of(options));
     }
 
@@ -66,6 +66,6 @@ public class TaskFilter {
     }
 
     public boolean isEmpty() {
-        return this.equals(new TaskFilter());
+        return this.equals(new TaskTreeFilter());
     }
 }

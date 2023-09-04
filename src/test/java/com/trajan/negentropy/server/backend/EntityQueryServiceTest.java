@@ -4,7 +4,7 @@ import com.google.common.collect.Iterables;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.TaskTestTemplate;
@@ -138,8 +138,8 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 Iterables.size(expected) == resultNameList.size());
     }
 
-    private TaskFilter filterWithTags(Set<String> includedTags, Set<String> excludedTags) {
-        TaskFilter filter = new TaskFilter();
+    private TaskTreeFilter filterWithTags(Set<String> includedTags, Set<String> excludedTags) {
+        TaskTreeFilter filter = new TaskTreeFilter();
         if (includedTags != null) {
             filter.includedTagIds(includedTags.stream()
                     .map(s -> tags.get(s).id())
@@ -151,7 +151,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                     .collect(Collectors.toSet()));
         }
         // TODO: Properly test outer join of tags
-        filter.options().add(TaskFilter.INNER_JOIN_INCLUDED_TAGS);
+        filter.options().add(TaskTreeFilter.INNER_JOIN_INCLUDED_TAGS);
         return filter;
     }
 
@@ -306,7 +306,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindTasksWithNoMatchingIncludedTag() {
         TagEntity tagEntity = (TagEntity) new TagEntity()
                 .id(-1L);
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .includedTagIds(Set.of(ID.of(tagEntity)));
 
         assertThrows(NoSuchElementException.class, () ->
@@ -348,7 +348,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     
     // Testing findChildCount
     
-    private void testFindChildCount(String parent, TaskFilter filter, int expected) {
+    private void testFindChildCount(String parent, TaskTreeFilter filter, int expected) {
         int count = entityQueryService.findChildCount(getTaskID(parent), filter);
         assertEquals(expected, count);
     }
@@ -365,7 +365,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfTaskWithChildren() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         testFindChildCount(TWO, filter, 1);
@@ -378,7 +378,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfTaskWithoutChildren() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         testFindChildCount(FOUR, filter, 0);
@@ -386,7 +386,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfTaskWithChildrenAllFilteredOut() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(FOUR);
 
         testFindChildCount(TWO, filter, 0);
@@ -394,7 +394,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfRequired() {
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED);
 
         testFindChildCount(TWOTWO, filter, 3);
 
@@ -403,9 +403,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfRequiredWithParents() {
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         testFindChildCount(TWOTWO, filter, 3);
 
@@ -414,7 +414,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindChildCountWithFilterOfNotRequired() {
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
 
         testFindChildCount(TWOTWO, filter, 3);
 
@@ -424,7 +424,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     @Test
     public void testFindChildCountFilterWithOnlyParentsOptionSet() {
         // If the filter is only parents, it should not have an effect
-        TaskFilter filter = new TaskFilter(TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         testFindChildCount(TWOTWO, filter, 3);
 
@@ -433,7 +433,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing hasChildren
 
-    private void testHasChildren(String parent, TaskFilter filter, boolean expected) {
+    private void testHasChildren(String parent, TaskTreeFilter filter, boolean expected) {
         assertEquals(expected, entityQueryService.hasChildren(getTaskID(parent), filter));
     }
     
@@ -449,7 +449,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfTaskWithChildren() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         testHasChildren(TWO, filter, true);
@@ -462,7 +462,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfTaskWithoutChildren() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         testHasChildren(FOUR, filter, false);
@@ -470,7 +470,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfTaskWithChildrenAllFilteredOut() {
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(FOUR);
 
         testHasChildren(TWO, filter, false);
@@ -478,7 +478,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfRequired() {
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED);
 
         testHasChildren(TWOTWO, filter, true);
         testHasChildren(THREEONE, filter, false);
@@ -487,10 +487,10 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfRequiredWithParents() {
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
         filter.options(Set.of(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS));
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS));
 
         testHasChildren(TWOTWO, filter, true);
         testHasChildren(THREEONE, filter, false);
@@ -499,7 +499,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testHasChildrenWithFilterOfNotRequired() {
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
 
         testHasChildren(TWOTWO, filter, true);
         testHasChildren(THREEONE, filter, false);
@@ -508,7 +508,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing findChildLinks
     
-    private void testFindChildLinks(String parent, TaskFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    private void testFindChildLinks(String parent, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findChildLinks(
                 getTaskID(parent), filter), true);
     }
@@ -554,7 +554,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildLinksWithNameFilterOfTaskWithChildren() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
@@ -567,7 +567,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildLinksWithIncludedTagFilterOfTaskWithChildren() {
         String parent = TWOTWO;
 
-        TaskFilter filter = filterWithTags( Set.of(REPEATONCE), null);
+        TaskTreeFilter filter = filterWithTags( Set.of(REPEATONCE), null);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
                 Triple.of(parent, TWOTWOTHREE_AND_THREETWOTWO, 2));
@@ -579,7 +579,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildLinksWithMultipleFilterOfTaskWithChildren() {
         String parent = TWOTWO;
 
-        TaskFilter filter = filterWithTags(Set.of(REPEATONCE), null)
+        TaskTreeFilter filter = filterWithTags(Set.of(REPEATONCE), null)
                 .name("T");
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
@@ -601,7 +601,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildLinksWithFilterOfTaskWithoutChildren() {
         String parent = FOUR;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of();
@@ -613,7 +613,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildLinksWithFilterOfTaskWithChildrenAllFilteredOut() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name("Nonexistant");
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of();
@@ -624,7 +624,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     @Test
     public void testFindChildLinksFilterWithOnlyParentsOptionSet() {
         // If the filter is only parents, it should not have an effect
-        TaskFilter filter = new TaskFilter(TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         String parent = TWOTWO;
 
@@ -648,7 +648,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     
     // Testing findChildTasks
 
-    private void testFindChildTasks(String parent, TaskFilter filter, Iterable<String> expected) {
+    private void testFindChildTasks(String parent, TaskTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findChildTasks(
                 getTaskID(parent), filter), true);
     }
@@ -694,7 +694,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithNameFilterOfTaskWithChildren() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         Iterable<String> expectedResults = List.of(
@@ -707,7 +707,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithFilterOfRequired() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED)
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED)
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -720,9 +720,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithFilterOfRequiredWithParents() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         Iterable<String> expectedResults = List.of(
                 TWOTWO);
@@ -734,7 +734,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithFilterOfNotRequired() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -758,7 +758,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithFilterOfTaskWithoutChildren() {
         String parent = FOUR;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(ONE);
 
         Iterable<String> expectedResults = List.of();
@@ -770,7 +770,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindChildTasksWithFilterOfTaskWithChildrenAllFilteredOut() {
         String parent = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name("Nonexistant");
 
         Iterable<String> expectedResults = List.of();
@@ -781,7 +781,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     @Test
     public void testFindChildTasksFilterWithOnlyParentsOptionSet() {
         // If the filter is only parents, it should not have an effect
-        TaskFilter filter = new TaskFilter(TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         String parent = TWOTWO;
 
@@ -804,7 +804,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing findParentLinks
 
-    private void testFindParentLinks(String child, TaskFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    private void testFindParentLinks(String child, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findParentLinks(getTaskID(child),
                 filter), false);
     }
@@ -835,7 +835,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentLinksWithFilterOfTaskWithParents() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
@@ -850,7 +850,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentLinksWithFilterOfRequired() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED)
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED)
                 .name(TWO);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
@@ -863,7 +863,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentLinksWithFilterOfNotRequired() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of(
@@ -887,7 +887,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentLinksWithFilterOfTaskWithoutParents() {
         String child = ONE;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<Triple<String, String, Integer>> expectedResults = List.of();
@@ -897,7 +897,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing findParentTasks
 
-    private void testFindParentTasks(String child, TaskFilter filter, Iterable<String> expected) {
+    private void testFindParentTasks(String child, TaskTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findParentTasks(
                 getTaskID(child), filter), false);
     }
@@ -938,7 +938,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfTaskWithParents() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -952,7 +952,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfRequired() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED)
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED)
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -965,9 +965,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfRequiredWithParents() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS)
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS)
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -981,7 +981,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfNotRequired() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of(
@@ -1027,7 +1027,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfTaskWithoutParents() {
         String child = ONE;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedResults = List.of();
@@ -1039,7 +1039,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindParentTasksWithFilterOfTaskWithParentsAllFilteredOut() {
         String child = TWOTWOTHREE_AND_THREETWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name("Nonexistant");
 
         Iterable<String> expectedResults = List.of();
@@ -1049,7 +1049,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing getAncestorLinks
 
-    private void testFindAncestorLinks(String descendant, TaskFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    private void testFindAncestorLinks(String descendant, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findAncestorLinks(getTaskID(descendant),
                 filter), false);
     }
@@ -1089,7 +1089,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing getAncestorTasks
 
-    private void testFindAncestorTasks(String descendant, TaskFilter filter, Iterable<String> expected) {
+    private void testFindAncestorTasks(String descendant, TaskTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findAncestorTasks(
                 getTaskID(descendant), filter), false);
     }
@@ -1221,7 +1221,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFiltered() {
         String descendant = TWOTWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1240,7 +1240,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredByRequireds() {
         String descendant = TWOTWOTWO;
 
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED)
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED)
                 .name(TWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1257,9 +1257,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredByRequiredsWithParents() {
         String descendant = TWOTWOTWO;
 
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS)
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS)
                 .name(TWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1278,7 +1278,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredByNotRequired() {
         String descendant = TWOTWOTWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1297,7 +1297,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredNestedMultipleTimes() {
         String descendant = THREETWOONE_AND_THREETWOTHREE;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(THREETWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1318,7 +1318,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredNestedMultipleLevels() {
         String descendant = SIX_AND_THREETWOFOUR;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(THREETWO);
 
         Iterable<String> expectedTasks = List.of(
@@ -1337,7 +1337,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredByTag() {
         String descendant = SIX_AND_THREETWOFOUR;
 
-        TaskFilter filter = filterWithTags(Set.of(REPEATSEVERAL), null);
+        TaskTreeFilter filter = filterWithTags(Set.of(REPEATSEVERAL), null);
 
         Iterable<String> expectedTasks = List.of(
                 THREETWO
@@ -1355,7 +1355,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindAncestorsFilteredByTag2() {
         String descendant = THREETWOONE_AND_THREETWOTHREE;
 
-        TaskFilter filter = filterWithTags(Set.of(REPEATSEVERAL), Set.of(REPEATONCE));
+        TaskTreeFilter filter = filterWithTags(Set.of(REPEATSEVERAL), Set.of(REPEATONCE));
 
         Iterable<String> expectedTasks = List.of(
                 THREETWO,
@@ -1373,14 +1373,14 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     // Testing findDescendantLinks
 
-    protected void testFindDescendantLinks(String ancestor, TaskFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    protected void testFindDescendantLinks(String ancestor, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findDescendantLinks(
                 getTaskID(ancestor), filter), true);
     }
 
     // Testing findDescendantTasks
 
-    protected void testFindDescendantTasks(String ancestor, TaskFilter filter, Iterable<String> expected) {
+    protected void testFindDescendantTasks(String ancestor, TaskTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findDescendantTasks(
                 getTaskID(ancestor), filter), true);
     }
@@ -1469,7 +1469,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFiltered() {
         String ancestor = TWO;
 
-        TaskFilter filter = new TaskFilter()
+        TaskTreeFilter filter = new TaskTreeFilter()
                 .name(TWOTWO);
 
         Collection<String> expectedTasks = List.of(
@@ -1492,7 +1492,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFilteredByRequireds() {
         String ancestor = TWO;
 
-        TaskFilter filter = new TaskFilter(TaskFilter.ONLY_REQUIRED);
+        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED);
 
         Collection<String> expectedTasks = List.of(
                 TWOTWO,
@@ -1514,9 +1514,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFilteredByRequiredsWithParents() {
         String ancestor = TWO;
 
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         Collection<String> expectedTasks = List.of(
                 TWOTWO,
@@ -1538,7 +1538,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFilteredByNotRequired() {
         String ancestor = TWO;
 
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
 
         Collection<String> expectedTasks = List.of(
                 TWOONE,
@@ -1566,7 +1566,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFilteredComplexNesting() {
         String ancestor = THREE_AND_FIVE;
 
-        TaskFilter filter = filterWithTags(Set.of(REPEATSEVERAL), Set.of(REPEATONCE))
+        TaskTreeFilter filter = filterWithTags(Set.of(REPEATSEVERAL), Set.of(REPEATONCE))
                 .name(THREETWO);
 
         Collection<String> expectedTasks = List.of(
@@ -1591,7 +1591,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testFindDescendantsFilteredComplexNesting2() {
         String ancestor = TWO;
 
-        TaskFilter filter = filterWithTags(null, Set.of(REPEATONCE, REPEATSEVERAL));
+        TaskTreeFilter filter = filterWithTags(null, Set.of(REPEATONCE, REPEATSEVERAL));
 
         Collection<String> expectedTasks = List.of(
                 TWOONE,
@@ -1764,7 +1764,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 Triple.of(THREE_AND_FIVE, THREETHREE, 2),
                 Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
 
-        TaskFilter filter = new TaskFilter().availableAtTime(MARK);
+        TaskTreeFilter filter = new TaskTreeFilter().availableAtTime(MARK);
 
         testFindDescendantLinks(null, filter, expectedLinks);
         testFindDescendantTasks(null, filter, expectedTasks);
@@ -1775,7 +1775,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         expectedLinks = List.of(
                 Triple.of(TWOTWO, TWOTWOONE, 0));
 
-        filter = new TaskFilter().availableAtTime(MARK.plusHours(23));
+        filter = new TaskTreeFilter().availableAtTime(MARK.plusHours(23));
 
         testFindDescendantLinks(TWOTWO, filter, expectedLinks);
         testFindDescendantTasks(TWOTWO, filter, expectedTasks);
@@ -1808,7 +1808,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 Triple.of(THREE_AND_FIVE, THREETHREE, 2),
                 Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
 
-        filter = new TaskFilter().availableAtTime(MARK.plusDays(1));
+        filter = new TaskTreeFilter().availableAtTime(MARK.plusDays(1));
 
         testFindDescendantLinks(null, filter, expectedLinks);
         testFindDescendantTasks(null, filter, expectedTasks);
@@ -1857,7 +1857,7 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 Triple.of(THREE_AND_FIVE, THREETHREE, 2),
                 Triple.of(NULL, SIX_AND_THREETWOFOUR, 5));
 
-        filter = new TaskFilter().availableAtTime(MARK.plusDays(7));
+        filter = new TaskTreeFilter().availableAtTime(MARK.plusDays(7));
 
         testFindDescendantLinks(null, filter, expectedLinks);
         testFindDescendantTasks(null, filter, expectedTasks);
@@ -1906,14 +1906,14 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
                 Triple.of(THREE_AND_FIVE, THREETHREE, 2)
         );
 
-        TaskFilter filter = new TaskFilter(
-                TaskFilter.ONLY_REQUIRED,
-                TaskFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskTreeFilter filter = new TaskTreeFilter(
+                TaskTreeFilter.ONLY_REQUIRED,
+                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         testFindDescendantLinks(null, filter, expectedLinks);
         testFindDescendantTasks(null, filter, expectedTasks);
 
-        filter = new TaskFilter(TaskFilter.ONLY_REQUIRED);
+        filter = new TaskTreeFilter(TaskTreeFilter.ONLY_REQUIRED);
 
         testFindDescendantLinks(null, filter, List.of());
         testFindDescendantTasks(null, filter, List.of());

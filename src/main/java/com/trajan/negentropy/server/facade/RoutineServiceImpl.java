@@ -13,7 +13,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.QRoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
@@ -101,7 +101,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskFilter filter) {
+    public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskTreeFilter filter) {
         TaskEntity rootTask = entityQueryService.getTask(rootId);
 
         // TODO: We create a temporary root task for a routine started without an associated link
@@ -119,7 +119,7 @@ public class RoutineServiceImpl implements RoutineService {
         });
 
         if (filter == null) {
-            filter = new TaskFilter();
+            filter = new TaskTreeFilter();
             filter.durationLimit(ChronoUnit.FOREVER.getDuration());
         }
 
@@ -127,7 +127,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskFilter filter) {
+    public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskTreeFilter filter) {
         return this.process(() -> {
             TaskLink rootLink = entityQueryService.getLink(rootId);
 
@@ -137,7 +137,7 @@ public class RoutineServiceImpl implements RoutineService {
         });
     }
 
-    private RoutineEntity populateRoutine(TaskLink rootLink, RoutineEntity routine, TaskFilter filter) {
+    private RoutineEntity populateRoutine(TaskLink rootLink, RoutineEntity routine, TaskTreeFilter filter) {
         AtomicReference<Duration> estimatedDurationReference = new AtomicReference<>(
                 addStepToRoutine(rootLink, routine));
 
@@ -150,12 +150,12 @@ public class RoutineServiceImpl implements RoutineService {
             logger.debug("Estimated duration: " + estimatedDurationReference + " for " + link.child().name());
         };
 
-        TaskFilter filterWithProjects = filter != null
+        TaskTreeFilter filterWithProjects = filter != null
                 ? filter
-                : new TaskFilter();
+                : new TaskTreeFilter();
         filterWithProjects
                 .options()
-                    .addAll(List.of(TaskFilter.WITH_PROJECT_DURATION_LIMITS, TaskFilter.HIDE_COMPLETED));
+                    .addAll(List.of(TaskTreeFilter.WITH_PROJECT_DURATION_LIMITS, TaskTreeFilter.HIDE_COMPLETED));
         if (filterWithProjects.durationLimit() == null) {
             if (rootLink.child().project()) {
                 filterWithProjects.durationLimit(rootLink.projectDuration());

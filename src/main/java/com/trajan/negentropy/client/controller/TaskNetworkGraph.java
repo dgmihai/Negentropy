@@ -8,7 +8,7 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -152,7 +152,7 @@ public class TaskNetworkGraph {
         }
     }
 
-    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskFilter filter) {
+    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskTreeFilter filter) {
         log.debug("Getting filtered links with filter " + filter);
         return services.query().fetchAllNodesAsIds(filter)
                 .toList();

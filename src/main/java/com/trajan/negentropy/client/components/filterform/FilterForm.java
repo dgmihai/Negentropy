@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.ReadOnlySettableFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.model.Tag;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class FilterForm extends ReadOnlySettableFormLayout {
     protected final ClientDataController controller;
 
-    protected Binder<TaskFilter> binder = new BeanValidationBinder<>(TaskFilter.class);
+    protected Binder<TaskTreeFilter> binder = new BeanValidationBinder<>(TaskTreeFilter.class);
 
     private TextField name;
     private Button resetButton;
@@ -54,15 +54,15 @@ public class FilterForm extends ReadOnlySettableFormLayout {
         name.setWidthFull();
         name.setValueChangeMode(ValueChangeMode.LAZY);
         name.setValueChangeTimeout(100);
-        binder.bind(name, TaskFilter::name, TaskFilter::name);
+        binder.bind(name, TaskTreeFilter::name, TaskTreeFilter::name);
 
         resetButton = new Button("Reset");
         resetButton.setMaxWidth("5em");
 
         filterOptions = new CheckboxGroup<>();
         filterOptions.setWidthFull();
-        filterOptions.setItems(TaskFilter.OPTION_TYPES());
-        binder.bind(filterOptions, TaskFilter::options, TaskFilter::options);
+        filterOptions.setItems(TaskTreeFilter.OPTION_TYPES());
+        binder.bind(filterOptions, TaskTreeFilter::options, TaskTreeFilter::options);
 
         topLayout = new HorizontalLayout(name, resetButton);
         topLayout.setWidthFull();

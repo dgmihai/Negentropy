@@ -5,7 +5,7 @@ import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.filter.TaskFilter;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
@@ -81,7 +81,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
     private void taskRoutineCreationTestWithExpectedDurationAndFilter(String rootTask,
                                                              Function<TaskID, Duration> expectedDuration,
-                                                             TaskFilter filter,
+                                                             TaskTreeFilter filter,
                                                              List<String> expectedSteps) {
         TaskID rootId = tasks.get(rootTask).id();
         RoutineResponse response = routineService.createRoutine(rootId, filter);
@@ -93,7 +93,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
     private void linkRoutineCreationTestWithExpectedDurationAndFilter(Triple<String, String, Integer> rootLink,
                                                                       Function<TaskID, Duration> expectedDuration,
-                                                                      TaskFilter filter,
+                                                                      TaskTreeFilter filter,
                                                                       List<String> expectedSteps) {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter);
@@ -241,7 +241,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
         filter.durationLimit(routineDuration);
 
         taskRoutineCreationTestWithExpectedDurationAndFilter(
@@ -264,7 +264,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectDuration(routineDuration))));
 
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
         filter.durationLimit(routineDuration);
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
@@ -316,7 +316,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
     @Test
     void testCreateRoutineFromProjectLinkWithManualNonLimitingProjectDuration_THREE_AND_FIVE() {
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
         Duration routineDuration = Duration.ofMinutes(14*60 + 30);
         filter.durationLimit(routineDuration);
 
@@ -337,7 +337,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
     @Test
     void testCreateRoutineFromProjectTaskWithManualNonLimitingProjectDuration_THREE_AND_FIVE() {
-        TaskFilter filter = new TaskFilter();
+        TaskTreeFilter filter = new TaskTreeFilter();
         Duration routineDuration = Duration.ofMinutes(14*60 + 30);
         filter.durationLimit(routineDuration);
 
