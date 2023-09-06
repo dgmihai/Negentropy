@@ -41,7 +41,7 @@ public class RoutineTestTemplateNoRequiredTasks extends TaskTestTemplate {
                                         .duration(Duration.ofHours(3))
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDuration(Duration.ofHours(10))
+                                        .projectDuration(Duration.ofMinutes(13*60+30))
                         ), Pair.of(
                                 new Task()
                                         .name(FOUR)

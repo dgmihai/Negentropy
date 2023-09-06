@@ -19,6 +19,7 @@ import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
+import com.trajan.negentropy.server.backend.NetDurationService;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 import com.trajan.negentropy.server.facade.ChangeService;
 import com.trajan.negentropy.server.facade.QueryService;
@@ -47,6 +48,7 @@ public class TaskTestTemplate {
     @Autowired protected EntityQueryService entityQueryService;
     @Autowired protected ChangeService changeService;
     @Autowired protected QueryService queryService;
+    @Autowired protected NetDurationService netDurationService;
     @Autowired private DataContext dataContext;
     @Autowired protected TestServices testServices;
 

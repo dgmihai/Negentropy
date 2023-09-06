@@ -14,7 +14,7 @@ public class NetDurationSyncListener {
         try {
             SyncManager.instance.logDurationChange(
                     ID.of(netDuration.task()),
-                    netDuration.netDuration());
+                    netDuration.val());
         } catch (NullPointerException e) {
             log.error("Error logging update change", e);
         }

@@ -40,9 +40,13 @@ public interface DataContext {
 
     TaskLink TESTONLY_mergeLink(TaskLink link);
 
-    void deleteAllOrphanedTags();
-
     TaskEntity TESTONLY_mergeTask(TaskEntity taskEntity);
+
+    RoutineEntity TESTONLY_mergeRoutine(RoutineEntity children);
+
+    RoutineStepEntity TESTONLY_mergeRoutineStep(RoutineStepEntity one);
+
+    void deleteAllOrphanedTags();
 
     @VisibleForTesting
     static LocalDateTime now() {

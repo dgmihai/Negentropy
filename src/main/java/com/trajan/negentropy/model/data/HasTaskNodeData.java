@@ -7,11 +7,16 @@ import com.trajan.negentropy.model.id.TaskID;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
+import java.util.Optional;
 
-public interface HasTaskNodeData extends HasTaskData {
+public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
     TaskNode node();
     default Task task() {
         return node().task();
+    }
+
+    default Optional<TaskNode> nodeOptional() {
+        return Optional.ofNullable(node());
     }
 
     interface TaskNodeTemplateData<T extends TaskNodeTemplateData<T>> extends Data {

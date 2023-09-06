@@ -16,7 +16,7 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
 import com.trajan.negentropy.server.TaskTestTemplate;
-import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
+import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
@@ -657,7 +657,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 queryService.fetchNetDuration(parent.id(), null));
     }
 
-    @Autowired private NetDurationRecalculator netDurationRecalculator;
+    @Autowired private NetDurationHelperManager netDurationHelperManager;
 
     @Test
     void testRecalculateNetDurations() {
@@ -669,7 +669,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
         assertNetDuration(1, FOUR);
         assertNetDuration(1, SIX_AND_THREETWOFOUR);
 
-        netDurationRecalculator.recalculateTimeEstimates();
+        netDurationHelperManager.recalculateTimeEstimates();
 
         assertNetDuration(1, ONE);
         assertNetDuration(4, TWOTWO);

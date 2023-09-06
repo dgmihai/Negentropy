@@ -25,10 +25,12 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ReadOnlyHasValue;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.util.function.Function;
 
+@Slf4j
 public class RoutineCard extends VerticalLayout {
     private final ClientDataController controller;
 
@@ -51,11 +53,12 @@ public class RoutineCard extends VerticalLayout {
         this.controller = controller;
 
         this.routine = routine;
+        log.debug("Routine card created for routine: " + routine.name() + " with " + routine.countSteps() + " steps.");
 
         if (routine.status().equals(TimeableStatus.COMPLETED)) {
             this.setCardCompleted();
         } else {
-            binder.setBean(routine.steps().get(routine.currentPosition()));
+            binder.setBean(routine.currentStep());
             initComponents();
         }
         layout();
@@ -63,14 +66,19 @@ public class RoutineCard extends VerticalLayout {
 
     private void processStep(Function<StepID, RoutineResponse> stepFunction) {
         RoutineResponse response = stepFunction.apply(binder.getBean().id());
-        this.routine = response.routine();
-        this.updateComponents();
+        if (response.success()) {
+            this.routine = response.routine();
+            this.updateComponents();
+        }
     }
 
     private void processRoutine(Function<RoutineID, RoutineResponse> stepFunction) {
+        log.debug("Processing routine: " + binder.getBean().routineId());
         RoutineResponse response = stepFunction.apply(binder.getBean().routineId());
-        this.routine = response.routine();
-        this.updateComponents();
+        if (response.success()) {
+            this.routine = response.routine();
+            this.updateComponents();
+        }
     }
 
     private boolean isActive() {
@@ -80,13 +88,16 @@ public class RoutineCard extends VerticalLayout {
     private void updateComponents() {
         if (routine.status().equals(TimeableStatus.COMPLETED)) {
             this.setCardCompleted();
+        } else if (routine.status().equals(TimeableStatus.SKIPPED)) {
+            this.setCardSkipped();
         } else {
-            binder.setBean(routine.steps().get(routine.currentPosition()));
+            binder.setBean(routine.currentStep());
             this.getElement().setAttribute("active", isActive());
             play.setVisible(!isActive());
             pause.setVisible(isActive());
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
+            rootTaskbar.setTimeable(routine);
             rootTaskbar.timer().run(!isActive());
         }
         controller.routineDataProvider().refreshAll();
@@ -96,18 +107,30 @@ public class RoutineCard extends VerticalLayout {
         this.removeAll();
         this.getElement().setAttribute("active", isActive());
 
+        Span completed;
         if (routine.rootStep().startTime() == null) {
             NotificationMessage.error("Start at least one step in a routine before completing!");
+            completed = new Span("Completed '" + routine.name() + "!");
         } else {
-            Span completed = new Span("Completed '" + routine.name() + "' in " +
+            completed = new Span("Completed '" + routine.name() + "' in " +
                     DurationConverter.toPresentation(Duration.between(
                             routine.rootStep().startTime(),
                             routine.finishTime()))
                     + "!");
-
-            completed.addClassName("name");
-            this.add(completed);
         }
+
+        completed.addClassName("name");
+        this.add(completed);
+    }
+
+    private void setCardSkipped() {
+        this.removeAll();
+        this.getElement().setAttribute("active", isActive());
+
+        Span skipped = new Span("Skipped '" + routine.name() + ".");
+
+        skipped.addClassName("name");
+        this.add(skipped);
     }
 
     private void initComponents() {
@@ -154,9 +177,9 @@ public class RoutineCard extends VerticalLayout {
         description.setValueChangeMode(ValueChangeMode.LAZY);
         description.addValueChangeListener(event -> {
             Change change = Change.update(binder.getBean().task());
-            DataMapResponse response = (DataMapResponse) controller.requestChange(change);
+            DataMapResponse response = controller.requestChange(change);
             if (response.success()) {
-                binder.getBean().node().child((Task) response.changeRelevantDataMap().getFirst(change.id()));
+                binder.getBean().task(((Task) response.changeRelevantDataMap().getFirst(change.id())));
             }
         });
     }

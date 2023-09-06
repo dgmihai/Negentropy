@@ -10,7 +10,7 @@ public interface ClearEvents {
     List<Runnable> beforeClearCallbacks = new ArrayList<>();
     List<Runnable> afterClearCallbacks = new ArrayList<>();
 
-    void onClear();
+    default void onClear() {}
 
     default void clear() {
         beforeClearCallbacks.forEach(Runnable::run);

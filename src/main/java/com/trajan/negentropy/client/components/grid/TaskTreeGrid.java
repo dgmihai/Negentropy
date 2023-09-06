@@ -16,7 +16,7 @@ import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderF
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
@@ -76,7 +76,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskNodeData> extends Div implements TaskNodeView {
+public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeView {
     @Autowired protected ClientDataController controller;
     @Autowired protected UserSettings settings;
 

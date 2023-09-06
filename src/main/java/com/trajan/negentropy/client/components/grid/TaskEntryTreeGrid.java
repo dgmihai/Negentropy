@@ -5,7 +5,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
+import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager.TaskEntryDataProvider;
@@ -245,13 +245,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    protected GridInlineEditorTaskFormLayout<TaskEntry> getTaskFormLayout(TaskEntry entry) {
-        return new GridInlineEditorTaskFormLayout<>(controller, entry, TaskEntry.class);
+    protected GridInlineEditorTaskNodeFormLayout<TaskEntry> getTaskFormLayout(TaskEntry entry) {
+        return new GridInlineEditorTaskNodeFormLayout<>(controller, entry, TaskEntry.class);
     }
 
     @Override
     protected Binder<TaskEntry> setEditorBinder(AbstractTaskFormLayout form) {
-        GridInlineEditorTaskFormLayout<TaskEntry> teForm = (GridInlineEditorTaskFormLayout<TaskEntry>) form;
+        GridInlineEditorTaskNodeFormLayout<TaskEntry> teForm = (GridInlineEditorTaskNodeFormLayout<TaskEntry>) form;
         return teForm.binder();
     }
 

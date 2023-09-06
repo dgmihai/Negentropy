@@ -1,25 +1,39 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.components.fields.CronTextField;
+import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.taskform.Bound.BoundToTaskNodeData;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
-import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
-public class GridInlineEditorTaskFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
+public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout
+        implements TaskNodeProvider, BoundToTaskNodeData<T> {
     @Getter
     private Binder<T> binder;
     private Class<T> clazz;
 
-    public GridInlineEditorTaskFormLayout(ClientDataController controller, T node, Class<T> clazz) {
+    protected TextField cronField;
+    protected TextField projectDurationField;
+    protected Checkbox recurringCheckbox;
+
+    public GridInlineEditorTaskNodeFormLayout(ClientDataController controller, T node, Class<T> clazz) {
         super(controller);
         this.clazz = clazz;
         binder = new BeanValidationBinder<>(clazz);
@@ -32,14 +46,28 @@ public class GridInlineEditorTaskFormLayout<T extends HasTaskNodeData> extends A
     }
 
     @Override
-    public TaskNode save() {
+    public void save() {
         TaskNode result = modifyNode(binder.getBean().node().id());
 
         if (result != null) {
             this.clear();
         }
+    }
 
-        return result;
+    @Override
+    protected void configureFields() {
+        super.configureFields();
+
+        recurringCheckbox = new Checkbox("Recurring");
+
+        projectDurationField = new DurationTextField("Project ");
+        projectDurationField.setValueChangeMode(ValueChangeMode.EAGER);
+
+        cronField = new CronTextField();
+        cronField.setValueChangeMode(ValueChangeMode.EAGER);
+
+        projectCheckbox.addValueChangeListener(e ->
+                projectDurationField.setEnabled(e.getValue()));
     }
 
     @Override
@@ -106,22 +134,28 @@ public class GridInlineEditorTaskFormLayout<T extends HasTaskNodeData> extends A
     }
 
     @Override
-    public boolean isValid() {
-        return binder.isValid();
+    protected void configureLayout() {
+        projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+
+        nodeCheckboxLayout = new HorizontalLayout(
+                recurringCheckbox);
+
+        nodeCheckboxLayout = new HorizontalLayout(
+                recurringCheckbox);
+
+        nodeCheckboxLayout.setWidthFull();
+        nodeCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+
+        super.configureLayout();
     }
 
     @Override
-    public Task getTask() {
-        return isValid()
-                ? binder.getBean().task()
-                : null;
-    }
+    protected void initLayout() {
+        Hr hr = new Hr();
+        this.setColspan(hr, 2);
 
-    @Override
-    public TaskNodeDTOData<?> getNodeInfo() {
-        return binder.getBean().node();
+        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout,
+                projectDurationField, projectComboBox, buttonLayout);
     }
-
-    @Override
-    public void onClear() { }
 }

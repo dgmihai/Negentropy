@@ -29,6 +29,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Set;
 
 @PageTitle("Negentropy - Routine")
@@ -48,7 +49,7 @@ public class RoutineView extends VerticalLayout {
 
     @Autowired private RoutineStepTreeGrid routineStepTreeGrid;
     @Autowired private ToolbarTabSheet toolbarTabSheet;
-    private Grid<Routine> activeRoutineGrid = new Grid<>();
+    private final Grid<Routine> activeRoutineGrid = new Grid<>();
 
     @PostConstruct
     public void init() {
@@ -82,8 +83,9 @@ public class RoutineView extends VerticalLayout {
             }
         });
 
-        activeRoutineGrid.setItems(routineDataProvider.fetch(new Query<>(
-                visibleRoutineStatuses)).toList());
+        List<Routine> routines = routineDataProvider.fetch(new Query<>(
+                visibleRoutineStatuses)).toList();
+        activeRoutineGrid.setItems(routines);
 
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS);
         activeRoutineGrid.addComponentColumn(routine -> new RoutineCard(routine, controller));

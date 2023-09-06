@@ -2,6 +2,8 @@ package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.model.*;
+import com.trajan.negentropy.model.RoutineStep.RoutineNodeStep;
+import com.trajan.negentropy.model.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TagEntity;
@@ -14,11 +16,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
-import com.trajan.negentropy.server.backend.repository.LinkRepository;
-import com.trajan.negentropy.server.backend.repository.TagRepository;
-import com.trajan.negentropy.server.backend.repository.TaskRepository;
-import com.trajan.negentropy.server.backend.repository.TenetRepository;
-import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
+import com.trajan.negentropy.server.backend.repository.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +36,14 @@ import java.util.stream.Collectors;
 @Transactional
 public class DataContextImpl implements DataContext {
     @Autowired private EntityQueryService entityQueryService;
+    @Autowired private NetDurationService netDurationService;
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
     @Autowired private TagRepository tagRepository;
     @Autowired private TenetRepository tenetRepository;
-    @Autowired private NetDurationRecalculator netDurationRecalculator;
+    @Autowired private RoutineRepository routineRepository;
+    @Autowired private RoutineStepRepository routineStepRepository;
 
     @PostConstruct
     public void onStart() {
@@ -64,8 +64,8 @@ public class DataContextImpl implements DataContext {
     @Override
     public void addToNetDurationOfTask(Duration change, TaskID taskId) {
         log.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
-        NetDuration netDuration = entityQueryService.getNetDuration(taskId);
-        netDuration.netDuration(netDuration.netDuration().plus(change));
+        NetDuration netDuration = netDurationService.getNetDurationEntity(taskId);
+        netDuration.val(netDuration.val().plus(change));
     }
 
     @Override
@@ -244,7 +244,7 @@ public class DataContextImpl implements DataContext {
                 projectDuration));
 
         if (parent != null) {
-            Duration change = entityQueryService.getNetDuration(ID.of(child)).netDuration();
+            Duration change = netDurationService.getNetDuration(child, null);
             TaskID parentId = ID.of(parent);
 
             this.addToNetDurationOfAllAncestors(change, parentId);
@@ -324,7 +324,7 @@ public class DataContextImpl implements DataContext {
         child.parentLinks().remove(link);
         linkRepository.delete(link);
 
-        Duration change = entityQueryService.getNetDuration(ID.of(child)).netDuration()
+        Duration change = netDurationService.getNetDuration(child, null)
             .negated();
         TaskID parentId = ID.of(parent);
         this.addToNetDurationOfAllAncestors(change, parentId);
@@ -350,6 +350,17 @@ public class DataContextImpl implements DataContext {
     @VisibleForTesting
     public TaskLink TESTONLY_mergeLink(TaskLink link) {
         return linkRepository.save(link);
+    }
+
+    @Override
+    @VisibleForTesting
+    public RoutineEntity TESTONLY_mergeRoutine(RoutineEntity routineEntity) {
+        return routineRepository.save(routineEntity);
+    }
+
+    @Override
+    public RoutineStepEntity TESTONLY_mergeRoutineStep(RoutineStepEntity routineStepEntity) {
+        return routineStepRepository.save(routineStepEntity);
     }
 
     @Override
@@ -392,7 +403,7 @@ public class DataContextImpl implements DataContext {
     public Routine toDO(RoutineEntity routineEntity) {
         return new Routine(
                 ID.of(routineEntity),
-                routineEntity.steps().stream()
+                routineEntity.children().stream()
                         .map(this::toDO)
                         .toList(),
                 routineEntity.currentPosition(),
@@ -403,24 +414,22 @@ public class DataContextImpl implements DataContext {
 
     @Override
     public RoutineStep toDO(RoutineStepEntity routineStepEntity) {
-        return new RoutineStep(
-                ID.of(routineStepEntity),
-                routineStepEntity.link() != null
-                        ? toDO(routineStepEntity.link())
-                        : null,
-                routineStepEntity.taskRecord() != null
-                        ? toDO(routineStepEntity.taskRecord())
-                        : null,
-                ID.of(routineStepEntity.routine()),
-                ID.of(routineStepEntity.parent()),
-                routineStepEntity.children().stream()
+        RoutineStep result = routineStepEntity.link().isPresent()
+                ? new RoutineNodeStep(toDO(routineStepEntity.link().get()))
+                : new RoutineTaskStep(toDO(routineStepEntity.task()));
+
+        return result
+                .id(ID.of(routineStepEntity))
+                .routineId(ID.of(routineStepEntity.routine()))
+                .parentId(ID.of(routineStepEntity.parentStep()))
+                .children(routineStepEntity.children().stream()
                         .map(this::toDO)
-                        .toList(),
-                routineStepEntity.startTime(),
-                routineStepEntity.finishTime(),
-                routineStepEntity.lastSuspendedTime(),
-                routineStepEntity.elapsedSuspendedDuration(),
-                routineStepEntity.status());
+                        .toList())
+                .startTime(routineStepEntity.startTime())
+                .finishTime(routineStepEntity.finishTime())
+                .lastSuspendedTime(routineStepEntity.lastSuspendedTime())
+                .elapsedSuspendedDuration(routineStepEntity.elapsedSuspendedDuration())
+                .status(routineStepEntity.status());
     }
 
     @Override

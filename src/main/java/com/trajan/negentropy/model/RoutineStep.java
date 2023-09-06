@@ -1,6 +1,8 @@
 package com.trajan.negentropy.model;
 
+import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.MayHaveTaskNodeData;
 import com.trajan.negentropy.model.data.RoutineStepData;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.RoutineID;
@@ -8,41 +10,38 @@ import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.util.RoutineUtil;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
+@NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
 @ToString
-public class RoutineStep implements RoutineStepData, Timeable, HasTaskNodeData, Ancestor<RoutineStep> {
-    private StepID id;
+public abstract class RoutineStep implements RoutineStepData, Timeable, HasTaskData, MayHaveTaskNodeData, Ancestor<RoutineStep> {
+    protected StepID id;
 
-    private TaskNode node;
-    private Task taskRecord;
+    protected RoutineID routineId;
+    protected StepID parentId;
 
-    private RoutineID routineId;
-    private StepID parentId;
+    protected List<RoutineStep> children;
 
-    private List<RoutineStep> children;
+    protected LocalDateTime startTime;
+    protected LocalDateTime finishTime;
+    protected LocalDateTime lastSuspendedTime;
 
-    private LocalDateTime startTime;
-    private LocalDateTime finishTime;
-    private LocalDateTime lastSuspendedTime;
+    protected Duration elapsedSuspendedDuration;
 
-    private Duration elapsedSuspendedDuration;
-
-    private TimeableStatus status;
+    protected TimeableStatus status;
 
     @Override
+    @ToString.Include
     public String name() {
         return task().name();
     }
@@ -62,10 +61,65 @@ public class RoutineStep implements RoutineStepData, Timeable, HasTaskNodeData, 
         return task().duration();
     }
 
-    @Override
-    public Task task() {
-        return node != null
-                ? node.task()
-                : taskRecord;
+    abstract public Task task();
+    abstract public RoutineStep task(Task task);
+
+    abstract public TaskNode node();
+    abstract public Optional<TaskNode> nodeOptional();
+    abstract public RoutineStep node(TaskNode node);
+
+    @Getter
+    @AllArgsConstructor
+    public static class RoutineTaskStep extends RoutineStep {
+        private Task task;
+
+        @Override
+        public RoutineTaskStep task(Task task) {
+            this.task = task;
+            return this;
+        }
+
+        @Override
+        public TaskNode node() {
+            return null;
+        }
+
+        @Override
+        public Optional<TaskNode> nodeOptional() {
+            return Optional.empty();
+        }
+
+        @Override
+        public RoutineTaskStep node(TaskNode node) {
+            this.task = node.task();
+            return this;
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class RoutineNodeStep extends RoutineStep implements HasTaskNodeData {
+        private TaskNode node;
+
+        @Override
+        public Task task() {
+            return node.child();
+        }
+
+        @Override
+        public RoutineNodeStep task(Task task) {
+            this.node.child(task);
+            return this;
+        }
+
+        @Override
+        public Optional<TaskNode> nodeOptional() {
+            return Optional.of(node);
+        }
+
+        public RoutineNodeStep node(TaskNode node) {
+            this.node = node;
+            return this;
+        }
     }
 }

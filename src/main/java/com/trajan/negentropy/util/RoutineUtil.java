@@ -16,14 +16,20 @@ public class RoutineUtil {
             case NOT_STARTED, EXCLUDED:
                 yield Duration.ZERO;
             case ACTIVE:
-                yield Duration.between(step.startTime(), time)
-                        .minus(step.elapsedSuspendedDuration());
+                yield step.startTime() != null
+                        ? Duration.between(step.startTime(), time)
+                            .minus(step.elapsedSuspendedDuration())
+                        : Duration.ZERO;
             case COMPLETED, SKIPPED:
-                yield Duration.between(step.startTime(), step.finishTime())
-                        .minus(step.elapsedSuspendedDuration());
+                yield step.startTime() != null
+                        ? Duration.between(step.startTime(), step.finishTime())
+                            .minus(step.elapsedSuspendedDuration())
+                        : Duration.ZERO;
             case SUSPENDED:
-                yield Duration.between(step.startTime(), step.lastSuspendedTime())
-                        .minus(step.elapsedSuspendedDuration());
+                yield step.startTime() != null
+                        ? Duration.between(step.startTime(), step.lastSuspendedTime())
+                            .minus(step.elapsedSuspendedDuration())
+                        : Duration.ZERO;
         };
     }
 
@@ -51,11 +57,16 @@ public class RoutineUtil {
     }
 
     public static Duration getRemainingRoutineDuration(RoutineData routine, LocalDateTime time) {
-        return routine.steps().stream()
-                .filter(step ->
-                        !step.status().equals(TimeableStatus.SKIPPED) && !step.status().equals(TimeableStatus.COMPLETED))
-                .map(step -> getRemainingStepDuration(step, time))
-                .reduce(Duration.ZERO, Duration::plus);
+        try {
+            return routine.getAllChildren().stream()
+                    .filter(step ->
+                            !step.status().equals(TimeableStatus.SKIPPED) && !step.status().equals(TimeableStatus.COMPLETED))
+                    .map(step -> getRemainingStepDuration(step, time))
+                    .reduce(Duration.ZERO, Duration::plus);
+        } catch (Throwable e) {
+            log.error("Error calculating remaining routine duration.", e);
+            throw e;
+        }
     }
 
     public static void setRoutineDuration(RoutineData routine, LocalDateTime time) {

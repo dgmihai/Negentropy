@@ -3,13 +3,15 @@ package com.trajan.negentropy.client.components.grid;
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskFormLayout;
+import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.RoutineStep.RoutineNodeStep;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
@@ -156,8 +158,12 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    protected GridInlineEditorTaskFormLayout<RoutineStep> getTaskFormLayout(RoutineStep routineStep) {
-        return new GridInlineEditorTaskFormLayout<>(controller, routineStep, RoutineStep.class);
+    protected AbstractTaskFormLayout getTaskFormLayout(RoutineStep routineStep) {
+        if (routineStep instanceof RoutineNodeStep routineNodeStep) {
+            return new GridInlineEditorTaskNodeFormLayout<>(controller, routineNodeStep, RoutineNodeStep.class);
+        } else {
+            return new TaskNodeInfoFormLayout(controller, routineStep.task());
+        }
     }
 
     @Override
@@ -219,9 +225,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     public void setRoutine(Routine routine) {
         if (!routine.equals(this.routine)) {
             this.routine = routine;
-            TreeData<RoutineStep> treeData = new TreeData<>();
-            treeData.addRootItems(routine.steps());
-            treeGrid.setTreeData(treeData);
+            treeGrid.setItems(routine.children(), RoutineStep::children);
+            treeGrid.expand(routine.children());
         }
     }
 

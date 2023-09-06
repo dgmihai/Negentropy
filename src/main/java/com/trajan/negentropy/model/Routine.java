@@ -4,6 +4,7 @@ import com.trajan.negentropy.model.data.RoutineData;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.interfaces.Timeable;
+import com.trajan.negentropy.server.backend.util.DFSUtil;
 import com.trajan.negentropy.util.RoutineUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,7 +27,7 @@ public class Routine implements RoutineData, Timeable {
     private RoutineID id;
 
     @ToString.Exclude
-    private List<RoutineStep> steps;
+    private List<RoutineStep> children;
 
     private int currentPosition;
 
@@ -36,10 +37,10 @@ public class Routine implements RoutineData, Timeable {
     private TimeableStatus status;
 
     public RoutineStep currentStep() {
-        return steps.get(currentPosition);
+        return this.getAllChildren().get(currentPosition);
     }
     public RoutineStep rootStep() {
-        return steps.get(0);
+        return children.get(0);
     }
 
     @Override
@@ -59,7 +60,16 @@ public class Routine implements RoutineData, Timeable {
     }
 
     @Override
+    public List<RoutineStep> getAllChildren() {
+        return DFSUtil.traverse(rootStep());
+    }
+
+    @Override
     public LocalDateTime finishTime() {
         return currentStep().finishTime();
+    }
+
+    public int countSteps() {
+        return DFSUtil.traverse(rootStep()).size();
     }
 }

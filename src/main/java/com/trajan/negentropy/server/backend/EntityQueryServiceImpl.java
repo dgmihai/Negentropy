@@ -259,9 +259,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 descendantId,
                 link -> ID.of(link.parent()),
                 id -> this.findParentLinks(id, filter),
-                null,
-                null,
-                false);
+                null);
     }
 
     @Override
@@ -274,53 +272,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return this.findDescendantLinks(ancestorId, filter, null);
     }
 
-    private boolean withDurationLimits(TaskTreeFilter filter) {
-        return filter != null && filter.options().contains(TaskTreeFilter.WITH_PROJECT_DURATION_LIMITS);
-    }
-
-    private Duration getTaskDurationLimit(TaskID ancestorId, TaskTreeFilter filter) {
-        Duration durationLimit = null;
-        if (withDurationLimits(filter)) {
-            durationLimit = filter.durationLimit();
-            if (durationLimit != null && ancestorId != null) {
-                TaskEntity ancestorTask = this.getTask(ancestorId);
-                durationLimit = durationLimit.minus(ancestorTask.duration());
-                if (durationLimit.isNegative()) {
-                    throw new RuntimeException("Duration of project associated with task " + ancestorTask.name()
-                            + " is shorter than the task's own duration.");
-                }
-            }
-        }
-        return durationLimit;
-    }
-
-    private Duration getLinkDurationLimit(LinkID ancestorId, TaskTreeFilter filter) {
-        Duration durationLimit = null;
-        if (withDurationLimits(filter)) {
-            TaskLink ancestorLink = this.getLink(ancestorId);
-            durationLimit = (filter.durationLimit() == null && ancestorLink.child().project())
-                    ? ancestorLink.projectDuration()
-                    : filter.durationLimit();
-            if (durationLimit != null) {
-                durationLimit = durationLimit.minus(ancestorLink.child().duration());
-                if (durationLimit.isNegative()) {
-                    throw new RuntimeException("Duration of project associated with task " + ancestorLink.child().name()
-                            + " is shorter than the task's own duration.");
-                }
-            }
-        }
-        return durationLimit;
-    }
-
     @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskTreeFilter filter, Consumer<TaskLink> consumer) {
         return DFSUtil.traverseTaskLinks(
                 ancestorId,
                 link -> ID.of(link.child()),
                 parentId -> this.findChildLinks(parentId, filter),
-                getTaskDurationLimit(ancestorId, filter),
-                consumer,
-                withDurationLimits(filter));
+                consumer);
     }
 
     @Override
@@ -330,18 +288,13 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findDescendantLinks(LinkID ancestorId, TaskTreeFilter filter, Consumer<TaskLink> consumer) {
-        boolean withDurationLimits =
-                filter != null && filter.options().contains(TaskTreeFilter.WITH_PROJECT_DURATION_LIMITS);
-
         TaskLink ancestorLink = this.getLink(ancestorId);
 
         return DFSUtil.traverseTaskLinks(
                 ID.of(ancestorLink.child()),
                 link -> ID.of(link.child()),
                 parentId -> this.findChildLinks(parentId, filter),
-                getLinkDurationLimit(ID.of(ancestorLink), filter),
-                consumer,
-                withDurationLimits);
+                consumer);
     }
 
     @Override
@@ -391,7 +344,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 //                        || estimate.importance() <= filter.importanceThreshold()))
                 .collect(Collectors.toMap(
                         estimate -> ID.of(estimate.task()),
-                        NetDuration::netDuration
+                        NetDuration::val
                 ));
     }
 
@@ -428,7 +381,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
         if (filter == null) {
             try {
-                return getNetDuration(taskId).netDuration();
+                return getNetDuration(taskId).val();
             } catch (NoSuchElementException e) {
                 logger.warn("No net duration found for task " + taskId.val() + ", calculating new.");
                 save = true;
@@ -438,7 +391,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                     && filter.includedTagIds().isEmpty()
                     && filter.excludedTagIds().isEmpty()
                     && filter.importanceThreshold() != null) {
-                return getNetDuration(taskId, filter.importanceThreshold()).netDuration();
+                return getNetDuration(taskId, filter.importanceThreshold()).val();
             }
         }
 
@@ -489,7 +442,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
-        QNetDuration qNetDuration = QNetDuration.netDuration1;
+        QNetDuration qNetDuration = QNetDuration.netDuration;
         return netDurationRepository.findOne(
                         qNetDuration.task.id.eq(ancestorId.val())).orElseThrow()
                 .importance();
@@ -516,14 +469,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         QTagEntity qTag = QTagEntity.tagEntity;
         return StreamSupport.stream(tagRepository.findAll(
                         qTag.tasks.isEmpty())
-                .spliterator(), false);
-    }
-
-    @Override
-    public Stream<TaskEntity> findProjects() {
-        QTaskEntity qTask = QTaskEntity.taskEntity;
-        return StreamSupport.stream(taskRepository.findAll(
-                        qTask.project.isTrue())
                 .spliterator(), false);
     }
 }

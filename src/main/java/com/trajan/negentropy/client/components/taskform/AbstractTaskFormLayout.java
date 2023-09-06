@@ -1,16 +1,15 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.ClearEvents;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
-import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.controller.util.SaveEvents;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
@@ -20,7 +19,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.ComboBoxVariant;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
@@ -31,6 +29,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
@@ -40,20 +39,22 @@ import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
-        implements TaskNodeProvider, ClearEvents {
+        implements ClearEvents, SaveEvents<DataMapResponse> {
     protected TextField nameField;
     protected TextField durationField;
-    protected TextField cronField;
     protected CustomValueTagComboBox tagComboBox;
-    protected Checkbox recurringCheckbox;
     protected Checkbox requiredCheckbox;
     protected Checkbox projectCheckbox;
-    protected TextField projectDurationField;
     protected TextArea descriptionArea;
     protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
     protected HorizontalLayout taskCheckboxLayout;
     protected HorizontalLayout nodeCheckboxLayout;
+
+    // Link Only
+    protected TextField cronField;
+    protected TextField projectDurationField;
+    protected Checkbox recurringCheckbox;
 
     protected Button saveButton;
     protected Button clearButton;
@@ -65,6 +66,10 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     @Getter
     protected ClientDataController controller;
 
+    @Getter
+    @Setter
+    protected Runnable onClose = () -> {};
+
     public AbstractTaskFormLayout(ClientDataController controller) {
         this.controller = controller;
         this.addClassName("task-entry-form");
@@ -75,6 +80,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         configureInteractions();
         configureBindings();
         configureLayout();
+        initLayout();
     }
 
     protected void configureFields() {
@@ -87,17 +93,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
         durationField.setRequired(true);
 
-        projectDurationField = new DurationTextField("Project ");
-        projectDurationField.setValueChangeMode(ValueChangeMode.EAGER);
-
-        cronField = new CronTextField();
-        cronField.setValueChangeMode(ValueChangeMode.EAGER);
-
-        recurringCheckbox = new Checkbox("Recurring");
         requiredCheckbox = new Checkbox("Required");
         projectCheckbox = new Checkbox("Project");
-        projectCheckbox.addValueChangeListener(e ->
-                projectDurationField.setEnabled(e.getValue()));
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -139,7 +136,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         }
     }
 
-    public abstract TaskNode save();
+    public abstract void save();
 
     protected void configureInteractions() {
         saveButton.addClickListener(event -> this.save());
@@ -152,8 +149,6 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         Shortcuts.addShortcutListener(this,
                 this::clear,
                 Key.ESCAPE);
-
-        afterSave(() -> nameField.focus());
     }
 
     abstract void configureBindings();
@@ -161,11 +156,10 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected void configureLayout() {
         nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
-        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
-        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        clearButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
 
@@ -184,29 +178,20 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
                 requiredCheckbox,
                 projectCheckbox);
 
-        nodeCheckboxLayout = new HorizontalLayout(
-                recurringCheckbox);
-
         taskCheckboxLayout.setWidthFull();
         taskCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
-        nodeCheckboxLayout.setWidthFull();
-        nodeCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
         tagComboBox.setPlaceholder("Tags");
 
-        Hr hr = new Hr();
-
         setColspan(descriptionArea, 2);
         setColspan(buttonLayout, 2);
-        setColspan(hr, 2);
 
         this.setResponsiveSteps(
                 new ResponsiveStep("0", 1),
                 new ResponsiveStep(K.SHORT_WIDTH, 2));
 
         this.setWidthFull();
-
-        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout,
-                projectDurationField, projectComboBox, buttonLayout);
     }
+
+    protected abstract void initLayout();
 }

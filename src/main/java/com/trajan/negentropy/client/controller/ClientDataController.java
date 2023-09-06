@@ -16,7 +16,7 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
-import com.trajan.negentropy.server.backend.util.NetDurationRecalculator;
+import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.util.OrphanTaskCleaner;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
@@ -28,6 +28,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
@@ -207,11 +208,11 @@ public class ClientDataController {
         }
     }
 
-    @Autowired private NetDurationRecalculator netDurationRecalculator;
+    @Autowired private NetDurationHelperManager netDurationHelperManager;
     //@Override
     public void recalculateNetDurations() {
         log.debug("Recalculating time estimates");
-        netDurationRecalculator.recalculateTimeEstimates();
+        netDurationHelperManager.recalculateTimeEstimates();
         this.sync();
     }
 
@@ -253,6 +254,7 @@ public class ClientDataController {
             return response;
         } catch (Throwable t) {
             NotificationMessage.error(t);
+            log.error("Error executing routine service call", t);
             return new RoutineResponse(false, null, t.getMessage());
         }
     }
@@ -332,29 +334,30 @@ public class ClientDataController {
 
     //@Override
     public RoutineResponse moveRoutineStep(InsertLocation insertLocation, RoutineStep step, RoutineStep target) {
-        log.debug("Moving routine step: " + step + " " + insertLocation + " " + target);
-
-        StepID parentId = target.parentId();
-
-        int targetPosition;
-        if (parentId != null) {
-            RoutineStep parentStep = services.routine().fetchRoutineStep(target.parentId());
-            targetPosition =  parentStep.children().indexOf(target);
-        } else {
-            Routine routine = services.routine().fetchRoutine(target.routineId());
-            targetPosition = routine.steps().indexOf(target);
-        }
-
-        int position = switch(insertLocation) {
-            case BEFORE -> targetPosition - 1;
-            case AFTER -> targetPosition + 1;
-            default -> throw new RuntimeException("Invalid insert location specified.");
-        };
-
-        RoutineResponse response = this.processStep(
-                () -> services.routine().moveStep(step.id(), parentId, position));
-        routineDataProvider.refreshAll();
-        return response;
+        throw new NotImplementedException("Not implemented yet");
+//        log.debug("Moving routine step: " + step + " " + insertLocation + " " + target);
+//
+//        StepID parentId = target.parentId();
+//
+//        int targetPosition;
+//        if (parentId != null) {
+//            RoutineStep parentStep = services.routine().fetchRoutineStep(target.parentId());
+//            targetPosition =  parentStep.children().indexOf(target);
+//        } else {
+//            Routine routine = services.routine().fetchRoutine(target.routineId());
+//            targetPosition = routine.children().indexOf(target);
+//        }
+//
+//        int position = switch(insertLocation) {
+//            case BEFORE -> targetPosition - 1;
+//            case AFTER -> targetPosition + 1;
+//            default -> throw new RuntimeException("Invalid insert location specified.");
+//        };
+//
+//        RoutineResponse response = this.processStep(
+//                () -> services.routine().moveStep(step.id(), parentId, position));
+//        routineDataProvider.refreshAll();
+//        return response;
     }
 
     //@Override

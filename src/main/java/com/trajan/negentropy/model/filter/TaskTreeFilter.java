@@ -32,9 +32,6 @@ public class TaskTreeFilter {
     public static final String IGNORE_SCHEDULING = "Ignore Scheduling";
     public static final String INNER_JOIN_INCLUDED_TAGS = "Inner Join Included Tags";
 
-    // Hidden
-    public static final String WITH_PROJECT_DURATION_LIMITS = "With Project Duration Limits";
-
     public TaskTreeFilter(String... options) {
         this.options.addAll(Set.of(options));
     }

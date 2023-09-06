@@ -5,10 +5,12 @@ import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.interfaces.Ancestor;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
@@ -16,32 +18,37 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "routine_steps")
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Accessors(fluent = true)
 @Getter
 @Setter
 @ToString(callSuper = true)
-public class RoutineStepEntity extends AbstractEntity implements RoutineStepData {
+@Slf4j
+public class RoutineStepEntity extends AbstractEntity implements RoutineStepData, Ancestor<RoutineStepEntity> {
     @ManyToOne(fetch = FetchType.EAGER)
+    @Getter(AccessLevel.NONE)
     private TaskLink link;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    private TaskEntity taskRecord;
+    private TaskEntity task;
 
     @ManyToOne
     @JoinColumn(name = "parent_step_id")
-    private RoutineStepEntity parent;
+    @ToString.Exclude
+    private RoutineStepEntity parentStep;
 
     @OneToMany(
             fetch = FetchType.EAGER,
-            mappedBy = "parent",
+            mappedBy = "parentStep",
             cascade = CascadeType.ALL)
     @Fetch(FetchMode.SUBSELECT)
     @OrderBy("position")
+    @ToString.Exclude
     private List<RoutineStepEntity> children = new ArrayList<>();;
 
     private LocalDateTime startTime;
@@ -61,12 +68,21 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
 
     private Integer position;
 
+    public RoutineStepEntity(TaskLink link) {
+        this.link = link;
+        this.task = link.child();
+    }
+
+    public RoutineStepEntity(TaskEntity task) {
+        this.task = task;
+    }
+
     @Override
     public Duration duration() {
-        if (link != null) {
-            return link.child().duration();
-        } else {
-            return taskRecord.duration();
-        }
+        return task.duration();
+    }
+
+    public Optional<TaskLink> link() {
+        return Optional.ofNullable(link);
     }
 }

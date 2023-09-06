@@ -3,6 +3,8 @@ package com.trajan.negentropy.model.entity.routine;
 import com.trajan.negentropy.model.data.RoutineData;
 import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.interfaces.Ancestor;
+import com.trajan.negentropy.server.backend.util.DFSUtil;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,15 +26,13 @@ import java.util.List;
 @Getter
 @Setter
 @ToString(callSuper = true)
-public class RoutineEntity extends AbstractEntity implements RoutineData {
+public class RoutineEntity extends AbstractEntity implements RoutineData, Ancestor<RoutineStepEntity> {
     @OneToMany(
             fetch = FetchType.EAGER,
-            mappedBy = "routine",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+            cascade = CascadeType.ALL)
     @Fetch(FetchMode.SUBSELECT)
     @OrderColumn(name = "position")
-    private List<RoutineStepEntity> steps = new ArrayList<>();
+    private List<RoutineStepEntity> children = new ArrayList<>();
 
     private Integer currentPosition = 0;
 
@@ -42,11 +42,19 @@ public class RoutineEntity extends AbstractEntity implements RoutineData {
     @Enumerated(EnumType.STRING)
     private TimeableStatus status = TimeableStatus.NOT_STARTED;
 
+    public List<RoutineStepEntity> getAllChildren() {
+        return DFSUtil.traverse(children.get(0));
+    }
+
     public RoutineStepEntity currentStep() {
-        return steps.get(currentPosition);
+        return getAllChildren().get(currentPosition);
     }
 
     public LocalDateTime finishTime() {
         return currentStep().finishTime();
+    }
+
+    public int countSteps() {
+        return getAllChildren().size();
     }
 }

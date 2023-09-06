@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.filterform.FilterForm;
 import com.trajan.negentropy.client.components.filterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
-import com.trajan.negentropy.client.components.taskform.TaskFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -70,7 +70,7 @@ public class ToolbarTabSheet extends TabSheet {
         SHOW_ROUTINE_STEPS_TAB
     }
 
-    private TaskFormLayout createTaskForm;
+    private TaskNodeInfoFormLayout createTaskForm;
     private QuickCreateField quickCreateField;
     private TaskListBox taskSetBox;
 
@@ -124,12 +124,12 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initCreateNewTaskTab(boolean mobile) {
-        this.createTaskForm = new TaskFormLayout(controller);
+        this.createTaskForm = new TaskNodeInfoFormLayout(controller);
         createTaskForm.taskBinder().setBean(new Task());
 
         createTaskForm.afterClear(() -> {
             createTaskForm.taskBinder().setBean(new Task());
-            createTaskForm.nodeBinder().setBean(new TaskNodeDTO());
+            createTaskForm.nodeInfoBinder().setBean(new TaskNodeDTO());
         });
         createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
 

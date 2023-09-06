@@ -31,5 +31,5 @@ public class NetDuration {
     @Id
     private int importance = 0;
 
-    private Duration netDuration = Duration.ZERO;
+    private Duration val = Duration.ZERO;
 }

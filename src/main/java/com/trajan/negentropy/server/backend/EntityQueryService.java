@@ -272,6 +272,4 @@ public interface EntityQueryService {
     Stream<TaskEntity> findOrphanedTasks();
 
     Stream<TagEntity> findOrphanedTags();
-
-    Stream<TaskEntity> findProjects();
 }

@@ -16,7 +16,7 @@ public class TaskInfoBar extends VerticalLayout {
     private final ClientDataController controller;
 
     private final Span name;
-    private RoutineTimer timer;
+    private final RoutineTimer timer;
     private final Span description;
 
     private final Binder<Timeable> binder = new BeanValidationBinder<>(Timeable.class);

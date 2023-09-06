@@ -52,6 +52,21 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
     }
 
+    default Task modifyTask(TaskID taskId) {
+        Change taskChange = getTaskChange();
+
+        Supplier<DataMapResponse> trySave = () ->
+                controller().requestChange(taskChange);
+
+        Optional<DataMapResponse> response = handleSave(trySave);
+
+        if (response.isPresent() && response.get().success()) {
+            return (Task) response.get().changeRelevantDataMap().getFirst(taskChange.id());
+        } else {
+            return null;
+        }
+    }
+
     private Change getTaskChange() {
         Task task = getTask();
         return task.id() != null
@@ -72,7 +87,6 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         } else {
             return null;
         }
-
     }
 
     default TaskNode createNode(TaskOrLinkID reference, InsertLocation location) {

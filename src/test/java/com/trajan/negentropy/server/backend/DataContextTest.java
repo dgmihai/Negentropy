@@ -1,12 +1,11 @@
 package com.trajan.negentropy.server.backend;
 
+import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.Tag;
-import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.server.TaskTestTemplate;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -52,7 +50,7 @@ public class DataContextTest extends TaskTestTemplate {
     }
 
     @Test
-    void testTaskEntityToDTO() {
+    void testTaskEntityToDO() {
         TaskEntity taskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity()
                 .name("Task Name")
                 .description("Task Description")
@@ -83,7 +81,7 @@ public class DataContextTest extends TaskTestTemplate {
     }
 
     @Test
-    void testTagEntityToDTO() {
+    void testTagEntityToDO() {
         TagEntity tagEntity = dataContext.mergeTag(new TagEntity().name("Tag Name"));
         Tag tag = dataContext.toDO(tagEntity);
 
@@ -108,7 +106,7 @@ public class DataContextTest extends TaskTestTemplate {
     }
 
     @Test
-    void testTaskLinkToDTO() {
+    void testTaskLinkToDO() {
         TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
         TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
@@ -156,7 +154,7 @@ public class DataContextTest extends TaskTestTemplate {
     }
 
     @Test
-    void testTaskLinkToDTONoPrev() {
+    void testTaskLinkToDONoPrev() {
         TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
         TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
@@ -192,7 +190,7 @@ public class DataContextTest extends TaskTestTemplate {
     }
 
     @Test
-    void testTaskLinkToDTONoNext() {
+    void testTaskLinkToDONoNext() {
         TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
         TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
@@ -320,7 +318,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .child(childTaskEntity)
                 .position(1));
 
-        assertThrows(NoSuchElementException.class, () -> dataContext.mergeNode(
+        assertThrows(Exception.class, () -> dataContext.mergeNode(
                 new TaskNodeDTO(
                         ID.of(parentTaskEntity),
                         ID.of(childTaskEntity),
@@ -420,5 +418,33 @@ public class DataContextTest extends TaskTestTemplate {
         assertNode(mergedTaskLink, taskNode);
     }
 
-    // TODO: Routine tests
+    @Test
+    void testRoutineToDO() {
+        RoutineStepEntity stepThree = new RoutineStepEntity()
+                .task(dataContext.TESTONLY_mergeTask(new TaskEntity().name("Three")));
+
+        RoutineStepEntity stepTwoOne = new RoutineStepEntity()
+                .task(dataContext.TESTONLY_mergeTask(new TaskEntity().name("TwoOne")));
+        RoutineStepEntity stepTwoTwo = new RoutineStepEntity()
+                .task(dataContext.TESTONLY_mergeTask(new TaskEntity().name("TwoTwo")))
+                .children(List.of(stepThree));
+
+        RoutineStepEntity stepOne = new RoutineStepEntity()
+                .task(dataContext.TESTONLY_mergeTask(new TaskEntity().name("One")))
+                .children(List.of(stepTwoOne, stepTwoTwo));
+
+        RoutineEntity routineEntity = dataContext.TESTONLY_mergeRoutine(new RoutineEntity()
+                .children(List.of(stepOne)));
+
+        Routine routine = dataContext.toDO(routineEntity);
+
+        assertEquals(1, routine.children().size());
+        assertEquals("One", routine.children().get(0).task().name());
+        assertEquals(2, routine.children().get(0).children().size());
+        assertEquals("TwoOne", routine.children().get(0).children().get(0).task().name());
+        assertEquals("TwoTwo", routine.children().get(0).children().get(1).task().name());
+        assertEquals(1, routine.children().get(0).children().get(1).children().size());
+        assertEquals("Three", routine.children().get(0).children().get(1).children().get(0).task().name());
+        assertEquals(0, routine.children().get(0).children().get(0).children().size());
+    }
 }

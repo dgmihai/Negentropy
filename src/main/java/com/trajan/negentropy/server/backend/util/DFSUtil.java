@@ -5,7 +5,6 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -13,17 +12,41 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class DFSUtil {
-    public static <T extends Ancestor<T>> Deque<T> traverse(T root) {
-        Deque<T> nodes = new LinkedList<>();
+    public static <T extends Ancestor<T>> List<T> traverse(T root) {
+        List<T> nodes = new ArrayList<>();
         recurse(root, nodes);
         return nodes;
     }
 
-    private static <T extends Ancestor<T>> void recurse(T node, Deque<T> nodes) {
+    private static <T extends Ancestor<T>> void recurse(T node, List<T> nodes) {
         nodes.add(node);
         for (T child : node.children()) {
             recurse(child, nodes);
         }
+    }
+
+    public static <T extends Ancestor<T>> void forEach(T root, Consumer<T> consumer) {
+        recurse(root, consumer);
+    }
+
+    private static <T extends Ancestor<T>> void recurse(T node, Consumer<T> consumer) {
+        consumer.accept(node);
+        for (T child : node.children()) {
+            recurse(child, consumer);
+        }
+    }
+
+    public static <T extends Ancestor<T>> T traverseTo(int position, T root) {
+        return recurseTo(position, root);
+    }
+
+    private static <T extends Ancestor<T>> T recurseTo(int position, T node) {
+        position--;
+        if (position == 0) return node;
+        for (T child : node.children()) {
+            recurseTo(position, child);
+        }
+        return null;
     }
 
     /**
@@ -38,7 +61,6 @@ public class DFSUtil {
      * @param rootId        The changes of the root TaskLink from where the search should start, and will be included.
      * @param getNextID     A function to retrieve the ID of the next task link in the tree.
      * @param getNextLinks  A function to retrieve a stream of succeeding TaskLinks given a TaskID.
-     * @param durationLimit The cumulative duration limit for the tasks.
      * @param consumer      A consumer function to peek at each TaskLink.
      * @return A list of tasks from the DFS, with cumulative duration not exceeding the limit.
      * @throws IllegalArgumentException if the durationLimit is non-positive.
@@ -46,69 +68,51 @@ public class DFSUtil {
     public static Stream<TaskLink> traverseTaskLinks(TaskID rootId,
                                                      Function<TaskLink, TaskID> getNextID,
                                                      Function<TaskID, Stream<TaskLink>> getNextLinks,
-                                                     Duration durationLimit,
-                                                     Consumer<TaskLink> consumer,
-                                                     boolean withDurationLimits) {
+                                                     Consumer<TaskLink> consumer) {
         Stream.Builder<TaskLink> streamBuilder = Stream.builder();
         for (TaskLink nextLink : getNextLinks.apply(rootId).toList()) {
-            durationLimit = recurseTaskLinks(nextLink, streamBuilder, getNextID, getNextLinks, consumer,
-                    durationLimit, withDurationLimits);
+            recurseTaskLinks(nextLink, streamBuilder, null, getNextID, getNextLinks, consumer);
         }
         return streamBuilder.build();
     }
 
-    private static Duration recurseTaskLinks(
+    public static Map<TaskLink, List<TaskLink>> traverseTaskLinksAsAdjacencyMap
+            (TaskID rootId,
+             Function<TaskLink, TaskID> getNextID,
+             Function<TaskID, Stream<TaskLink>> getNextLinks,
+             Consumer<TaskLink> consumer) {
+        Map<TaskLink, List<TaskLink>> adjacencyMap = new LinkedHashMap<>();
+        for (TaskLink nextLink : getNextLinks.apply(rootId).toList()) {
+            recurseTaskLinks(nextLink, null, adjacencyMap, getNextID, getNextLinks, consumer);
+        }
+        return adjacencyMap;
+    }
+
+    private static void recurseTaskLinks(
             TaskLink currentLink,
             Stream.Builder<TaskLink> streamBuilder,
+            Map<TaskLink, List<TaskLink>> adjacencyMap,
             Function<TaskLink, TaskID> getNextID,
             Function<TaskID, Stream<TaskLink>> getNextLinks,
-            Consumer<TaskLink> consumer,
-            Duration remainingDuration,
-            boolean withDurationLimits) {
-        log.trace("Recursing at : " + currentLink.child().name() + ", " + remainingDuration + ", withDurationLimit: " + withDurationLimits);
-
-        Duration continuedDuration = null;
-        if (withDurationLimits) {
-            if (remainingDuration != null) {
-                continuedDuration = remainingDuration.minus(currentLink.child().duration());
-                if (continuedDuration.isNegative()) {
-                    if (!currentLink.child().required()) {
-                        return continuedDuration;
-                    }
-                }
-            }
-
-            if (currentLink.child().project()) {
-                Duration projectDurationLimit = currentLink.projectDuration();
-                if (continuedDuration != null && projectDurationLimit != null) {
-                    continuedDuration = continuedDuration.compareTo(projectDurationLimit) < 0
-                            ? continuedDuration
-                            : projectDurationLimit;
-                } else {
-                    continuedDuration = projectDurationLimit;
-                }
-            }
-        }
-
+            Consumer<TaskLink> consumer) {
+        log.trace("Recursing at : " + currentLink.child().name());
         if (consumer != null) consumer.accept(currentLink);
 
         if (streamBuilder != null) {
             streamBuilder.add(currentLink);
         }
-
-        if (continuedDuration == null || !continuedDuration.isZero()) {
-            List<TaskLink> nextLinks = getNextLinks.apply(getNextID.apply(currentLink)).toList();
-            for (TaskLink nextLink : nextLinks) {
-                continuedDuration = recurseTaskLinks(nextLink, streamBuilder, getNextID, getNextLinks, consumer, remainingDuration, withDurationLimits);
-
-                if (continuedDuration != null && withDurationLimits && nextLink.child().required()) {
-                    if (continuedDuration.isNegative()) {
-                        break;
-                    }
-                }
-            }
+        if (adjacencyMap != null) {
+            adjacencyMap.put(currentLink, new LinkedList<>());
         }
 
-        return continuedDuration;
+        List<TaskLink> nextLinks = getNextLinks.apply(getNextID.apply(currentLink)).toList();
+        for (TaskLink nextLink : nextLinks) {
+            recurseTaskLinks(nextLink, streamBuilder, adjacencyMap, getNextID,
+                    getNextLinks, consumer);
+
+            if (adjacencyMap != null) {
+                adjacencyMap.get(currentLink).add(nextLink);
+            }
+        }
     }
 }
