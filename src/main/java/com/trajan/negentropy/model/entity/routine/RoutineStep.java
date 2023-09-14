@@ -1,5 +1,7 @@
-package com.trajan.negentropy.model;
+package com.trajan.negentropy.model.entity.routine;
 
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.MayHaveTaskNodeData;

@@ -41,7 +41,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
 
         configureAll();
 
-        projectDurationField.setEnabled(node.task().project());
+        projectDurationField.setVisible(node.task().project());
         saveAsLastCheckbox.setVisible(false);
     }
 
@@ -67,7 +67,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         cronField.setValueChangeMode(ValueChangeMode.EAGER);
 
         projectCheckbox.addValueChangeListener(e ->
-                projectDurationField.setEnabled(e.getValue()));
+                projectDurationField.setVisible(e.getValue()));
     }
 
     @Override

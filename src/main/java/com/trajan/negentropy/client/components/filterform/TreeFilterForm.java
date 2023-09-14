@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.controller.ClientDataController;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TreeFilterForm extends FilterForm {
+public class TreeFilterForm extends TaskNodeFilterForm {
     public TreeFilterForm(ClientDataController controller) {
         super(controller);
         controller.taskEntryDataProviderManager().setFilter(binder.getBean());
@@ -14,11 +14,11 @@ public class TreeFilterForm extends FilterForm {
     protected void configureInteractions() {
         super.configureInteractions();
 
-        binder.setBean(controller.settings().filter());
+        binder.setBean(controller().settings().filter());
 
         binder.addValueChangeListener(event -> {
             log.debug("VALUE CHANGE LISTENER");
-            controller.taskEntryDataProviderManager().setFilter(binder.getBean());
+            controller().taskEntryDataProviderManager().setFilter(binder.getBean());
         });
     }
 }

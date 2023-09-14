@@ -3,20 +3,14 @@ package com.trajan.negentropy.server.facade;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.model.Routine;
-import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineEntityHierarchy;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.entity.routine.QRoutineEntity;
-import com.trajan.negentropy.model.entity.routine.RoutineEntity;
-import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
-import com.trajan.negentropy.model.id.LinkID;
-import com.trajan.negentropy.model.id.RoutineID;
-import com.trajan.negentropy.model.id.StepID;
-import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.entity.routine.*;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.NetDurationService;
@@ -60,12 +54,12 @@ public class RoutineServiceImpl implements RoutineService {
     public void onStart() {
 //        routineRepository.deleteAll();
 //        routineStepRepository.deleteAll();
-//        for (RoutineEntity routine : routineRepository.findAll()) {
-//            if (routine.status().equals(TimeableStatus.COMPLETED) ||
-//                routine.status().equals(TimeableStatus.SKIPPED)) {
-//                this.cleanUpRoutine(routine);
-//            }
-//        }
+        for (RoutineEntity routine : routineRepository.findAll()) {
+            if (routine.status().equals(TimeableStatus.COMPLETED) ||
+                routine.status().equals(TimeableStatus.SKIPPED)) {
+                this.cleanUpRoutine(routine);
+            }
+        }
     }
 
     @Override
@@ -113,22 +107,22 @@ public class RoutineServiceImpl implements RoutineService {
         return this.createRoutine(rootId, null);
     }
 
-    private TaskTreeFilter processFilter(TaskTreeFilter filter) {
-        TaskTreeFilter processedFilter = filter != null
+    private TaskNodeTreeFilter processFilter(TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter processedFilter = filter != null
                 ? filter
-                : new TaskTreeFilter();
-        processedFilter
-                .name(null) // We don't cache by name
+                : new TaskNodeTreeFilter();
+        processedFilter // We don't cache by name
                 .durationLimit(null) // We don't cache by duration limit
-                .options().add(TaskTreeFilter.HIDE_COMPLETED);
+                .completed(false)
+                .name(null);
         return processedFilter;
     }
 
     @Override
-    public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskTreeFilter filter) {
+    public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskNodeTreeFilter filter) {
         return this.process(() -> {
             Duration durationLimit = filter != null ? filter.durationLimit() : null;
-            TaskTreeFilter processedFilter = processFilter(filter);
+            TaskNodeTreeFilter processedFilter = processFilter(filter);
             logger.trace("Populate routine with filter: " + processedFilter);
 
             TaskEntity rootTask = entityQueryService.getTask(rootId);
@@ -146,17 +140,17 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskTreeFilter filter) {
+    public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskNodeTreeFilter filter) {
         return this.process(() -> {
             Duration durationLimit = filter != null ? filter.durationLimit() : null;
-            TaskTreeFilter processedFilter = processFilter(filter);
+            TaskNodeTreeFilter processedFilter = processFilter(filter);
             logger.trace("Populate routine with filter: " + processedFilter);
 
+            TaskLink rootLink = entityQueryService.getLink(rootId);
             RoutineEntity routine = new RoutineEntity();
             RoutineEntityHierarchy hierarchy = new RoutineEntityHierarchy(routine);
-            NetDurationHelper helper = netDurationService.getHelper(processedFilter);
 
-            TaskLink rootLink = entityQueryService.getLink(rootId);
+            NetDurationHelper helper = netDurationService.getHelper(processedFilter);
             routine.estimatedDuration(helper.getNetDuration(
                     rootLink, hierarchy, durationLimit));
 
@@ -240,7 +234,6 @@ public class RoutineServiceImpl implements RoutineService {
             if (step.status().equals(TimeableStatus.ACTIVE) || step.status().equals(TimeableStatus.NOT_STARTED)) {
                 step.status(TimeableStatus.SKIPPED);
             }
-//            step.link(null);
         }
     }
 
@@ -268,48 +261,99 @@ public class RoutineServiceImpl implements RoutineService {
             RoutineEntity routine = step.routine();
             logger.debug("Mark step " + step.task().name() + " as complete in routine " + routine.id() + ".");
 
-            // If the step has children
-            if (!step.children().isEmpty()) {
-                logger.debug("Step " + step.task().name() + " has children. Starting first child.");
-                step.status(TimeableStatus.ACTIVE);
-            } else {
+            step.status(getStatusBasedOnChildrenStatus(step));
+            if (step.status() == TimeableStatus.COMPLETED) {
                 markStepAsCompleted(step, time);
-
-                // Check if the current step is the last among its siblings
-                if (isLastChild(step)) {
-                    logger.debug("Step " + step.task().name() + " is the last child of its parent. Marking parent as completed.");
-                    RoutineStepEntity parent = step.parentStep();
-                    while (parent != null && isLastChild(step)) {
-                        logger.debug("Step " + step.task().name() + " is the last child of its parent. Marking parent as completed.");
-                        markStepAsCompleted(parent, time);
-                        step = parent;
-                        parent = step.parentStep();
-                    }
-                }
+            } else if (step.status() == TimeableStatus.SKIPPED) {
+                markStepAsSkipped(step, time);
             }
 
             logger.debug("Completing step " + step.task().name() + " in routine " + routine.id() + ".");
 
-            // If we have reached the top-most level and all steps are either skipped or completed
-            if (step.parentStep() == null && routine.currentPosition() == routine.countSteps() - 1) {
-                routine.status(TimeableStatus.COMPLETED);
-            } else {
-                routine.currentPosition(routine.currentPosition() + 1);
-                activate(routine, time);
+            if (isLastChild(step)) {
+                RoutineStepEntity parent = step.parentStep();
+                RoutineStepEntity current = step;
+                while (parent != null) {
+                    parent.status(getStatusBasedOnChildrenStatus(parent));
+                    if (current.status() == TimeableStatus.COMPLETED) {
+                        markStepAsCompleted(current, time);
+                        current = parent;
+                        parent = current.parentStep();
+                    } else if (current.status() == TimeableStatus.SKIPPED) {
+                        markStepAsSkipped(current, time);
+                        current = parent;
+                        parent = current.parentStep();
+                    } else if (current.status() == TimeableStatus.EXCLUDED) {
+                        current = parent;
+                        parent = current.parentStep();
+                    } else {
+                        break;
+                    }
+                }
+
+                if (parent == null && routine.currentPosition() == routine.countSteps() - 1) {
+                    routine.status(TimeableStatus.COMPLETED);
+                    cleanUpRoutine(routine);
+                    return routine;
+                }
             }
+
+            routine.currentPosition(routine.currentPosition() + 1);
+            activate(routine, time);
 
             return routine;
         });
     }
 
+    private TimeableStatus getStatusBasedOnChildrenStatus(RoutineStepEntity step) {
+        int skippedCount = 0;
+        int completedCount = 0;
+        int excludedCount = 0;
+        for (RoutineStepEntity child : step.children()) {
+            switch (child.status()) {
+                case SKIPPED -> skippedCount++;
+                case COMPLETED -> completedCount++;
+                case EXCLUDED -> excludedCount++;
+            }
+        }
+        if (skippedCount > 0) {
+            return TimeableStatus.SKIPPED;
+        } else if (completedCount == step.children().size()) {
+            return TimeableStatus.COMPLETED;
+        } else if (excludedCount == step.children().size()) {
+            return TimeableStatus.EXCLUDED;
+        } else {
+            return TimeableStatus.ACTIVE;
+        }
+    }
+
     private void markStepAsCompleted(RoutineStepEntity step, LocalDateTime time) {
         step.status(TimeableStatus.COMPLETED);
+
+        if (step.link().isPresent()) {
+            boolean completeable = true;
+            for (RoutineStepEntity child : step.children()) {
+                if (child.link().isPresent()) {
+                    if (child.link().get().scheduledFor().isBefore(LocalDateTime.now())
+                            || !child.link().get().completed()) {
+                        completeable = false;
+                    }
+                }
+            }
+
+            if (completeable) {
+                step.link(dataContext.mergeNode(new TaskNode(ID.of(step.link().get()))
+                        .completed(true)));
+            }
+        }
+
         step.finishTime(time);
     }
 
     private boolean isLastChild(RoutineStepEntity step) {
-        if (step.parentStep() == null) return false;
-        List<RoutineStepEntity> siblings = step.parentStep().children();
+        List<RoutineStepEntity> siblings = step.parentStep() != null
+                ? step.parentStep().children()
+                : step.routine().children();
         return siblings.indexOf(step) == siblings.size() - 1;
     }
 
@@ -345,6 +389,7 @@ public class RoutineServiceImpl implements RoutineService {
             // If we have reached the top-most level and all steps are either skipped or completed
             if (step.parentStep() == null && routine.currentPosition() >= stepCount - 1) {
                 routine.status(TimeableStatus.COMPLETED);
+                cleanUpRoutine(routine);
                 routine.currentPosition(stepCount - 1);
             } else {
                 activate(routine, time);
@@ -400,6 +445,13 @@ public class RoutineServiceImpl implements RoutineService {
                 previousStep.status(TimeableStatus.SUSPENDED);
             }
 
+            if (previousStep.link().isPresent()) {
+                if (previousStep.link().get().completed()) {
+                    previousStep.link(dataContext.mergeNode(new TaskNode(ID.of(previousStep.link().get()))
+                            .completed(false)));
+                }
+            }
+
             logger.debug("Routine " + routine + " now at position " + routine.currentPosition());
 
             return routine;
@@ -414,11 +466,6 @@ public class RoutineServiceImpl implements RoutineService {
             routine.status(TimeableStatus.SKIPPED);
             routine.currentStep().status(TimeableStatus.SKIPPED);
             routine.currentStep().finishTime(time);
-
-            routine.getAllChildren().stream()
-                    .filter(step -> step.status().equals(TimeableStatus.NOT_STARTED))
-                    .forEach(step -> step.status(TimeableStatus.SKIPPED));
-
             cleanUpRoutine(routine);
 
             return routine;

@@ -8,7 +8,7 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -24,11 +24,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @SpringComponent
 @VaadinSessionScope
+@Getter
 @Slf4j
 @Benchmark(millisFloor = 10)
 public class TaskNetworkGraph {
@@ -36,18 +40,13 @@ public class TaskNetworkGraph {
 
     private MutableNetwork<TaskID, LinkID> network;
 
-    @Getter
     private SyncID syncId;
 
-    @Getter
     private Map<TaskID, Task> taskMap = new HashMap<>();
-    @Getter
     private Map<LinkID, TaskNode> nodeMap = new HashMap<>();
-    @Getter
     private Map<TagID, Tag> tagMap = new HashMap<>();
-    @Getter
     private MultiValueMap<TaskID, LinkID> nodesByTaskMap = new LinkedMultiValueMap<>();
-    @Getter @Setter
+    @Setter
     private Map<TaskID, Duration> netDurations;
 
     public TaskNetworkGraph syncId(SyncID syncId) {
@@ -152,7 +151,7 @@ public class TaskNetworkGraph {
         }
     }
 
-    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskTreeFilter filter) {
+    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskNodeTreeFilter filter) {
         log.debug("Getting filtered links with filter " + filter);
         return services.query().fetchAllNodesAsIds(filter)
                 .toList();

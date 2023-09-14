@@ -28,6 +28,13 @@ import java.time.LocalDateTime;
 @Setter
 @Slf4j
 public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, TaskNodeDTOData<TaskLink> {
+
+    @Id
+    @Column(nullable = false, updatable = false)
+    @SequenceGenerator(name = "task_link_entity_seq", sequenceName = "task_link_entity_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_link_entity_seq")
+    private Long id;
+
     @ManyToOne
     @JoinColumn(name = "parent_id")
     private TaskEntity parent;

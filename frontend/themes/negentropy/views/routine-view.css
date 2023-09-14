@@ -7,8 +7,6 @@
   line-height: var(--lumo-line-height-m);
 }
 
-
-
 .routine-view vaadin-grid[selected] {
   box-shadow: var(--lumo-box-shadow-l);
 }
@@ -104,4 +102,21 @@
   color: var(--lumo-tertiary-text-color);
   font-size: var(--lumo-font-size-xs);
   margin-right: var(--lumo-space-l);
+}
+
+.routine-view .mood-input {
+  display: flex;
+  justify-content: center;
+}
+
+.routine-view .emotion-field {
+  width: 25rem;
+}
+
+.routine-view .add-step-combo-box {
+  width: 25rem;
+}
+
+.routine-view .start-routine-button-layout {
+  align-items: center;
 }

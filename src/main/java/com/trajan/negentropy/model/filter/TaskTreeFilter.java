@@ -6,8 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,19 +15,15 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 public class TaskTreeFilter {
-    private String name;
-    private Set<TagID> includedTagIds = new HashSet<>();
-    private Set<TagID> excludedTagIds = new HashSet<>();
-    private LocalDateTime availableAtTime;
-    private Integer importanceThreshold;
-    private Duration durationLimit;
-    private Set<String> options = new HashSet<>();
+    protected String name;
+    protected Set<TagID> includedTagIds = new HashSet<>();
+    protected Set<TagID> excludedTagIds = new HashSet<>();
+    protected Set<String> options = new HashSet<>();
+    protected Boolean ignoreScheduling;
 
     public static final String ONLY_REQUIRED = "Only Required";
     public static final String ONLY_PROJECTS = "Only Projects";
-    public static final String HIDE_COMPLETED = "Hide Completed Tasks";
     public static final String ALWAYS_INCLUDE_PARENTS = "Include Parents";
-    public static final String IGNORE_SCHEDULING = "Ignore Scheduling";
     public static final String INNER_JOIN_INCLUDED_TAGS = "Inner Join Included Tags";
 
     public TaskTreeFilter(String... options) {
@@ -40,9 +34,7 @@ public class TaskTreeFilter {
         return Set.of(
                 ONLY_REQUIRED,
                 ONLY_PROJECTS,
-                HIDE_COMPLETED,
                 ALWAYS_INCLUDE_PARENTS,
-                IGNORE_SCHEDULING,
                 INNER_JOIN_INCLUDED_TAGS);
     }
 
@@ -51,13 +43,10 @@ public class TaskTreeFilter {
         String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String opts = String.join(", ", options);
-        return "TaskFilter{" +
+        return "TaskTreeFilter{" +
                 "name='" + name + '\'' +
                 ", includedTagIds=[" + includedTags + "]" +
                 ", excludedTagIds=[" + excludedTags + "]" +
-                ", availableAtTime=" + availableAtTime +
-                ", importanceThreshold=" + importanceThreshold +
-                ", durationLimit=" + durationLimit +
                 ", options=[" + opts + "]" +
                 '}';
     }

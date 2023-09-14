@@ -1,25 +1,43 @@
 package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.filterform.FilterForm;
+import com.trajan.negentropy.client.components.filterform.TaskFilterForm;
+import com.trajan.negentropy.client.components.filterform.TaskNodeFilterForm;
 import com.trajan.negentropy.client.components.filterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
+import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.tree.TreeView;
+import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.InsertRoutineStepChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
@@ -34,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -47,16 +66,19 @@ public class ToolbarTabSheet extends TabSheet {
     private UserSettings settings;
 
     private TreeView treeView;
+    private RoutineView routineView;
 
     @Getter private Tab closeTab;
     @Getter private Tab quickCreateTab;
     @Getter private Tab searchAndFilterTab;
+    @Getter private TaskNodeFilterForm filterForm;
     @Getter private Tab createNewTaskTab;
     @Getter private Tab optionsTab;
     @Getter private Tab insertTaskTab;
     @Getter private Tab startRoutineTab;
     @Getter private Tab hideRoutineStepsTab;
     @Getter private Tab showRoutineStepsTab;
+    @Getter private Tab addStepToRoutineTab;
 
     public enum TabType {
         CLOSE_TAB,
@@ -67,7 +89,8 @@ public class ToolbarTabSheet extends TabSheet {
         OPTIONS_TAB,
         QUICK_CREATE_TAB,
         HIDE_ROUTINE_STEPS_TAB,
-        SHOW_ROUTINE_STEPS_TAB
+        SHOW_ROUTINE_STEPS_TAB,
+        ADD_STEP_TAB
     }
 
     private TaskNodeInfoFormLayout createTaskForm;
@@ -80,7 +103,13 @@ public class ToolbarTabSheet extends TabSheet {
         init(() -> {}, tabsNames);
     }
 
-    public void init(Runnable onCloseClick, TabType... tabsNames) {
+    public void init(RoutineView routineView, Runnable onCloseClick, TabType... tabsNames) {
+        this.routineView = routineView;
+
+        init(onCloseClick, tabsNames);
+    }
+
+    private void init(Runnable onCloseClick, TabType... tabsNames) {
         UI.getCurrent().getPage().retrieveExtendedClientDetails(receiver -> {
             boolean mobile = (receiver.getWindowInnerWidth() > K.BREAKPOINT_PX);
 
@@ -95,6 +124,7 @@ public class ToolbarTabSheet extends TabSheet {
                     case QUICK_CREATE_TAB -> initQuickCreateTab(mobile);
                     case HIDE_ROUTINE_STEPS_TAB -> initHideRoutineStepsTab(mobile);
                     case SHOW_ROUTINE_STEPS_TAB -> initShowRoutineStepsTab(mobile);
+                    case ADD_STEP_TAB -> initAddStepToRoutineTab(mobile);
                 }
             }
 
@@ -163,7 +193,7 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initSearchAndFilterTab(boolean mobile) {
-        TreeFilterForm filterForm = new TreeFilterForm(controller);
+        filterForm = new TreeFilterForm(controller);
         filterForm.name().setPlaceholder("Filter task grid");
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
@@ -253,14 +283,25 @@ public class ToolbarTabSheet extends TabSheet {
         return this;
     }
 
-    public FilterForm createTaskFilterForm() {
-        FilterForm filterForm = new FilterForm(controller);
+    public TaskNodeFilterForm createTaskNodeFilterForm() {
+        TaskNodeFilterForm filterForm = new TaskNodeFilterForm(controller);
+        filterForm.binder().setBean(new TaskNodeTreeFilter());
+        configureFilterForm(filterForm);
+        return filterForm;
+    }
+
+    public TaskFilterForm createTaskFilterForm() {
+        TaskFilterForm filterForm = new TaskFilterForm(controller);
+        filterForm.binder().setBean(new TaskTreeFilter());
+        configureFilterForm(filterForm);
+        return filterForm;
+    }
+
+    private void configureFilterForm(FilterForm filterForm) {
         filterForm.name().setPlaceholder("Search for individual task");
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
-        filterForm.binder().setBean(new TaskTreeFilter());
         filterForm.name().setValueChangeMode(ValueChangeMode.TIMEOUT);
-        return filterForm;
     }
 
     public TaskListBox createTaskSetBox(FilterForm form) {
@@ -298,7 +339,7 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initInsertTaskTab(boolean mobile) {
-        FilterForm filterForm = createTaskFilterForm();
+        TaskFilterForm filterForm = createTaskFilterForm();
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
@@ -319,8 +360,9 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initStartRoutineFromTaskTab(boolean mobile) {
-        FilterForm filterForm = createTaskFilterForm();
+        TaskNodeFilterForm filterForm = createTaskNodeFilterForm();
         taskSetBox = createTaskSetBox(filterForm);
+        DurationTextField customDurationLimit = new DurationTextField("Custom Limit ");
 
         startRoutineTab = mobile
                 ? new TaskProviderTab(taskSetBox, "Start Routine")
@@ -329,12 +371,34 @@ public class ToolbarTabSheet extends TabSheet {
         configureTaskSearchProvider(filterForm, taskSetBox);
 
         Button startRoutineButton = new Button("Start Routine");
-        startRoutineButton.addClickListener(event ->
-                controller.createRoutine(taskSetBox.getTask()));
+        startRoutineButton.addClickListener(event -> {
+            TaskNodeTreeFilter filter =  (searchAndFilterTab != null)
+                    ? this.filterForm.binder().getBean()
+                    : new TaskNodeTreeFilter();
 
-        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox, startRoutineButton);
+            Duration durationLimit = (customDurationLimit.getValue() != null)
+                    ? DurationConverter.toModel(customDurationLimit.getValue())
+                        .getOrThrow(null)
+                    : null;
+
+            filter.durationLimit(durationLimit);
+
+            controller.createRoutine(taskSetBox.getTask(), filter);
+            if (routineView != null) routineView.refreshRoutines();
+        });
+
+        startRoutineButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        HorizontalLayout bottomLayout = new HorizontalLayout(startRoutineButton, customDurationLimit);
+        bottomLayout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
+                LumoUtility.BoxSizing.BORDER);
+        bottomLayout.setWidthFull();
+        bottomLayout.setClassName("start-routine-button-layout");
+
+        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox, bottomLayout);
         layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
+
 
         add(startRoutineTab, layout);
         return this;
@@ -354,5 +418,63 @@ public class ToolbarTabSheet extends TabSheet {
                 : new Tab(VaadinIcon.EYE_SLASH.create());
         add(hideRoutineStepsTab, new Div());
         return this;
+    }
+
+    private ToolbarTabSheet initAddStepToRoutineTab(boolean mobile) {
+        addStepToRoutineTab = mobile
+                ? new Tab("Add Step")
+                : new Tab(VaadinIcon.PLUS.create());
+
+        ComboBox<Task> addStepComboBox = new ComboBox<>();
+        addStepComboBox.setClassName("add-step-combo-box");
+        addStepComboBox.setLabel("Add a step to an existing routine, or start a routine from a new step.");
+        addStepComboBox.setItems(controller.taskNetworkGraph().taskMap().values());
+        addStepComboBox.setItemLabelGenerator(Task::name);
+
+        addStepComboBox.setAllowCustomValue(true);
+        addStepComboBox.addCustomValueSetListener(event -> {
+            Task task = new Task();
+            task.name(event.getDetail());
+            addStepComboBox.setValue(task);
+        });
+
+        Button addStepButton = new Button("Add Step");
+        addStepButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        addStepButton.addClickListener(event -> addStepToRoutineSave(addStepComboBox));
+
+        Shortcuts.addShortcutListener(addStepComboBox,
+                event -> addStepToRoutineSave(addStepComboBox), Key.ENTER);
+
+        HorizontalLayout layout = new HorizontalLayout(addStepButton, addStepComboBox);
+        layout.setWidthFull();
+        layout.setJustifyContentMode(JustifyContentMode.CENTER);
+        layout.setAlignItems(Alignment.CENTER);
+
+        add(addStepToRoutineTab, layout);
+        return this;
+    }
+
+    private void addStepToRoutineSave(ComboBox<Task> addStepComboBox) {
+        Task task = addStepComboBox.getValue();
+        if (task != null) {
+            Routine activeRoutine = routineView != null ? routineView.getActiveRoutine() : null;
+            if (activeRoutine != null) {
+                Change insertRoutineStepChange = new InsertRoutineStepChange(activeRoutine.id(), task);
+                controller.requestChange(insertRoutineStepChange);
+            } else {
+                if (task.id() == null) {
+                    Change persistTask = new PersistChange<>(task);
+                    DataMapResponse response = controller.requestChange(persistTask);
+
+                    if (response.success()) {
+                        task = (Task) response.changeRelevantDataMap().getFirst(persistTask.id());
+                    }
+                }
+                RoutineResponse response = controller.createRoutine(task);
+                if (response.success()) {
+                    addStepComboBox.clear();
+                }
+            }
+        }
     }
 }

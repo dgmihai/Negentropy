@@ -4,11 +4,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
-import com.trajan.negentropy.model.entity.TagEntity;
-import com.trajan.negentropy.model.entity.TaskEntity;
-import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.entity.TenetEntity;
+import com.trajan.negentropy.model.entity.*;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -35,8 +34,11 @@ public interface DataContext {
 
     TenetEntity mergeTenet(Tenet tenet);
 
+    MoodEntity mergeMood(Mood mood);
+
     void deleteLink(TaskLink link);
     void deleteTenet(Long id);
+    void deleteMood(Long id);
 
     TaskLink TESTONLY_mergeLink(TaskLink link);
 
@@ -64,4 +66,6 @@ public interface DataContext {
     RoutineStep toDO(RoutineStepEntity routineStepEntity);
 
     Tenet toDO(TenetEntity tenetEntity);
+
+    Mood toDO(MoodEntity moodEntity);
 }

@@ -4,13 +4,16 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.client.controller.util.TaskNodeView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.NotificationMessage;
-import com.trajan.negentropy.model.*;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -45,7 +48,7 @@ import java.util.function.Supplier;
 public class ClientDataController {
 
     @Setter private TaskNodeProvider activeTaskNodeProvider;
-    @Setter private TaskNodeView activeTaskNodeView;
+    @Setter private TaskNodeDisplay activeTaskNodeDisplay;
 
     @Autowired protected TaskNetworkGraph taskNetworkGraph;
     @Autowired protected TaskEntryDataProviderManager taskEntryDataProviderManager;
@@ -231,7 +234,8 @@ public class ClientDataController {
 
     public void deleteAllCompletedTasks() {
         log.debug("Deleting completed tasks");
-        TaskTreeFilter filter = new TaskTreeFilter(TaskTreeFilter.HIDE_COMPLETED);
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .completed(true);
 
         requestChanges(services.query().fetchAllNodesAsIds(filter)
                 .map(DeleteChange::new)
@@ -249,6 +253,9 @@ public class ClientDataController {
 
             if (!response.success()) {
                 NotificationMessage.error(response.message());
+            } else {
+                log.debug("Routine service call successful");
+                routineDataProvider.refreshAll();
             }
 
             return response;
@@ -261,16 +268,22 @@ public class ClientDataController {
 
     public RoutineResponse createRoutine(TaskNode rootNode) {
         log.debug("Creating routine from node: " + rootNode.task().name());
-        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()));
-        routineDataProvider.refreshAll();
-        return response;
+        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()));
+    }
+
+    public RoutineResponse createRoutine(TaskNode rootNode, TaskNodeTreeFilter filter) {
+        log.debug("Creating routine from task: " + rootNode.task().name());
+        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id(), filter));
     }
 
     public RoutineResponse createRoutine(Task rootTask) {
         log.debug("Creating routine from task: " + rootTask.name());
-        RoutineResponse response = tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()));
-        routineDataProvider.refreshAll();
-        return response;
+        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()));
+    }
+
+    public RoutineResponse createRoutine(Task rootTask, TaskNodeTreeFilter filter) {
+        log.debug("Creating routine from task: " + rootTask.name());
+        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter));
     }
 
     private RoutineResponse processStep(
@@ -281,55 +294,43 @@ public class ClientDataController {
     //@Override
     public RoutineResponse startRoutineStep(StepID stepId) {
         log.debug("Starting routine step: " + stepId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().startStep(stepId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
     public RoutineResponse pauseRoutineStep(StepID stepId) {
         log.debug("Pausing routine step: " + stepId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().suspendStep(stepId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
     public RoutineResponse previousRoutineStep(StepID stepId) {
         log.debug("Going to previous step of routine step: " + stepId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().previousStep(stepId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
     public RoutineResponse completeRoutineStep(StepID stepId) {
         log.debug("Completing routine step: " + stepId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().completeStep(stepId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
     public RoutineResponse skipRoutineStep(StepID stepId) {
         log.debug("Skipping routine step: " + stepId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().skipStep(stepId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
     public RoutineResponse skipRoutine(RoutineID routineId) {
         log.debug("Skipping routine: " + routineId);
-        RoutineResponse response = this.processStep(
+        return this.processStep(
                 () -> services.routine().skipRoutine(routineId, LocalDateTime.now()));
-        routineDataProvider.refreshAll();
-        return response;
     }
 
     //@Override
@@ -363,9 +364,7 @@ public class ClientDataController {
     //@Override
     public RoutineResponse setRoutineStepExcluded(StepID stepId, boolean exclude) {
         log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
-        RoutineResponse response =  this.processStep(
+        return this.processStep(
                 () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
-        routineDataProvider.refreshAll();
-        return response;
     }
 }

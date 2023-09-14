@@ -12,9 +12,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @Setter
 @Getter
-@SequenceGenerator(name = "tenet_seq", sequenceName = "tenet_seq")
 public class TenetEntity {
+
     @Id
+    @SequenceGenerator(name = "tenet_seq", sequenceName = "tenet_seq")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tenet_seq")
     private Long id;
     private String body;

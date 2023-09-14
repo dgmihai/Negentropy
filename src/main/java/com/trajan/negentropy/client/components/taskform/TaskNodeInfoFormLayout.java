@@ -30,7 +30,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
         super(controller);
 
         nodeInfoBinder.setBean(new TaskNodeDTO());
-        projectDurationField.setEnabled(false);
+        projectDurationField.setVisible(false);
         projectComboBox.setVisible(true);
     }
 
@@ -40,7 +40,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
         taskBinder.setBean(task);
         nodeInfoBinder.setBean(new TaskNodeDTO()
                 .childId(task.id()));
-        projectDurationField.setEnabled(false);
+        projectDurationField.setVisible(false);
         projectComboBox.setVisible(true);
     }
 
@@ -57,7 +57,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
         cronField.setValueChangeMode(ValueChangeMode.EAGER);
 
         projectCheckbox.addValueChangeListener(e ->
-                projectDurationField.setEnabled(e.getValue()));
+                projectDurationField.setVisible(e.getValue()));
     }
 
     @Override
@@ -122,7 +122,10 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
                     nodeInfoBinder.setBean(result.toDTO());
                     taskBinder.setBean(result.task());
                 }
-                case KEEP_TEMPLATE -> nameField.clear();
+                case KEEP_TEMPLATE -> {
+                    nameField.clear();
+                    descriptionArea.clear();
+                }
                 case CLOSE -> {
                     this.clear();
                     onClose.run();

@@ -8,7 +8,7 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.util.TaskNodeView;
+import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
@@ -76,7 +76,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeView {
+public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeDisplay {
     @Autowired protected ClientDataController controller;
     @Autowired protected UserSettings settings;
 
@@ -231,16 +231,13 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                 case REQUIRED -> {
                     Grid.Column<T> requiredColumn = treeGrid.addColumn(LitRenderer.<T>of(
                                             GridUtil.inlineVaadinIconLitExpression("exclamation-circle-o",
-                                                    "?active=\"${item.required}\" " +
-                                                            "?hidden=\"${item.project}\""))
+                                                    "?active=\"${item.required}\" "))
                                     .withFunction("onClick", t ->
                                             controller.requestChange(new MergeChange<>(
                                                     new Task(t.task().id())
                                                             .required(!t.task().required()))))
                                     .withProperty("required", t ->
-                                            t.task().required())
-                                    .withProperty("project", t ->
-                                            t.task().project()))
+                                            t.task().required()))
                             .setKey(ColumnKey.REQUIRED.toString())
                             .setHeader(GridUtil.headerIcon(VaadinIcon.EXCLAMATION))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
@@ -257,16 +254,13 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                 case PROJECT -> {
                     Grid.Column<T> projectColumn = treeGrid.addColumn(LitRenderer.<T>of(
                                             GridUtil.inlineVaadinIconLitExpression("file-tree",
-                                                    ("?active=\"${item.project}\" " +
-                                                            "?hidden=\"${item.required}\" ")))
+                                                    ("?active=\"${item.project}\" ")))
                                     .withFunction("onClick", t ->
                                             controller.requestChange(new MergeChange<>(
                                                     new Task(t.task().id())
                                                             .project(!t.task().project()))))
                                     .withProperty("project", t ->
-                                            t.task().project())
-                                    .withProperty("required", t ->
-                                            t.task().required()))
+                                            t.task().project()))
                             .setKey(ColumnKey.PROJECT.toString())
                             .setHeader(GridUtil.headerIcon(VaadinIcon.FILE_TREE))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)

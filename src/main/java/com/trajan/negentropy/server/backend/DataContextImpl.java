@@ -2,17 +2,13 @@ package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.model.*;
-import com.trajan.negentropy.model.RoutineStep.RoutineNodeStep;
-import com.trajan.negentropy.model.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
-import com.trajan.negentropy.model.entity.TagEntity;
-import com.trajan.negentropy.model.entity.TaskEntity;
-import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.entity.TenetEntity;
+import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
-import com.trajan.negentropy.model.entity.routine.RoutineEntity;
-import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
+import com.trajan.negentropy.model.entity.routine.*;
+import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -42,6 +38,8 @@ public class DataContextImpl implements DataContext {
     @Autowired private LinkRepository linkRepository;
     @Autowired private TagRepository tagRepository;
     @Autowired private TenetRepository tenetRepository;
+    @Autowired private MoodRepository moodRepository;
+
     @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository routineStepRepository;
 
@@ -111,8 +109,7 @@ public class DataContextImpl implements DataContext {
                         task.description(), taskEntity.description()))
                 .project(Objects.requireNonNullElse(
                         task.project(), taskEntity.project()))
-                // Task cannot be required and a project
-                .required(!taskEntity.project() && Objects.requireNonNullElse(
+                .required(Objects.requireNonNullElse(
                         task.required(), taskEntity.required()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
@@ -232,6 +229,7 @@ public class DataContextImpl implements DataContext {
         Duration projectDuration = node.projectDuration();
 
         TaskLink link = linkRepository.save(new TaskLink(
+                null,
                 parent,
                 child,
                 position,
@@ -304,6 +302,17 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
+    public MoodEntity mergeMood(Mood mood) {
+        MoodEntity moodEntity = mood.id() != null
+                ? moodRepository.getReferenceById(mood.id())
+                : new MoodEntity();
+
+        return moodRepository.save(moodEntity
+                .emotion(mood.emotion())
+                .timestamp(mood.timestamp()));
+    }
+
+    @Override
     public void deleteLink(TaskLink link) {
         TaskEntity parent = link.parent();
         TaskEntity child = link.child();
@@ -322,6 +331,12 @@ public class DataContextImpl implements DataContext {
         }
 
         child.parentLinks().remove(link);
+
+        routineStepRepository.findAll(QRoutineStepEntity.routineStepEntity.link.eq(link))
+                .forEach(step -> {
+                    step.link(null);
+                });
+
         linkRepository.delete(link);
 
         Duration change = netDurationService.getNetDuration(child, null)
@@ -333,6 +348,11 @@ public class DataContextImpl implements DataContext {
     @Override
     public void deleteTenet(Long id) {
         tenetRepository.deleteById(id);
+    }
+
+    @Override
+    public void deleteMood(Long id) {
+        moodRepository.deleteById(id);
     }
 
     @Override
@@ -437,5 +457,13 @@ public class DataContextImpl implements DataContext {
         return new Tenet(
                 tenetEntity.id(),
                 tenetEntity.body());
+    }
+
+    @Override
+    public Mood toDO(MoodEntity moodEntity) {
+        return new Mood(
+                moodEntity.id(),
+                moodEntity.emotion(),
+                moodEntity.timestamp());
     }
 }

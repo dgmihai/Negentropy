@@ -1,13 +1,14 @@
 package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.Routine;
-import com.trajan.negentropy.model.RoutineStep;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.sync.Change;
@@ -49,8 +50,11 @@ public class RoutineCard extends VerticalLayout {
     private Routine routine;
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    public RoutineCard(Routine routine, ClientDataController controller) {
+    private RoutineStepTreeGrid routineStepTreeGrid;
+
+    public RoutineCard(Routine routine, ClientDataController controller, RoutineStepTreeGrid routineStepTreeGrid) {
         this.controller = controller;
+        this.routineStepTreeGrid = routineStepTreeGrid;
 
         this.routine = routine;
         log.debug("Routine card created for routine: " + routine.name() + " with " + routine.countSteps() + " steps.");
@@ -98,9 +102,11 @@ public class RoutineCard extends VerticalLayout {
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
             rootTaskbar.setTimeable(routine);
-            rootTaskbar.timer().run(!isActive());
+            rootTaskbar.timer().run(isActive());
         }
-        controller.routineDataProvider().refreshAll();
+        if (routineStepTreeGrid.routine() != null) {
+            routineStepTreeGrid.setRoutine(routine);
+        }
     }
 
     private void setCardCompleted() {
@@ -127,7 +133,7 @@ public class RoutineCard extends VerticalLayout {
         this.removeAll();
         this.getElement().setAttribute("active", isActive());
 
-        Span skipped = new Span("Skipped '" + routine.name() + ".");
+        Span skipped = new Span("Skipped '" + routine.name() + "'.");
 
         skipped.addClassName("name");
         this.add(skipped);

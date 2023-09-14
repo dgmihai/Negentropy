@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.NetDurationID;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
@@ -30,8 +31,8 @@ public class NetDurationService {
     
     private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
-    public NetDurationHelper getHelper(TaskTreeFilter filter) {
-        TaskTreeFilter nonNullFilter = filter == null ? new TaskTreeFilter() : filter;
+    public NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
 
         nonNullFilter.name(null); // We don't cache by name
 
@@ -40,8 +41,8 @@ public class NetDurationService {
         );
     }
 
-    public Map<TaskID, Duration> getAllNetDurations(TaskTreeFilter filter) {
-        TaskTreeFilter nonNullFilter = filter == null ? new TaskTreeFilter() : filter;
+    public Map<TaskID, Duration> getAllNetDurations(TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
         nonNullFilter.name(null); // We don't cache by name
 
         return entityQueryService.findLinks(nonNullFilter)
@@ -51,8 +52,8 @@ public class NetDurationService {
                 ));
     }
 
-    public Map<TaskID, Duration> getAllDescendantsNetDurations(LinkID ancestorId, TaskTreeFilter filter) {
-        TaskTreeFilter nonNullFilter = filter == null ? new TaskTreeFilter() : filter;
+    public Map<TaskID, Duration> getAllDescendantsNetDurations(LinkID ancestorId, TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
         nonNullFilter.name(null); // We don't cache by name
 
         return entityQueryService.findDescendantLinks(ancestorId, nonNullFilter)
@@ -66,22 +67,22 @@ public class NetDurationService {
         return netDurationRepository.getReferenceById(new NetDurationID(entityQueryService.getTask(taskId), 0));
     }
 
-    public Duration getNetDuration(TaskID taskId, TaskTreeFilter filter) {
+    public Duration getNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
         return getNetDuration(entityQueryService.getTask(taskId), filter);
     }
 
-    public Duration getNetDuration(TaskEntity task, TaskTreeFilter filter) {
+    public Duration getNetDuration(TaskEntity task, TaskNodeTreeFilter filter) {
         return entityQueryService.findChildLinks(ID.of(task), filter)
                 .map(link -> getNetDuration(link, filter))
                 .reduce(task.duration(), Duration::plus);
     }
 
-    public Duration getNetDuration(LinkID linkId, TaskTreeFilter filter) {
+    public Duration getNetDuration(LinkID linkId, TaskNodeTreeFilter filter) {
         return getNetDuration(entityQueryService.getLink(linkId), filter);
     }
 
-    public Duration getNetDuration(TaskLink link, TaskTreeFilter filter) {
-        TaskTreeFilter nonNullFilter = filter == null ? new TaskTreeFilter() : filter;
+    public Duration getNetDuration(TaskLink link, TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
 
         if ((!link.child().project() && link.projectDuration() != null) && (nonNullFilter.isEmpty())) {
             return getNetDurationEntity(ID.of(link.child())).val();

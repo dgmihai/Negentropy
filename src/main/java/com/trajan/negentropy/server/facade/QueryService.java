@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
@@ -46,9 +47,9 @@ public interface QueryService {
 
     Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds);
 
-    Stream<TaskNode> fetchAllNodes(TaskTreeFilter filter);
+    Stream<TaskNode> fetchAllNodes(TaskNodeTreeFilter filter);
 
-    Stream<LinkID> fetchAllNodesAsIds(TaskTreeFilter filter);
+    Stream<LinkID> fetchAllNodesAsIds(TaskNodeTreeFilter filter);
 
     /**
      * Get all tasks that meet a set of filters and tags.
@@ -74,7 +75,7 @@ public interface QueryService {
      * @param filter The filter criteria to be applied.
      * @return The number of child tasks.
      */
-    int fetchChildCount(TaskID parentTaskId, TaskTreeFilter filter);
+    int fetchChildCount(TaskID parentTaskId, TaskNodeTreeFilter filter);
 
     /**
      * Counts the child tasks of a task by ID.
@@ -85,7 +86,7 @@ public interface QueryService {
      * @param limit the size of the elements to be returned.
      * @return The number of child tasks.
      */
-    int fetchChildCount(TaskID parentTaskId, TaskTreeFilter filter, int offset, int limit);
+    int fetchChildCount(TaskID parentTaskId, TaskNodeTreeFilter filter, int offset, int limit);
 
     /**
      * Checks if the task has children by parent ID.
@@ -102,7 +103,7 @@ public interface QueryService {
      * @param filter The filter criteria to be applied.
      * @return True if the task has children, otherwise false.
      */
-    boolean hasChildren(TaskID parentTaskId, TaskTreeFilter filter);
+    boolean hasChildren(TaskID parentTaskId, TaskNodeTreeFilter filter);
 
     /**
      * Retrieves the child task nodes of a particular task by ID, ordered.
@@ -119,7 +120,7 @@ public interface QueryService {
      * @param filter The filter criteria to be applied.
      * @return An ordered stream of child task nodes.
      */
-    Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskTreeFilter filter);
+    Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskNodeTreeFilter filter);
 
     /**
      * Retrieves the child task nodes of a particular task by ID, ordered.
@@ -130,7 +131,7 @@ public interface QueryService {
      * @param limit the size of the elements to be returned.
      * @return An ordered stream of child task nodes.
      */
-    Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskTreeFilter filter, int offset, int limit);
+    Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskNodeTreeFilter filter, int offset, int limit);
 
     /**
      * Retrieves the total duration of a task by ID, including all descendants.
@@ -155,7 +156,7 @@ public interface QueryService {
      * @param filter The filter criteria to be applied.
      * @return An ordered stream of root nodes
      */
-    Stream<TaskNode> fetchRootNodes(TaskTreeFilter filter);
+    Stream<TaskNode> fetchRootNodes(TaskNodeTreeFilter filter);
 
     /**
      * Returns the task nodes associated with the root parent.
@@ -165,11 +166,11 @@ public interface QueryService {
      * @param limit the size of the elements to be returned.
      * @return An ordered stream of root nodes
      */
-    Stream<TaskNode> fetchRootNodes(TaskTreeFilter filter, int offset, int limit);
+    Stream<TaskNode> fetchRootNodes(TaskNodeTreeFilter filter, int offset, int limit);
 
-    Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskTreeFilter filter);
+    Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskNodeTreeFilter filter);
 
-    Stream<LinkID> fetchDescendantNodeIds(TaskID ancestorId, TaskTreeFilter filter);
+    Stream<LinkID> fetchDescendantNodeIds(TaskID ancestorId, TaskNodeTreeFilter filter);
 
 
     /**
@@ -202,9 +203,9 @@ public interface QueryService {
      */
     Stream<Tag> fetchTags(TaskID taskId);
 
-    Map<TaskID, Duration> fetchAllNetDurations(TaskTreeFilter filter);
+    Map<TaskID, Duration> fetchAllNetDurations(TaskNodeTreeFilter filter);
 
-    Duration fetchNetDuration(TaskID taskId, TaskTreeFilter filter);
+    Duration fetchNetDuration(TaskID taskId, TaskNodeTreeFilter filter);
 
     int fetchLowestImportanceOfDescendants(TaskID ancestorId);
 

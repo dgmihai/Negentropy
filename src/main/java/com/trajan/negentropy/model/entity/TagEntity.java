@@ -21,6 +21,13 @@ import java.util.Set;
 @Getter
 @Setter
 public class TagEntity extends AbstractEntity implements TagData<TagEntity> {
+
+    @Id
+    @Column(nullable = false, updatable = false)
+    @SequenceGenerator(name = "tag_entity_seq", sequenceName = "tag_entity_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tag_entity_seq")
+    private Long id;
+    
     @NotBlank
     @Column(nullable = false, unique = true)
     private String name;

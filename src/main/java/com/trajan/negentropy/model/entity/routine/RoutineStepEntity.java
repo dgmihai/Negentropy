@@ -30,6 +30,13 @@ import java.util.Optional;
 @ToString(callSuper = true)
 @Slf4j
 public class RoutineStepEntity extends AbstractEntity implements RoutineStepData, Ancestor<RoutineStepEntity> {
+    
+    @Id
+    @Column(nullable = false, updatable = false)
+    @SequenceGenerator(name = "routine_step_entity_seq", sequenceName = "routine_step_entity_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_step_entity_seq")
+    private Long id;
+    
     @ManyToOne(fetch = FetchType.EAGER)
     @Getter(AccessLevel.NONE)
     private TaskLink link;

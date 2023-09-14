@@ -6,14 +6,16 @@ import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
+import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
-import com.trajan.negentropy.model.Routine;
-import com.trajan.negentropy.model.RoutineStep;
-import com.trajan.negentropy.model.RoutineStep.RoutineNodeStep;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
+import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
@@ -41,6 +43,8 @@ import java.util.*;
 @Accessors(fluent = true)
 @Getter
 public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
+    @Autowired private RoutineDataProvider routineDataProvider;
+
     private Routine routine;
 
     public static final List<ColumnKey> excludedColumns = List.of(
@@ -219,15 +223,18 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected void configureAdditionalEvents() {
-
     }
 
     public void setRoutine(Routine routine) {
-        if (!routine.equals(this.routine)) {
-            this.routine = routine;
-            treeGrid.setItems(routine.children(), RoutineStep::children);
-            treeGrid.expand(routine.children());
-        }
+        log.debug("Setting routine: " + routine.name() + " with " + routine.countSteps() + " steps.");
+        this.routine = routine;
+        treeGrid.setItems(routine.children(), RoutineStep::children);
+        treeGrid.expand(routine.children());
+    }
+
+    public void setRoutine(RoutineID routineId) {
+        log.debug("Setting routine with id: " + routineId + ".");
+        this.setRoutine(controller.services().routine().fetchRoutine(routineId));
     }
 
     public void clearRoutine() {

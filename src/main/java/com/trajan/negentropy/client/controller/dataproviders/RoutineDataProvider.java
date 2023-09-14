@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.controller.dataproviders;
 
-import com.trajan.negentropy.model.Routine;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.vaadin.flow.data.provider.AbstractDataProvider;
 import com.vaadin.flow.data.provider.Query;
@@ -33,5 +33,10 @@ public class RoutineDataProvider extends AbstractDataProvider<Routine, Set<Timea
     @Override
     public Stream<Routine> fetch(Query<Routine, Set<TimeableStatus>> query) {
         return routineService.fetchRoutines(query.getFilter().orElse(Set.of()));
+    }
+
+    @Override
+    public void refreshAll() {
+        super.refreshAll();
     }
 }

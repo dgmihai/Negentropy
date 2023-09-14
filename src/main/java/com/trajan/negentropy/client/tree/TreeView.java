@@ -53,7 +53,7 @@ public class TreeView extends Div {
 
 //        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
         List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid);
-        controller.activeTaskNodeView(firstTaskTreeGrid);
+        controller.activeTaskNodeDisplay(firstTaskTreeGrid);
 
         toolbarTabSheet.init(this,
                 TabType.CLOSE_TAB,

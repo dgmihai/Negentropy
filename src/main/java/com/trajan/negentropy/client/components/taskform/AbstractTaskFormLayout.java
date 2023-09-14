@@ -129,7 +129,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
             saveButton.setText("Save to " + project.name());
         } else {
 //             TODO: This requires a callback to the active task node view
-//            controller.activeTaskNodeView().rootNode().ifPresentOrElse(
+//            controller.activeTaskNodeDisplay().rootNode().ifPresentOrElse(
 //                    node -> saveButton.setText("Save to " + node.task().name()),
 //                    () -> saveButton.setText("Save"));
             saveButton.setText("Save");

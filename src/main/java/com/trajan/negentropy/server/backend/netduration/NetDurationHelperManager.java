@@ -3,7 +3,7 @@ package com.trajan.negentropy.server.backend.netduration;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.NetDurationID;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
@@ -26,9 +26,9 @@ public class NetDurationHelperManager {
     @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private LinkRepository linkRepository;
 
-    private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
+    private final Map<TaskNodeTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
-    public NetDurationHelper getHelper(TaskTreeFilter filter) {
+    public NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
         return helpers.computeIfAbsent(filter, f ->
             new NetDurationHelper(entityQueryService, netDurationRepository, linkRepository, f)
         );

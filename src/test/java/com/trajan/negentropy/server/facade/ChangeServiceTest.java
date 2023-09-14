@@ -8,7 +8,7 @@ import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -680,7 +680,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
         assertNetDuration(1, SIX_AND_THREETWOFOUR);
     }
 
-    private void assertDeepCopy(TaskNode root, List<String> expectedNames, TaskTreeFilter filter) {
+    private void assertDeepCopy(TaskNode root, List<String> expectedNames, TaskNodeTreeFilter filter) {
         String suffix = " (copy)";
 
         List<String> expected = expectedNames.stream()
@@ -730,9 +730,9 @@ public class ChangeServiceTest extends TaskTestTemplate {
     @Disabled
     void testDeepCopyNodeWithFilter() {
         TaskNode root = nodes.get(Triple.of(NULL, TWO, 1));
-        TaskTreeFilter filter = new TaskTreeFilter(
-                TaskTreeFilter.ONLY_REQUIRED,
-                TaskTreeFilter.ALWAYS_INCLUDE_PARENTS);
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter(
+                TaskNodeTreeFilter.ONLY_REQUIRED,
+                TaskNodeTreeFilter.ALWAYS_INCLUDE_PARENTS);
 
         List<String> taskNames = List.of(
                 TWO,

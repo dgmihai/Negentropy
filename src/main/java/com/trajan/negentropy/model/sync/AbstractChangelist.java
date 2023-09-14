@@ -18,39 +18,6 @@ public abstract class AbstractChangelist <T> {
     protected final List<T> changes = new ArrayList<>();
     protected LocalDateTime timestamp = LocalDateTime.now();
 
-//    public <T extends Data> Set<T> toSet(Class<T> clazz) {
-//        Set<T> results = new HashSet<>();
-//        for (Change change : changes) {
-//            Data changes = null;
-//            if (change instanceof new PersistChange<>Change<?> persist) {
-//                changes = persist.changes();
-//            } else if (change instanceof new MergeChange<>Change<?> merge) {
-//                changes = merge.changes();
-//            }
-//
-//            if (clazz.isInstance(changes)) {
-//                results.add(clazz.cast(changes));
-//            }
-//        }
-//        return results;
-//    }
-//
-//    public Map<ID, PersistedDataDO<? extends ID>> toMap() {
-//        Map<ID, PersistedDataDO<? extends ID>> results = new HashMap<>();
-//        for (Change change : changes) {
-//            PersistedDataDO<?> changes = null;
-//            if (change instanceof new PersistChange<>Change<?> persist) {
-//                changes = (PersistedDataDO<?>) persist.changes();
-//            } else if (change instanceof new MergeChange<>Change<?> merge) {
-//                changes = merge.changes();
-//
-//            }
-//
-//            results.put(changes.id(), changes);
-//        }
-//        return results;
-//    }
-
     public static class Changelist extends AbstractChangelist<Change> {
         public static Changelist of(Change... changes) {
             Changelist changelist = new Changelist();

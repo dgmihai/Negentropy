@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.components.taskform.Bound.BoundToRoutineStep;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.Task;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.data.binder.BeanValidationBinder;

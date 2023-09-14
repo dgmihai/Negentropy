@@ -13,12 +13,9 @@ import java.util.Objects;
 @Accessors(fluent = true)
 @Getter
 @Setter
-@SequenceGenerator(name = "entity_seq", sequenceName = "entity_seq")
 public abstract class AbstractEntity {
-    @Id
-    @Column(nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "entity_seq")
-    private Long id;
+
+    public abstract Long id();
 
     @Version
     private int version;
@@ -31,16 +28,16 @@ public abstract class AbstractEntity {
         if (!(o instanceof AbstractEntity that)) {
             return false;
         }
-        return Objects.equals(id, that.id);
+        return Objects.equals(id(), that.id());
     }
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return id().hashCode();
     }
 
     @Override
     public String toString() {
-        return "changes: " + id;
+        return "changes: " + id();
     }
 }

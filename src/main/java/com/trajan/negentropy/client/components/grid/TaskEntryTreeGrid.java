@@ -445,6 +445,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     }
             ));
 
+            GridMenuItem<TaskEntry> startRoutineWithSpecificDuration = addItem("Start Routine For Duration...", e -> e.getItem().ifPresent(
+                    entry -> {
+                        controller.createRoutine(entry.node());
+                        UI.getCurrent().navigate(RoutineView.class);
+                    }
+            ));
+
             GridMenuItem<TaskEntry> resetSchedule = addItem("Reset Schedule", e -> e.getItem().ifPresent(
                     entry -> controller.requestChange(new OverrideScheduledForChange(
                             entry.node().linkId(), LocalDateTime.now()))));
@@ -520,7 +527,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             add(new Hr());
 
-            GridMenuItem<TaskEntry> remove = addItem("Remove", e -> e.getItem().ifPresent(
+            GridMenuItem<TaskEntry> remove = addItem("Remove");
+
+            GridMenuItem<TaskEntry> confirmRemove = remove.getSubMenu().addItem("Confirm?", e -> e.getItem().ifPresent(
                     entry -> controller.requestChange(new DeleteChange<>(entry.node().linkId()))));
 
             add(new Hr());

@@ -1,6 +1,6 @@
 package com.trajan.negentropy.server.facade.response;
 
-import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import lombok.Getter;
 import lombok.experimental.Accessors;

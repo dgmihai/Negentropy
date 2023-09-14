@@ -32,7 +32,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout implements BoundToTas
                 InsertLocation.LAST :
                 InsertLocation.FIRST;
 
-        TaskNode rootNode = controller.activeTaskNodeView().rootNode().orElse(null);
+        TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
         TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
         TaskNode result = createNode(
                 projectComboBox.getValue() == null

@@ -9,7 +9,7 @@ import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -178,7 +178,7 @@ public class TaskTestTemplate {
 //                  TODO: implement importance
 //                    task.importance,
                     0,
-                    false,
+                    nodeDTO.completed(),
                     false,
                     nodeDTO.cron(),
                     nodeDTO.projectDuration());
@@ -268,7 +268,7 @@ public class TaskTestTemplate {
                 Iterables.size(expected) == resultNameList.size());
     }
 
-    protected void testFindDescendantLinks(String ancestor, TaskTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
+    protected void testFindDescendantLinks(String ancestor, TaskNodeTreeFilter filter, Iterable<Triple<String, String, Integer>> expected) {
         assertLinkQueryResults(expected, entityQueryService.findDescendantLinks(
                 ancestor == null ?
                         null :
@@ -278,7 +278,7 @@ public class TaskTestTemplate {
 
     // Testing findDescendantTasks
 
-    protected void testFindDescendantTasks(String ancestor, TaskTreeFilter filter, Iterable<String> expected) {
+    protected void testFindDescendantTasks(String ancestor, TaskNodeTreeFilter filter, Iterable<String> expected) {
         assertTaskQueryResults(expected, entityQueryService.findDescendantTasks(
                 ancestor == null ?
                         null :
@@ -324,6 +324,7 @@ public class TaskTestTemplate {
                                         .project(true),
                                 new TaskNodeDTO()
                                         .projectDuration(Duration.ofMinutes(5))
+                                        .completed(true)
                         ), Pair.of(
                                 new Task()
                                         .name(SIX_AND_THREETWOFOUR)
@@ -340,6 +341,7 @@ public class TaskTestTemplate {
                                         .name(TWOONE)
                                         .required(false),
                                 new TaskNodeDTO()
+                                        .completed(true)
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTWO)
@@ -401,6 +403,7 @@ public class TaskTestTemplate {
                                         .name(THREETHREE)
                                         .required(true),
                                 new TaskNodeDTO()
+                                        .completed(true)
                         )
                 )
         );

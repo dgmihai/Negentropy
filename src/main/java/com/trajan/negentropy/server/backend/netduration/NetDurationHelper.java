@@ -5,7 +5,7 @@ import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHi
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -37,7 +37,7 @@ public class NetDurationHelper {
     private final LinkRepository linkRepository;
 
     private Map<LinkID, Duration> netDurations = new HashMap<>();
-    private final TaskTreeFilter filter;
+    private final TaskNodeTreeFilter filter;
 
     public Map<TaskID, Duration> getNetDurations(Iterable<TaskLink> links) {
         List<TaskEntity> tasks = StreamSupport.stream(links.spliterator(), false)

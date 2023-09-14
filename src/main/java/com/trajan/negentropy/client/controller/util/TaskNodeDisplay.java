@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-public interface TaskNodeView {
+public interface TaskNodeDisplay {
     HashMap<Class<?>, List<SerializableConsumer<?>>> listeners = new HashMap<>();
 
     Optional<TaskNode> rootNode();

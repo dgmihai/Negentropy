@@ -7,7 +7,7 @@ import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import lombok.Getter;
@@ -24,13 +24,13 @@ public class UserSettings {
     private final LinkedHashMap<ColumnKey, Boolean> routineViewColumnVisibility = new LinkedHashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
 
-    @Setter private TaskTreeFilter filter = new TaskTreeFilter();
+    @Setter private TaskNodeTreeFilter filter = new TaskNodeTreeFilter();
     @Setter private boolean enableContextMenu = true;
     @Setter private SelectionMode gridSelectionMode = SelectionMode.MULTI;
     @Setter private GridTiling gridTiling = GridTiling.NONE;
     @Setter private InsertMode sameGridDragInsertMode = InsertMode.MOVE;
     @Setter private InsertMode differentGridDragInsertMode = InsertMode.MOVE;
-    @Setter private boolean routineStepsGridVisible = true;
+    @Setter private boolean routineStepsGridVisible = false;
     @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
 
     @Setter

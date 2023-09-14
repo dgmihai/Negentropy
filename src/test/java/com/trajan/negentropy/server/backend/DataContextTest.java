@@ -4,6 +4,7 @@ import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
@@ -111,6 +112,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
         TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink(
+                null,
                 parentTaskEntity,
                 childTaskEntity,
                 0,
@@ -123,6 +125,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(1)));
 
         TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink(
+                null,
                 parentTaskEntity,
                 childTaskEntity,
                 2,
@@ -135,6 +138,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
+                null,
                 parentTaskEntity,
                 childTaskEntity,
                 2,
@@ -159,6 +163,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
 
         TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink(
+                null,
                 parentTaskEntity,
                 childTaskEntity,
                 2,
@@ -171,6 +176,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(1)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
+                null,
                 parentTaskEntity,
                 childTaskEntity,
                 1,

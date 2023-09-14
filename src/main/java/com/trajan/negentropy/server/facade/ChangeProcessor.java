@@ -12,7 +12,9 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -237,6 +239,21 @@ public class ChangeProcessor {
                 TaskNode result = dataContext.toDO(link);
                 dataResults.add(overrideScheduledForChange.id(), result);
                 message = messageSupplier.apply("Set scheduled time for", result);
+            } else if (change instanceof InsertRoutineStepChange insertStepChange) {
+                TaskEntity task =dataContext.mergeTask(insertStepChange.task());
+                RoutineEntity routine = entityQueryService.getRoutine(insertStepChange.routineId());
+                RoutineStepEntity currentStep = routine.currentStep();
+                int currentStepPosition = currentStep.position();
+                RoutineStepEntity newStep = new RoutineStepEntity(task);
+                newStep.routine(routine);
+                newStep.position(currentStepPosition);
+                currentStep.parentStep().children().forEach(step -> {
+                    if (step.position() >= currentStepPosition) {
+                        step.position(step.position() + 1);
+                    }
+                });
+
+                currentStep.parentStep().children().add(currentStepPosition, newStep);
             } else {
                 throw new UnsupportedOperationException("Unexpected change type: " + change.getClass());
             }
@@ -304,7 +321,7 @@ public class ChangeProcessor {
         return copy.name(copy.name() + suffix);
     }
 
-    private TaskLink tryDeepCopy(TaskNodeDTO original, TaskTreeFilter filter, String suffix) {
+    private TaskLink tryDeepCopy(TaskNodeDTO original, TaskNodeTreeFilter filter, String suffix) {
         log.debug("Deep copy from " + original + " with filter " + filter);
 
         TaskEntity rootTaskEntity = entityQueryService.getTask(original.childId());

@@ -31,6 +31,12 @@ import java.util.Set;
 @Slf4j
 public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, TagEntity> {
 
+    @Id
+    @Column(nullable = false, updatable = false)
+    @SequenceGenerator(name = "task_entity_seq", sequenceName = "task_entity_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_entity_seq")
+    private Long id;
+    
     @Column(nullable = false, unique = true)
     @NotEmpty(message = "Name is required")
     @ToString.Include

@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.model.RoutineStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;

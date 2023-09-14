@@ -5,9 +5,10 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
-import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
 import org.springframework.lang.NonNull;
@@ -225,7 +226,7 @@ public abstract class Change {
         protected final CopyType copyType;
         protected final LinkID originalId;
         protected final MultiValueMap<LinkID, InsertLocation> locations;
-        protected final TaskTreeFilter taskFilter;
+        protected final TaskNodeTreeFilter taskFilter;
         protected final String suffix;
 
         public enum CopyType {
@@ -233,7 +234,7 @@ public abstract class Change {
             DEEP
         }
 
-        public CopyChange(CopyType copyType, LinkID originalId, LinkID reference, InsertLocation location, TaskTreeFilter taskFilter, String suffix) {
+        public CopyChange(CopyType copyType, LinkID originalId, LinkID reference, InsertLocation location, TaskNodeTreeFilter taskFilter, String suffix) {
             this.copyType = copyType;
             this.originalId = originalId;
             this.locations = new LinkedMultiValueMap<>();
@@ -259,6 +260,25 @@ public abstract class Change {
         @Override
         public String toString() {
             return "OverrideScheduledForChange(" + linkId + ", " + manualScheduledFor + ")";
+        }
+    }
+
+    /*
+     * Adds a Task as a new step in a given Routine, wherever the current routine position is.
+     */
+    @Getter
+    public static class InsertRoutineStepChange extends Change {
+        private final RoutineID routineId;
+        private final Task task;
+
+        public InsertRoutineStepChange(RoutineID routineId, Task task) {
+            this.routineId = routineId;
+            this.task = task;
+        }
+
+        @Override
+        public String toString() {
+            return "InsertRoutineStepChange(" + routineId + ", " + task + ")";
         }
     }
 }

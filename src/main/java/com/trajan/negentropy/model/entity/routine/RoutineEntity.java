@@ -27,6 +27,13 @@ import java.util.List;
 @Setter
 @ToString(callSuper = true)
 public class RoutineEntity extends AbstractEntity implements RoutineData, Ancestor<RoutineStepEntity> {
+    
+    @Id
+    @Column(nullable = false, updatable = false)
+    @SequenceGenerator(name = "routine_entity_seq", sequenceName = "routine_entity_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_entity_seq")
+    private Long id;
+    
     @OneToMany(
             fetch = FetchType.EAGER,
             cascade = CascadeType.ALL)
@@ -41,6 +48,8 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
 
     @Enumerated(EnumType.STRING)
     private TimeableStatus status = TimeableStatus.NOT_STARTED;
+
+    private Duration customProjectDuration;
 
     public List<RoutineStepEntity> getAllChildren() {
         return DFSUtil.traverse(children.get(0));
