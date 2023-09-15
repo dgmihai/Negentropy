@@ -290,17 +290,14 @@ public class RoutineServiceImpl implements RoutineService {
                         break;
                     }
                 }
-
-                if (parent == null && routine.currentPosition() == routine.countSteps() - 1) {
-                    routine.status(TimeableStatus.COMPLETED);
-                    cleanUpRoutine(routine);
-                    return routine;
-                }
             }
 
-            routine.currentPosition(routine.currentPosition() + 1);
-            activate(routine, time);
-
+            if (currentPositionIsLastStep(routine)) {
+                return completeRoutine(routine);
+            } else {
+                routine.currentPosition(routine.currentPosition() + 1);
+                activate(routine, time);
+            }
             return routine;
         });
     }
@@ -384,14 +381,11 @@ public class RoutineServiceImpl implements RoutineService {
                 }
             }
 
-            routine.currentPosition(routine.currentPosition() + count);
-            int stepCount = routine.countSteps();
-            // If we have reached the top-most level and all steps are either skipped or completed
-            if (step.parentStep() == null && routine.currentPosition() >= stepCount - 1) {
-                routine.status(TimeableStatus.COMPLETED);
-                cleanUpRoutine(routine);
-                routine.currentPosition(stepCount - 1);
+            if (routine.currentPosition() + count >= routine.countSteps()) {
+                routine.currentPosition(routine.countSteps() - 1);
+                completeRoutine(routine);
             } else {
+                routine.currentPosition(routine.currentPosition() + count);
                 activate(routine, time);
             }
 
@@ -425,8 +419,7 @@ public class RoutineServiceImpl implements RoutineService {
             RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
             RoutineEntity routine = step.routine();
 
-            if (routine.currentPosition() <= 0) {
-                routine.currentPosition(0);
+            if (currentPositionIsFirstStep(routine)) {
                 throw new IllegalStateException("Cannot go to previous step when at the first step of a routine.");
             }
 
@@ -434,21 +427,22 @@ public class RoutineServiceImpl implements RoutineService {
 
             // First, suspend the current step
             step.status(TimeableStatus.SUSPENDED);
-            routine.currentPosition(routine.currentPosition() - 1);
+            if (routine.currentPosition() > 0) {
+                routine.currentPosition(routine.currentPosition() - 1);
+                RoutineStepEntity previousStep = routine.currentStep();
 
-            RoutineStepEntity previousStep = routine.currentStep();
+                // If the previous step was active, restart it
+                if (previousStep.status().equals(TimeableStatus.ACTIVE)) {
+                    activate(routine, time);
+                } else {
+                    previousStep.status(TimeableStatus.SUSPENDED);
+                }
 
-            // If the previous step was active, restart it
-            if (previousStep.status().equals(TimeableStatus.ACTIVE)) {
-                activate(routine, time);
-            } else {
-                previousStep.status(TimeableStatus.SUSPENDED);
-            }
-
-            if (previousStep.link().isPresent()) {
-                if (previousStep.link().get().completed()) {
-                    previousStep.link(dataContext.mergeNode(new TaskNode(ID.of(previousStep.link().get()))
-                            .completed(false)));
+                if (previousStep.link().isPresent()) {
+                    if (previousStep.link().get().completed()) {
+                        previousStep.link(dataContext.mergeNode(new TaskNode(ID.of(previousStep.link().get()))
+                                .completed(false)));
+                    }
                 }
             }
 
@@ -470,6 +464,12 @@ public class RoutineServiceImpl implements RoutineService {
 
             return routine;
         });
+    }
+
+    private RoutineEntity completeRoutine(RoutineEntity routine) {
+        routine.status(TimeableStatus.COMPLETED);
+        cleanUpRoutine(routine);
+        return routine;
     }
 
     @Override
@@ -524,5 +524,13 @@ public class RoutineServiceImpl implements RoutineService {
             RoutineUtil.setRoutineDuration(routine, time);
             return step.routine();
         });
+    }
+
+    public boolean currentPositionIsLastStep(RoutineEntity routine) {
+        return routine.currentPosition() == routine.countSteps() - 1;
+    }
+
+    public boolean currentPositionIsFirstStep(RoutineEntity routine) {
+        return routine.currentPosition() == 0;
     }
 }

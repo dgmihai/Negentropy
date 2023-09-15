@@ -12,6 +12,8 @@ public enum ColumnKey {
     COMPLETE("Complete"),
     RECURRING("Recurring"),
     CRON("Cron"),
+    RESCHEDULE_NOW("Reschedule for Now"),
+    RESCHEDULE_LATER("Reschedule for Later"),
     SCHEDULED_FOR("Scheduled For"),
     TAGS("Tags"),
     TAGS_COMBO("Tag Combo Box"),

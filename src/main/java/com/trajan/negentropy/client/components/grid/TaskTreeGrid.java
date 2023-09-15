@@ -233,9 +233,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                             GridUtil.inlineVaadinIconLitExpression("exclamation-circle-o",
                                                     "?active=\"${item.required}\" "))
                                     .withFunction("onClick", t ->
-                                            controller.requestChange(new MergeChange<>(
+                                            controller.requestChangeAsync(new MergeChange<>(
                                                     new Task(t.task().id())
-                                                            .required(!t.task().required()))))
+                                                            .required(!t.task().required())),
+                                                    this))
                                     .withProperty("required", t ->
                                             t.task().required()))
                             .setKey(ColumnKey.REQUIRED.toString())
@@ -256,9 +257,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                             GridUtil.inlineVaadinIconLitExpression("file-tree",
                                                     ("?active=\"${item.project}\" ")))
                                     .withFunction("onClick", t ->
-                                            controller.requestChange(new MergeChange<>(
+                                            controller.requestChangeAsync(new MergeChange<>(
                                                     new Task(t.task().id())
-                                                            .project(!t.task().project()))))
+                                                            .project(!t.task().project())),
+                                                    this))
                                     .withProperty("project", t ->
                                             t.task().project()))
                             .setKey(ColumnKey.PROJECT.toString())
@@ -283,9 +285,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
                             tagComboBox.setValue(t.task().tags());
                             tagComboBox.addValueChangeListener(event ->
-                                    controller.requestChange(new MergeChange<>(
+                                    controller.requestChangeAsync(new MergeChange<>(
                                             new Task(t.task().id())
-                                                    .tags(event.getValue()))));
+                                                    .tags(event.getValue())),
+                                            this));
                             return tagComboBox;
                         }))
                         .setKey(ColumnKey.TAGS_COMBO.toString())

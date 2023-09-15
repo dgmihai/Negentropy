@@ -456,7 +456,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
                         .parentId(null)
                         .position(4));
 
-        DataMapResponse response = (DataMapResponse) controller.requestChanges(List.of(
+        DataMapResponse response = controller.requestChanges(List.of(
                 change, new DeleteChange<>(input.linkId())));
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 
@@ -483,7 +483,7 @@ class ClientDataControllerTest extends ClientTestTemplate {
                 .parentId(reference.childId())
                 .position(2));
 
-        DataMapResponse response = (DataMapResponse) controller.requestChanges(List.of(
+        DataMapResponse response = controller.requestChanges(List.of(
                 change, new DeleteChange<>(input.linkId())));
         TaskNode resultNode = (TaskNode) response.changeRelevantDataMap().getFirst(change.id());
 

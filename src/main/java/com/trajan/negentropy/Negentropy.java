@@ -2,6 +2,7 @@ package com.trajan.negentropy;
 
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
 import org.springframework.boot.SpringApplication;
@@ -29,6 +30,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Theme(value = "negentropy")
 @EnableScheduling
 @EnableAsync
+@Push
 public class Negentropy extends SpringBootServletInitializer implements AppShellConfigurator {
     public static void main(String[] args) {
         SpringApplication.run(Negentropy.class, args);

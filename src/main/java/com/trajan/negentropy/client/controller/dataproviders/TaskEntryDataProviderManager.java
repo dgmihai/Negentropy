@@ -64,6 +64,7 @@ public class TaskEntryDataProviderManager {
 
     @Slf4j
     @Getter
+    @Benchmark(millisFloor = 10)
     public static class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
         private TaskNetworkGraph networkGraph;
 
@@ -78,8 +79,7 @@ public class TaskEntryDataProviderManager {
             log.info("TaskEntryGridDataProvider init");
             this.networkGraph = networkGraph;
             this.rootEntry = null;
-            log.debug("Refreshing all");
-            super.refreshAll();
+            this.setFilter(networkGraph.settings().filter());
         }
 
         public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {
@@ -90,16 +90,9 @@ public class TaskEntryDataProviderManager {
                     List<TaskEntry> taskEntries = linkTaskEntriesMap.get(id);
 
                     for (TaskEntry entry : taskEntries) {
-                        // TODO: This is a band-aid
-                        if (entry.node() != null) {
-                            entry.node((networkGraph.nodeMap().get(entry.node().id())));
-                            entry.node().child(networkGraph.taskMap().get(entry.node().child().id()));
-                            if (rootEntry == null || (mapEntry.getValue() && entry.node().id().equals(rootEntry.node().id()))) {
-                                refreshAll();
-                                return;
-                            }
-                            this.refreshItem(entry, mapEntry.getValue());
-                        }
+                        entry.node((networkGraph.nodeMap().get(entry.node().id())));
+                        entry.node().child(networkGraph.taskMap().get(entry.node().child().id()));
+                        this.refreshItem(entry, mapEntry.getValue());
                     }
                 }
             }

@@ -24,7 +24,8 @@ public class UserSettings {
     private final LinkedHashMap<ColumnKey, Boolean> routineViewColumnVisibility = new LinkedHashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
 
-    @Setter private TaskNodeTreeFilter filter = new TaskNodeTreeFilter();
+    @Setter private TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+            .completed(false);
     @Setter private boolean enableContextMenu = true;
     @Setter private SelectionMode gridSelectionMode = SelectionMode.MULTI;
     @Setter private GridTiling gridTiling = GridTiling.NONE;

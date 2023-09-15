@@ -179,7 +179,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     @Override
     protected Registration setEditorSaveListener() {
         return editor.addSaveListener(e ->
-                controller.requestChange(new MergeChange<>(e.getItem().task())));
+                controller.requestChangeAsync(new MergeChange<>(e.getItem().task())));
     }
 
     @Override

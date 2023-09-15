@@ -5,6 +5,7 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 @Benchmark(millisFloor = 10)
 public class TaskNetworkGraph {
     @Autowired protected SessionServices services;
+    @Autowired protected UserSettings settings;
 
     private MutableNetwork<TaskID, LinkID> network;
 

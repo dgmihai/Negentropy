@@ -39,6 +39,7 @@ public class Routine implements RoutineData, Timeable {
     public RoutineStep currentStep() {
         return this.getAllChildren().get(currentPosition);
     }
+
     public RoutineStep rootStep() {
         return children.get(0);
     }

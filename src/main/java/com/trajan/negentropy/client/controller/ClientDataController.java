@@ -1,6 +1,8 @@
 package com.trajan.negentropy.client.controller;
 
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
+import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
@@ -25,8 +27,9 @@ import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import com.vaadin.flow.spring.annotation.UIScope;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -37,15 +40,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 @SpringComponent
-@VaadinSessionScope
+@UIScope
 @Accessors(fluent = true)
 @Getter
 @Slf4j
 @Benchmark(millisFloor = 10)
 public class ClientDataController {
+    @Autowired private UI currentUI;
 
     @Setter private TaskNodeProvider activeTaskNodeProvider;
     @Setter private TaskNodeDisplay activeTaskNodeDisplay;
@@ -60,12 +65,20 @@ public class ClientDataController {
 
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
         T response = serviceCall.get();
-        if (!response.success()) {
-            NotificationMessage.error(response.message());
+
+        if (currentUI != null) {
+            currentUI.access(() -> {
+                if (!response.success()) {
+                    NotificationMessage.error(response.message());
+                } else {
+                    NotificationMessage.result(response.message());
+                }
+
+                this.sync(response);
+            });
         } else {
-            NotificationMessage.result(response.message());
+            this.sync(response);
         }
-        this.sync(response);
         return response;
     }
 
@@ -92,9 +105,37 @@ public class ClientDataController {
         return this.requestChanges(List.of(change));
     }
 
+    public void requestChangeAsync(Change change) {
+        requestChangeAsync(change, null);
+    }
+
+    public void requestChangeAsync(Change change, TaskTreeGrid<?> gridRequiringFilterRefresh) {
+        CompletableFuture.runAsync(() -> {
+                this.requestChanges(List.of(change));
+                if (gridRequiringFilterRefresh instanceof TaskEntryTreeGrid entryTreeGrid) {
+                    entryTreeGrid.gridDataProvider().refreshFilter();
+                }
+        });
+    }
+
     //@Override
     public DataMapResponse requestChanges(List<Change> changes) {
-        return tryDataRequest(() -> services.change().execute(Request.of(taskNetworkGraph.syncId(), changes)));
+        return this.tryDataRequest(() -> services.change().execute(
+                Request.of(taskNetworkGraph.syncId(), changes)));
+    }
+
+    public void requestChangesAsync(List<Change> changes) {
+        requestChangesAsync(changes, null);
+    }
+
+    public void requestChangesAsync(List<Change> changes, TaskTreeGrid<?> gridRequiringFilterRefresh) {
+        CompletableFuture.runAsync(() -> {
+            this.tryDataRequest(() -> services.change().execute(
+                    Request.of(taskNetworkGraph.syncId(), changes)));
+            if (gridRequiringFilterRefresh instanceof TaskEntryTreeGrid entryTreeGrid) {
+                entryTreeGrid.gridDataProvider().refreshFilter();
+            }
+        });
     }
 
     public synchronized void sync() {
@@ -237,7 +278,7 @@ public class ClientDataController {
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
                 .completed(true);
 
-        requestChanges(services.query().fetchAllNodesAsIds(filter)
+        requestChangesAsync(services.query().fetchAllNodesAsIds(filter)
                 .map(DeleteChange::new)
                 .map(change -> (Change) change)
                 .toList());

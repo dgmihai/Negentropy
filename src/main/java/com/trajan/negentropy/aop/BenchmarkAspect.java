@@ -27,8 +27,10 @@ public class BenchmarkAspect {
         String returnType = signature.getReturnType().getSimpleName();
         Stream<String> argTypes = Arrays.stream(signature.getParameterTypes()).map(Class::getSimpleName);
 
+        String argTypesString = argTypes.collect(Collectors.joining(", "));
         // Measure time before method execution
         long startTime = System.currentTimeMillis();
+        log.trace("Benchmarking: {}: {} {}({})", callerName, returnType, methodName, argTypesString);
 
         Object result = pjp.proceed(); // Proceed with the actual method execution
 
@@ -45,8 +47,7 @@ public class BenchmarkAspect {
         if ((benchmark.millisFloor() == -1 || duration >= millisFloor) && duration > 0) {
             // Use NumberFormat with US locale for comma-separated formatting
             String formattedDuration = NumberFormat.getNumberInstance(Locale.US).format(duration);
-            log.debug("{}: {} {}({}) : {} ms", callerName, returnType, methodName,
-                    argTypes.collect(Collectors.joining(", ")), formattedDuration);
+            log.debug("{}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
         }
 
         return result;
