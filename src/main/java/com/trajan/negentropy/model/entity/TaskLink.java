@@ -31,8 +31,8 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
 
     @Id
     @Column(nullable = false, updatable = false)
-    @SequenceGenerator(name = "task_link_entity_seq", sequenceName = "task_link_entity_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_link_entity_seq")
+    @SequenceGenerator(name = "task_link_seq", sequenceName = "task_link_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_link_seq")
     private Long id;
 
     @ManyToOne

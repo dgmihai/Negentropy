@@ -33,8 +33,8 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, T
 
     @Id
     @Column(nullable = false, updatable = false)
-    @SequenceGenerator(name = "task_entity_seq", sequenceName = "task_entity_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_entity_seq")
+    @SequenceGenerator(name = "task_seq", sequenceName = "task_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_seq")
     private Long id;
     
     @Column(nullable = false, unique = true)

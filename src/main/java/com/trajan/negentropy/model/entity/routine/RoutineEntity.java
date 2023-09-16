@@ -27,8 +27,8 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
     
     @Id
     @Column(nullable = false, updatable = false)
-    @SequenceGenerator(name = "routine_entity_seq", sequenceName = "routine_entity_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_entity_seq")
+    @SequenceGenerator(name = "routine_seq", sequenceName = "routine_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_seq")
     private Long id;
     
     @OneToMany(

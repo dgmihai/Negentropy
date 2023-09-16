@@ -10,6 +10,8 @@ import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -17,6 +19,7 @@ import lombok.experimental.Accessors;
 import java.util.*;
 
 @SpringComponent
+@VaadinSessionScope
 @Accessors(fluent = true)
 @Getter
 public class UserSettings {
@@ -24,7 +27,7 @@ public class UserSettings {
     private final LinkedHashMap<ColumnKey, Boolean> routineViewColumnVisibility = new LinkedHashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
 
-    @Setter private TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+    @Setter(AccessLevel.PACKAGE) private TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
             .completed(false);
     @Setter private boolean enableContextMenu = true;
     @Setter private SelectionMode gridSelectionMode = SelectionMode.MULTI;

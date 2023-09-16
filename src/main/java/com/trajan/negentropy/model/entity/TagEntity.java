@@ -24,8 +24,8 @@ public class TagEntity extends AbstractEntity implements TagData<TagEntity> {
 
     @Id
     @Column(nullable = false, updatable = false)
-    @SequenceGenerator(name = "tag_entity_seq", sequenceName = "tag_entity_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tag_entity_seq")
+    @SequenceGenerator(name = "tag_seq", sequenceName = "tag_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tag_seq")
     private Long id;
     
     @NotBlank

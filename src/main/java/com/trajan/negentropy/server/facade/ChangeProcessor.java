@@ -33,9 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -49,14 +47,12 @@ public class ChangeProcessor {
     public Pair<String, MultiValueMap<Integer, PersistedDataDO<?>>> process(Request request) {
         MultiValueMap<Integer, PersistedDataDO<?>> dataResults = new LinkedMultiValueMap<>();
 
-        String message = "UPDATE MESSAGE MISSING";
-        BiFunction<String, PersistedDataDO<?>, String> messageSupplier = request.changes().size() > 1
-            ? (str, data) -> "Synced " + request.changes().size() + " changes."
-            : (str, data) -> str + " " + data.typeName().toLowerCase() + " \"" + data.name() + "\"";
+        Deque<String> messages = new LinkedList<>();
+        BiFunction<String, PersistedDataDO<?>, String> messageSupplier = (str, data) ->
+                str + " " + data.typeName().toLowerCase() + " \"" + data.name() + "\"";
 
-        BiFunction<String, String, String> biMessageSupplier = request.changes().size() > 1
-                ? (str, body) -> "Synced " + request.changes().size() + " changes."
-                : (str, body) -> str + " " + body;
+        BiFunction<String, String, String> biMessageSupplier = (str, body) ->
+                str + " " + body;
 
         for (Change change : request.changes()) {
             String prefix;
@@ -69,19 +65,19 @@ public class ChangeProcessor {
                     log.debug("Persisting task: {}", task);
                     Task result = dataContext.toDO(dataContext.mergeTask(task));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, task);
+                    messages.add(messageSupplier.apply(prefix, task));
                 } else if (data instanceof TaskNodeDTO taskNodeDTO) {
                     log.debug("Persisting task node: {}", taskNodeDTO);
                     TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNodeDTO));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, result);
+                    messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof Tag tag) {
                     if (tag.id() != null)
                         throw new IllegalArgumentException("Cannot persist task with ID: " + tag.id());
                     log.debug("Persisting tag: {}", tag);
                     Tag result = dataContext.toDO(dataContext.mergeTag(tag));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, result);
+                    messages.add(messageSupplier.apply(prefix, result));
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + data);
                 }
@@ -93,19 +89,19 @@ public class ChangeProcessor {
                     log.debug("Merging task: {}", task);
                     Task result = dataContext.toDO(dataContext.mergeTask(task));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, result);
+                    messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof TaskNode taskNode) {
                     log.debug("Merging node: {}", taskNode);
                     TaskNode result = dataContext.toDO(dataContext.mergeNode(taskNode));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, result);
+                    messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof Tag tag) {
                     if (tag.id() != null)
                         throw new IllegalArgumentException("Cannot merge tag without ID: " + tag.id());
                     log.debug("Merging tag: {}", tag);
                     Tag result = dataContext.toDO(dataContext.mergeTag(tag));
                     dataResults.add(change.id(), result);
-                    message = messageSupplier.apply(prefix, result);
+                    messages.add(messageSupplier.apply(prefix, result));
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + data);
                 }
@@ -118,7 +114,7 @@ public class ChangeProcessor {
                 } else if (id instanceof LinkID linkId) {
                     log.debug("Deleting link: {}", linkId);
                     TaskLink target = entityQueryService.getLink(linkId);
-                    message = biMessageSupplier.apply(prefix, "task node \"" + target.child().name() + "\"");
+                    messages.add(biMessageSupplier.apply(prefix, "task node \"" + target.child().name() + "\""));
                     dataContext.deleteLink(target);
                 } else if (id instanceof TagID tagId) {
                     log.debug("Deleting tag: {}", tagId);
@@ -147,7 +143,7 @@ public class ChangeProcessor {
                             setPositionBasedOnLocation(taskNodeDTO, reference, location);
                             TaskNode result = dataContext.toDO(dataContext.mergeNode(insertIntoChange.nodeDTO()));
                             dataResults.add(insertIntoChange.id(), result);
-                            message = messageSupplier.apply(prefix, result);
+                            messages.add(messageSupplier.apply(prefix, result));
                         }
                     }
                 } else if (insertChange instanceof InsertAtChange insertAtChange) {
@@ -161,7 +157,7 @@ public class ChangeProcessor {
                             setPositionBasedOnLocation(taskNodeDTO, reference, location);
                             TaskNode result = dataContext.toDO(dataContext.mergeNode(insertAtChange.nodeDTO()));
                             dataResults.add(insertAtChange.id(), result);
-                            message = messageSupplier.apply(prefix, result);
+                            messages.add(messageSupplier.apply(prefix, result));
                         }
                     }
                 } else {
@@ -181,7 +177,7 @@ public class ChangeProcessor {
                         setPositionBasedOnLocation(dto, reference, location);
                         TaskNode result = dataContext.toDO(dataContext.mergeNode(dto));
                         dataResults.add(moveChange.id(), result);
-                        message = messageSupplier.apply(prefix, result);
+                        messages.add(messageSupplier.apply(prefix, result));
                         dataContext.deleteLink(original);
                     }
                 }
@@ -196,7 +192,7 @@ public class ChangeProcessor {
                                         (TaskID) taskId,
                                         (TaskTemplateData<Task, Tag>) taskTemplate)));
                     }
-                    message = "Merged " + multiMerge.ids().size() + " task changes.";
+                    messages.add("Merged " + multiMerge.ids().size() + " task changes.");
                 } else if (template instanceof TaskNodeTemplateData<?> nodeTemplate) {
                     log.debug("Merging node template: {}", nodeTemplate);
                     for (ID linkId : multiMerge.ids()) {
@@ -205,7 +201,7 @@ public class ChangeProcessor {
                                         (LinkID) linkId,
                                         nodeTemplate)));
                     }
-                    message = "Merged " + multiMerge.ids().size() + " task node changes.";
+                    messages.add("Merged " + multiMerge.ids().size() + " task node changes.");
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type");
                 }
@@ -230,7 +226,7 @@ public class ChangeProcessor {
                                 dataResults.add(copyChange.id(), dataContext.toDO(newRootLink));
                             });
                         });
-                        message = biMessageSupplier.apply(prefix, original.typeName() + " \"" + original.child().name() + "\"");
+                        messages.add(biMessageSupplier.apply(prefix, original.typeName() + " \"" + original.child().name() + "\""));
                     }
                 }
             } else if (change instanceof OverrideScheduledForChange overrideScheduledForChange) {
@@ -238,9 +234,9 @@ public class ChangeProcessor {
                 link.scheduledFor(overrideScheduledForChange.manualScheduledFor());
                 TaskNode result = dataContext.toDO(link);
                 dataResults.add(overrideScheduledForChange.id(), result);
-                message = messageSupplier.apply("Set scheduled time for", result);
+                messages.add(messageSupplier.apply("Set scheduled time for", result));
             } else if (change instanceof InsertRoutineStepChange insertStepChange) {
-                TaskEntity task =dataContext.mergeTask(insertStepChange.task());
+                TaskEntity task = dataContext.mergeTask(insertStepChange.task());
                 RoutineEntity routine = entityQueryService.getRoutine(insertStepChange.routineId());
                 RoutineStepEntity currentStep = routine.currentStep();
                 int currentStepPosition = currentStep.position();
@@ -257,6 +253,15 @@ public class ChangeProcessor {
             } else {
                 throw new UnsupportedOperationException("Unexpected change type: " + change.getClass());
             }
+        }
+
+        String message;
+        if (messages.size() > 5) {
+            message = "Synced " + messages.size() + " changes";
+        } else {
+            StringJoiner joiner = new StringJoiner("\r\n ");
+            messages.forEach(joiner::add);
+            message = joiner.toString();
         }
 
         return Pair.of(message, dataResults);

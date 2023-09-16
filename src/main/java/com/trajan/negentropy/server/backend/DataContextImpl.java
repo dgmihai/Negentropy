@@ -176,7 +176,7 @@ public class DataContextImpl implements DataContext {
         }
         TaskEntity child = entityQueryService.getTask(node.childId());
         TaskEntity parent = node.parentId() == null ?
-                null:
+                null :
                 entityQueryService.getTask(node.parentId());
 
         if (child.equals(parent)) {

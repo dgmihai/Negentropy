@@ -33,8 +33,8 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
     
     @Id
     @Column(nullable = false, updatable = false)
-    @SequenceGenerator(name = "routine_step_entity_seq", sequenceName = "routine_step_entity_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_step_entity_seq")
+    @SequenceGenerator(name = "routine_step_seq", sequenceName = "routine_step_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_step_seq")
     private Long id;
     
     @ManyToOne(fetch = FetchType.EAGER)
