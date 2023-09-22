@@ -42,6 +42,8 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
+    private RoutineCardButton recalculate;
+    private RoutineCardButton postpone;
     private RoutineCardButton close;
     private Span currentTaskName;
     private RoutineTimer timer;
@@ -158,9 +160,17 @@ public class RoutineCard extends VerticalLayout {
         pause.addClickListener(event -> this.processStep(
                 controller::pauseRoutineStep));
 
+        recalculate = new RoutineCardButton(VaadinIcon.REFRESH.create());
+        recalculate.addClickListener(event -> this.processRoutine(
+                controller::recalculateRoutine));
+
         skip = new RoutineCardButton(VaadinIcon.TIME_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
                 controller::skipRoutineStep));
+
+        postpone = new RoutineCardButton(VaadinIcon.FORWARD.create());
+        postpone.addClickListener(event -> this.processStep(
+                controller::postponeRoutineStep));
 
         close = new RoutineCardButton(VaadinIcon.CLOSE.create());
         close.addClickListener(event -> this.processRoutine(
@@ -223,7 +233,7 @@ public class RoutineCard extends VerticalLayout {
         HorizontalLayout auxActions = new HorizontalLayout();
         auxActions.addClassName("footer");
         auxActions.setWidthFull();
-        auxActions.add(close, play, pause, skip);
+        auxActions.add(close, recalculate, play, pause, skip, postpone);
 
         VerticalLayout middle = new VerticalLayout();
         middle.addClassName("middle");

@@ -1,6 +1,8 @@
 package com.trajan.negentropy.model.id;
 
-public class TagID extends ID {
+import java.io.Serializable;
+
+public class TagID extends ID implements Serializable {
     public TagID(long val) {
         super(val);
     }

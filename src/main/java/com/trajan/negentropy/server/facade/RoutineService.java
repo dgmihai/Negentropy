@@ -9,6 +9,7 @@ import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -20,6 +21,9 @@ public interface RoutineService {
 
     RoutineResponse createRoutine(TaskID rootId);
     RoutineResponse createRoutine(LinkID rootId);
+
+    RoutineResponse recalculateRoutine(@NotNull RoutineID routineId, LocalDateTime time);
+
     RoutineResponse createRoutine(TaskID rootId, TaskNodeTreeFilter filter);
     RoutineResponse createRoutine(LinkID rootId, TaskNodeTreeFilter filter);
 
@@ -30,6 +34,9 @@ public interface RoutineService {
     RoutineResponse suspendStep(StepID stepId, LocalDateTime time);
     RoutineResponse completeStep(StepID stepId, LocalDateTime time);
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);
+
+    RoutineResponse postponeStep(StepID stepId, LocalDateTime time);
+
     RoutineResponse previousStep(StepID stepId, LocalDateTime time);
 
     RoutineResponse skipRoutine(RoutineID routineId, LocalDateTime now);

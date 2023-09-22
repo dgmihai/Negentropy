@@ -4,20 +4,29 @@ import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Getter
 @Slf4j
 public abstract class RoutineStepHierarchy {
+    @Setter protected Integer customIndexOfChild = null;
+
     public abstract void addToHierarchy(RoutineStepEntityHierarchy hierarchy);
     
     protected void finalizeStep(RoutineStepEntity step, RoutineStepHierarchy parent) {
         List<RoutineStepEntity> children = parent.children();
-        step.position(children.size());
-        children.add(step);
+        if (customIndexOfChild != null) {
+            step.position(customIndexOfChild);
+            children.add(customIndexOfChild, step);
+        } else {
+            step.position(children.size());
+            children.add(step);
+        }
     }
 
     public abstract RoutineEntity routine();
@@ -25,7 +34,7 @@ public abstract class RoutineStepHierarchy {
     public abstract List<RoutineStepEntity> children();
     
     @Getter
-    @AllArgsConstructor
+    @RequiredArgsConstructor
     public static class RoutineEntityHierarchy extends RoutineStepHierarchy {
         private final RoutineEntity parent;
 
@@ -49,7 +58,7 @@ public abstract class RoutineStepHierarchy {
     }
 
     @Getter
-    @AllArgsConstructor
+    @RequiredArgsConstructor
     public static class RoutineStepEntityHierarchy extends RoutineStepHierarchy {
         private final RoutineStepEntity parent;
 

@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHi
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
@@ -102,6 +103,12 @@ public class NetDurationHelper {
 
     public Duration getNetDuration(TaskLink current) {
         return getNetDuration(current, null, null);
+    }
+
+    public Duration getNetDuration(RoutineStepEntity routineStepEntity) {
+        return (routineStepEntity.link().isPresent())
+                ? getNetDuration(routineStepEntity.link().get())
+                : getNetDuration(routineStepEntity.task());
     }
 
     public Duration getNetDuration(TaskLink current, RoutineStepHierarchy parent, Duration durationLimit) {

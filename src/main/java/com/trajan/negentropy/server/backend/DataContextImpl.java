@@ -335,6 +335,7 @@ public class DataContextImpl implements DataContext {
         routineStepRepository.findAll(QRoutineStepEntity.routineStepEntity.link.eq(link))
                 .forEach(step -> {
                     step.link(null);
+                    step.deletedLink(true);
                 });
 
         linkRepository.delete(link);

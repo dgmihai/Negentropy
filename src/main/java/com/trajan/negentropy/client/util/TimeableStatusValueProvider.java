@@ -15,6 +15,7 @@ public class TimeableStatusValueProvider implements ValueProvider<TimeableStatus
             case COMPLETED -> "Completed";
             case SKIPPED -> "Skipped";
             case EXCLUDED -> "Excluded";
+            case POSTPONED -> "Postponed";
         };
     }
 }

@@ -2,6 +2,7 @@ package com.trajan.negentropy.model.entity;
 
 import com.trajan.negentropy.model.data.HasTaskData.TaskData;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
+import com.trajan.negentropy.model.interfaces.HasDuration;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
@@ -29,7 +30,7 @@ import java.util.Set;
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
 @Slf4j
-public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, TagEntity> {
+public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, TagEntity>, HasDuration {
 
     @Id
     @Column(nullable = false, updatable = false)

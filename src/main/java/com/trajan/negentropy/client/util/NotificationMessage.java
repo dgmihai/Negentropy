@@ -28,20 +28,23 @@ public class NotificationMessage extends Div {
 
     private static Notification create(String message) {
         Notification notification = new Notification();
+        notification.addClassName("notification-message");
 
         Span text = new Span(message);
-        text.setWidthFull();
+        text.setMaxWidth("98%");
         text.setWhiteSpace(WhiteSpace.PRE_LINE);
+        text.setSizeFull();
 
         Button closeButton = new Button(new Icon("lumo", "cross"));
         closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         closeButton.getElement().setAttribute("aria-label", "Close");
-        closeButton.setWidth("1em");
+        closeButton.setWidth("0.5em");
         closeButton.addClickListener(event -> {
             notification.close();
         });
 
         HorizontalLayout layout = new HorizontalLayout(text, closeButton);
+        layout.setWidthFull();
 
         notification.getElement().addEventListener("click", event -> {
             notification.close();
@@ -96,7 +99,7 @@ public class NotificationMessage extends Div {
     public static Notification error(Throwable t) {
 
         log.error(t.getMessage(), t);
-        Notification notification = create(t.getMessage());
+        Notification notification = create(t.getLocalizedMessage());
 
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
 

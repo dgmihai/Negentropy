@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.interfaces.Descendant;
+import com.trajan.negentropy.model.interfaces.HasDuration;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -27,7 +28,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Slf4j
-public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, TaskNodeDTOData<TaskLink> {
+public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, TaskNodeDTOData<TaskLink>, HasDuration {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -99,5 +100,12 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     @Override
     public TaskNodeDTO toDTO() {
         throw new NotImplementedException("TaskLink.toDTO() not implemented");
+    }
+
+    @Override
+    public Duration duration() {
+        return (child.project() && this.projectDuration != null)
+                ? projectDuration
+                : child.duration();
     }
 }

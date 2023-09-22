@@ -3,10 +3,14 @@ package com.trajan.negentropy.model.entity.routine;
 import com.trajan.negentropy.model.data.RoutineData;
 import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -47,6 +51,15 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
     private TimeableStatus status = TimeableStatus.NOT_STARTED;
 
     private Duration customProjectDuration;
+
+    @Column(columnDefinition="TEXT")
+    private String serializedFilter;
+
+    private Long syncId;
+
+    public SyncID syncId() {
+        return (syncId != null) ? new SyncID(syncId) : null;
+    }
 
     public List<RoutineStepEntity> getAllChildren() {
         return DFSUtil.traverse(children.get(0));

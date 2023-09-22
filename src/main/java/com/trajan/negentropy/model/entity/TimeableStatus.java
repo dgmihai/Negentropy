@@ -6,5 +6,6 @@ public enum TimeableStatus {
     SUSPENDED,
     COMPLETED,
     SKIPPED,
-    EXCLUDED
+    EXCLUDED,
+    POSTPONED
 }

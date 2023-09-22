@@ -100,7 +100,8 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return tagRepository.findFirstByName(name);
     }
 
-    private BooleanBuilder filterLink(TaskNodeTreeFilter filter) {
+    @Override
+    public BooleanBuilder filterLinkPredicate(TaskNodeTreeFilter filter) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
 
@@ -118,10 +119,11 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.completed.eq(filter.completed()));
             }
        }
-        return builder.and(filterTask(filter, Q_LINK.child));
+        return builder.and(filterTaskPredicate(filter, Q_LINK.child));
     }
 
-    private BooleanBuilder filterTask(TaskTreeFilter filter, QTaskEntity qTask) {
+    @Override
+    public BooleanBuilder filterTaskPredicate(TaskTreeFilter filter, QTaskEntity qTask) {
         BooleanBuilder builder = new BooleanBuilder();
         if (filter != null) {
 
@@ -171,20 +173,20 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     private BooleanBuilder filter(TaskNodeTreeFilter filter, QTaskEntity qTask) {
-        return this.filterLink(filter).and(
-            this.filterTask(filter, qTask));
+        return this.filterLinkPredicate(filter).and(
+            this.filterTaskPredicate(filter, qTask));
     }
 
     @Override
     public Stream<TaskEntity> findTasks(TaskTreeFilter filter) {
         if (filter instanceof TaskNodeTreeFilter nodeFilter) {
-            return StreamSupport.stream(linkRepository.findAll(this.filterLink(nodeFilter))
+            return StreamSupport.stream(linkRepository.findAll(this.filterLinkPredicate(nodeFilter))
                     .spliterator(), true)
                     .unordered()
                     .map(TaskLink::child)
                     .distinct();
         } else {
-            return StreamSupport.stream(taskRepository.findAll(this.filterTask(filter, Q_TASK))
+            return StreamSupport.stream(taskRepository.findAll(this.filterTaskPredicate(filter, Q_TASK))
                     .spliterator(), true)
                     .unordered();
         }
@@ -192,7 +194,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Stream<TaskLink> findLinks(TaskNodeTreeFilter filter) {
-        return StreamSupport.stream(linkRepository.findAll(this.filterLink(filter))
+        return StreamSupport.stream(linkRepository.findAll(this.filterLinkPredicate(filter))
                 .spliterator(), true)
                 .unordered();
     }
@@ -342,7 +344,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Override
     public Map<TaskID, Duration> getAllNetDurations(TaskNodeTreeFilter filter) {
-        Iterable<TaskLink> matchingLinks = linkRepository.findAll(filterLink(filter));
+        Iterable<TaskLink> matchingLinks = linkRepository.findAll(filterLinkPredicate(filter));
         List<TaskEntity> tasks = StreamSupport.stream(matchingLinks.spliterator(), false)
                 .map(TaskLink::child)
                 .collect(Collectors.toList());
@@ -463,7 +465,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     public Stream<TaskLink> findLeafTaskLinks(TaskNodeTreeFilter filter) {
         return StreamSupport.stream(linkRepository.findAll(
                 Q_LINK.child.childLinks.isEmpty()
-                        .and(this.filterLink(filter)))
+                        .and(this.filterLinkPredicate(filter)))
                 .spliterator(), false);
     }
 

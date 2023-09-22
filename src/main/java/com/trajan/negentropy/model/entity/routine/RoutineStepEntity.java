@@ -75,6 +75,8 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
 
     private Integer position;
 
+    private Boolean deletedLink = false;
+
     public RoutineStepEntity(TaskLink link) {
         this.link = link;
         this.task = link.child();

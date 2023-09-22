@@ -19,7 +19,7 @@ public class SyncManagerListener {
             SyncManager.instance.logChange(
                     ChangeRecordType.MERGE,
                     getChangeRecordDataType(entity),
-                    entity.id());
+                    entity);
         } catch (NullPointerException e) {
             log.error("Error logging update change", e);
         }
@@ -31,7 +31,7 @@ public class SyncManagerListener {
             SyncManager.instance.logChange(
                     ChangeRecordType.DELETE,
                     getChangeRecordDataType(entity),
-                    entity.id());
+                    entity);
         } catch (NullPointerException e) {
             log.error("Error logging delete change", e);
         }
@@ -43,7 +43,7 @@ public class SyncManagerListener {
             SyncManager.instance.logChange(
                     ChangeRecordType.PERSIST,
                     getChangeRecordDataType(entity),
-                    entity.id());
+                    entity);
         } catch (NullPointerException e) {
             log.error("Error logging persist change", e);
         }

@@ -2,7 +2,6 @@ package com.trajan.negentropy.util;
 
 import com.trajan.negentropy.model.data.RoutineData;
 import com.trajan.negentropy.model.data.RoutineStepData;
-import com.trajan.negentropy.model.entity.TimeableStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -13,7 +12,7 @@ public class RoutineUtil {
 
     public static Duration getStepElapsedActiveDuration(RoutineStepData step, LocalDateTime time) {
         return switch (step.status()) {
-            case NOT_STARTED, EXCLUDED:
+            case NOT_STARTED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;
             case ACTIVE:
                 yield step.startTime() != null
@@ -40,7 +39,7 @@ public class RoutineUtil {
             case ACTIVE, SUSPENDED:
                 yield step.duration().minus(
                         getStepElapsedActiveDuration(step, time));
-            case SKIPPED, COMPLETED, EXCLUDED:
+            case SKIPPED, COMPLETED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;
         };
     }
@@ -49,18 +48,14 @@ public class RoutineUtil {
         return switch (step.status()) {
             case NOT_STARTED, ACTIVE, SUSPENDED:
                 yield time.plus(getRemainingStepDuration(step, time));
-            case SKIPPED, COMPLETED:
+            case SKIPPED, COMPLETED, POSTPONED, EXCLUDED:
                 yield time;
-            case EXCLUDED:
-                throw new RuntimeException("Routine status cannot be 'Excluded'.");
         };
     }
 
     public static Duration getRemainingRoutineDuration(RoutineData routine, LocalDateTime time) {
         try {
             return routine.getAllChildren().stream()
-                    .filter(step ->
-                            !step.status().equals(TimeableStatus.SKIPPED) && !step.status().equals(TimeableStatus.COMPLETED))
                     .map(step -> getRemainingStepDuration(step, time))
                     .reduce(Duration.ZERO, Duration::plus);
         } catch (Throwable e) {

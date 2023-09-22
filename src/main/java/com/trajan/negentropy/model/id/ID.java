@@ -10,11 +10,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.io.Serializable;
+
 @Accessors(fluent = true)
 @Getter
 @AllArgsConstructor
 @EqualsAndHashCode
-public abstract class ID {
+public abstract class ID implements Serializable {
     protected final long val;
 
     public interface TaskOrLinkID {}

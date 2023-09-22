@@ -1,5 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
+import com.querydsl.core.BooleanBuilder;
+import com.trajan.negentropy.model.entity.QTaskEntity;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -72,6 +74,10 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Optional<TagEntity> findTag(String name);
+
+    BooleanBuilder filterLinkPredicate(TaskNodeTreeFilter filter);
+
+    BooleanBuilder filterTaskPredicate(TaskTreeFilter filter, QTaskEntity qTask);
 
     /**
      * Finds tasks.

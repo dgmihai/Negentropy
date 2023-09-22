@@ -1,14 +1,19 @@
 package com.trajan.negentropy.server.facade;
 
 import com.google.common.collect.Iterables;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
-import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
+import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.RoutineTestTemplateNoRequiredTasks;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
@@ -19,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -42,8 +48,10 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     private void assertRoutine(List<String> expectedSteps, RoutineResponse response) {
         assertTrue(response.success());
 
-        Routine routine = response.routine();
+        assertRoutine(expectedSteps, response.routine());
+    }
 
+    private void assertRoutine(List<String> expectedSteps, Routine routine) {
         List<String> actual = routine.getAllChildren().stream()
                 .map(RoutineStep::name)
                 .toList();
@@ -416,6 +424,26 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 routineService::previousStep);
     }
 
+    private void assertRoutineStepExecution(Routine routine, int expectedPosition, String expectedStepName,
+                                            TimeableStatus expectedStatus, TimeableStatus expectedRoutineStatus,
+                                            LocalDateTime time) {
+        assertEquals(expectedPosition, routine.currentPosition());
+        assertRoutineStep(routine.currentStep(), expectedStepName, expectedStatus);
+        assertEquals(expectedRoutineStatus, routine.status());
+        assertEquals(time, routine.currentStep().startTime());
+    }
+
+    private void assertRoutineStepParent(Routine routine, RoutineStep parent, String expectedStepName,
+                                         TimeableStatus expectedStatus) {
+        assertRoutineStep(parent, expectedStepName, expectedStatus);
+        assertEquals(parent.id(), routine.currentStep().parentId());
+    }
+
+    private void assertRoutineStep(RoutineStep step, String expectedStepName, TimeableStatus expectedStatus) {
+        assertEquals(expectedStepName, step.task().name());
+        assertEquals(expectedStatus, step.status());
+    }
+
     @Test
     void testExecuteRoutine() {
         TaskID rootId = tasks.get(TWOTWO).id();
@@ -426,42 +454,49 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
         assertEquals(rootId, rootStep.task().id());
 
-        assertEquals(0, routine.currentPosition());
-        assertEquals(TWOTWO, routine.children().get(routine.currentPosition()).task().name());
-        assertEquals(TimeableStatus.NOT_STARTED, routine.currentStep().status());
-        assertEquals(TimeableStatus.NOT_STARTED, routine.status());
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+
         assertNull(routine.currentStep().parentId());
 
         LocalDateTime time1 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time1,
                 routineService::startStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
 
-        assertEquals(0, routine.currentPosition());
-        assertEquals(TWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
-        assertEquals(time1, routine.currentStep().startTime());
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
 
         int position = routine.currentPosition();
         LocalDateTime time2 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time2,
                 routineService::completeStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time2);
 
         RoutineStep stepTwoTwo = routine.getAllChildren().get(position);
-        assertEquals(TWOTWO, stepTwoTwo.task().name());
-        assertEquals(TimeableStatus.ACTIVE, stepTwoTwo.status());
-
-        assertEquals(1, routine.currentPosition());
-        assertEquals(TWOTWOONE, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
-        assertEquals(stepTwoTwo.id(), routine.currentStep().parentId());
-
-        assertEquals(TimeableStatus.ACTIVE, stepTwoTwo.status());
-        assertEquals(time2, routine.currentStep().startTime());
+        assertRoutineStepParent(
+                routine,
+                stepTwoTwo,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
 
         assertEquals(
                 Duration.between(time1, time2),
@@ -477,18 +512,22 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time3,
                 routineService::skipStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time3);
 
         RoutineStep stepTwoTwoOne = routine.getAllChildren().get(position);
-        assertEquals(TWOTWOONE, stepTwoTwoOne.task().name());
+        assertRoutineStep(
+                stepTwoTwoOne,
+                TWOTWOONE,
+                TimeableStatus.SKIPPED);
+
         assertEquals(0, stepTwoTwoOne.children().size());
-        assertEquals(TimeableStatus.SKIPPED, stepTwoTwoOne.status());
-
-        assertEquals(2, routine.currentPosition());
-        assertEquals(TWOTWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
-        assertEquals(stepTwoTwo.id(), routine.currentStep().parentId());
-
         assertEquals(time3, stepTwoTwoOne.finishTime());
         assertEquals(time3, routine.currentStep().startTime());
 
@@ -500,14 +539,20 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time4,
                 routineService::suspendStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
 
-        assertEquals(2, routine.currentPosition());
-        assertEquals(TWOTWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.SUSPENDED, routine.currentStep().status());
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.SUSPENDED,
+                TimeableStatus.ACTIVE,
+                time3);
 
-        assertEquals(TimeableStatus.SKIPPED, stepTwoTwoOne.status());
-        assertEquals(time3, routine.currentStep().startTime());
+        assertRoutineStep(
+                stepTwoTwoOne,
+                TWOTWOONE,
+                TimeableStatus.SKIPPED);
+
         assertEquals(time4, routine.currentStep().lastSuspendedTime());
 
         assertEquals(
@@ -518,13 +563,15 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time5,
                 routineService::startStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
 
-        assertEquals(2, routine.currentPosition());
-        assertEquals(TWOTWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time3);
 
-        assertEquals(time3, routine.currentStep().startTime());
         assertEquals(Duration.between(time4, time5), routine.currentStep().elapsedSuspendedDuration());
         assertEquals(time5, routine.currentStep().lastSuspendedTime());
 
@@ -540,17 +587,22 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time6,
                 routineService::completeStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time6);
 
         RoutineStep stepTwoTwoTwo = routine.getAllChildren().get(position);
-        assertEquals(TWOTWOTWO, stepTwoTwoTwo.task().name());
-        assertEquals(TimeableStatus.COMPLETED, stepTwoTwoTwo.status());
+        assertRoutineStep(
+                stepTwoTwoTwo,
+                TWOTWOTWO,
+                TimeableStatus.COMPLETED);
 
-        assertEquals(3, routine.currentPosition());
-        assertEquals(TWOTWOTHREE_AND_THREETWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
         assertEquals(time6, stepTwoTwoTwo.finishTime());
-        assertEquals(time6, routine.currentStep().startTime());
 
         // TODO: Failure here, occasionally
 //        assertEquals(
@@ -562,16 +614,20 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time7,
                 routineService::previousStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.ACTIVE,
+                time3);
 
         RoutineStep stepTwoTwoThree = routine.getAllChildren().get(position);
-        assertEquals(TWOTWOTHREE_AND_THREETWOTWO, stepTwoTwoThree.task().name());
-        assertEquals(TimeableStatus.SUSPENDED, stepTwoTwoThree.status());
-
-        assertEquals(2, routine.currentPosition());
-        assertEquals(TWOTWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.SUSPENDED, routine.currentStep().status());
-        assertEquals(time3, routine.currentStep().startTime());
+        assertRoutineStep(
+                stepTwoTwoThree,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.SUSPENDED);
 
 //        assertEquals(
 //                Duration.between(time3, time7).minus(routine.currentStep().elapsedSuspendedDuration()),
@@ -582,50 +638,277 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         routine = doRoutine(routine.currentStep().id(),
                 time8,
                 routineService::skipStep);
-        assertEquals(TimeableStatus.ACTIVE, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time6);
 
         stepTwoTwoTwo = routine.getAllChildren().get(position);
-        assertEquals(TWOTWOTWO, stepTwoTwoTwo.task().name());
-        assertEquals(TimeableStatus.SKIPPED, stepTwoTwoTwo.status());
-        assertEquals(time8, stepTwoTwoTwo.finishTime());
+        assertRoutineStep(
+                stepTwoTwoTwo,
+                TWOTWOTWO,
+                TimeableStatus.SKIPPED);
 
-        assertEquals(3, routine.currentPosition());
-        assertEquals(TWOTWOTHREE_AND_THREETWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.ACTIVE, routine.currentStep().status());
-        assertEquals(time6, routine.currentStep().startTime());
-
-//        assertEquals(
-//                Duration.between(time7, time8),
-//                routine.currentStep().elapsedSuspendedDuration());
+        assertEquals(
+                Duration.between(time7, time8),
+                routine.currentStep().elapsedSuspendedDuration());
 
         position = routine.currentPosition();
         LocalDateTime time9 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time9,
                 routineService::completeStep);
-        assertEquals(TimeableStatus.COMPLETED, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.COMPLETED,
+                time6);
 
         assertEquals(position, routine.currentPosition());
-        assertEquals(3, routine.currentPosition());
-        assertEquals(TWOTWOTHREE_AND_THREETWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.COMPLETED, routine.currentStep().status());
         assertEquals(TimeableStatus.SKIPPED, routine.getAllChildren().get(routine.currentPosition() - 1).status());
         assertEquals(time9, routine.getAllChildren().get(routine.currentPosition()).finishTime());
-        assertEquals(time6, routine.currentStep().startTime());
 
         position = routine.currentPosition();
         LocalDateTime time10 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time10,
                 routineService::skipStep);
-        assertEquals(TimeableStatus.COMPLETED, routine.status());
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.COMPLETED,
+                time6);
 
         assertEquals(position, routine.currentPosition());
-        assertEquals(3, routine.currentPosition());
-        assertEquals(TWOTWOTHREE_AND_THREETWOTWO, routine.currentStep().task().name());
-        assertEquals(TimeableStatus.SKIPPED, routine.currentStep().status());
         assertEquals(TimeableStatus.SKIPPED, routine.getAllChildren().get(routine.currentPosition() - 1).status());
         assertEquals(time10, routine.getAllChildren().get(routine.currentPosition()).finishTime());
-        assertEquals(time6, routine.currentStep().startTime());
+    }
+
+    @Test
+    void testExecuteRoutineTwo() {
+        TaskID rootId = tasks.get(THREE_AND_FIVE).id();
+
+        Routine routine = routineService.createRoutine(rootId).routine();
+
+        RoutineStep rootStep = routine.children().get(0);
+
+        assertEquals(rootId, rootStep.task().id());
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                THREE_AND_FIVE,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+        // TODO: Test skipping first step
+
+        assertNull(routine.currentStep().parentId());
+
+        int position = routine.currentPosition();
+        LocalDateTime time0 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time0,
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                THREEONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time0);
+
+        RoutineStep stepThreeAndFive = routine.getAllChildren().get(position);
+        assertRoutineStep(
+                stepThreeAndFive,
+                THREE_AND_FIVE,
+                TimeableStatus.ACTIVE);
+
+        position = routine.currentPosition();
+        LocalDateTime time1 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time1,
+                routineService::postponeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        RoutineStep stepThreeOne = routine.getAllChildren().get(position);
+        assertRoutineStep(
+                stepThreeOne,
+                THREEONE,
+                TimeableStatus.POSTPONED);
+
+        position = routine.currentPosition();
+        LocalDateTime time2 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time2,
+                routineService::previousStep);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                THREEONE,
+                TimeableStatus.POSTPONED,
+                TimeableStatus.ACTIVE,
+                time0);
+
+        RoutineStep stepThreeTwo = routine.getAllChildren().get(position);
+        assertRoutineStep(
+                stepThreeTwo,
+                THREETWO,
+                TimeableStatus.SUSPENDED);
+
+        position = routine.currentPosition();
+        LocalDateTime time3 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time3,
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        stepThreeOne = routine.getAllChildren().get(position);
+        assertRoutineStep(
+                stepThreeOne,
+                THREEONE,
+                TimeableStatus.COMPLETED);
+
+        LocalDateTime time4 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time4,
+                routineService::skipStep);
+
+        assertRoutineStepExecution(
+                routine,
+                7,
+                THREETHREE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time4);
+
+        stepThreeTwo = routine.getAllChildren().get(position);
+        for (RoutineStep step : stepThreeTwo.children()) {
+            assertEquals(TimeableStatus.SKIPPED, step.status());
+        }
+    }
+
+    @Test
+    @Transactional
+    void testRoutineRecalculateWithPersist() {
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+
+        assertRoutine(List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        Duration originalDuration = routine.estimatedDuration();
+        assertEquals(Duration.ofHours(3), originalDuration);
+
+        changeService.execute(Request.of(new PersistChange<>(
+                new TaskNodeDTO()
+                        .parentId(tasks.get(TWOTWO).id())
+                        .childId(tasks.get(THREEONE).id()))));
+
+        RoutineResponse response = routineService.recalculateRoutine(routine.id(), LocalDateTime.now());
+        assertTrue(response.success());
+        routine = response.routine();
+
+        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
+        assertRoutine(List.of(
+                        TWOTWO,
+                        THREEONE,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                        routine);
+    }
+
+    @Test
+    @Transactional
+    void testRoutineRecalculateWithDelete() {
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+
+        assertRoutine(List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        Duration originalDuration = routine.estimatedDuration();
+
+        changeService.execute(Request.of(new DeleteChange<>(
+                ID.of(links.get(Triple.of(TWOTWO, TWOTWOONE, 0))))));
+
+        RoutineResponse response = routineService.recalculateRoutine(routine.id(), LocalDateTime.now());
+        assertTrue(response.success());
+        routine = response.routine();
+
+        assertEquals(routine.estimatedDuration(), originalDuration.minus(Duration.ofMinutes(30)));
+
+        assertRoutine(List.of(
+                        TWOTWO,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+    }
+
+    @Test
+    @Transactional
+    void testRoutineRecalculateWithMerge() {
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+
+        assertRoutine(List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        Duration originalDuration = routine.estimatedDuration();
+        assertEquals(Duration.ofHours(3), originalDuration);
+
+        Task twotwoone = tasks.get(TWOTWOONE);
+        changeService.execute(Request.of(new MergeChange<>(
+                new Task(twotwoone.id())
+                        .duration(twotwoone.duration().plus(Duration.ofHours(1))))));
+
+        RoutineResponse response = routineService.recalculateRoutine(routine.id(), LocalDateTime.now());
+        assertTrue(response.success());
+        routine = response.routine();
+
+        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofHours(1)));
+
+        assertRoutine(List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
     }
 }

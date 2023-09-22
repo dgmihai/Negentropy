@@ -292,11 +292,16 @@ public class ClientDataController {
         try {
             RoutineResponse response = serviceCall.get();
 
-            if (!response.success()) {
-                NotificationMessage.error(response.message());
-            } else {
-                log.debug("Routine service call successful");
-                routineDataProvider.refreshAll();
+            if (currentUI != null) {
+                currentUI.access(() -> {
+                    if (!response.success()) {
+                        NotificationMessage.error(response.message());
+                    } else {
+                        log.debug("Routine service call successful");
+                        NotificationMessage.result(response.message());
+                        routineDataProvider.refreshAll();
+                    }
+                });
             }
 
             return response;
@@ -327,51 +332,57 @@ public class ClientDataController {
         return tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter));
     }
 
-    private RoutineResponse processStep(
-            Supplier<RoutineResponse> serviceCall) {
-        return tryRoutineServiceCall(serviceCall);
+    public RoutineResponse recalculateRoutine(RoutineID routineId) {
+        log.debug("Recalculating routine: " + routineId);
+        return tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse startRoutineStep(StepID stepId) {
         log.debug("Starting routine step: " + stepId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().startStep(stepId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse pauseRoutineStep(StepID stepId) {
         log.debug("Pausing routine step: " + stepId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().suspendStep(stepId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse previousRoutineStep(StepID stepId) {
         log.debug("Going to previous step of routine step: " + stepId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().previousStep(stepId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse completeRoutineStep(StepID stepId) {
         log.debug("Completing routine step: " + stepId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().completeStep(stepId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse skipRoutineStep(StepID stepId) {
         log.debug("Skipping routine step: " + stepId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().skipStep(stepId, LocalDateTime.now()));
     }
 
     //@Override
     public RoutineResponse skipRoutine(RoutineID routineId) {
         log.debug("Skipping routine: " + routineId);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().skipRoutine(routineId, LocalDateTime.now()));
+    }
+
+    public RoutineResponse postponeRoutineStep(StepID stepID) {
+        log.debug("Postponing routine step: " + stepID);
+        return this.tryRoutineServiceCall(
+                () -> services.routine().postponeStep(stepID, LocalDateTime.now()));
     }
 
     //@Override
@@ -405,7 +416,8 @@ public class ClientDataController {
     //@Override
     public RoutineResponse setRoutineStepExcluded(StepID stepId, boolean exclude) {
         log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
-        return this.processStep(
+        return this.tryRoutineServiceCall(
                 () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
     }
+
 }

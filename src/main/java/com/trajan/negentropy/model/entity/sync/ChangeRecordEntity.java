@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,4 +32,6 @@ public class ChangeRecordEntity {
     private ChangeRecordDataType dataType;
 
     private Long entityId;
+
+    private Duration previousDuration;
 }

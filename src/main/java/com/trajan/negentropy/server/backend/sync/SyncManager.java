@@ -2,6 +2,7 @@ package com.trajan.negentropy.server.backend.sync;
 
 import com.querydsl.core.BooleanBuilder;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
+import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.sync.ChangeRecordEntity;
 import com.trajan.negentropy.model.entity.sync.QSyncRecordEntity;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
@@ -10,6 +11,7 @@ import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.interfaces.HasDuration;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
@@ -83,7 +85,8 @@ public class SyncManager {
         }
     }
 
-    public synchronized void logChange(ChangeRecordType changeType, ChangeRecordDataType dataType, Long id) {
+    public synchronized void logChange(ChangeRecordType changeType, ChangeRecordDataType dataType, AbstractEntity entity) {
+        Long id = entity.id();
         log.trace("Logging change: {} {}, id: {}", dataType, changeType, id);
         netDurationHelperManager.clear();
         ChangeRecordType finalChangeType =
@@ -91,12 +94,19 @@ public class SyncManager {
                 ? pendingChangeTypes.get(id)
                 : changeType;
         pendingChangeTypes.put(id, finalChangeType);
+
+        Duration previousDuration = null;
+        if (entity instanceof HasDuration durationableEntity) {
+            previousDuration = durationableEntity.duration();
+        }
+
         pendingChangeRecords.put(id, new ChangeRecordEntity(
                 null,
                 LocalDateTime.now(),
                 finalChangeType,
                 dataType,
-                id));
+                id,
+                previousDuration));
     }
 
     public synchronized void logDurationChange(TaskID taskId, Duration netDuration) {
@@ -114,7 +124,7 @@ public class SyncManager {
             pendingChangeTypes.clear();
         }
 
-        if (pendingSyncRecord.changes().size() > 0) {
+        if (!pendingSyncRecord.changes().isEmpty()) {
             SyncRecordEntity latestSyncRecord = syncRecordRepository.save(pendingSyncRecord);
             log.info("Recording {} changes, new latest sync id {}", latestSyncRecord.changes().size(),
                     latestSyncRecord.id());
