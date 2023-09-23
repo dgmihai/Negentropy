@@ -16,7 +16,6 @@ import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.tree.TreeView;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
@@ -131,7 +130,7 @@ public class ToolbarTabSheet extends TabSheet {
             addSelectedChangeListener(event -> {
                 Tab tab = event.getSelectedTab();
                 if (tab instanceof TaskProviderTab taskProviderTab) {
-                    controller.activeTaskNodeProvider(taskProviderTab.taskProvider());
+                    controller.activeTaskNodeProvider(taskProviderTab.taskNodeProvider());
                 } else {
                     controller.activeTaskNodeProvider(null);
                 }
@@ -157,10 +156,9 @@ public class ToolbarTabSheet extends TabSheet {
         this.createTaskForm = new TaskNodeInfoFormLayout(controller);
         createTaskForm.taskBinder().setBean(new Task());
 
-        createTaskForm.afterClear(() -> {
-            createTaskForm.taskBinder().setBean(new Task());
-            createTaskForm.nodeInfoBinder().setBean(new TaskNodeDTO());
-        });
+//        createTaskForm.afterClear(() -> {
+
+//        });
         createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
 
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
@@ -383,7 +381,7 @@ public class ToolbarTabSheet extends TabSheet {
 
             filter.durationLimit(durationLimit);
 
-            controller.createRoutine(taskSetBox.getTask(), filter);
+            controller.createRoutine(taskSetBox.taskNodeProvider().getTask(), filter);
             if (routineView != null) routineView.refreshRoutines();
         });
 

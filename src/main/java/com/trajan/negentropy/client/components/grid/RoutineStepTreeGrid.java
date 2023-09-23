@@ -1,6 +1,8 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.google.common.base.Joiner;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
@@ -28,9 +30,9 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
@@ -39,10 +41,12 @@ import java.util.*;
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
 @Scope("prototype")
-@Slf4j
 @Accessors(fluent = true)
 @Getter
 public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
+    @Autowired private SessionLoggerFactory loggerFactory;
+    private SessionLogger log;
+
     @Autowired private RoutineDataProvider routineDataProvider;
 
     private Routine routine;
@@ -57,6 +61,11 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             .toList();
 
     @Autowired private TimeableStatusValueProvider timeableStatusValueProvider;
+
+    @PostConstruct
+    public void init() {
+        log = getLogger(this.getClass());
+    }
 
     @Override
     protected TreeGrid<RoutineStep> createGrid() {

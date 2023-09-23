@@ -3,13 +3,14 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.components.taskform.Bound.BoundToTaskNodeData;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
+import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -23,8 +24,26 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
-public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout
-        implements TaskNodeProvider, BoundToTaskNodeData<T> {
+public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
+
+    @Getter
+    private final TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
+        @Override
+        public Task getTask() {
+            return binder.getBean().node().task();
+        }
+
+        @Override
+        public TaskNodeInfoData<?> getNodeInfo() {
+            return binder.getBean().node();
+        }
+
+        @Override
+        public boolean isValid() {
+            return binder.isValid();
+        }
+    };
+
     @Getter
     private Binder<T> binder;
     private Class<T> clazz;
@@ -47,11 +66,16 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
 
     @Override
     public void save() {
-        TaskNode result = modifyNode(binder.getBean().node().id());
+        TaskNode result = taskNodeProvider().modifyNode(binder.getBean().node().id());
 
         if (result != null) {
             this.clear();
         }
+    }
+
+    @Override
+    public TaskNodeProvider getTaskNodeProvider() {
+        return taskNodeProvider;
     }
 
     @Override

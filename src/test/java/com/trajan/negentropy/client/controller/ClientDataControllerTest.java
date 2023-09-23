@@ -584,10 +584,4 @@ class ClientDataControllerTest extends ClientTestTemplate {
                 queryService.fetchChildNodes(null),
                 expectedTasks);
     }
-
-    @Test
-    void testSync() {
-
-    }
-
 }

@@ -1,6 +1,9 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.sessionlogger.SessionLogged;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMenuItemDecorator;
@@ -55,9 +58,9 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -73,10 +76,12 @@ import java.util.stream.Collectors;
 @SpringComponent
 @RouteScope
 @Scope("prototype")
-@Slf4j
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeDisplay {
+public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeDisplay, SessionLogged {
+    @Autowired protected SessionLoggerFactory loggerFactory;
+    protected SessionLogger log;
+
     @Autowired protected ClientDataController controller;
     @Autowired protected UserSettings settings;
 
@@ -98,6 +103,11 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     protected SelectionMode selectionMode;
 
     protected abstract TreeGrid<T> createGrid();
+
+    @PostConstruct
+    public void init() {
+        log = getLogger(this.getClass());
+    }
 
     public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns, SelectionMode selectionMode) {
         treeGrid = createGrid();
@@ -404,8 +414,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
         form.saveAsLastCheckbox().setVisible(false);
         form.addClassNames(LumoUtility.Padding.Horizontal.SMALL, LumoUtility.Padding.Vertical.NONE,
                 LumoUtility.BoxSizing.BORDER);
-        form.afterClear(() -> editor.cancel());
-        form.afterSuccessfulSave(() -> editor.save());
+        form.clearEventListener().afterClear(() -> editor.cancel());
+        form.taskNodeProvider().afterSuccessfulSave(() -> editor.save());
 
         editor.setBinder(this.setEditorBinder(form));
 
@@ -492,7 +502,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             editor.setBuffered(true);
 
             InlineIconButton check = new InlineIconButton(VaadinIcon.CHECK.create());
-            check.addClickListener(e -> editor.save());
+            check.addClickListener(e -> {
+                treeGrid.setDetailsVisible(editor.getItem(), false);
+                editor.save();
+            });
 
             AtomicReference<Optional<Registration>> enterListener = new AtomicReference<>(Optional.empty());
             AtomicReference<Optional<Registration>> escapeListener = new AtomicReference<>(Optional.empty());

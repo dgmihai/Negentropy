@@ -62,7 +62,8 @@ public class ChangeProcessor {
                 if (data instanceof Task task) {
                     if (task.id() != null)
                         throw new IllegalArgumentException("Cannot persist task with ID: " + task.id());
-                    log.debug("Persisting task: {}", task);
+                    // Currently, we never persist a task without a task node as well
+                    // log.debug("Persisting task: {}", task);
                     Task result = dataContext.toDO(dataContext.mergeTask(task));
                     dataResults.add(change.id(), result);
                     messages.add(messageSupplier.apply(prefix, task));

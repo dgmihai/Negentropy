@@ -1,22 +1,47 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.components.taskform.Bound.BoundToTask;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.id.TaskID;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 
-public class TaskFormLayout extends AbstractTaskFormLayout implements BoundToTask {
+public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     protected Binder<Task> taskBinder;
+
+    @Getter
+    protected TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
+        @Override
+        public Task getTask() {
+            return taskBinder.getBean();
+        }
+
+        @Override
+        public TaskNodeInfoData<?> getNodeInfo() {
+            return new TaskNodeDTO();
+        }
+
+        @Override
+        public boolean isValid() {
+            return taskBinder.isValid();
+        }
+    };
+
+    @Override
+    public TaskNodeProvider getTaskNodeProvider() {
+        return taskNodeProvider;
+    }
 
     public TaskFormLayout(ClientDataController controller) {
         super(controller);
@@ -34,7 +59,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout implements BoundToTas
 
         TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
         TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
-        TaskNode result = createNode(
+        TaskNode result = getTaskNodeProvider().createNode(
                 projectComboBox.getValue() == null
                         ? rootTaskID
                         : projectComboBox.getValue().id(),

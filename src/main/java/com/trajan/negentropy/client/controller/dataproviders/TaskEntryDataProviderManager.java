@@ -1,6 +1,9 @@
 package com.trajan.negentropy.client.controller.dataproviders;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.controller.SessionServices;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -11,6 +14,7 @@ import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataPr
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +27,11 @@ import java.util.stream.Stream;
 
 @SpringComponent
 @VaadinSessionScope
-@Slf4j
 @Benchmark(millisFloor = 10)
 public class TaskEntryDataProviderManager {
+    @Autowired private SessionLoggerFactory loggerFactory;
+    private SessionLogger log;
+
     @Autowired private SessionServices services;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
 
@@ -33,6 +39,16 @@ public class TaskEntryDataProviderManager {
     @Getter private final Map<LinkID, Boolean> pendingNodeRefresh = new HashMap<>();
 
     @Getter private final Set<TaskEntryDataProvider> allProviders = new LinkedHashSet<>();
+
+    @PostConstruct
+    public void init() {
+        log = loggerFactory.getLogger(this.getClass());
+    }
+
+    @VisibleForTesting
+    public TaskEntryDataProviderManager() {
+        log = new SessionLogger(getClass());
+    }
 
     public void refreshQueuedItems() {
         log.debug("Refreshing providers");

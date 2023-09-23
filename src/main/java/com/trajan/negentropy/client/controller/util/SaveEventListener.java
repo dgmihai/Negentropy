@@ -7,19 +7,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public interface SaveEvents<T> {
+public abstract class SaveEventListener<T> {
 
     List<Runnable> beforeSaveCallbacks = new ArrayList<>();
     List<Runnable> afterSuccessfulSaveCallbacks = new ArrayList<>();
     List<Runnable> afterFailedSaveCallbacks = new ArrayList<>();
 
-    default boolean isValid() {
+    public boolean isValid() {
         return true;
     }
 
-    boolean wasSaveSuccessful(T result);
+    public abstract boolean wasSaveSuccessful(T result);
 
-    default Optional<T> handleSave(Supplier<T> saveOperation) {
+    public Optional<T> handleSave(Supplier<T> saveOperation) {
         beforeSaveCallbacks.forEach(Runnable::run);
 
         T result;
@@ -37,22 +37,22 @@ public interface SaveEvents<T> {
         }
     }
 
-    default Registration beforeSave(Runnable callback) {
+    public Registration beforeSave(Runnable callback) {
         beforeSaveCallbacks.add(callback);
         return () -> beforeSaveCallbacks.remove(callback);
     }
 
-    default Registration afterSuccessfulSave(Runnable callback) {
+    public Registration afterSuccessfulSave(Runnable callback) {
         afterSuccessfulSaveCallbacks.add(callback);
         return () -> afterSuccessfulSaveCallbacks.remove(callback);
     }
 
-    default Registration afterFailedSave(Runnable callback) {
+    public Registration afterFailedSave(Runnable callback) {
         afterFailedSaveCallbacks.add(callback);
         return () -> afterFailedSaveCallbacks.remove(callback);
     }
 
-    default Registration afterSave(Runnable callback) {
+    public Registration afterSave(Runnable callback) {
         afterSuccessfulSaveCallbacks.add(callback);
         afterFailedSaveCallbacks.add(callback);
         return () -> {

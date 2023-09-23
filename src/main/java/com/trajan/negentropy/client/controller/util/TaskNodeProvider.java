@@ -19,17 +19,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
-    ClientDataController controller();
-    Task getTask();
-    TaskNodeInfoData<?> getNodeInfo();
+public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse> {
+    protected ClientDataController controller;
+    public abstract Task getTask();
+    public abstract TaskNodeInfoData<?> getNodeInfo();
+
+    public TaskNodeProvider(ClientDataController controller) {
+        super();
+        this.controller = controller;
+    }
 
     @Override
-    default boolean wasSaveSuccessful(DataMapResponse result) {
+    public boolean wasSaveSuccessful(DataMapResponse result) {
         return result.success();
     }
 
-    default TaskNode modifyNode(LinkID nodeId) {
+    public TaskNode modifyNode(LinkID nodeId) {
         Task task = getTask();
         Change taskChange = task.id() != null
                 ? new MergeChange<>(task)
@@ -39,7 +44,7 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
                 new TaskNode(nodeId, getNodeInfo()));
 
         Supplier<DataMapResponse> trySave = () ->
-                controller().requestChanges(List.of(
+                controller.requestChanges(List.of(
                         taskChange,
                         nodeChange));
 
@@ -52,11 +57,11 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
     }
 
-    default Task modifyTask(TaskID taskId) {
+    public Task modifyTask(TaskID taskId) {
         Change taskChange = getTaskChange();
 
         Supplier<DataMapResponse> trySave = () ->
-                controller().requestChange(taskChange);
+                controller.requestChange(taskChange);
 
         Optional<DataMapResponse> response = handleSave(trySave);
 
@@ -67,16 +72,16 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
     }
 
-    private Change getTaskChange() {
+    protected Change getTaskChange() {
         Task task = getTask();
         return task.id() != null
                 ? new MergeChange<>(task)
                 : new PersistChange<>(task);
     }
 
-    private TaskNode tryChange(Change taskChange, Change referencedInsertChange) {
+    protected TaskNode tryChange(Change taskChange, Change referencedInsertChange) {
         Supplier<DataMapResponse> trySave = () ->
-                controller().requestChanges(List.of(
+                controller.requestChanges(List.of(
                         taskChange,
                         referencedInsertChange));
 
@@ -89,7 +94,7 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
     }
 
-    default TaskNode createNode(TaskOrLinkID reference, InsertLocation location) {
+    public TaskNode createNode(TaskOrLinkID reference, InsertLocation location) {
         Change taskChange = getTaskChange();
 
         Change referencedInsertChange;
@@ -116,5 +121,9 @@ public interface TaskNodeProvider extends SaveEvents<DataMapResponse> {
         }
 
         return tryChange(taskChange, referencedInsertChange);
+    }
+
+    public interface HasTaskNodeProvider {
+        TaskNodeProvider taskNodeProvider();
     }
 }

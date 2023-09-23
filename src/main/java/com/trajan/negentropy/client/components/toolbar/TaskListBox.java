@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.toolbar;
 import com.trajan.negentropy.client.components.filterform.FilterForm;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
@@ -15,14 +16,35 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodeProvider {
+public class TaskListBox extends MultiSelectListBox<Task> implements HasTaskNodeProvider {
     @Getter
     protected final ClientDataController controller;
     protected final FilterForm form;
 
+    @Getter
+    private final TaskNodeProvider taskNodeProvider;
+
     public TaskListBox(ClientDataController controller, FilterForm form) {
         super();
         this.controller = controller;
+
+        this.taskNodeProvider = new TaskNodeProvider(controller) {
+            @Override
+            public boolean isValid() {
+                return getValue() != null;
+            }
+
+            @Override
+            public Task getTask() {
+                return getValue().stream().findFirst().orElse(null);
+            }
+
+            @Override
+            public TaskNodeDTOData<?> getNodeInfo() {
+                return new TaskNodeDTO();
+            }
+        };
+
         this.form = form;
         setItemLabelGenerator(Task::name);
     }
@@ -39,20 +61,5 @@ public class TaskListBox extends MultiSelectListBox<Task> implements TaskNodePro
     public void hideOtherTasks(Task task) {
         setItems(task);
         setValue(Set.of(task));
-    }
-
-    @Override
-    public boolean isValid() {
-        return this.getValue() != null;
-    }
-
-    @Override
-    public Task getTask() {
-        return this.getValue().stream().findFirst().orElse(null);
-    }
-
-    @Override
-    public TaskNodeDTOData<?> getNodeInfo() {
-        return new TaskNodeDTO();
     }
 }

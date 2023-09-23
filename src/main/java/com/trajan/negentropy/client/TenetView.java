@@ -24,7 +24,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Optional;
@@ -34,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @UIScope
 @Route(value = "tenets", layout = MainLayout.class)
 @Uses(Icon.class)
-@Slf4j
 public class TenetView extends VerticalLayout {
     @Autowired private BannerProvider bannerProvider;
     @Autowired private SessionServices services;

@@ -1,6 +1,8 @@
 package com.trajan.negentropy.client.routine;
 
 import com.trajan.negentropy.client.MainLayout;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.ClientDataController;
@@ -30,7 +32,6 @@ import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
@@ -39,7 +40,6 @@ import java.util.Locale;
 import java.util.Set;
 
 @PageTitle("Negentropy - Routine")
-@Slf4j
 @UIScope
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
@@ -47,6 +47,9 @@ import java.util.Set;
 @Accessors(fluent = true)
 @Getter
 public class RoutineView extends VerticalLayout {
+    @Autowired private SessionLoggerFactory loggerFactory;
+    private SessionLogger log;
+
     @Autowired private BannerProvider bannerProvider;
     @Autowired private ClientDataController controller;
     @Autowired private UserSettings settings;
@@ -63,6 +66,8 @@ public class RoutineView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
+        log = loggerFactory.getLogger(this.getClass());
+
         controller.sync();
         this.addClassName("routine-view");
         this.setSizeFull();

@@ -2,15 +2,17 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
-import com.trajan.negentropy.client.components.taskform.Bound.BoundToTaskAndNodeInfo;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.cron.CronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -20,14 +22,22 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
-
-public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTaskAndNodeInfo {
-    @Getter
+@Getter
+@Slf4j
+public class TaskNodeInfoFormLayout extends TaskFormLayout {
     private Binder<TaskNodeDTO> nodeInfoBinder;
+
+    @Override
+    public TaskNodeProvider getTaskNodeProvider() {
+        return taskNodeProvider;
+    }
 
     public TaskNodeInfoFormLayout(ClientDataController controller) {
         super(controller);
+        initTaskNodeDataProvider();
+        initClearEventListener();
 
         nodeInfoBinder.setBean(new TaskNodeDTO());
         projectDurationField.setVisible(false);
@@ -36,12 +46,44 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
 
     public TaskNodeInfoFormLayout(ClientDataController controller, Task task) {
         super(controller);
+        initTaskNodeDataProvider();
+        initClearEventListener();
 
         taskBinder.setBean(task);
         nodeInfoBinder.setBean(new TaskNodeDTO()
                 .childId(task.id()));
         projectDurationField.setVisible(false);
         projectComboBox.setVisible(true);
+    }
+
+    protected void initTaskNodeDataProvider() {
+        taskNodeProvider = new TaskNodeProvider(controller) {
+            @Override
+            public Task getTask() {
+                return taskBinder.getBean();
+            }
+
+            @Override
+            public TaskNodeInfoData<?> getNodeInfo() {
+                return nodeInfoBinder.getBean();
+            }
+
+            @Override
+            public boolean isValid() {
+                return taskBinder.isValid() && nodeInfoBinder.isValid();
+            }
+        };
+    }
+
+    protected void initClearEventListener() {
+        clearEventListener = new ClearEventListener() {
+            @Override
+            protected void onClear() {
+                clearAllFields();
+                nodeInfoBinder.setBean(new TaskNodeDTO());
+                taskBinder.setBean(new Task());
+            }
+        };
     }
 
     @Override
@@ -81,7 +123,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
     @Override
     protected void configureInteractions() {
         super.configureInteractions();
-        afterSave(() -> nameField.focus());
+        taskNodeProvider().afterSave(() -> nameField.focus());
     }
 
     @Override
@@ -132,10 +174,5 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout implements BoundToTas
                 }
             }
         }
-    }
-
-    @Override
-    public void onClear() {
-        this.clearAllFields();
     }
 }

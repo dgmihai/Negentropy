@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.ClientDataController;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -20,9 +21,12 @@ import lombok.experimental.Accessors;
 import org.springframework.data.util.Pair;
 
 @Accessors(fluent = true)
-public class QuickCreateField extends TextField implements TaskNodeProvider {
+public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     @Getter
     private final ClientDataController controller;
+
+    @Getter
+    private final TaskNodeProvider taskNodeProvider;
 
     private Task task = null;
     private TaskNodeInfoData<TaskNodeDTO> nodeDTO = null;
@@ -30,6 +34,32 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
     public QuickCreateField(ClientDataController controller) {
         super();
         this.controller = controller;
+        this.taskNodeProvider = new TaskNodeProvider(controller) {
+            @Override
+            public Task getTask() {
+                return task;
+            }
+
+            @Override
+            public TaskNodeInfoData<?> getNodeInfo() {
+                return nodeDTO;
+            }
+
+            @Override
+            public boolean isValid() {
+                String input = getValue();
+                if (!input.isBlank()) {
+                    try {
+                        parse(input);
+                        return true;
+                    } catch (QuickCreateParser.ParseException e) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        };
 
         this.setClearButtonVisible(true);
         this.setValueChangeMode(ValueChangeMode.EAGER);
@@ -56,7 +86,7 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
             nodeDTO = null;
         });
 
-        afterSave(this::clear);
+        taskNodeProvider.afterSave(this::clear);
     }
 
     public void save() {
@@ -67,7 +97,7 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
 
                 TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
                 TaskID rootTaskId = rootNode == null ? null : rootNode.task().id();
-                TaskNode result = createNode(rootTaskId,
+                TaskNode result = taskNodeProvider.createNode(rootTaskId,
                         InsertLocation.LAST);
                 if (result != null) {
                     this.clear();
@@ -79,19 +109,8 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
         }
     }
 
-    @Override
     public boolean isValid() {
-        String input = this.getValue();
-        if (!input.isBlank()) {
-            try {
-                parse(input);
-                return true;
-            } catch (QuickCreateParser.ParseException e) {
-                return false;
-            }
-        } else {
-            return false;
-        }
+        return taskNodeProvider.isValid();
     }
 
     private void parse(String input) throws QuickCreateParser.ParseException {
@@ -100,12 +119,10 @@ public class QuickCreateField extends TextField implements TaskNodeProvider {
         nodeDTO = result.getSecond();
     }
 
-    @Override
     public Task getTask() {
         return task;
     }
 
-    @Override
     public TaskNodeInfoData<TaskNodeDTO> getNodeInfo() {
         return nodeDTO;
     }

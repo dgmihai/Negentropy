@@ -1,19 +1,41 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.components.taskform.Bound.BoundToRoutineStep;
 import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 
-public class RoutineStepFormLayout extends AbstractTaskFormLayout implements BoundToRoutineStep<RoutineStep> {
-    @Getter
+@Getter
+public class RoutineStepFormLayout extends AbstractTaskFormLayout {
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
+
+    private final TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
+        @Override
+        public Task getTask() {
+            return isValid()
+                    ? binder().getBean().task()
+                    : null;
+        }
+
+        @Override
+        public TaskNodeInfoData<?> getNodeInfo() {
+            return isValid()
+                    ? binder().getBean().node()
+                    : null;
+        }
+
+        @Override
+        public boolean isValid() {
+            return binder.isValid();
+        }
+    };
 
     public RoutineStepFormLayout(ClientDataController controller, RoutineStep step) {
         super(controller);
@@ -25,8 +47,13 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout implements Bou
     }
 
     @Override
+    public TaskNodeProvider getTaskNodeProvider() {
+        return taskNodeProvider;
+    }
+
+    @Override
     public void save() {
-        Task result = modifyTask(binder.getBean().task().id());
+        Task result = taskNodeProvider.modifyTask(binder.getBean().task().id());
 
         if (result != null) {
             this.clear();

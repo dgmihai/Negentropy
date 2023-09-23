@@ -46,9 +46,9 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import elemental.json.JsonObject;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.support.CronExpression;
@@ -64,7 +64,6 @@ import java.util.stream.Collectors;
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
 @Scope("prototype")
-@Slf4j
 @Accessors(fluent = true)
 @Getter
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
@@ -84,6 +83,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     public static final List<ColumnKey> possibleColumns = Arrays.stream(ColumnKey.values())
             .filter(columnKey -> !excludedColumns.contains(columnKey))
             .toList();
+
+    @PostConstruct
+    public void init() {
+        log = getLogger(this.getClass());
+    }
 
     @Override
     protected TreeGrid<TaskEntry> createGrid() {

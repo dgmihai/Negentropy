@@ -4,9 +4,11 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.ClientDataController;
-import com.trajan.negentropy.client.controller.util.ClearEvents;
+import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
-import com.trajan.negentropy.client.controller.util.SaveEvents;
+import com.trajan.negentropy.client.controller.util.SaveEventListener;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
@@ -39,7 +41,7 @@ import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
-        implements ClearEvents, SaveEvents<DataMapResponse> {
+        implements HasTaskNodeProvider {
     protected TextField nameField;
     protected TextField durationField;
     protected CustomValueTagComboBox tagComboBox;
@@ -59,12 +61,24 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected Button saveButton;
     protected Button clearButton;
 
+    protected SaveEventListener<DataMapResponse> saveEventListener;
+
     @Getter
     protected Checkbox saveAsLastCheckbox;
     protected Select<String> onSaveSelect;
 
     @Getter
     protected ClientDataController controller;
+
+    public abstract TaskNodeProvider getTaskNodeProvider();
+
+    @Getter
+    protected ClearEventListener clearEventListener = new ClearEventListener() {
+        @Override
+        protected void onClear() {
+            clearAllFields();
+        }
+    };
 
     @Getter
     @Setter
@@ -138,16 +152,20 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
     public abstract void save();
 
+    public void clear() {
+        this.clearEventListener().clear();
+    }
+
     protected void configureInteractions() {
         saveButton.addClickListener(event -> this.save());
-        clearButton.addClickListener(event -> this.clear());
+        clearButton.addClickListener(event -> clearEventListener().clear());
 
         Shortcuts.addShortcutListener(this,
                 this::save,
                 Key.ENTER);
 
         Shortcuts.addShortcutListener(this,
-                this::clear,
+                clearEventListener()::clear,
                 Key.ESCAPE);
     }
 

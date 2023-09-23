@@ -21,4 +21,9 @@ public class Tag implements TagData<Tag>, PersistedDataDO<TagID> {
         this.name = name;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "Tag(" + this.id + ", name=" + this.name + ")";
+    }
 }

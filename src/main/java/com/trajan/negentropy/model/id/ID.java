@@ -59,6 +59,6 @@ public abstract class ID implements Serializable {
 
     @Override
     public String toString() {
-        return "ID(" + val +")";
+        return this.getClass().getSimpleName() + "(" + val +")";
     }
 }

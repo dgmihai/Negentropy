@@ -130,7 +130,7 @@ public class SyncManager {
                     latestSyncRecord.id());
             pendingSyncRecord = new SyncRecordEntity();
         } else {
-            log.debug("No changes to record");
+            log.debug("No pending changes to record");
         }
 
         Stream<SyncRecordEntity> syncRecordStream;

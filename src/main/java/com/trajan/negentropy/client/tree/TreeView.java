@@ -1,5 +1,7 @@
 package com.trajan.negentropy.client.tree;
 
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
@@ -21,7 +23,6 @@ import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
@@ -30,10 +31,12 @@ import java.util.List;
 @UIScope
 @Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
-@Slf4j
 @Accessors(fluent = true)
 @Getter
 public class TreeView extends Div {
+    @Autowired private SessionLoggerFactory loggerFactory;
+    private SessionLogger log;
+
     @Autowired private BannerProvider bannerProvider;
     @Autowired private ClientDataController controller;
     @Autowired private UserSettings settings;
@@ -48,6 +51,8 @@ public class TreeView extends Div {
 
     @PostConstruct
     public void init() {
+        log = loggerFactory.getLogger(this.getClass());
+
         controller.sync();
         this.addClassName("tree-view");
 

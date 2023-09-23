@@ -5,6 +5,9 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.sessionlogger.SessionLogged;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
@@ -19,7 +22,6 @@ import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -34,9 +36,11 @@ import java.util.stream.Collectors;
 @SpringComponent
 @VaadinSessionScope
 @Getter
-@Slf4j
 @Benchmark(millisFloor = 10)
-public class TaskNetworkGraph {
+public class TaskNetworkGraph implements SessionLogged {
+    @Autowired private SessionLoggerFactory loggerFactory;
+    private SessionLogger log;
+
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
 
@@ -59,6 +63,8 @@ public class TaskNetworkGraph {
 
     @PostConstruct
     public void init() {
+        log = getLogger(this.getClass());
+
         network = NetworkBuilder.directed()
                 .allowsParallelEdges(true)
                 .edgeOrder(ElementOrder.unordered())
@@ -86,7 +92,12 @@ public class TaskNetworkGraph {
     }
 
     public int getChildCount(TaskID parentId, List<LinkID> filteredLinks) {
-        return getChildren(parentId, filteredLinks).size();
+        return (int) (parentId != null
+                ? network.outEdges(parentId)
+                : network.outEdges(TaskID.nil()))
+                .stream()
+                .filter(linkId -> filteredLinks == null || filteredLinks.contains(linkId))
+                .count();
     }
 
     public boolean hasChildren(TaskID parentId) {

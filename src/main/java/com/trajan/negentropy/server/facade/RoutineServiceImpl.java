@@ -66,6 +66,12 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Autowired private DataContext dataContext;
 
+    private static final Set<TimeableStatus> FINISHED_STATUSES = Set.of(
+            TimeableStatus.COMPLETED,
+            TimeableStatus.SKIPPED,
+            TimeableStatus.EXCLUDED,
+            TimeableStatus.POSTPONED);
+
     @PostConstruct
     public void onStart() {
         for (RoutineEntity routine : routineRepository.findAll()) {
@@ -346,7 +352,7 @@ public class RoutineServiceImpl implements RoutineService {
                 step.startTime(time);
                 step.lastSuspendedTime(time);
             }
-            case SKIPPED, COMPLETED, EXCLUDED -> {
+            case SKIPPED, COMPLETED, EXCLUDED, POSTPONED -> {
                 step.elapsedSuspendedDuration(
                         Duration.between(step.finishTime(), time)
                                 .plus(step.elapsedSuspendedDuration()));
@@ -392,7 +398,7 @@ public class RoutineServiceImpl implements RoutineService {
 
         handleIfLastChild(step);
 
-        return finishIteration(step.routine(), 1, time);
+        return iterateToNextValidStep(step.routine(), 1, time);
     }
 
     @Override
@@ -433,7 +439,7 @@ public class RoutineServiceImpl implements RoutineService {
         unCompleteStep(step, time);
         handleIfLastChild(step);
 
-        return finishIteration(step.routine(), count, time);
+        return iterateToNextValidStep(step.routine(), count, time);
     }
 
     @Override
@@ -453,7 +459,7 @@ public class RoutineServiceImpl implements RoutineService {
         markStepAsPostponed(step, time);
         handleIfLastChild(step);
 
-        return finishIteration(step.routine(), count, time);
+        return iterateToNextValidStep(step.routine(), count, time);
     }
 
     @Override
@@ -553,7 +559,7 @@ public class RoutineServiceImpl implements RoutineService {
             suspendStep(step, time);
             markStepAsExcluded(step);
             if (step.routine().currentStep().equals(step)) {
-                finishIteration(step.routine(), 1, time);
+                iterateToNextValidStep(step.routine(), 1, time);
             }
             unCompleteStep(step, time);
         } else {
@@ -567,8 +573,13 @@ public class RoutineServiceImpl implements RoutineService {
     // Boolean Helpers
     // ================================
 
+    private boolean isStepFinished(RoutineStepEntity step) {
+        return FINISHED_STATUSES.contains(step.status());
+    }
+
     private boolean isRoutineFinished(RoutineEntity routine) {
-        return routine.currentPosition() >= routine.countSteps() - 1;
+        return (routine.currentPosition() >= routine.countSteps() - 1)
+                && isStepFinished(routine.currentStep());
     }
 
     private boolean isLastChild(RoutineStepEntity step) {
@@ -613,21 +624,13 @@ public class RoutineServiceImpl implements RoutineService {
     private boolean allChildrenInactive(RoutineStepEntity step) {
         if (step.children().isEmpty()) return true;
         List<RoutineStepEntity> siblings = step.children();
-        return siblings.stream().allMatch(s ->
-                s.status() == TimeableStatus.SKIPPED
-                        || s.status() == TimeableStatus.COMPLETED
-                        || s.status() == TimeableStatus.EXCLUDED
-                        || s.status() == TimeableStatus.SUSPENDED);
+        return siblings.stream().allMatch(this::isStepFinished);
     }
 
     private boolean allSiblingsInactive(RoutineStepEntity step) {
         if (step.parentStep() == null) return false;
         List<RoutineStepEntity> siblings = step.parentStep().children();
-        return siblings.stream().allMatch(s ->
-                s.status() == TimeableStatus.SKIPPED
-                        || s.status() == TimeableStatus.COMPLETED
-                        || s.status() == TimeableStatus.EXCLUDED
-                        || s.status() == TimeableStatus.SUSPENDED);
+        return siblings.stream().allMatch(this::isStepFinished);
     }
 
     public boolean currentPositionIsLastStep(RoutineEntity routine) {
@@ -715,19 +718,16 @@ public class RoutineServiceImpl implements RoutineService {
         return count;
     }
 
-    private RoutineEntity finishIteration(RoutineEntity routine, int count, LocalDateTime time) {
+    private RoutineEntity iterateToNextValidStep(RoutineEntity routine, int count, LocalDateTime time) {
         if (isRoutineFinished(routine)) {
             return completeRoutine(routine);
         } else {
             routine.currentPosition(routine.currentPosition() + count);
+
             while (routine.currentStep().status() == TimeableStatus.EXCLUDED
                 || routine.currentStep().status() == TimeableStatus.POSTPONED
                 || routine.currentStep().status() == TimeableStatus.COMPLETED) {
                 routine.currentPosition(routine.currentPosition() + 1);
-
-                if (isRoutineFinished(routine)) {
-                    return completeRoutine(routine);
-                }
             }
 
             activateStep(routine, time);
