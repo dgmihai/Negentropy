@@ -223,7 +223,9 @@ public class DataContextImpl implements DataContext {
         LocalDateTime now = DataContext.now();
         LocalDateTime scheduledFor = now;
         if (cron != null) {
-            scheduledFor = node.cron().next(now);
+            scheduledFor = recurring
+                    ? now
+                    : node.cron().next(now);
         }
 
         Duration projectDuration = node.projectDuration();

@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.netduration;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.NetDurationID;
@@ -11,6 +12,7 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.LazyInitializationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,6 +26,8 @@ import java.util.Set;
 
 @Component
 @Transactional
+@Slf4j
+@Benchmark(millisFloor = 10)
 public class NetDurationHelperManager {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationRepository netDurationRepository;
@@ -32,7 +36,16 @@ public class NetDurationHelperManager {
     private final Map<NonSpecificTaskNodeTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
     public synchronized NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
-        return helpers.computeIfAbsent(NonSpecificTaskNodeTreeFilter.from(filter), f ->
+        NonSpecificTaskNodeTreeFilter nonNullFilter = NonSpecificTaskNodeTreeFilter.from(filter);
+
+        log.debug("Getting helper for filter: " + nonNullFilter);
+
+        if (helpers.containsKey(nonNullFilter)) {
+            log.debug("Existing helper found");
+            return helpers.get(nonNullFilter);
+        }
+
+        return helpers.computeIfAbsent(nonNullFilter, f ->
             new NetDurationHelper(entityQueryService, netDurationRepository, linkRepository,
                     f)
         );

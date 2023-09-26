@@ -6,6 +6,8 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
 public class GridUtil {
+    public static final String CRON_COL_WIDTH = "80px";
+    public static final String DATE_COL_WIDTH = "120px";
     public static final String DURATION_COL_WIDTH = "70px";
     public static final String ICON_COL_WIDTH_S = "31px";
     public static final String ICON_COL_WIDTH_L = "35px";

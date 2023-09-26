@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 @Slf4j
+@Benchmark
 public class NetDurationService {
 
     @Autowired private EntityQueryService entityQueryService;
@@ -39,14 +41,7 @@ public class NetDurationService {
     private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
     public synchronized NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
-        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
-        log.debug("Getting helper for filter: " + filter);
-
-        nonNullFilter.name(null); // We don't cache by name
-
-        return helpers.computeIfAbsent(nonNullFilter, f ->
-                helperManager.getHelper(nonNullFilter)
-        );
+        return helperManager.getHelper(filter);
     }
 
     public Map<TaskID, Duration> getAllNetTaskDurations(TaskNodeTreeFilter filter) {

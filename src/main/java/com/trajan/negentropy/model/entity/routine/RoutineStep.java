@@ -55,7 +55,7 @@ public abstract class RoutineStep implements RoutineStepData, Timeable, HasTaskD
 
     @Override
     public Duration remainingDuration(LocalDateTime time) {
-        return RoutineUtil.getRemainingStepDuration(this, time);
+        return RoutineUtil.getStepDisplayTime(this, time);
     }
 
     @Override

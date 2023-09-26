@@ -1,5 +1,8 @@
 package com.trajan.negentropy.model.filter;
 
+import lombok.ToString;
+
+@ToString(callSuper = true)
 public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
     public NonSpecificTaskNodeTreeFilter() {
         super();
@@ -29,4 +32,20 @@ public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
     public NonSpecificTaskNodeTreeFilter name(String name) {
         return this;
     }
+
+//    @Override
+//    public String toString() {
+//        String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
+//        String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
+//        String opts = String.join(", ", options);
+//        return "TaskNodeTreeFilter{" +
+//                "name='" + name + '\'' +
+//                ", includedTagIds=[" + includedTags + "]" +
+//                ", excludedTagIds=[" + excludedTags + "]" +
+//                ", availableAtTime=" + availableAtTime +
+//                ", importanceThreshold=" + importanceThreshold +
+//                ", durationLimit=" + durationLimit +
+//                ", options=[" + opts + "]" +
+//                '}';
+//    }
 }

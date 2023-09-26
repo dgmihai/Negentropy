@@ -85,6 +85,10 @@ vaadin-multi-select-combo-box[opened] > input {
   width:4em
 }
 
+vaadin-context-menu-item {
+    user-select: none;
+}
+
 @media screen and (-webkit-min-device-pixel-ratio:0) {
   select,
   textarea,

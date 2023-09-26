@@ -79,7 +79,7 @@ public class TaskEntryDataProviderManager {
 
     public void setFilter(TaskNodeTreeFilter filter) {
         allProviders().forEach(provider -> provider.setFilter(filter));
-        taskNetworkGraph.fetchNetDurations(filter);
+        taskNetworkGraph.getNetDurations(filter);
     }
 
     @Slf4j

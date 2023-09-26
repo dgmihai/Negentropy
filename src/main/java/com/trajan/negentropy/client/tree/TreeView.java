@@ -53,7 +53,6 @@ public class TreeView extends Div {
     public void init() {
         log = loggerFactory.getLogger(this.getClass());
 
-        controller.sync();
         this.addClassName("tree-view");
 
 //        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
@@ -77,6 +76,7 @@ public class TreeView extends Div {
             TaskEntryTreeGrid grid = grids.get(i);
             grid.init(settings.treeViewColumnVisibilities().get(i),
                     settings.gridSelectionMode());
+            grid.nestedTabs().onSelectNewRootEntry(settings.currentRootEntry());
             grid.setWidthFull();
             grid.setHeight("86%");
         }

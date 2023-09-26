@@ -1,10 +1,7 @@
 package com.trajan.negentropy.model.filter;
 
 import com.trajan.negentropy.model.id.TagID;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
@@ -12,41 +9,41 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @NoArgsConstructor
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     private static final long serialVersionUID = 2L;
 
-    private Boolean completed;
-    private Boolean recurring;
-    private LocalDateTime availableAtTime;
-    private Integer importanceThreshold;
-    private Duration durationLimit;
+    protected Boolean completed;
+    protected Boolean recurring;
+    protected LocalDateTime availableAtTime;
+    protected Integer importanceThreshold;
+    protected Duration durationLimit;
 
     public TaskNodeTreeFilter(String... options) {
         super(options);
     }
 
-    @Override
-    public String toString() {
-        String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
-        String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
-        String opts = String.join(", ", options);
-        return "TaskNodeTreeFilter{" +
-                "name='" + name + '\'' +
-                ", includedTagIds=[" + includedTags + "]" +
-                ", excludedTagIds=[" + excludedTags + "]" +
-                ", availableAtTime=" + availableAtTime +
-                ", importanceThreshold=" + importanceThreshold +
-                ", durationLimit=" + durationLimit +
-                ", options=[" + opts + "]" +
-                '}';
-    }
+//    @Override
+//    public String toString() {
+//        String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
+//        String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
+//        String opts = String.join(", ", options);
+//        return "TaskNodeTreeFilter{" +
+//                "name='" + name + '\'' +
+//                ", includedTagIds=[" + includedTags + "]" +
+//                ", excludedTagIds=[" + excludedTags + "]" +
+//                ", availableAtTime=" + availableAtTime +
+//                ", importanceThreshold=" + importanceThreshold +
+//                ", durationLimit=" + durationLimit +
+//                ", options=[" + opts + "]" +
+//                '}';
+//    }
 
     public boolean isEmpty() {
         return this.equals(new TaskNodeTreeFilter());

@@ -68,6 +68,10 @@ public class NetDurationHelper {
         if (current instanceof TaskLink link) {
             currentTask = link.child();
             currentLinkId = ID.of(link);
+            if (netDurations.containsKey(currentLinkId) && parent == null && !customDurationLimit) {
+                log.debug("Returning cached net duration");
+                return netDurations.get(currentLinkId);
+            }
         } else if (current instanceof TaskEntity task) {
             currentTask = task;
         } else {
@@ -161,6 +165,7 @@ public class NetDurationHelper {
                 : null;
 
         if (current.id() != null && netDurations.containsKey(ID.of(current)) && parent == null) {
+            log.debug("Returning cached net duration");
             return netDurations.get(ID.of(current));
         } else {
             return iterate(netDurationResult, parent, child, ID.of(current.child()));

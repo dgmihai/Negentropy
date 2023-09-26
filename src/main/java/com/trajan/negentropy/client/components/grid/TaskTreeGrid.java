@@ -438,12 +438,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                 descriptionCancelButton);
 
         descriptionArea.setValue(t.task().description());
-        descriptionArea.setReadOnly(true);
         descriptionSaveButton.setVisible(false);
         descriptionCancelButton.setVisible(false);
 
         Consumer<Boolean> toggleEditing = editing -> {
-            descriptionArea.setReadOnly(!editing);
             descriptionSaveButton.setVisible(editing);
             descriptionCancelButton.setVisible(editing);
         };

@@ -36,6 +36,7 @@ public class UserSettings {
     @Setter private InsertMode differentGridDragInsertMode = InsertMode.MOVE;
     @Setter private boolean routineStepsGridVisible = false;
     @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
+    @Setter private TaskEntry currentRootEntry = null;
 
     @Setter
     private DescriptionViewDefaultSetting descriptionViewDefaultSetting = DescriptionViewDefaultSetting.IF_PRESENT;

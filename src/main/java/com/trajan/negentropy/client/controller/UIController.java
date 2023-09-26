@@ -85,6 +85,8 @@ public class UIController implements SessionLogged {
         log.info("Registering UI client " + uiId + " at " + address + " using " + browser +
                 " with server broadcaster");
         broadcastRegistration = serverBroadcaster.register(this::sync);
+
+        this.sync();
     }
 
     @PreDestroy
@@ -196,9 +198,9 @@ public class UIController implements SessionLogged {
                     aggregateSyncRecord.id(), changes.size(), taskNetworkGraph.syncId());
 
             if (settings != null) {
-                taskNetworkGraph.fetchNetDurations(settings.filter());
+                taskNetworkGraph.syncNetDurations(settings.filter());
             } else {
-                taskNetworkGraph.fetchNetDurations(null);
+                taskNetworkGraph.syncNetDurations(null);
             }
 
             Map<TaskID, Task> taskMap = taskNetworkGraph.taskMap();

@@ -34,6 +34,7 @@ public class NestedTaskTabs extends Tabs {
             currentEntry = null;
         }
         taskEntryTreeGrid.gridDataProvider().rootEntry(currentEntry);
+        taskEntryTreeGrid.settings().currentRootEntry(currentEntry);
         while (getComponentCount() > tabIndex + 1) {
             remove(getTabAt(tabIndex + 1));
         }

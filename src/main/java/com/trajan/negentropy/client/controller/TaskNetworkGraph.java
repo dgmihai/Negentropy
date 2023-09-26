@@ -12,6 +12,7 @@ import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
@@ -77,9 +78,9 @@ public class TaskNetworkGraph implements SessionLogged {
         services.query().fetchDescendantNodes(null, null)
                 .forEach(this::addTaskNode);
         if (settings != null) {
-            this.fetchNetDurations(settings.filter());
+            this.syncNetDurations(settings.filter());
         } else {
-            this.fetchNetDurations(null);
+            this.syncNetDurations(null);
         }
         log.info("Initialized TaskNetworkGraph with {} nodes", network.nodes().size());
     }
@@ -174,7 +175,23 @@ public class TaskNetworkGraph implements SessionLogged {
                 .toList();
     }
 
-    public void fetchNetDurations(TaskNodeTreeFilter filter) {
-        this.netDurationInfo = services.query().fetchNetDurationInfo(filter);
+    public void syncNetDurations(TaskNodeTreeFilter filter) {
+        log.debug("Syncing net durations with filter " + filter);
+        if (this.syncId == null || services.query().currentSyncId() != this.syncId) {
+            this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.from(filter), f ->
+                    services.query().fetchNetDurationInfo(filter));
+        } else {
+            this.netDurationInfo = services.query().fetchNetDurationInfo(filter);
+            filterMap.put(NonSpecificTaskNodeTreeFilter.from(filter), this.netDurationInfo);
+        }
     }
+
+    public void getNetDurations(TaskNodeTreeFilter filter) {
+        this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.from(filter), f ->
+                services.query().fetchNetDurationInfo(filter));
+    }
+
+    private Map<NonSpecificTaskNodeTreeFilter, NetDurationInfo> filterMap = new HashMap<>();
+
+
 }

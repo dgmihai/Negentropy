@@ -1,10 +1,7 @@
 package com.trajan.negentropy.model.filter;
 
 import com.trajan.negentropy.model.id.TagID;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
@@ -17,7 +14,9 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @EqualsAndHashCode
+@ToString
 public class TaskTreeFilter implements Serializable {
+    @ToString.Exclude
     private static final long serialVersionUID = 1L;
 
     protected String name;

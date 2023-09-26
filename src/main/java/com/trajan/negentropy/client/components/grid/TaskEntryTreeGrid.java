@@ -75,8 +75,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     @Autowired private ShortenedCronConverter cronConverter;
     private TaskEntryDataProvider gridDataProvider;
 
-    protected static final String CRON_WIDTH = "120px";
-    protected static final String DATE_WIDTH = "120px";
 
     public static final List<ColumnKey> excludedColumns = List.of(
             ColumnKey.STATUS,
@@ -186,7 +184,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 cronValueProvider.apply(entry.node().cron()))
                         .setKey(ColumnKey.CRON.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
-                        .setWidth(CRON_WIDTH)
+                        .setWidth(GridUtil.CRON_COL_WIDTH)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
 
@@ -200,7 +198,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     })
                     .setKey(ColumnKey.SCHEDULED_FOR.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR))
-                    .setWidth(DATE_WIDTH)
+                    .setWidth(GridUtil.DATE_COL_WIDTH)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
 

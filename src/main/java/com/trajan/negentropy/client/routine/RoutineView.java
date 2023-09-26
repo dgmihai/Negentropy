@@ -68,7 +68,6 @@ public class RoutineView extends VerticalLayout {
     public void init() {
         log = loggerFactory.getLogger(this.getClass());
 
-        controller.sync();
         this.addClassName("routine-view");
         this.setSizeFull();
         this.setJustifyContentMode(JustifyContentMode.START);

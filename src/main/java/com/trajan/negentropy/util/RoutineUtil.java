@@ -45,6 +45,18 @@ public class RoutineUtil {
         };
     }
 
+    public static Duration getStepDisplayTime(RoutineStepData step, LocalDateTime time) {
+        return switch (step.status()) {
+            case NOT_STARTED:
+                yield step.duration();
+            case ACTIVE, SUSPENDED:
+                yield step.duration().minus(
+                    getStepElapsedActiveDuration(step, time));
+            case SKIPPED, COMPLETED, EXCLUDED, POSTPONED:
+                yield Duration.ZERO;
+        };
+    }
+
     public static LocalDateTime getRoutineStepETA(RoutineStepData step, LocalDateTime time) {
         return switch (step.status()) {
             case NOT_STARTED, ACTIVE, SUSPENDED:

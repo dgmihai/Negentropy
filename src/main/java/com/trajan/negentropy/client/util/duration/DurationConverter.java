@@ -62,7 +62,7 @@ public class DurationConverter implements Converter<String, Duration> {
         if (minutes > 0) {
             parts.add(String.format("%d", minutes) + "m");
         }
-        if (seconds > 0) {
+        if (seconds > 0 && hours == 0) {
             parts.add(String.format("%d", seconds) + "s");
         }
         return String.join(" ", parts);
