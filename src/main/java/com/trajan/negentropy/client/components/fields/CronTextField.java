@@ -7,12 +7,12 @@ import com.vaadin.flow.component.textfield.TextFieldVariant;
 public class CronTextField extends TextField {
     public CronTextField() {
         super();
-        setPlaceholder("Cron (S M H D M W)");
-        setPattern(K.CRON_PATTERN);
+        setPlaceholder("Cron (H D M W)");
+        setPattern(K.CRON_SHORT_PATTERN);
     }
 
     public CronTextField small() {
-        setPlaceholder("S M H D M W");
+        setPlaceholder("H D M W");
         addThemeVariants(TextFieldVariant.LUMO_SMALL);
         return this;
     }

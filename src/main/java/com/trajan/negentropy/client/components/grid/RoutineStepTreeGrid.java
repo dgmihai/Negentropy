@@ -1,8 +1,6 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.google.common.base.Joiner;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
@@ -10,6 +8,8 @@ import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.TaskNode;
@@ -53,8 +53,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     public static final List<ColumnKey> excludedColumns = List.of(
             ColumnKey.COMPLETE,
-            ColumnKey.DELETE,
-            ColumnKey.EDIT);
+            ColumnKey.DELETE);
 
     public static final List<ColumnKey> possibleColumns = Arrays.stream(ColumnKey.values())
             .filter(columnKey -> !excludedColumns.contains(columnKey))
@@ -78,7 +77,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             List<String> partNames = new ArrayList<>();
 
             Set<TimeableStatus> grayedOut = Set.of(
-                    TimeableStatus.SKIPPED,
+                    TimeableStatus.POSTPONED,
                     TimeableStatus.COMPLETED,
                     TimeableStatus.EXCLUDED);
 
@@ -181,8 +180,13 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected Binder<RoutineStep> setEditorBinder(AbstractTaskFormLayout form) {
-        RoutineStepFormLayout rsForm = (RoutineStepFormLayout) form;
-        return rsForm.binder();
+        if (form instanceof GridInlineEditorTaskNodeFormLayout gridInlineEditorTaskNodeFormLayout) {
+            return gridInlineEditorTaskNodeFormLayout.binder();
+        } else if (form instanceof RoutineStepFormLayout routineStepFormLayout) {
+            return routineStepFormLayout.binder();
+        } else {
+            throw new RuntimeException("Unknown form type: " + form.getClass());
+        }
     }
 
     @Override

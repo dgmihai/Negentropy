@@ -430,7 +430,8 @@ public class DataContextImpl implements DataContext {
                 routineEntity.currentPosition(),
                 routineEntity.estimatedDuration(),
                 routineEntity.estimatedDurationLastUpdatedTime(),
-                routineEntity.status());
+                routineEntity.status(),
+                routineEntity.syncId());
     }
 
     @Override

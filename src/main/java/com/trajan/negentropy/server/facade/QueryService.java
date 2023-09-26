@@ -10,6 +10,7 @@ import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
+import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import org.springframework.stereotype.Service;
 
@@ -203,7 +204,10 @@ public interface QueryService {
      */
     Stream<Tag> fetchTags(TaskID taskId);
 
-    Map<TaskID, Duration> fetchAllNetDurations(TaskNodeTreeFilter filter);
+    Map<LinkID, Duration> fetchAllNetNodeDurations(TaskNodeTreeFilter filter);
+    Map<TaskID, Duration> fetchAllNetTaskDurations(TaskNodeTreeFilter filter);
+
+    NetDurationInfo fetchNetDurationInfo(TaskNodeTreeFilter filter);
 
     Duration fetchNetDuration(TaskID taskId, TaskNodeTreeFilter filter);
 

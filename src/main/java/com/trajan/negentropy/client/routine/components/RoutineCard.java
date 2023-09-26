@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.routine.components;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
@@ -33,7 +33,7 @@ import java.util.function.Function;
 
 @Slf4j
 public class RoutineCard extends VerticalLayout {
-    private final ClientDataController controller;
+    private final UIController controller;
 
     private TaskInfoBar rootTaskbar;
 //    private TaskInfoBar parentTaskbar;
@@ -42,7 +42,7 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
-    private RoutineCardButton recalculate;
+    private RoutineCardToggleableButton recalculate;
     private RoutineCardButton postpone;
     private RoutineCardButton close;
     private Span currentTaskName;
@@ -54,7 +54,7 @@ public class RoutineCard extends VerticalLayout {
 
     private RoutineStepTreeGrid routineStepTreeGrid;
 
-    public RoutineCard(Routine routine, ClientDataController controller, RoutineStepTreeGrid routineStepTreeGrid) {
+    public RoutineCard(Routine routine, UIController controller, RoutineStepTreeGrid routineStepTreeGrid) {
         this.controller = controller;
         this.routineStepTreeGrid = routineStepTreeGrid;
 
@@ -103,6 +103,7 @@ public class RoutineCard extends VerticalLayout {
             pause.setVisible(isActive());
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
+            recalculate.setEnabled(!controller.taskNetworkGraph().syncId().equals(routine.syncId()));
             rootTaskbar.setTimeable(routine);
             rootTaskbar.timer().run(isActive());
         }
@@ -160,15 +161,15 @@ public class RoutineCard extends VerticalLayout {
         pause.addClickListener(event -> this.processStep(
                 controller::pauseRoutineStep));
 
-        recalculate = new RoutineCardButton(VaadinIcon.REFRESH.create());
+        recalculate = new RoutineCardToggleableButton(VaadinIcon.REFRESH.create());
         recalculate.addClickListener(event -> this.processRoutine(
                 controller::recalculateRoutine));
 
-        skip = new RoutineCardButton(VaadinIcon.TIME_FORWARD.create());
+        skip = new RoutineCardButton(VaadinIcon.STEP_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
                 controller::skipRoutineStep));
 
-        postpone = new RoutineCardButton(VaadinIcon.FORWARD.create());
+        postpone = new RoutineCardButton(VaadinIcon.TIME_FORWARD.create());
         postpone.addClickListener(event -> this.processStep(
                 controller::postponeRoutineStep));
 

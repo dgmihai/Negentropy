@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.controller.dataproviders;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.controller.SessionServices;
@@ -33,6 +34,7 @@ public class TaskEntryDataProviderManager {
     private SessionLogger log;
 
     @Autowired private SessionServices services;
+    @Autowired private UserSettings settings;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
 
     // ID, Boolean = true to recurse through all children, false for only that single entry
@@ -43,6 +45,7 @@ public class TaskEntryDataProviderManager {
     @PostConstruct
     public void init() {
         log = loggerFactory.getLogger(this.getClass());
+        this.setFilter(settings.filter());
     }
 
     @VisibleForTesting
@@ -76,6 +79,7 @@ public class TaskEntryDataProviderManager {
 
     public void setFilter(TaskNodeTreeFilter filter) {
         allProviders().forEach(provider -> provider.setFilter(filter));
+        taskNetworkGraph.fetchNetDurations(filter);
     }
 
     @Slf4j
@@ -148,7 +152,7 @@ public class TaskEntryDataProviderManager {
 
         @Override
         public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
-            log.debug("Getting child count for " + query.getParent());
+            log.trace("Getting child count for " + query.getParent());
             TaskID parentTaskID = query.getParent() != null ? query.getParent().task().id() : getRootTaskID();
             return networkGraph.getChildCount(parentTaskID, this.filteredLinks);
         }
@@ -164,7 +168,7 @@ public class TaskEntryDataProviderManager {
                 taskTaskEntriesMap.clear();
             }
 
-            log.debug("Fetching children for parent " + parent);
+            log.trace("Fetching children for parent " + parent);
             return networkGraph.getChildren(parentTaskID, this.filteredLinks).stream()
                     .map(node -> {
                         log.trace("Fetching child: " + node);

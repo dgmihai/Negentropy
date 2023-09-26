@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.components.filterform;
 
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.ReadOnlySettableFormLayout;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.button.Button;
@@ -32,7 +32,7 @@ public abstract class FilterForm extends ReadOnlySettableFormLayout {
     protected TagComboBox tagsToInclude;
 
     public abstract Binder<? extends TaskTreeFilter> binder();
-    protected abstract ClientDataController controller();
+    protected abstract UIController controller();
 
     protected void configureInteractions() {
         resetButton.addClickListener(e -> {

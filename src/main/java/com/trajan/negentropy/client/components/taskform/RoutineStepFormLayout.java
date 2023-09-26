@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
@@ -37,7 +37,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
         }
     };
 
-    public RoutineStepFormLayout(ClientDataController controller, RoutineStep step) {
+    public RoutineStepFormLayout(UIController controller, RoutineStep step) {
         super(controller);
         binder.setBean(step);
 

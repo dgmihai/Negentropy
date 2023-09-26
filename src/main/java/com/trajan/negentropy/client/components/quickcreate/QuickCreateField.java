@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
@@ -23,7 +23,7 @@ import org.springframework.data.util.Pair;
 @Accessors(fluent = true)
 public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     @Getter
-    private final ClientDataController controller;
+    private final UIController controller;
 
     @Getter
     private final TaskNodeProvider taskNodeProvider;
@@ -31,7 +31,7 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     private Task task = null;
     private TaskNodeInfoData<TaskNodeDTO> nodeDTO = null;
 
-    public QuickCreateField(ClientDataController controller) {
+    public QuickCreateField(UIController controller) {
         super();
         this.controller = controller;
         this.taskNodeProvider = new TaskNodeProvider(controller) {

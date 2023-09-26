@@ -37,8 +37,9 @@ public class RoutineUtil {
             case NOT_STARTED:
                 yield step.duration();
             case ACTIVE, SUSPENDED:
-                yield step.duration().minus(
+                Duration remaining = step.duration().minus(
                         getStepElapsedActiveDuration(step, time));
+                yield remaining.isNegative() ? Duration.ZERO : remaining;
             case SKIPPED, COMPLETED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;
         };
@@ -66,6 +67,5 @@ public class RoutineUtil {
 
     public static void setRoutineDuration(RoutineData routine, LocalDateTime time) {
         routine.estimatedDuration(getRemainingRoutineDuration(routine, time));
-        routine.estimatedDurationLastUpdatedTime(time);
     }
 }

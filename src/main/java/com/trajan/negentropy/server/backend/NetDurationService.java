@@ -3,7 +3,6 @@ package com.trajan.negentropy.server.backend;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
-import com.trajan.negentropy.model.entity.netduration.NetDurationID;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
@@ -13,15 +12,23 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelper;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
+@Slf4j
 public class NetDurationService {
 
     @Autowired private EntityQueryService entityQueryService;
@@ -31,8 +38,9 @@ public class NetDurationService {
     
     private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
-    public NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
+    public synchronized NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
         TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
+        log.debug("Getting helper for filter: " + filter);
 
         nonNullFilter.name(null); // We don't cache by name
 
@@ -41,30 +49,66 @@ public class NetDurationService {
         );
     }
 
-    public Map<TaskID, Duration> getAllNetDurations(TaskNodeTreeFilter filter) {
+    public Map<TaskID, Duration> getAllNetTaskDurations(TaskNodeTreeFilter filter) {
+        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
+        nonNullFilter.name(null); // We don't cache by name
+
+        return entityQueryService.findTasks(nonNullFilter)
+                .collect(Collectors.toMap(
+                        ID::of,
+                        link -> this.getNetDuration(link, nonNullFilter)
+                ));
+    }
+
+    public Map<LinkID, Duration> getAllNetNodeDurations(TaskNodeTreeFilter filter) {
         TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
         nonNullFilter.name(null); // We don't cache by name
 
         return entityQueryService.findLinks(nonNullFilter)
                 .collect(Collectors.toMap(
-                        link -> ID.of(link.child()),
+                        ID::of,
                         link -> this.getNetDuration(link, nonNullFilter)
                 ));
     }
 
-    public Map<TaskID, Duration> getAllDescendantsNetDurations(LinkID ancestorId, TaskNodeTreeFilter filter) {
+    public void clearLinks(Set<LinkID> durationUpdates) {
+        helperManager.clearLinks(durationUpdates);
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class NetDurationInfo {
+        private Map<TaskID, Duration> netTaskDurations;
+        private Map<LinkID, Duration> netNodeDurations;
+        private MultiValueMap<LinkID, LinkID> projectChildrenOutsideDurationLimitMap;
+        private TaskNodeTreeFilter filter;
+    }
+
+    public NetDurationInfo getNetDurationInfo(TaskNodeTreeFilter filter) {
+        return new NetDurationInfo(
+                getAllNetTaskDurations(filter),
+                getAllNetNodeDurations(filter),
+                getHelper(filter).projectChildrenOutsideDurationLimitMap(),
+                filter);
+    }
+
+    public Map<LinkID, Duration> getAllDescendantsNetDurations(LinkID ancestorId, TaskNodeTreeFilter filter) {
         TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
         nonNullFilter.name(null); // We don't cache by name
 
         return entityQueryService.findDescendantLinks(ancestorId, nonNullFilter)
                 .collect(Collectors.toMap(
-                        link -> ID.of(link.child()),
+                        ID::of,
                         link -> this.getNetDuration(link, nonNullFilter)
                 ));
     }
 
     public NetDuration getNetDurationEntity(TaskID taskId) {
-        return netDurationRepository.getReferenceById(new NetDurationID(entityQueryService.getTask(taskId), 0));
+        return netDurationRepository.findByTaskId(taskId.val()).get(0);
+    }
+
+    public NetDuration getNetDurationEntity(TaskEntity task) {
+        return netDurationRepository.findByTask(task).get(0);
     }
 
     public Duration getNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
@@ -81,20 +125,21 @@ public class NetDurationService {
         return getNetDuration(entityQueryService.getLink(linkId), filter);
     }
 
-    public Duration getNetDuration(TaskLink link, TaskNodeTreeFilter filter) {
+    public synchronized Duration getNetDuration(TaskLink link, TaskNodeTreeFilter filter) {
         TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
+        nonNullFilter.name(null); // We don't cache by name
 
-        if ((!link.child().project() && link.projectDuration() != null) && (nonNullFilter.isEmpty())) {
-            return getNetDurationEntity(ID.of(link.child())).val();
-        } else {
-            nonNullFilter.name(null); // We don't cache by name
+        // TODO: Retry caching
+//        if (!(link.child().project() && link.projectDuration() != null) && (nonNullFilter.isEmpty())) {
+//            return getNetDurationEntity(link.child()).val();
+//        } else {
 
             NetDurationHelper helper = helpers.computeIfAbsent(nonNullFilter, f ->
                     helperManager.getHelper(nonNullFilter)
             );
 
             return helper.getNetDuration(link);
-        }
+//        }
     }
 
 //    public Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {

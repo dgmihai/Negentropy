@@ -3,7 +3,7 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.SaveEventListener;
@@ -68,7 +68,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected Select<String> onSaveSelect;
 
     @Getter
-    protected ClientDataController controller;
+    protected UIController controller;
 
     public abstract TaskNodeProvider getTaskNodeProvider();
 
@@ -84,7 +84,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     @Setter
     protected Runnable onClose = () -> {};
 
-    public AbstractTaskFormLayout(ClientDataController controller) {
+    public AbstractTaskFormLayout(UIController controller) {
         this.controller = controller;
         this.addClassName("task-entry-form");
     }

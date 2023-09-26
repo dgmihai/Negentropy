@@ -19,7 +19,7 @@ public class SessionLoggerFactory {
         String browser = session.getBrowser().getBrowserApplication();
         String address = session.getBrowser().getAddress();
         sessionPrefix = "[" + Math.abs((browser + " " + address + " ").hashCode()) + "]: ";
-        log.info("Setting session prefix " + sessionPrefix + " for session on browser " + browser + " at address " + address);
+        log.info("Setting session prefix '" + sessionPrefix + "' for session on browser " + browser + " at address " + address);
     }
 
     public SessionLogger getLogger(Class<?> clazz) {

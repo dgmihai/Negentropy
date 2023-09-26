@@ -1,11 +1,11 @@
 package com.trajan.negentropy.client.components.filterform;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TreeFilterForm extends TaskNodeFilterForm {
-    public TreeFilterForm(ClientDataController controller) {
+    public TreeFilterForm(UIController controller) {
         super(controller);
     }
 

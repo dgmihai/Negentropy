@@ -10,5 +10,7 @@ import java.util.List;
 
 @Repository
 public interface NetDurationRepository extends BaseRepository<NetDuration, NetDurationID> {
+    List<NetDuration> findByTask(TaskEntity task);
+    List<NetDuration> findByTaskId(long taskId);
     List<NetDuration> findByTaskIn(Collection<TaskEntity> tasks);
 }

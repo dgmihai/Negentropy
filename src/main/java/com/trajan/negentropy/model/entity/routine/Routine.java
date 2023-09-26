@@ -2,6 +2,7 @@ package com.trajan.negentropy.model.entity.routine;
 
 import com.trajan.negentropy.model.data.RoutineData;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
@@ -35,6 +36,8 @@ public class Routine implements RoutineData, Timeable {
     private LocalDateTime estimatedDurationLastUpdatedTime;
 
     private TimeableStatus status;
+
+    private SyncID syncId;
 
     public RoutineStep currentStep() {
         return this.getAllChildren().get(currentPosition);

@@ -3,9 +3,9 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.client.util.cron.CronConverter;
+import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -52,15 +52,15 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     protected TextField projectDurationField;
     protected Checkbox recurringCheckbox;
 
-    public GridInlineEditorTaskNodeFormLayout(ClientDataController controller, T node, Class<T> clazz) {
+    public GridInlineEditorTaskNodeFormLayout(UIController controller, T data, Class<T> clazz) {
         super(controller);
         this.clazz = clazz;
         binder = new BeanValidationBinder<>(clazz);
-        binder.setBean(node);
+        binder.setBean(data);
 
         configureAll();
 
-        projectDurationField.setVisible(node.task().project());
+        projectDurationField.setVisible(data.task().project());
         saveAsLastCheckbox.setVisible(false);
     }
 
@@ -109,7 +109,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
                         (node, duration) -> node.task().duration(duration));
 
         binder.forField(cronField)
-                .withConverter(new CronConverter())
+                .withConverter(new ShortenedCronConverter())
                 .bind(
                         node -> node.node().cron(),
                         (node, cron) -> node.node().cron(cron));

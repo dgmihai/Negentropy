@@ -2,11 +2,11 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.client.util.cron.CronConverter;
+import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -34,7 +34,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         return taskNodeProvider;
     }
 
-    public TaskNodeInfoFormLayout(ClientDataController controller) {
+    public TaskNodeInfoFormLayout(UIController controller) {
         super(controller);
         initTaskNodeDataProvider();
         initClearEventListener();
@@ -44,7 +44,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         projectComboBox.setVisible(true);
     }
 
-    public TaskNodeInfoFormLayout(ClientDataController controller, Task task) {
+    public TaskNodeInfoFormLayout(UIController controller, Task task) {
         super(controller);
         initTaskNodeDataProvider();
         initClearEventListener();
@@ -109,7 +109,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         nodeInfoBinder = new BeanValidationBinder<>(TaskNodeDTO.class);
 
         nodeInfoBinder.forField(cronField)
-                .withConverter(new CronConverter())
+                .withConverter(new ShortenedCronConverter())
                 .bind(TaskNodeDTOData::cron, TaskNodeDTOData::cron);
 
         nodeInfoBinder.forField(recurringCheckbox)

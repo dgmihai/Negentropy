@@ -5,10 +5,10 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.sessionlogger.SessionLogged;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
-import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -17,16 +17,15 @@ import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,8 +51,9 @@ public class TaskNetworkGraph implements SessionLogged {
     private Map<LinkID, TaskNode> nodeMap = new HashMap<>();
     private Map<TagID, Tag> tagMap = new HashMap<>();
     private MultiValueMap<TaskID, LinkID> nodesByTaskMap = new LinkedMultiValueMap<>();
-    @Setter
-    private Map<TaskID, Duration> netDurations;
+
+    private NetDurationInfo netDurationInfo;
+
 
     public TaskNetworkGraph syncId(SyncID syncId) {
         log.trace("Previous syncId: " + this.syncId + ", new syncId: " + syncId);
@@ -76,7 +76,11 @@ public class TaskNetworkGraph implements SessionLogged {
         log.info("Initial sync id: {}", this.syncId.val());
         services.query().fetchDescendantNodes(null, null)
                 .forEach(this::addTaskNode);
-        netDurations = services.query().fetchAllNetDurations(null);
+        if (settings != null) {
+            this.fetchNetDurations(settings.filter());
+        } else {
+            this.fetchNetDurations(null);
+        }
         log.info("Initialized TaskNetworkGraph with {} nodes", network.nodes().size());
     }
 
@@ -168,5 +172,9 @@ public class TaskNetworkGraph implements SessionLogged {
         log.debug("Getting filtered links with filter " + filter);
         return services.query().fetchAllNodesAsIds(filter)
                 .toList();
+    }
+
+    public void fetchNetDurations(TaskNodeTreeFilter filter) {
+        this.netDurationInfo = services.query().fetchNetDurationInfo(filter);
     }
 }

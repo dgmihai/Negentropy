@@ -10,7 +10,7 @@ import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMe
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -82,7 +82,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     @Autowired protected SessionLoggerFactory loggerFactory;
     protected SessionLogger log;
 
-    @Autowired protected ClientDataController controller;
+    @Autowired protected UIController controller;
     @Autowired protected UserSettings settings;
 
     @Autowired protected DurationEstimateValueProviderFactory<T> durationEstimateValueProviderFactory;

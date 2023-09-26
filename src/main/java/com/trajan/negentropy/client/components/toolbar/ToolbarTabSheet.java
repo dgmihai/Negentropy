@@ -8,7 +8,7 @@ import com.trajan.negentropy.client.components.filterform.TaskNodeFilterForm;
 import com.trajan.negentropy.client.components.filterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -60,7 +60,7 @@ import java.util.Optional;
 @Slf4j
 public class ToolbarTabSheet extends TabSheet {
     @Autowired
-    private ClientDataController controller;
+    private UIController controller;
     @Autowired
     private UserSettings settings;
 

@@ -35,11 +35,11 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
-    @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private TagRepository tagRepository;
+    @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository stepRepository;
-    
+
     private static final com.trajan.negentropy.model.entity.QTaskLink Q_LINK = com.trajan.negentropy.model.entity.QTaskLink.taskLink;
     private static final QTaskEntity Q_TASK = QTaskEntity.taskEntity;
 
@@ -117,6 +117,10 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
             if (filter.completed() != null) {
                 builder.and(Q_LINK.completed.eq(filter.completed()));
+            }
+
+            if (filter.recurring() != null) {
+                builder.and(Q_LINK.recurring.eq(filter.recurring()));
             }
        }
         return builder.and(filterTaskPredicate(filter, Q_LINK.child));
@@ -340,25 +344,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Override
     public Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskNodeTreeFilter filter) {
         return this.findDescendantLinks(ancestorId, filter).map(TaskLink::child);
-    }
-
-    @Override
-    public Map<TaskID, Duration> getAllNetDurations(TaskNodeTreeFilter filter) {
-        Iterable<TaskLink> matchingLinks = linkRepository.findAll(filterLinkPredicate(filter));
-        List<TaskEntity> tasks = StreamSupport.stream(matchingLinks.spliterator(), false)
-                .map(TaskLink::child)
-                .collect(Collectors.toList());
-
-        List<NetDuration> estimates = netDurationRepository.findByTaskIn(tasks);
-
-        return estimates.stream()
-//                .filter(estimate ->
-//                        filter == null || (filter.importanceThreshold() == null
-//                        || estimate.importance() <= filter.importanceThreshold()))
-                .collect(Collectors.toMap(
-                        estimate -> ID.of(estimate.task()),
-                        NetDuration::val
-                ));
     }
 
     @Override

@@ -20,7 +20,6 @@ import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordDataType;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordType;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.repository.ChangeRecordRepository;
 import com.trajan.negentropy.server.backend.repository.SyncRecordRepository;
 import jakarta.annotation.PostConstruct;
@@ -51,13 +50,10 @@ public class SyncManager {
     @Autowired private SyncRecordRepository syncRecordRepository;
     @Autowired private ChangeRecordRepository changeRecordRepository;
     @Autowired private DataContext dataContext;
-    @Autowired private NetDurationHelperManager netDurationHelperManager;
 
     private final Map<Long, ChangeRecordType> pendingChangeTypes = new HashMap<>();
     private final Map<Long, ChangeRecordEntity> pendingChangeRecords = new HashMap<>();
-    private final Map<TaskID, Duration> netDurationRecords = new HashMap<>();
     private SyncRecordEntity pendingSyncRecord = new SyncRecordEntity();
-
     public static SyncManager instance;
 
     @PostConstruct
@@ -88,7 +84,6 @@ public class SyncManager {
     public synchronized void logChange(ChangeRecordType changeType, ChangeRecordDataType dataType, AbstractEntity entity) {
         Long id = entity.id();
         log.trace("Logging change: {} {}, id: {}", dataType, changeType, id);
-        netDurationHelperManager.clear();
         ChangeRecordType finalChangeType =
                 pendingChangeTypes.containsKey(id) && changeType.ordinal() < pendingChangeTypes.get(id).ordinal()
                 ? pendingChangeTypes.get(id)
@@ -107,10 +102,6 @@ public class SyncManager {
                 dataType,
                 id,
                 previousDuration));
-    }
-
-    public synchronized void logDurationChange(TaskID taskId, Duration netDuration) {
-        netDurationRecords.put(taskId, netDuration);
     }
 
     public synchronized SyncRecord aggregatedSyncRecord(SyncID from) {
@@ -144,8 +135,7 @@ public class SyncManager {
             return new SyncRecord(
                     getLatestSyncRecord().id(),
                     getLatestSyncRecord().timestamp(),
-                    List.of(),
-                    new HashMap<>());
+                    List.of());
         }
     }
 
@@ -189,8 +179,7 @@ public class SyncManager {
         return new SyncRecord(
                 latestSyncRecord.id(),
                 latestSyncRecord.timestamp(),
-                changes,
-                netDurationRecords);
+                changes);
     }
 
     private Change getDeleteChange(ChangeRecordDataType dataType, Long id) {

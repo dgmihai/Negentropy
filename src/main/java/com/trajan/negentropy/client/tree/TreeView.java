@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
@@ -38,7 +38,7 @@ public class TreeView extends Div {
     private SessionLogger log;
 
     @Autowired private BannerProvider bannerProvider;
-    @Autowired private ClientDataController controller;
+    @Autowired private UIController controller;
     @Autowired private UserSettings settings;
     @Autowired private TaskNetworkGraph networkGraph;
 

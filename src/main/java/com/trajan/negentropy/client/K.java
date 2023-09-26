@@ -23,12 +23,15 @@ public class K {
     public static final String GRID_PARTNAME_COMPLETED = "completed-node";
     public static final String GRID_PARTNAME_RECURRING = "recurring-node";
     public static final String GRID_PARTNAME_PROJECT = "project-task";
+    public static final String GRID_PARTNAME_DURATION_LIMIT_EXCEEDED = "exceeds-duration-limit";
 
     public static final int BREAKPOINT_PX = 600;
 
-    public static final String CRON_PLACEHOLDER = "-- -- -- -- -- --";
+    public static final String SHORTENED_CRON_PLACEHOLDER = "-- -- -- --";
     public static final String CRON_PATTERN =
             "^(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[?0-9*/LW,-]+(?<![-/,])\\s(?![-/,])[0-9*/JANFEBMARAPRMAYJUNJULAUGSEPOCTNOVDEC,-]+(?<![-/,])\\s(?![-/,])[?L#0-9*/MONTUEWEDTHUFRISATSUN,-]+(?<![-/,])$";
+    public static final String CRON_SHORT_PATTERN =
+            "^(?![-/,])[0-9*/,-]+(?<![-/,])\\s(?![-/,])[?0-9*/LW,-]+(?<![-/,])\\s(?![-/,])[0-9*/JANFEBMARAPRMAYJUNJULAUGSEPOCTNOVDEC,-]+(?<![-/,])\\s(?![-/,])[?L#0-9*/MONTUEWEDTHUFRISATSUN,-]+(?<![-/,])$";
 
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String SHORT_WIDTH = "600px";

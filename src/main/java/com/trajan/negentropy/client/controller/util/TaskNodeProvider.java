@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.controller.util;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
@@ -20,11 +20,11 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse> {
-    protected ClientDataController controller;
+    protected UIController controller;
     public abstract Task getTask();
     public abstract TaskNodeInfoData<?> getNodeInfo();
 
-    public TaskNodeProvider(ClientDataController controller) {
+    public TaskNodeProvider(UIController controller) {
         super();
         this.controller = controller;
     }

@@ -5,7 +5,7 @@ import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -51,7 +51,7 @@ public class RoutineView extends VerticalLayout {
     private SessionLogger log;
 
     @Autowired private BannerProvider bannerProvider;
-    @Autowired private ClientDataController controller;
+    @Autowired private UIController controller;
     @Autowired private UserSettings settings;
     @Autowired private RoutineDataProvider routineDataProvider;
     @Autowired private RoutineService routineService;

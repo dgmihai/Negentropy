@@ -74,14 +74,14 @@
   width: 5rem;
 }
 
-.routine-view .description {
+.routine-view .card .description {
   color: var(--lumo-secondary-text-color);
   font-size: var(--lumo-font-size-m);
   margin-bottom: var(--lumo-space-xs);
   --lumo-text-field-size: var(--lumo-size-s);
 }
 
-.routine-view vaadin-text-area::part(input-field) {
+.routine-view .card  vaadin-text-area::part(input-field) {
   background-color: var(--lumo-tint-70pct);
 }
 

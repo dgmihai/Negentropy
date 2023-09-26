@@ -15,10 +15,12 @@ import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.client.util.NotificationMessage;
-import com.trajan.negentropy.client.util.cron.CronValueProvider;
+import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
+import com.trajan.negentropy.client.util.cron.ShortenedCronValueProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
@@ -67,9 +69,10 @@ import java.util.stream.Collectors;
 @Accessors(fluent = true)
 @Getter
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
-    @Autowired private CronValueProvider cronValueProvider;
+    @Autowired private ShortenedCronValueProvider cronValueProvider;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
     @Autowired private TaskEntryDataProviderManager dataProviderManager;
+    @Autowired private ShortenedCronConverter cronConverter;
     private TaskEntryDataProvider gridDataProvider;
 
     protected static final String CRON_WIDTH = "120px";
@@ -287,6 +290,12 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             if (entry.node().recurring()) {
                 partNames.add(K.GRID_PARTNAME_RECURRING);
             }
+            if (entry.node().parentId() != null) {
+                List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
+                if (childrenExceedingDurationLimit != null && childrenExceedingDurationLimit.contains(entry.node().linkId())) {
+                    partNames.add(K.GRID_PARTNAME_DURATION_LIMIT_EXCEEDED);
+                }
+            }
 
             return Joiner.on(" ").join(partNames);
         });
@@ -437,7 +446,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 Set<TaskEntry> data = treeGrid.getSelectedItems();
                 try {
                     if (!cronField.getValue().isBlank()) {
-                        CronExpression cron = CronExpression.parse(cronField.getValue());
+                        CronExpression cron = cronConverter.convertToModel(cronField.getValue());
                         controller.requestChangeAsync(new MultiMergeChange<>(
                                 new TaskNodeDTO()
                                         .cron(cron),

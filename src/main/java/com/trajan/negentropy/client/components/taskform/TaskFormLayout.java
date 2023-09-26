@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
@@ -43,7 +43,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         return taskNodeProvider;
     }
 
-    public TaskFormLayout(ClientDataController controller) {
+    public TaskFormLayout(UIController controller) {
         super(controller);
 
         configureAll();

@@ -13,6 +13,8 @@ import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
+import com.trajan.negentropy.server.backend.NetDurationService;
+import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
 import com.trajan.negentropy.server.backend.TagService;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import com.trajan.negentropy.server.backend.sync.SyncManager;
@@ -37,6 +39,7 @@ public class QueryServiceImpl implements QueryService {
     @Autowired private NetDurationRepository timeRepository;
     @Autowired private SyncManager syncManager;
     @Autowired private DataContext dataContext;
+    @Autowired private NetDurationService netDurationService;
 
     @Override
     public Task fetchTask(TaskID taskId) {
@@ -174,8 +177,18 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
-    public Map<TaskID, Duration> fetchAllNetDurations(TaskNodeTreeFilter filter) {
-        return entityQueryService.getAllNetDurations(filter);
+    public Map<LinkID, Duration> fetchAllNetNodeDurations(TaskNodeTreeFilter filter) {
+        return netDurationService.getAllNetNodeDurations(filter);
+    }
+
+    @Override
+    public Map<TaskID, Duration> fetchAllNetTaskDurations(TaskNodeTreeFilter filter) {
+        return netDurationService.getAllNetTaskDurations(filter);
+    }
+
+    @Override
+    public NetDurationInfo fetchNetDurationInfo(TaskNodeTreeFilter filter) {
+        return netDurationService.getNetDurationInfo(filter);
     }
 
     @Override

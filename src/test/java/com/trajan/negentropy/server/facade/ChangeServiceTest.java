@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -355,13 +356,17 @@ public class ChangeServiceTest extends TaskTestTemplate {
         Task task2 = tasks.get(TWO);
         Task task21 = tasks.get(TWOONE);
         TaskLink taskLink3 = entityQueryService.getTask(task21.id())
-                .parentLinks().get(0);
+                .parentLinks().get(0)
+                .cron("@daily")
+                .scheduledFor(LocalDateTime.MIN);
 
         TaskNode newNode = moveNode(ID.of(taskLink3),
                 ID.of(taskLink1),
                 InsertLocation.FIRST);
 
         assertEquals(task1.id(), newNode.parentId());
+        // Moving shouldn't reset the scheduled time
+        assertEquals(LocalDateTime.MIN, newNode.scheduledFor());
 
         List<Object> expectedTask1ChildTasks = List.of(
                 tasks.get(TWOONE));

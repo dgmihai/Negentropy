@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.components.filterform.FilterForm;
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.model.Task;
@@ -18,13 +18,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TaskListBox extends MultiSelectListBox<Task> implements HasTaskNodeProvider {
     @Getter
-    protected final ClientDataController controller;
+    protected final UIController controller;
     protected final FilterForm form;
 
     @Getter
     private final TaskNodeProvider taskNodeProvider;
 
-    public TaskListBox(ClientDataController controller, FilterForm form) {
+    public TaskListBox(UIController controller, FilterForm form) {
         super();
         this.controller = controller;
 

@@ -6,9 +6,12 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
+import com.trajan.negentropy.model.filter.SerializationUtil;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -67,13 +70,37 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
     private void linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
                                                              Function<TaskID, Duration> expectedDuration,
-                                                             List<String> expectedSteps) {
-                TaskNode node = nodes.get(rootLink);
-                RoutineResponse response = routineService.createRoutine(node.linkId());
-                assertRoutine(expectedSteps, response);
-                assertEquals(
-                        expectedDuration.apply(node.child().id()),
-                        response.routine().estimatedDuration());
+                                                             List<String> expectedSteps,
+                                                             List<String> excludedTasks) throws Exception {
+        TaskNode node = nodes.get(rootLink);
+        RoutineResponse response = routineService.createRoutine(node.linkId());
+        assertRoutine(expectedSteps, response);
+        assertEquals(
+                expectedDuration.apply(node.child().id()),
+                response.routine().estimatedDuration());
+
+        RoutineEntity routineEntity = entityQueryService.getRoutine(response.routine().id());
+        TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(routineEntity.serializedFilter());
+        List<LinkID> actualExcludedNodeIds = netDurationService.getHelper(filter).projectChildrenOutsideDurationLimitMap().getOrDefault(node.id(), List.of());
+
+        assertExcludedTasks(excludedTasks, actualExcludedNodeIds);
+    }
+
+    private void assertExcludedTasks(List<String> expectedExcludedTasks, List<LinkID> actualExcludedNodeIds) {
+        List<Task> actualExcludedTasks = queryService.fetchNodes(actualExcludedNodeIds)
+                .map(TaskNode::task)
+                .toList();
+
+        System.out.println("EXPECTED EXCL'D: " + expectedExcludedTasks);
+        System.out.println("ACTUAL EXCLUDED: " + actualExcludedTasks
+                .stream()
+                .map(Task::name)
+                .toList());
+
+        assertEquals(expectedExcludedTasks.size(), actualExcludedTasks.size());
+        for (Task task : actualExcludedTasks) {
+            assertTrue(expectedExcludedTasks.contains(task.name()));
+        }
     }
 
     private void taskRoutineCreationTestWithExpectedDuration(String rootTask,
@@ -102,13 +129,17 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     private void linkRoutineCreationTestWithExpectedDurationAndFilter(Triple<String, String, Integer> rootLink,
                                                                       Function<TaskID, Duration> expectedDuration,
                                                                       TaskNodeTreeFilter filter,
-                                                                      List<String> expectedSteps) {
+                                                                      List<String> expectedSteps,
+                                                                      List<String> excludedTasks) {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter);
         assertRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(node.child().id()),
                 response.routine().estimatedDuration());
+        List<LinkID> actualExcludedNodeIds = netDurationService.getHelper(filter).projectChildrenOutsideDurationLimitMap().getOrDefault(node.id(), List.of());
+
+        assertExcludedTasks(excludedTasks, actualExcludedNodeIds);
     }
 
     private void taskRoutineCreationTest (String rootTask, List<String> expectedSteps) {
@@ -118,11 +149,13 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 expectedSteps);
     }
 
-    private void linkRoutineCreationTest(Triple<String, String, Integer> rootLink, List<String> expectedSteps) {
+    private void linkRoutineCreationTest(Triple<String, String, Integer> rootLink, List<String> expectedSteps, List<String> excludedTasks)
+            throws Exception {
         linkRoutineCreationTestWithExpectedDuration(
                 rootLink,
                 rootTaskId -> entityQueryService.getNetDuration(rootTaskId).val(),
-                expectedSteps);
+                expectedSteps,
+                excludedTasks);
     }
 
     @Test
@@ -138,7 +171,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     }
 
     @Test
-    void testCreateRoutineFromLink() {
+    void testCreateRoutineFromLink() throws Exception {
         linkRoutineCreationTest(
                 Triple.of(THREE_AND_FIVE, THREETWO, 1),
                 List.of(
@@ -146,7 +179,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         THREETWOONE_AND_THREETWOTHREE,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         THREETWOONE_AND_THREETWOTHREE,
-                        SIX_AND_THREETWOFOUR));
+                        SIX_AND_THREETWOFOUR),
+                List.of());
     }
 
     @Test
@@ -161,18 +195,20 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithNestedLimitedProject() {
+    void testCreateRoutineFromProjectLinkWithNestedLimitedProject() throws Exception {
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(TWO, TWOTWO, 1),
                 id -> Duration.ofHours(2),
                 List.of(
                         TWOTWO,
                         TWOTWOONE,
-                        TWOTWOTWO));
+                        TWOTWOTWO),
+                List.of(
+                        TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_1() {
+    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_1() throws Exception {
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(2);
 
@@ -183,11 +219,15 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 Triple.of(NULL, TWO, 1),
                 id -> routineDuration,
                 List.of(
-                        TWO));
+                        TWO),
+                List.of(
+                        TWOONE,
+                        TWOTWO,
+                        TWOTHREE));
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_2() {
+    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_2() throws Exception {
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(3);
 
@@ -199,11 +239,14 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 id -> routineDuration,
                 List.of(
                         TWO,
-                        TWOONE));
+                        TWOONE),
+                List.of(
+                        TWOTWO,
+                        TWOTHREE));
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_3() {
+    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_3() throws Exception {
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
 
@@ -218,11 +261,13 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         TWOONE,
                         TWOTWO,
                         TWOTWOONE,
-                        TWOTWOTWO));
+                        TWOTWOTWO),
+                List.of(
+                        TWOTHREE));
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_4() {
+    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_TWO_4() throws Exception {
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(6);
 
@@ -238,7 +283,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTHREE));
+                        TWOTHREE),
+                List.of());
     }
 
     @Test
@@ -284,11 +330,12 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         TWOONE,
                         TWOTWO,
                         TWOTWOONE,
-                        TWOTWOTWO));
+                        TWOTWOTWO),
+                List.of());
     }
 
     @Test
-    void testCreateRoutineFromProjectTaskWithNonLimitingProjectDuration_TWO() {
+    void testCreateRoutineFromProjectTaskWithNonLimitingProjectDuration_TWO() throws Exception {
         TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(6);
 
@@ -304,7 +351,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTHREE));
+                        TWOTHREE),
+                List.of());
     }
 
     @Test
@@ -340,7 +388,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         TWOTWOTHREE_AND_THREETWOTWO,
                         THREETWOONE_AND_THREETWOTHREE,
                         SIX_AND_THREETWOFOUR,
-                        THREETHREE));
+                        THREETHREE),
+                List.of());
     }
 
     @Test
@@ -365,7 +414,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
     }
 
     @Test
-    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_THREE_AND_FIVE() {
+    void testCreateRoutineFromProjectLinkWithLimitingProjectDuration_THREE_AND_FIVE() throws Exception {
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, THREE_AND_FIVE, 2),
                 id -> Duration.ofMinutes(13*60 + 30),
@@ -376,17 +425,22 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                         THREETWOONE_AND_THREETWOTHREE,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         THREETWOONE_AND_THREETWOTHREE,
-                        SIX_AND_THREETWOFOUR));
+                        SIX_AND_THREETWOFOUR),
+                List.of(
+                        THREETHREE));
     }
 
     @Test
-    void testCreateRoutineFromDifferentProjectLinkWithLimitingProjectDuration_THREE_AND_FIVE() {
+    void testCreateRoutineFromDifferentProjectLinkWithLimitingProjectDuration_THREE_AND_FIVE() throws Exception {
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, THREE_AND_FIVE, 4),
                 id -> Duration.ofMinutes(210),
                 List.of(
                         THREE_AND_FIVE,
-                        THREEONE));
+                        THREEONE),
+                List.of(
+                        THREETWO,
+                        THREETHREE));
     }
 
     private Routine doRoutine(StepID stepId, LocalDateTime time,
@@ -511,7 +565,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         LocalDateTime time3 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time3,
-                routineService::skipStep);
+                routineService::completeStep);
 
         assertRoutineStepExecution(
                 routine,
@@ -525,7 +579,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertRoutineStep(
                 stepTwoTwoOne,
                 TWOTWOONE,
-                TimeableStatus.SKIPPED);
+                TimeableStatus.COMPLETED);
 
         assertEquals(0, stepTwoTwoOne.children().size());
         assertEquals(time3, stepTwoTwoOne.finishTime());
@@ -551,7 +605,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertRoutineStep(
                 stepTwoTwoOne,
                 TWOTWOONE,
-                TimeableStatus.SKIPPED);
+                TimeableStatus.COMPLETED);
 
         assertEquals(time4, routine.currentStep().lastSuspendedTime());
 
@@ -665,33 +719,79 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
 
         assertRoutineStepExecution(
                 routine,
-                3,
-                TWOTWOTHREE_AND_THREETWOTWO,
-                TimeableStatus.COMPLETED,
-                TimeableStatus.COMPLETED,
-                time6);
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
 
-        assertEquals(position, routine.currentPosition());
-        assertEquals(TimeableStatus.SKIPPED, routine.getAllChildren().get(routine.currentPosition() - 1).status());
-        assertEquals(time9, routine.getAllChildren().get(routine.currentPosition()).finishTime());
+        stepTwoTwoThree = routine.getAllChildren().get(position);
+        assertEquals(time9, stepTwoTwoThree.finishTime());
+        assertRoutineStep(
+                stepTwoTwoThree,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED);
+
+        assertRoutineStep(
+                stepTwoTwoTwo,
+                TWOTWOTWO,
+                TimeableStatus.SKIPPED);
 
         position = routine.currentPosition();
         LocalDateTime time10 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time10,
-                routineService::skipStep);
+                routineService::completeStep);
+
+        stepTwoTwo = routine.getAllChildren().get(position);
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time3);
+
+        assertRoutineStep(
+                stepTwoTwo,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+        position = routine.currentPosition();
+        LocalDateTime time11 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time11,
+                routineService::postponeStep);
 
         assertRoutineStepExecution(
                 routine,
-                3,
-                TWOTWOTHREE_AND_THREETWOTWO,
-                TimeableStatus.COMPLETED,
-                TimeableStatus.COMPLETED,
-                time6);
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
 
-        assertEquals(position, routine.currentPosition());
-        assertEquals(TimeableStatus.SKIPPED, routine.getAllChildren().get(routine.currentPosition() - 1).status());
-        assertEquals(time10, routine.getAllChildren().get(routine.currentPosition()).finishTime());
+        stepTwoTwoTwo = routine.getAllChildren().get(position);
+        assertRoutineStep(
+                stepTwoTwoTwo,
+                TWOTWOTWO,
+                TimeableStatus.POSTPONED);
+
+        position = routine.currentPosition();
+        LocalDateTime time12 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time12,
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.COMPLETED,
+                time1);
+
+        assertEquals(time12, routine.finishTime());
     }
 
     @Test
@@ -812,6 +912,187 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         for (RoutineStep step : stepThreeTwo.children()) {
             assertEquals(TimeableStatus.SKIPPED, step.status());
         }
+
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                THREE_AND_FIVE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time0);
+
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        position = routine.currentPosition();
+        LocalDateTime time5 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time5,
+                routineService::completeStep);
+        stepThreeTwo = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time5);
+
+        assertRoutineStep(
+                stepThreeTwo,
+                THREETWO,
+                TimeableStatus.ACTIVE);
+
+        position = routine.currentPosition();
+        LocalDateTime time6 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time6,
+                routineService::completeStep);
+        RoutineStep stepThreeTwoOne = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                4,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time6);
+
+        assertRoutineStep(
+                stepThreeTwoOne,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.COMPLETED);
+
+        position = routine.currentPosition();
+        LocalDateTime time7 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time7,
+                routineService::completeStep);
+        RoutineStep stepThreeTwoTwo = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                5,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time7);
+
+        assertRoutineStep(
+                stepThreeTwoTwo,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED);
+
+        position = routine.currentPosition();
+        LocalDateTime time8 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time8,
+                routineService::completeStep);
+        RoutineStep stepThreeTwoThree = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                6,
+                SIX_AND_THREETWOFOUR,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time8);
+
+        assertRoutineStep(
+                stepThreeTwoThree,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.COMPLETED);
+
+        position = routine.currentPosition();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::postponeStep);
+        RoutineStep stepThreeTwoFour = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        assertRoutineStep(
+                stepThreeTwoFour,
+                SIX_AND_THREETWOFOUR,
+                TimeableStatus.POSTPONED);
+
+        position = routine.currentPosition();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        stepThreeTwo = routine.getAllChildren().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                THREE_AND_FIVE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time0);
+
+        assertRoutineStep(
+                stepThreeTwo,
+                THREETWO,
+                TimeableStatus.COMPLETED);
+
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                THREE_AND_FIVE,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.COMPLETED,
+                time0);
+    }
+
+    @Test
+    void testExecuteRoutineSkipFirstStep() {
+
+        TaskID rootId = tasks.get(TWOTWO).id();
+
+        Routine routine = routineService.createRoutine(rootId).routine();
+
+        RoutineStep rootStep = routine.children().get(0);
+
+        assertEquals(rootId, rootStep.task().id());
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+
+        assertNull(routine.currentStep().parentId());
+
+        LocalDateTime time1 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time1,
+                routineService::skipStep);
     }
 
     @Test
@@ -893,10 +1174,10 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         Duration originalDuration = routine.estimatedDuration();
         assertEquals(Duration.ofHours(3), originalDuration);
 
-        Task twotwoone = tasks.get(TWOTWOONE);
+        Task twoTwoOne = tasks.get(TWOTWOONE);
         changeService.execute(Request.of(new MergeChange<>(
-                new Task(twotwoone.id())
-                        .duration(twotwoone.duration().plus(Duration.ofHours(1))))));
+                new Task(twoTwoOne.id())
+                        .duration(twoTwoOne.duration().plus(Duration.ofHours(1))))));
 
         RoutineResponse response = routineService.recalculateRoutine(routine.id(), LocalDateTime.now());
         assertTrue(response.success());

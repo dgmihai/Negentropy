@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.filterform;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -15,14 +15,15 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Getter
 public class TaskNodeFilterForm extends FilterForm {
-    private final ClientDataController controller;
+    private final UIController controller;
 
     protected Binder<TaskNodeTreeFilter> binder = new BeanValidationBinder<>(TaskNodeTreeFilter.class);
 
     private Checkbox completed;
+    private Checkbox recurring;
     private Checkbox ignoreScheduling;
 
-    public TaskNodeFilterForm(ClientDataController controller) {
+    public TaskNodeFilterForm(UIController controller) {
         this.controller = controller;
 
         this.addClassName("filter-layout");
@@ -47,12 +48,23 @@ public class TaskNodeFilterForm extends FilterForm {
                         }}
         );
 
+        recurring = new Checkbox("Hide Recurring");
+        binder.bind(recurring,
+                filter -> filter.recurring() != null,
+                (filter, value) -> {
+                    if (value) {
+                        filter.recurring(false);
+                    } else {
+                        filter.recurring(null);
+                    }}
+        );
+
         ignoreScheduling = new Checkbox("Ignore Scheduling");
         binder.bind(ignoreScheduling,
                 filter -> filter.ignoreScheduling() != null ? filter.ignoreScheduling() : false,
                 TaskTreeFilter::ignoreScheduling);
 
-        HorizontalLayout additionalCheckboxes = new HorizontalLayout(completed, ignoreScheduling);
+        HorizontalLayout additionalCheckboxes = new HorizontalLayout(completed, recurring, ignoreScheduling);
         additionalCheckboxes.setWidthFull();
         additionalCheckboxes.setJustifyContentMode(JustifyContentMode.START);
         additionalCheckboxes.setPadding(false);

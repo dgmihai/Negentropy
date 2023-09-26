@@ -14,6 +14,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.*;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.entity.sync.SyncRecordEntity;
+import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.SerializationUtil;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.*;
@@ -66,9 +67,8 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Autowired private DataContext dataContext;
 
-    private static final Set<TimeableStatus> FINISHED_STATUSES = Set.of(
+    private static final Set<TimeableStatus> FINALIZED_STATUSES = Set.of(
             TimeableStatus.COMPLETED,
-            TimeableStatus.SKIPPED,
             TimeableStatus.EXCLUDED,
             TimeableStatus.POSTPONED);
 
@@ -127,27 +127,16 @@ public class RoutineServiceImpl implements RoutineService {
         return this.createRoutine(rootId, null);
     }
 
-    private TaskNodeTreeFilter processFilter(TaskNodeTreeFilter filter) {
-        TaskNodeTreeFilter processedFilter = filter != null
-                ? filter
-                : new TaskNodeTreeFilter();
-        processedFilter // We don't cache by name
-                .durationLimit(null) // We don't cache by duration limit
-                .completed(false)
-                .name(null);
-        return processedFilter;
-    }
-
     // Common function
     private RoutineEntity createRoutineInternal(Data root, TaskNodeTreeFilter filter) {
         Duration durationLimit = filter != null ? filter.durationLimit() : null;
-        TaskNodeTreeFilter processedFilter = processFilter(filter);
+        NonSpecificTaskNodeTreeFilter processedFilter = NonSpecificTaskNodeTreeFilter.from(filter);
         logger.trace("Populate routine with filter: " + processedFilter);
 
         RoutineEntity routine = new RoutineEntity();
 
         try {
-            routine.serializedFilter(SerializationUtil.serialize(processFilter(filter)));
+            routine.serializedFilter(SerializationUtil.serialize(NonSpecificTaskNodeTreeFilter.from(filter)));
         } catch (IOException e) {
             throw new RuntimeException("Could not serialize filter: " + processedFilter, e);
         }
@@ -272,7 +261,6 @@ public class RoutineServiceImpl implements RoutineService {
                     }
                 });
 
-
                 routine.currentPosition(routine.getAllChildren().indexOf(currentStep));
                 if (routine.currentPosition() == -1) {
                     routine.currentPosition(0);
@@ -392,11 +380,9 @@ public class RoutineServiceImpl implements RoutineService {
             case COMPLETED -> markStepAsCompleted(step, time);
             case POSTPONED -> markStepAsPostponed(step, time);
             case SKIPPED -> markStepAsSkipped(step, time);
-            case EXCLUDED -> markStepAsExcluded(step);
+            case EXCLUDED -> markStepAsExcluded(step, time);
             case ACTIVE -> activateStep(step.routine(), time);
         }
-
-        handleIfLastChild(step);
 
         return iterateToNextValidStep(step.routine(), 1, time);
     }
@@ -435,9 +421,8 @@ public class RoutineServiceImpl implements RoutineService {
 
         int count = processChildren(step, time, skippedStatus);
 
-        markStepAsSkipped(step, time);
         unCompleteStep(step, time);
-        handleIfLastChild(step);
+        markStepAsSkipped(step, time);
 
         return iterateToNextValidStep(step.routine(), count, time);
     }
@@ -457,7 +442,6 @@ public class RoutineServiceImpl implements RoutineService {
         int count = processChildren(step, time, postponedStatus);
 
         markStepAsPostponed(step, time);
-        handleIfLastChild(step);
 
         return iterateToNextValidStep(step.routine(), count, time);
     }
@@ -557,13 +541,13 @@ public class RoutineServiceImpl implements RoutineService {
     private RoutineEntity setStepExcluded(RoutineStepEntity step, LocalDateTime time, boolean exclude) {
         if (exclude) {
             suspendStep(step, time);
-            markStepAsExcluded(step);
+            markStepAsExcluded(step, time);
+            unCompleteStep(step, time);
             if (step.routine().currentStep().equals(step)) {
                 iterateToNextValidStep(step.routine(), 1, time);
             }
-            unCompleteStep(step, time);
         } else {
-            step.status(TimeableStatus.NOT_STARTED);
+            step.status(TimeableStatus.SKIPPED);
         }
 
         return step.routine();
@@ -573,13 +557,13 @@ public class RoutineServiceImpl implements RoutineService {
     // Boolean Helpers
     // ================================
 
-    private boolean isStepFinished(RoutineStepEntity step) {
-        return FINISHED_STATUSES.contains(step.status());
+    private boolean isStepFinalized(RoutineStepEntity step) {
+        return FINALIZED_STATUSES.contains(step.status());
     }
 
     private boolean isRoutineFinished(RoutineEntity routine) {
         return (routine.currentPosition() >= routine.countSteps() - 1)
-                && isStepFinished(routine.currentStep());
+                && isStepFinalized(routine.currentStep());
     }
 
     private boolean isLastChild(RoutineStepEntity step) {
@@ -590,13 +574,11 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private TimeableStatus getStepStatusBasedOnChildrenStatus(RoutineStepEntity step) {
-        int skippedCount = 0;
         int completedCount = 0;
         int excludedCount = 0;
         int postponedCount = 0;
         for (RoutineStepEntity child : step.children()) {
             switch (child.status()) {
-                case SKIPPED -> skippedCount++;
                 case COMPLETED -> completedCount++;
                 case EXCLUDED -> excludedCount++;
                 case POSTPONED -> postponedCount++;
@@ -609,8 +591,6 @@ public class RoutineServiceImpl implements RoutineService {
                 return TimeableStatus.POSTPONED;
             } else if (excludedCount == size) {
                 return TimeableStatus.EXCLUDED;
-            } else if (skippedCount == size) {
-                return TimeableStatus.SKIPPED;
             } else if (completedCount + postponedCount + excludedCount == size) {
                 return TimeableStatus.COMPLETED;
             } else {
@@ -621,20 +601,17 @@ public class RoutineServiceImpl implements RoutineService {
         }
     }
 
-    private boolean allChildrenInactive(RoutineStepEntity step) {
+    private boolean allChildrenFinalized(RoutineStepEntity step) {
         if (step.children().isEmpty()) return true;
         List<RoutineStepEntity> siblings = step.children();
-        return siblings.stream().allMatch(this::isStepFinished);
+        return siblings.stream().allMatch(this::isStepFinalized);
     }
 
-    private boolean allSiblingsInactive(RoutineStepEntity step) {
-        if (step.parentStep() == null) return false;
-        List<RoutineStepEntity> siblings = step.parentStep().children();
-        return siblings.stream().allMatch(this::isStepFinished);
-    }
-
-    public boolean currentPositionIsLastStep(RoutineEntity routine) {
-        return routine.currentPosition() == routine.countSteps() - 1;
+    private boolean allSiblingsFinalized(RoutineStepEntity step) {
+        List<RoutineStepEntity> siblings = (step.parentStep() != null)
+                ? step.parentStep().children()
+                : step.routine().children();
+        return siblings.stream().allMatch(this::isStepFinalized);
     }
 
     public boolean currentPositionIsFirstStep(RoutineEntity routine) {
@@ -684,10 +661,13 @@ public class RoutineServiceImpl implements RoutineService {
     private void markStepAsSkipped(RoutineStepEntity step, LocalDateTime time) {
         step.status(TimeableStatus.SKIPPED);
         step.finishTime(time);
+        step.lastSuspendedTime(time);
     }
 
-    private void markStepAsExcluded(RoutineStepEntity step) {
+    private void markStepAsExcluded(RoutineStepEntity step, LocalDateTime time) {
         step.status(TimeableStatus.EXCLUDED);
+        step.finishTime(time);
+        step.lastSuspendedTime(time);
     }
 
     private int markAllChildrenAs(TimeableStatus status, RoutineStepEntity step, LocalDateTime time, int count) {
@@ -696,8 +676,12 @@ public class RoutineServiceImpl implements RoutineService {
             count++;
         }
         switch (status) {
-            case POSTPONED -> markStepAsPostponed(step, time);
-            case SKIPPED -> markStepAsSkipped(step, time);
+            case POSTPONED -> {
+                if(!isStepFinalized(step)) markStepAsPostponed(step, time);
+            }
+            case SKIPPED -> {
+                if(!isStepFinalized(step)) markStepAsSkipped(step, time);
+            }
             default -> throw new RuntimeException("Cannot mark children as " + status);
         }
         return count;
@@ -719,33 +703,34 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity iterateToNextValidStep(RoutineEntity routine, int count, LocalDateTime time) {
-        if (isRoutineFinished(routine)) {
-            return completeRoutine(routine);
-        } else {
-            routine.currentPosition(routine.currentPosition() + count);
+        int potentialPosition = routine.currentPosition() + count;
 
-            while (routine.currentStep().status() == TimeableStatus.EXCLUDED
-                || routine.currentStep().status() == TimeableStatus.POSTPONED
-                || routine.currentStep().status() == TimeableStatus.COMPLETED) {
-                routine.currentPosition(routine.currentPosition() + 1);
+        if (potentialPosition >= routine.countSteps()) {
+            if (allSiblingsFinalized(routine.children().get(0))) {
+                return completeRoutine(routine);
+            } else {
+                routine.currentPosition(0);
+                return iterateToNextValidStep(routine, 0, time);
             }
-
-            activateStep(routine, time);
-        }
-
-        return routine;
-    }
-
-    private void handleIfLastChild(RoutineStepEntity step) {
-        // Check if the current step is the last among its siblings
-        if (isLastChild(step) && allSiblingsInactive(step) && allChildrenInactive(step)) {
-            logger.debug("Step " + step.task().name() + " is the last child of its parent and all siblings are inactive. " +
-                    "Marking parent as " + getStepStatusBasedOnChildrenStatus(step) + ".");
-            RoutineStepEntity parent = step.parentStep();
-            while (parent != null && allSiblingsInactive(step)) {
-                step.status(getStepStatusBasedOnChildrenStatus(step));
-                step = parent;
-                parent = step.parentStep();
+        } else {
+            RoutineStepEntity current = routine.currentStep();
+            if (isLastChild(current) && count > 0 && allChildrenFinalized(current)) {
+                if (current.parentStep() != null) {
+                    int parentIndex = routine.getAllChildren().indexOf(current.parentStep());
+                    routine.currentPosition(parentIndex);
+                    return iterateToNextValidStep(routine, 0, time);
+                } else {
+                    return completeRoutine(routine);
+                }
+            } else {
+                RoutineStepEntity next = routine.getAllChildren().get(potentialPosition);
+                if (isStepFinalized(next)) {
+                    return iterateToNextValidStep(routine, count + 1, time);
+                } else {
+                    routine.currentPosition(potentialPosition);
+                    activateStep(routine, time);
+                    return routine;
+                }
             }
         }
     }

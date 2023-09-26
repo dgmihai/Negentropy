@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.routine.components;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Getter
 public class TaskInfoBar extends VerticalLayout {
-    private final ClientDataController controller;
+    private final UIController controller;
 
     private final Span name;
     private final RoutineTimer timer;
@@ -21,7 +21,7 @@ public class TaskInfoBar extends VerticalLayout {
 
     private final Binder<Timeable> binder = new BeanValidationBinder<>(Timeable.class);
 
-    public TaskInfoBar(Timeable timeable, ClientDataController controller) {
+    public TaskInfoBar(Timeable timeable, UIController controller) {
         this.controller = controller;
 
         this.addClassName("bar");

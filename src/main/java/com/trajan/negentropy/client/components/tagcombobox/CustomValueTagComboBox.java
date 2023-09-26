@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.tagcombobox;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
@@ -14,18 +14,18 @@ public class CustomValueTagComboBox extends TagComboBox {
 
     protected Consumer<Tag> onCustomValueSet = tag -> {};
 
-    public CustomValueTagComboBox(ClientDataController controller) {
+    public CustomValueTagComboBox(UIController controller) {
         super(controller);
         init();
     }
 
-    public CustomValueTagComboBox(ClientDataController controller, Consumer<Tag> onCustomValueSet) {
+    public CustomValueTagComboBox(UIController controller, Consumer<Tag> onCustomValueSet) {
         super(controller);
         this.onCustomValueSet = onCustomValueSet;
         init();
     }
 
-    public CustomValueTagComboBox(String labelText, ClientDataController controller, Consumer<Tag> onCustomValueSet) {
+    public CustomValueTagComboBox(String labelText, UIController controller, Consumer<Tag> onCustomValueSet) {
         super(labelText, controller);
         this.onCustomValueSet = onCustomValueSet;
         init();

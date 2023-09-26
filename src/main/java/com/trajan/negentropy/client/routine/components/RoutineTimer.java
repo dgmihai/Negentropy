@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.routine.components;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import lombok.Getter;
@@ -18,9 +18,9 @@ public class RoutineTimer extends SimpleClock {
 
     private Timeable timeable;
 
-    private final ClientDataController controller;
+    private final UIController controller;
 
-    public RoutineTimer(Timeable timeable, ClientDataController controller) {
+    public RoutineTimer(Timeable timeable, UIController controller) {
         super();
         this.controller = controller;
 

@@ -28,12 +28,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ClientDataControllerTest extends ClientTestTemplate {
+class UIControllerTest extends ClientTestTemplate {
     @BeforeAll
     void setup() {
         init();
 
-        controller = new TestClientDataController(testServices);
+        controller = new TestUIController(testServices);
     }
 
     void assertTaskInserted(int position, String parent, TaskNode resultNode) {

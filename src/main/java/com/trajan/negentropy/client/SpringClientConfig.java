@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 //@ComponentScan(value = "com.trajan.negentropy")
 public class SpringClientConfig {
-    @Autowired private ClientDataController controller;
+    @Autowired private UIController controller;
     @Autowired private UserSettings settings;
 
     @PostConstruct

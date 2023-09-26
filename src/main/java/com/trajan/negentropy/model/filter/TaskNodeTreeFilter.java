@@ -10,6 +10,7 @@ import lombok.experimental.Accessors;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     private static final long serialVersionUID = 2L;
 
     private Boolean completed;
+    private Boolean recurring;
     private LocalDateTime availableAtTime;
     private Integer importanceThreshold;
     private Duration durationLimit;
@@ -71,6 +73,14 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     @Override
     public TaskNodeTreeFilter options(Set<String> options) {
         this.options = options;
+        return this;
+    }
+
+    public TaskNodeTreeFilter availableAtTime(LocalDateTime availableAtTime) {
+        availableAtTime = availableAtTime == null
+                ? null
+                : availableAtTime.truncatedTo(ChronoUnit.HOURS);
+        this.availableAtTime = availableAtTime;
         return this;
     }
 }

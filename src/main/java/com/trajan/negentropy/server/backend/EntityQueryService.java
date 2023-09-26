@@ -16,7 +16,6 @@ import com.trajan.negentropy.server.backend.repository.TaskRepository;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -261,8 +260,6 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskNodeTreeFilter filter);
-
-    Map<TaskID, Duration> getAllNetDurations(TaskNodeTreeFilter filter);
 
     NetDuration getNetDuration(TaskID taskId);
 

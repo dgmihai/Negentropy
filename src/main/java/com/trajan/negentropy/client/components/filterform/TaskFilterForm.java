@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.filterform;
 
-import com.trajan.negentropy.client.controller.ClientDataController;
+import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -10,11 +10,11 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @Getter
 public class TaskFilterForm extends FilterForm {
-    private final ClientDataController controller;
+    private final UIController controller;
 
     protected Binder<TaskTreeFilter> binder = new BeanValidationBinder<>(TaskTreeFilter.class);
 
-    public TaskFilterForm(ClientDataController controller) {
+    public TaskFilterForm(UIController controller) {
         this.controller = controller;
 
         configureFields();

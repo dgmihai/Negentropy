@@ -1,7 +1,6 @@
 package com.trajan.negentropy.model.entity.netduration;
 
 import com.trajan.negentropy.model.entity.TaskEntity;
-import com.trajan.negentropy.server.backend.sync.NetDurationSyncListener;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +11,6 @@ import lombok.experimental.Accessors;
 import java.time.Duration;
 
 @Entity
-@EntityListeners(NetDurationSyncListener.class)
 @Table(name = "net_durations")
 @NoArgsConstructor
 @AllArgsConstructor

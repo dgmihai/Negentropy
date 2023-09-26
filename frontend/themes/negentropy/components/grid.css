@@ -58,3 +58,7 @@ vaadin-grid::part(details-cell) {
     user-select: none;
 }
 
+vaadin-grid::part(exceeds-duration-limit) {
+    color:
+      var(--lumo-tertiary-text-color);
+}

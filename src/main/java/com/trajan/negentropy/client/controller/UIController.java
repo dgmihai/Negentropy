@@ -1,9 +1,6 @@
 package com.trajan.negentropy.client.controller;
 
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
 import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
@@ -12,6 +9,9 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.sessionlogger.SessionLogged;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
@@ -32,9 +32,11 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -52,7 +54,7 @@ import java.util.function.Supplier;
 @Accessors(fluent = true)
 @Getter
 @Benchmark(millisFloor = 10)
-public class ClientDataController implements SessionLogged {
+public class UIController implements SessionLogged {
     @Autowired private SessionLoggerFactory loggerFactory;
     protected SessionLogger log;
 
@@ -71,8 +73,10 @@ public class ClientDataController implements SessionLogged {
 
     @Autowired private Broadcaster serverBroadcaster;
 
+    private Registration broadcastRegistration;
+
     @PostConstruct
-    public void register() {
+    public void init() {
         log = getLogger(this.getClass());
 
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
@@ -80,7 +84,13 @@ public class ClientDataController implements SessionLogged {
         String browser = currentUI != null ? currentUI.getSession().getBrowser().getBrowserApplication() : null;
         log.info("Registering UI client " + uiId + " at " + address + " using " + browser +
                 " with server broadcaster");
-        serverBroadcaster.register(this::sync);
+        broadcastRegistration = serverBroadcaster.register(this::sync);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        broadcastRegistration.remove();
+        broadcastRegistration = null;
     }
 
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
@@ -185,8 +195,11 @@ public class ClientDataController implements SessionLogged {
             log.info("Syncing with sync id {}, {} changes, current sync id: {}",
                     aggregateSyncRecord.id(), changes.size(), taskNetworkGraph.syncId());
 
-            aggregateSyncRecord.netDurationChanges().forEach((taskId, netDuration) ->
-                    taskNetworkGraph.netDurations().put(taskId, netDuration));
+            if (settings != null) {
+                taskNetworkGraph.fetchNetDurations(settings.filter());
+            } else {
+                taskNetworkGraph.fetchNetDurations(null);
+            }
 
             Map<TaskID, Task> taskMap = taskNetworkGraph.taskMap();
             Map<LinkID, TaskNode> nodeMap = taskNetworkGraph.nodeMap();
