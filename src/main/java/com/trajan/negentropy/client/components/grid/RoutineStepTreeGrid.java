@@ -23,7 +23,6 @@ import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.hierarchy.TreeData;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -67,8 +66,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     }
 
     @Override
-    protected TreeGrid<RoutineStep> createGrid() {
-        return new TreeGrid<>(RoutineStep.class);
+    protected MultiSelectTreeGrid<RoutineStep> createGrid() {
+        return new MultiSelectTreeGrid<>(RoutineStep.class);
     }
 
     @Override

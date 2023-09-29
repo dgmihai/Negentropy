@@ -1,9 +1,6 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMenuItemDecorator;
@@ -14,6 +11,9 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.sessionlogger.SessionLogged;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderFactory;
 import com.trajan.negentropy.model.Tag;
@@ -48,7 +48,6 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextAreaVariant;
-import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -87,7 +86,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
     @Autowired protected DurationEstimateValueProviderFactory<T> durationEstimateValueProviderFactory;
 
-    protected TreeGrid<T> treeGrid;
+    protected MultiSelectTreeGrid<T> treeGrid;
     protected Editor<T> editor;
     protected T draggedItem;
 
@@ -102,7 +101,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
     protected SelectionMode selectionMode;
 
-    protected abstract TreeGrid<T> createGrid();
+    protected abstract MultiSelectTreeGrid<T> createGrid();
 
     @PostConstruct
     public void init() {
@@ -235,6 +234,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setKey(ColumnKey.NAME.toString())
                         .setHeader(ColumnKey.NAME.toString())
                         .setWidth("150px")
+                        .setResizable(true)
                         .setFrozen(true)
                         .setFlexGrow(1);
 
@@ -445,6 +445,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             descriptionSaveButton.setVisible(editing);
             descriptionCancelButton.setVisible(editing);
         };
+
 
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);

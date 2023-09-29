@@ -71,7 +71,7 @@ public class ToolbarTabSheet extends TabSheet {
     @Getter private Tab quickCreateTab;
     @Getter private Tab searchAndFilterTab;
     @Getter private TaskNodeFilterForm filterForm;
-    @Getter private Tab createNewTaskTab;
+    @Getter private TaskProviderTab createNewTaskTab;
     @Getter private Tab optionsTab;
     @Getter private Tab insertTaskTab;
     @Getter private Tab startRoutineTab;
@@ -167,6 +167,12 @@ public class ToolbarTabSheet extends TabSheet {
         createNewTaskTab = mobile
                 ? new TaskProviderTab(createTaskForm, "Create New Task")
                 : new TaskProviderTab(createTaskForm, VaadinIcon.FILE_ADD.create());
+
+        createNewTaskTab.addEnabledStateChangeListener(e -> {
+            if (!e.newEnabledState()) {
+                createTaskForm.clear();
+            }
+        });
 
         Button showAndHide = new Button(VaadinIcon.CHEVRON_UP.create());
         showAndHide.setWidthFull();

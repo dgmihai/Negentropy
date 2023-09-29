@@ -91,8 +91,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    protected TreeGrid<TaskEntry> createGrid() {
-        return new TreeGrid<>(TaskEntry.class);
+    protected MultiSelectTreeGrid<TaskEntry> createGrid() {
+        return new MultiSelectTreeGrid<>(TaskEntry.class);
     }
 
     @Override
@@ -131,12 +131,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                         GridUtil.inlineVaadinIconLitExpression("check",
                                                 "?active=\"${!item.completed}\" " +
                                                         "?hidden=\"${item.hidden}\""))
-                                .withFunction("onClick", entry -> {
-                                    controller.requestChangeAsync(new MergeChange<>(
-                                            new TaskNode(entry.node().linkId())
-                                                    .completed(!entry.node().completed())),
-                                            this);
-                                })
+                                .withFunction("onClick", entry ->
+                                        controller.requestChangeAsync(new MergeChange<>(
+                                                new TaskNode(entry.node().linkId())
+                                                        .completed(!entry.node().completed())),
+                                        this))
                                 .withProperty("completed", entry ->
                                         entry.node().completed())
                                 .withProperty("hidden", entry ->
@@ -160,11 +159,10 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 Grid.Column<TaskEntry> recurringColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("time-forward",
                                                 "?active=\"${item.recurring}\" "))
-                                .withFunction("onClick", entry -> {
-                                    controller.requestChangeAsync(new MergeChange<>(
-                                            new TaskNode(entry.node().linkId())
-                                                    .recurring(!entry.node().recurring())));
-                                })
+                                .withFunction("onClick", entry -> controller.requestChangeAsync(
+                                        new MergeChange<>(
+                                                new TaskNode(entry.node().linkId())
+                                                        .recurring(!entry.node().recurring()))))
                                 .withProperty("recurring", entry ->
                                         entry.node().recurring()))
                         .setKey(ColumnKey.RECURRING.toString())
@@ -213,11 +211,10 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 Grid.Column<TaskEntry> rescheduleNowColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("backwards",
                                                 "?hidden=\"${item.hidden}\""))
-                                .withFunction("onClick", entry -> {
-                                    controller.requestChangeAsync(new OverrideScheduledForChange(
-                                            entry.node().linkId(), LocalDateTime.now()),
-                                            this);
-                                })
+                                .withFunction("onClick", entry ->
+                                        controller.requestChangeAsync(new OverrideScheduledForChange(
+                                                entry.node().linkId(), LocalDateTime.now()),
+                                                this))
                                 .withProperty("hidden", entry -> entry.node().cron() == null))
                         .setKey(ColumnKey.RESCHEDULE_NOW.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.BACKWARDS))
@@ -237,12 +234,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 Grid.Column<TaskEntry> rescheduleLaterColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("forward",
                                                 "?hidden=\"${item.hidden}\""))
-                                .withFunction("onClick", entry -> {
-                                    controller.requestChangeAsync(new OverrideScheduledForChange(
-                                            entry.node().linkId(),
-                                            entry.node().cron().next(LocalDateTime.now())),
-                                            this);
-                                })
+                                .withFunction("onClick", entry ->
+                                        controller.requestChangeAsync(new OverrideScheduledForChange(
+                                                entry.node().linkId(),
+                                                        entry.node().cron().next(LocalDateTime.now())),
+                                                this))
                                 .withProperty("hidden", entry -> entry.node().cron() == null))
                         .setKey(ColumnKey.RESCHEDULE_LATER.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.FORWARD))
@@ -412,9 +408,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 //            entries.forEach(detailsVisibilitySwitch);
 //        });
 
-        treeGrid.getDataProvider().addDataProviderListener(event -> {
-            treeGrid.expand(settings.expandedEntries());
-        });
+        treeGrid.getDataProvider().addDataProviderListener(event ->
+                treeGrid.expand(settings.expandedEntries()));
     }
 
     protected Collection<Component> configureAdditionalTopBarComponents() {
@@ -550,10 +545,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             GridMenuItem<TaskEntry> moveSelected = addItem("");
             GridSubMenu<TaskEntry> moveSelectedSubMenu = moveSelected.getSubMenu();
+            GridMenuItem<TaskEntry> copySelected = addItem("");
+            GridSubMenu<TaskEntry> copySelectedSubMenu = copySelected.getSubMenu();
 
-            BiConsumer<String, InsertLocation> addMoveSelectedItem = (label, location) -> {
+            BiConsumer<String, InsertLocation> addMoveOrCopySelectedItem = (label, location) -> {
                 int reverse = (location == InsertLocation.AFTER || location == InsertLocation.FIRST) ? -1 : 1;
-                moveSelectedSubMenu.addItem(label, e -> {
+                List<GridSubMenu<TaskEntry>> subMenus = List.of(copySelectedSubMenu, moveSelectedSubMenu);
+                subMenus.forEach(menu -> menu.addItem(label, e -> {
                     controller.requestChangesAsync(grid.getSelectedItems().stream()
                             .collect(Collectors.groupingBy(
                                     entry -> Objects.requireNonNullElse(
@@ -566,20 +564,26 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                                     .collect(Collectors.toList()))
                             )).values().stream()
                             .flatMap(List::stream)
-                            .map(entry -> (Change) new MoveChange(
-                                    entry.node().linkId(),
-                                    e.getItem().get().node().id(),
-                                    location))
+                            .map(entry -> menu.equals(copySelectedSubMenu)
+                                    ? new InsertAtChange(new TaskNodeDTO(entry.node()),
+                                        e.getItem().get().node().id(),
+                                        location)
+                                    : new MoveChange(entry.node().linkId(),
+                                        e.getItem().get().node().id(),
+                                        location))
                             .toList());
 
                     grid.getSelectionModel().deselectAll();
-                });
+                }));
             };
 
-            addMoveSelectedItem.accept("As Subtasks At Front", InsertLocation.FIRST);
-            addMoveSelectedItem.accept("As Subtasks At Back",  InsertLocation.LAST);
-            addMoveSelectedItem.accept("Before", InsertLocation.BEFORE);
-            addMoveSelectedItem.accept("After", InsertLocation.AFTER);
+            Map<String, InsertLocation> moveOrCopyOptions = new HashMap<>();
+            moveOrCopyOptions.put("As Subtasks At Front", InsertLocation.FIRST);
+            moveOrCopyOptions.put("As Subtasks At Back", InsertLocation.LAST);
+            moveOrCopyOptions.put("Before", InsertLocation.BEFORE);
+            moveOrCopyOptions.put("After", InsertLocation.AFTER);
+
+            moveOrCopyOptions.forEach(addMoveOrCopySelectedItem);
 
             add(new Hr());
 
@@ -587,6 +591,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             GridMenuItem<TaskEntry> confirmRemove = remove.getSubMenu().addItem("Confirm?", e -> e.getItem().ifPresent(
                     entry -> controller.requestChangeAsync(new DeleteChange<>(entry.node().linkId()))));
+            confirmRemove.addClassName(K.COLOR_ERROR);
+            remove.addClassName(K.COLOR_ERROR);
 
             add(new Hr());
 
@@ -665,11 +671,14 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     if (selectedSize == 0) {
                         moveTarget.setVisible(true);
                         moveSelected.setVisible(false);
+                        copySelected.setVisible(false);
                         moveTarget.setText("Move " + entry.task().name());
                     } else {
                         moveTarget.setVisible(false);
                         moveSelected.setVisible(true);
                         moveSelected.setText("Move " + selectedSize + " tasks");
+                        copySelected.setVisible(true);
+                        copySelected.setText("Copy " + selectedSize + " tasks");
                         multiEdit.setText("Edit " + selectedSize + " tasks");
                     }
 

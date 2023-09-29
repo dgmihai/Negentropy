@@ -13,7 +13,8 @@ import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Hr;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
@@ -160,16 +161,15 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     @Override
     protected void configureLayout() {
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+
         cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        cronField.setWidthFull();
+        nodeInfoLayout = new HorizontalLayout(
+                recurringCheckbox, cronField);
 
-        nodeCheckboxLayout = new HorizontalLayout(
-                recurringCheckbox);
-
-        nodeCheckboxLayout = new HorizontalLayout(
-                recurringCheckbox);
-
-        nodeCheckboxLayout.setWidthFull();
-        nodeCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        nodeInfoLayout.setWidthFull();
+        nodeInfoLayout.setAlignItems(Alignment.CENTER);
+        nodeInfoLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
         super.configureLayout();
     }
@@ -179,7 +179,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         Hr hr = new Hr();
         this.setColspan(hr, 2);
 
-        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout,
+        this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
                 projectDurationField, projectComboBox, buttonLayout);
     }
 }

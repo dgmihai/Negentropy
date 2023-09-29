@@ -111,7 +111,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
         Hr hr = new Hr();
         this.setColspan(hr, 2);
 
-        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr,
+        this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr,
                 projectComboBox, buttonLayout);
     }
 }

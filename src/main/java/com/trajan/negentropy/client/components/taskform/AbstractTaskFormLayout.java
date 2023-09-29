@@ -21,7 +21,8 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.ComboBoxVariant;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.select.SelectVariant;
@@ -50,8 +51,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected TextArea descriptionArea;
     protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
-    protected HorizontalLayout taskCheckboxLayout;
-    protected HorizontalLayout nodeCheckboxLayout;
+    protected HorizontalLayout taskInfoLayout;
+    protected HorizontalLayout nodeInfoLayout;
 
     // Link Only
     protected TextField cronField;
@@ -181,27 +182,38 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
 
+        HorizontalLayout innerButtonLayout = new HorizontalLayout(saveButton, clearButton);
+        HorizontalLayout innerButtonCheckboxes = new HorizontalLayout(onSaveSelect, saveAsLastCheckbox);
+        innerButtonLayout.setWidthFull();
+        innerButtonCheckboxes.setWidthFull();
+        saveButton.setWidth("48%");
+        clearButton.setWidth("48%");
+        onSaveSelect.setWidthFull();
+        saveAsLastCheckbox.setMinWidth("8em");
+        innerButtonLayout.setWidthFull();
+        innerButtonLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        innerButtonCheckboxes.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        innerButtonCheckboxes.setAlignItems(Alignment.START);
+
         buttonLayout = new FormLayout(
-                saveButton,
-                clearButton,
-                onSaveSelect,
-                saveAsLastCheckbox);
-
+                innerButtonLayout,
+                innerButtonCheckboxes);
         buttonLayout.setWidthFull();
-        buttonLayout.setResponsiveSteps(
-                new ResponsiveStep("0", 1),
-                new ResponsiveStep(K.SHORT_WIDTH, 2));
 
-        taskCheckboxLayout = new HorizontalLayout(
+        durationField.setWidthFull();
+        taskInfoLayout = new HorizontalLayout(
+                durationField,
                 requiredCheckbox,
                 projectCheckbox);
-
-        taskCheckboxLayout.setWidthFull();
-        taskCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
+        taskInfoLayout.setSpacing(false);
+        taskInfoLayout.setAlignItems(Alignment.CENTER);
+        taskInfoLayout.setWidthFull();
+        taskInfoLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
         tagComboBox.setPlaceholder("Tags");
 
         setColspan(descriptionArea, 2);
+        setColspan(tagComboBox, 2);
         setColspan(buttonLayout, 2);
 
         this.setResponsiveSteps(

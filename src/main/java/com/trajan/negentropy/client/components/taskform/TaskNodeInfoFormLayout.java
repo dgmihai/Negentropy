@@ -15,7 +15,8 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Hr;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -128,19 +129,18 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
 
     @Override
     protected void configureLayout() {
+        super.configureLayout();
+
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        cronField.setWidthFull();
 
-        nodeCheckboxLayout = new HorizontalLayout(
-                recurringCheckbox);
+        nodeInfoLayout = new HorizontalLayout(
+                cronField, recurringCheckbox);
 
-        nodeCheckboxLayout = new HorizontalLayout(
-                recurringCheckbox);
-
-        nodeCheckboxLayout.setWidthFull();
-        nodeCheckboxLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
-
-        super.configureLayout();
+        nodeInfoLayout.setWidthFull();
+        nodeInfoLayout.setAlignItems(Alignment.CENTER);
+        nodeInfoLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
@@ -151,7 +151,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         Hr hr = new Hr();
         this.setColspan(hr, 2);
 
-        this.add(nameField, durationField, tagComboBox, taskCheckboxLayout, descriptionArea, hr, cronField, nodeCheckboxLayout,
+        this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
                 projectDurationField, projectComboBox, buttonLayout);
     }
 
