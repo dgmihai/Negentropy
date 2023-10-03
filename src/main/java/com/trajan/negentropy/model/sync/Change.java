@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -20,7 +21,7 @@ import java.util.Collection;
 
 @Getter
 public abstract class Change {
-    private final int id = hashCode();
+    private final ChangeID id = new ChangeID(hashCode());
 
     // Base change types
 
@@ -120,7 +121,7 @@ public abstract class Change {
     }
 
     public interface ReferencedInsertChange {
-        int changeTaskReference();
+        ChangeID changeTaskReference();
         TaskNodeDTO nodeDTO();
     }
 
@@ -131,14 +132,14 @@ public abstract class Change {
 
     @Getter
     public static class ReferencedInsertAtChange extends InsertAtChange implements ReferencedInsertChange {
-        private final int changeTaskReference;
+        private final ChangeID changeTaskReference;
 
-        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations, int changeTaskReference) {
+        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, MultiValueMap<LinkID, InsertLocation> locations, ChangeID changeTaskReference) {
             super(nodeDTO, locations);
             this.changeTaskReference = changeTaskReference;
         }
 
-        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, @NonNull LinkID reference, InsertLocation location, int changeTaskReference) {
+        public ReferencedInsertAtChange(TaskNodeDTO nodeDTO, @NonNull LinkID reference, InsertLocation location, ChangeID changeTaskReference) {
             super(nodeDTO, reference, location);
             this.changeTaskReference = changeTaskReference;
         }
@@ -165,14 +166,14 @@ public abstract class Change {
 
     @Getter
     public static class ReferencedInsertIntoChange extends InsertIntoChange implements ReferencedInsertChange {
-        private final int changeTaskReference;
+        private final ChangeID changeTaskReference;
 
-        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, MultiValueMap<TaskID, InsertLocation> locations, int changeTaskReference) {
+        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, MultiValueMap<TaskID, InsertLocation> locations, ChangeID changeTaskReference) {
             super(nodeDTO, locations);
             this.changeTaskReference = changeTaskReference;
         }
 
-        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, TaskID reference, InsertLocation location, int changeTaskReference) {
+        public ReferencedInsertIntoChange(TaskNodeDTO nodeDTO, TaskID reference, InsertLocation location, ChangeID changeTaskReference) {
             super(nodeDTO, reference, location);
             this.changeTaskReference = changeTaskReference;
         }

@@ -2,12 +2,14 @@ package com.trajan.negentropy.server.backend.netduration;
 
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TaskEntity;
+import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.NetDurationID;
 import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
@@ -51,15 +53,24 @@ public class NetDurationHelperManager {
         );
     }
 
+    public Map<TaskID, Duration> getAllNetTaskDurations(TaskNodeTreeFilter filter) {
+        return this.getHelper(filter).getAllNetTaskDurations();
+    }
+
+    public Map<LinkID, Duration> getAllNetNodeDurations(TaskNodeTreeFilter filter) {
+        return this.getHelper(filter).getAllNetNodeDurations();
+    }
+
     public synchronized void clear() {
         helpers.clear();
     }
 
-    public synchronized void clearLinks(Set<LinkID> durationUpdates) {
+    public synchronized void clearLinks(Set<TaskLink> durationUpdates) {
         helpers.values().forEach(helper ->
-                durationUpdates.forEach(linkId -> {
-                        helper.netDurations().remove(linkId);
-                        helper.projectChildrenOutsideDurationLimitMap().remove(linkId);
+                durationUpdates.forEach(link -> {
+                    log.debug("Removing link " + link.child().name() + " from helper " + helper.filter());
+                    helper.netDurations().remove(ID.of(link));
+                    helper.projectChildrenOutsideDurationLimitMap().remove(ID.of(link));
                 }));
     }
 

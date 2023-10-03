@@ -16,6 +16,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -25,6 +26,7 @@ import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.NetDurationService;
 import com.trajan.negentropy.server.facade.response.Request;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,8 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
@@ -46,8 +50,11 @@ public class ChangeProcessor {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationService netDurationService;
 
-    public synchronized Pair<String, MultiValueMap<Integer, PersistedDataDO<?>>> process(Request request) {
-        MultiValueMap<Integer, PersistedDataDO<?>> dataResults = new LinkedMultiValueMap<>();
+    @Setter
+    private Consumer<Set<TaskLink>> updateSyncManagerDurations;
+
+    public synchronized Pair<String, MultiValueMap<ChangeID, PersistedDataDO<?>>> process(Request request) {
+        MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults = new LinkedMultiValueMap<>();
 
         Deque<String> messages = new LinkedList<>();
         BiFunction<String, PersistedDataDO<?>, String> messageSupplier = (str, data) ->
@@ -56,7 +63,7 @@ public class ChangeProcessor {
         BiFunction<String, String, String> biMessageSupplier = (str, body) ->
                 str + " " + body;
 
-        Set<LinkID> durationUpdates = new HashSet<>();
+        Set<TaskLink> durationUpdates = new HashSet<>();
 
         for (Change change : request.changes()) {
             String prefix;
@@ -288,6 +295,7 @@ public class ChangeProcessor {
         }
 
         netDurationService.clearLinks(durationUpdates);
+        updateSyncManagerDurations.accept(durationUpdates);
         return Pair.of(message, dataResults);
     }
 
@@ -326,20 +334,18 @@ public class ChangeProcessor {
         }
     }
 
-    private void updateDuration(Set<LinkID> durationUpdates, TaskLink link) {
-        durationUpdates.add(ID.of(link));
+    private void updateDuration(Set<TaskLink> durationUpdates, TaskLink link) {
+        durationUpdates.add(link);
         durationUpdates.addAll(entityQueryService.findAncestorLinks(
                 ID.of(link.child()), null)
-                .map(ID::of)
-                .toList());
+                .collect(Collectors.toSet()));
     }
 
-    private void updateDuration(Set<LinkID> durationUpdates, TaskEntity task) {
+    private void updateDuration(Set<TaskLink> durationUpdates, TaskEntity task) {
         for (TaskLink parent : task.parentLinks()) {
             durationUpdates.addAll(entityQueryService.findAncestorLinks(
                     ID.of(parent.child()), null)
-                    .map(ID::of)
-                    .toList());
+                    .collect(Collectors.toSet()));
         }
     }
 

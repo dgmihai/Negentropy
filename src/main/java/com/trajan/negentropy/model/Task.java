@@ -25,6 +25,7 @@ public class Task implements TaskData<Task, Tag>, PersistedDataDO<TaskID> {
     private Duration duration;
     private Boolean required;
     private Boolean project;
+    private Boolean difficult;
     private Set<Tag> tags;
 
     public Task() {

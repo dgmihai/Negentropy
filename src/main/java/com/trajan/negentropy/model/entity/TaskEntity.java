@@ -57,6 +57,9 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, T
     @ToString.Include
     private Boolean project = false;
 
+    @ToString.Include
+    private Boolean difficult = false;
+
     @OneToMany(
             mappedBy = "task",
             cascade = CascadeType.ALL,

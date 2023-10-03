@@ -35,6 +35,11 @@ vaadin-grid::part(required-task) {
         oblique;
 }
 
+vaadin-grid::part(difficult-task) {
+    font-weight:
+        bold;
+}
+
 vaadin-grid::part(project-task) {
     background-color:
       var(--lumo-complementary-color-5pct-opaque);

@@ -8,7 +8,6 @@ import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -63,15 +62,13 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
 
         projectDurationField.setVisible(data.task().project());
         saveAsLastCheckbox.setVisible(false);
+
+        this.taskNodeProvider.afterSuccessfulSave(this::clear);
     }
 
     @Override
     public void save() {
-        TaskNode result = taskNodeProvider().modifyNode(binder.getBean().node().id());
-
-        if (result != null) {
-            this.clear();
-        }
+        taskNodeProvider().modifyNode(binder.getBean().node().id());
     }
 
     @Override

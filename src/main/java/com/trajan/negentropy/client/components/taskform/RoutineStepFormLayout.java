@@ -44,6 +44,8 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
         configureAll();
 
         saveAsLastCheckbox.setVisible(false);
+
+        this.taskNodeProvider.afterSuccessfulSave(this::clear);
     }
 
     @Override
@@ -53,11 +55,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
 
     @Override
     public void save() {
-        Task result = taskNodeProvider.modifyTask(binder.getBean().task().id());
-
-        if (result != null) {
-            this.clear();
-        }
+        taskNodeProvider.modifyTask();
     }
 
     @Override

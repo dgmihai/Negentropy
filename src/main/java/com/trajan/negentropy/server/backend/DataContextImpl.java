@@ -48,22 +48,21 @@ public class DataContextImpl implements DataContext {
         this.deleteAllOrphanedTags();
     }
 
-    @Override
-    public void addToNetDurationOfAllAncestors(Duration change, TaskID descendantId) {
-        entityQueryService.findAncestorLinks(descendantId, null)
-                .map(TaskLink::child)
+    private void markAllAncestorsAsRequiringNetDurationRefresh(TaskLink descendantLink) {
+        Set<TaskLink> ancestors = entityQueryService.findAncestorLinks(descendantLink.childId(), null)
                 .filter(Objects::nonNull)
-                .distinct()
-                .forEach(task -> {
-                    this.addToNetDurationOfTask(change, ID.of(task));
-                });
+                .collect(Collectors.toSet());
+        ancestors.add(descendantLink);
+
+        netDurationService.clearLinks(ancestors);
     }
 
-    @Override
-    public void addToNetDurationOfTask(Duration change, TaskID taskId) {
-        log.trace("Adding to " + change + " to " + entityQueryService.getTask(taskId));
-        NetDuration netDuration = netDurationService.getNetDurationEntity(taskId);
-        netDuration.val(netDuration.val().plus(change));
+    private void markAllAncestorsAsRequiringNetDurationRefresh(TaskID descendantId) {
+        Set<TaskLink> ancestors = entityQueryService.findAncestorLinks(descendantId, null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toUnmodifiableSet());
+
+        netDurationService.clearLinks(ancestors);
     }
 
     @Override
@@ -86,12 +85,12 @@ public class DataContextImpl implements DataContext {
                             task.duration(), Duration.ZERO)));
         } else {
             taskEntity = entityQueryService.getTask(task.id());
-            log.debug("Merging to existing task: " + taskEntity.name());
-
-            if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
-                Duration change = task.duration().minus(taskEntity.duration());
-                this.addToNetDurationOfAllAncestors(change, task.id());
-            }
+//            log.debug("Merging to existing task: " + taskEntity.name());
+//
+//            if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
+//                Duration change = task.duration().minus(taskEntity.duration());
+//                this.addToNetDurationOfAllAncestors(change, task.id());
+//            }
         }
 
         Set<TagEntity> tagEntities = task.tags() == null ?
@@ -111,9 +110,13 @@ public class DataContextImpl implements DataContext {
                         task.project(), taskEntity.project()))
                 .required(Objects.requireNonNullElse(
                         task.required(), taskEntity.required()))
+                .difficult(Objects.requireNonNullElse(
+                        task.difficult(), taskEntity.difficult()))
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
+
+        this.markAllAncestorsAsRequiringNetDurationRefresh(task.id());
 
         log.debug("Merged task: " + taskEntity);
         return taskEntity;
@@ -128,6 +131,7 @@ public class DataContextImpl implements DataContext {
                 template.duration(),
                 template.required(),
                 template.project(),
+                template.difficult(),
                 template.tags());
         return this.mergeTask(task);
     }
@@ -164,7 +168,9 @@ public class DataContextImpl implements DataContext {
             }
             linkEntity.completed(false);
         }
-        
+
+        this.markAllAncestorsAsRequiringNetDurationRefresh(linkEntity);
+
         log.debug("Merged task link from node: " + linkEntity);
         return linkEntity;
     }
@@ -244,10 +250,6 @@ public class DataContextImpl implements DataContext {
                 projectDuration));
 
         if (parent != null) {
-            Duration change = netDurationService.getNetDuration(child, null);
-            TaskID parentId = ID.of(parent);
-
-            this.addToNetDurationOfAllAncestors(change, parentId);
             try {
                 parent.childLinks().add(link.position(), link);
             } catch (IndexOutOfBoundsException e) {
@@ -256,6 +258,7 @@ public class DataContextImpl implements DataContext {
         }
 
         child.parentLinks().add(link);
+        this.markAllAncestorsAsRequiringNetDurationRefresh(link);
 
         log.debug("Merged task link from node dto: " + link);
         return link;
@@ -340,12 +343,8 @@ public class DataContextImpl implements DataContext {
                     step.deletedLink(true);
                 });
 
+        this.markAllAncestorsAsRequiringNetDurationRefresh(link);
         linkRepository.delete(link);
-
-        Duration change = netDurationService.getNetDuration(child, null)
-            .negated();
-        TaskID parentId = ID.of(parent);
-        this.addToNetDurationOfAllAncestors(change, parentId);
     }
 
     @Override
@@ -401,6 +400,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.duration(),
                 taskEntity.required(),
                 taskEntity.project(),
+                taskEntity.difficult(),
                 taskEntity.tags().stream()
                         .map(this::toDO)
                         .collect(Collectors.toSet()));

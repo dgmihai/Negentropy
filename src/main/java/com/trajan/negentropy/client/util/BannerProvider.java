@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.util;
 
-import com.trajan.negentropy.client.controller.SessionServices;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;

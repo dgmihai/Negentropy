@@ -218,7 +218,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
         this.setResponsiveSteps(
                 new ResponsiveStep("0", 1),
-                new ResponsiveStep(K.SHORT_WIDTH, 2));
+                new ResponsiveStep(K.SHORT_SCREEN_WIDTH, 2));
 
         this.setWidthFull();
     }

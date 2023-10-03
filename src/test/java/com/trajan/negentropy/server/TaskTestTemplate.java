@@ -11,6 +11,7 @@ import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.TagID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
@@ -145,7 +146,7 @@ public class TaskTestTemplate {
 
     protected Task persistTask(Task task) {
         Change persist = new PersistChange<>(task);
-        int id = persist.id();
+        ChangeID id = persist.id();
 
         DataMapResponse response = changeService.execute(Request.of(persist));
         log.debug("Persisted task: " + response.changeRelevantDataMap().getFirst(id));
@@ -184,7 +185,7 @@ public class TaskTestTemplate {
                     nodeDTO.projectDuration());
 
             Change insertInto = new InsertIntoChange(freshNode, parentId, InsertLocation.LAST);
-            int id = insertInto.id();
+            ChangeID id = insertInto.id();
 
             DataMapResponse response = changeService.execute(Request.of(insertInto));
             TaskNode node = (TaskNode) response.changeRelevantDataMap().getFirst(id);

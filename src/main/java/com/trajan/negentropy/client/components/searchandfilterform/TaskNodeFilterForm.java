@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.filterform;
+package com.trajan.negentropy.client.components.searchandfilterform;
 
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 
 @Accessors(fluent = true)
 @Getter
-public class TaskNodeFilterForm extends FilterForm {
+public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
     private final UIController controller;
 
     protected Binder<TaskNodeTreeFilter> binder = new BeanValidationBinder<>(TaskNodeTreeFilter.class);

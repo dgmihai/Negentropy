@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.tree;
+package com.trajan.negentropy.client;
 
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
@@ -7,7 +7,7 @@ import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.UIController;
-import com.trajan.negentropy.client.controller.TaskNetworkGraph;
+import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.util.BannerProvider;

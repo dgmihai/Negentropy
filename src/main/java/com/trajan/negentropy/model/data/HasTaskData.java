@@ -19,6 +19,8 @@ public interface HasTaskData {
         Boolean required();
         TASK project(Boolean project);
         Boolean project();
+        TASK difficult(Boolean difficult);
+        Boolean difficult();
         TASK tags(Set<TAG> tags);
         Set<TAG> tags();
     }

@@ -8,7 +8,7 @@ import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBo
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.controller.UIController;
-import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
+import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.sessionlogger.SessionLogged;
@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 @Scope("prototype")
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements TaskNodeDisplay, SessionLogged {
+public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements HasRootNode, SessionLogged {
     @Autowired protected SessionLoggerFactory loggerFactory;
     protected SessionLogger log;
 
@@ -167,7 +167,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
             editCheckboxes.add(checkbox);
             treeGrid.addSelectionListener(event -> {
-                log.debug("Selection changed");
+                log.trace("Selection changed");
                 if (event.isFromClient()) {
                     Set<T> data = treeGrid.getSelectedItems();
 
@@ -182,7 +182,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                     boolean allSame = data.stream()
                             .allMatch(t -> getter.apply(t) == firstRequiredValue);
 
-                    log.debug("All same: {}", allSame);
+                    log.trace("All same: {}", allSame);
                     if (allSame) {
                         checkbox.setValue(firstRequiredValue);
                         checkbox.setIndeterminate(false);
@@ -197,7 +197,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                     Set<T> toUpdate = treeGrid.getSelectedItems();
 
                     if (!toUpdate.isEmpty()) {
-                        controller.requestChange(new MultiMergeChange<>(
+                        controller.requestChangeAsync(new MultiMergeChange<>(
                                 inputFunction.apply(checkbox.getValue()),
                                 toUpdate.stream()
                                         .map(idFunction)
@@ -237,6 +237,24 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setResizable(true)
                         .setFrozen(true)
                         .setFlexGrow(1);
+
+                case DIFFICULT -> {
+                    Grid.Column<T> difficultColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            GridUtil.inlineVaadinIconLitExpression("bolt",
+                                                    ("?active=\"${item.difficult}\" ")))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChangeAsync(new MergeChange<>(
+                                                            new Task(t.task().id())
+                                                                    .difficult(!t.task().difficult())),
+                                                    this))
+                                    .withProperty("difficult", t ->
+                                            t.task().difficult()))
+                            .setKey(ColumnKey.DIFFICULT.toString())
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.BOLT))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
 
                 case REQUIRED -> {
                     Grid.Column<T> requiredColumn = treeGrid.addColumn(LitRenderer.<T>of(
@@ -512,9 +530,6 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             editor.addOpenListener(e -> {
                 treeGrid.setDetailsVisible(e.getItem(), true);
                 escapeListener.get().ifPresent(Registration::remove);
-                enterListener.set(Optional.of(Shortcuts.addShortcutListener(treeGrid,
-                        editor::save,
-                        Key.ENTER)));
             });
 
             editor.addCloseListener(e -> {

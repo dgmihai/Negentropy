@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -15,12 +16,13 @@ import com.trajan.negentropy.model.sync.Change.ReferencedInsertAtChange;
 import com.trajan.negentropy.model.sync.Change.ReferencedInsertIntoChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
 public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse> {
     protected UIController controller;
+    protected ChangeID changeId;
+
     public abstract Task getTask();
     public abstract TaskNodeInfoData<?> getNodeInfo();
 
@@ -34,41 +36,38 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
         return result.success();
     }
 
-    public TaskNode modifyNode(LinkID nodeId) {
-        Task task = getTask();
-        Change taskChange = task.id() != null
-                ? new MergeChange<>(task)
-                : new PersistChange<>(task);
+    public void modifyNode(LinkID nodeId) {
+        if (isValid()) {
+            Task task = getTask();
+            List<Change> changes = new ArrayList<>();
+            if (task.id() == null) {
+                changes.add(new PersistChange<>(task));
+            }
+            Change taskChange = task.id() != null
+                    ? new MergeChange<>(task)
+                    : new PersistChange<>(task);
 
-        Change nodeChange = new MergeChange<>(
-                new TaskNode(nodeId, getNodeInfo()));
+            Change nodeChange = new MergeChange<>(
+                    new TaskNode(nodeId, getNodeInfo()));
+            changeId = nodeChange.id();
 
-        Supplier<DataMapResponse> trySave = () ->
-                controller.requestChanges(List.of(
-                        taskChange,
-                        nodeChange));
-
-        Optional<DataMapResponse> response = handleSave(trySave);
-
-        if (response.isPresent() && response.get().success()) {
-            return (TaskNode) response.get().changeRelevantDataMap().getFirst(nodeChange.id());
+            controller.requestChangesAsync(List.of(
+                            taskChange,
+                            nodeChange),
+                    this::handleSave);
         } else {
-            return null;
+            afterFailedSaveCallbacks.forEach(Runnable::run);
         }
     }
 
-    public Task modifyTask(TaskID taskId) {
-        Change taskChange = getTaskChange();
+    public void modifyTask() {
+        if (isValid()) {
+            Change taskChange = getTaskChange();
+            changeId = taskChange.id();
 
-        Supplier<DataMapResponse> trySave = () ->
-                controller.requestChange(taskChange);
-
-        Optional<DataMapResponse> response = handleSave(trySave);
-
-        if (response.isPresent() && response.get().success()) {
-            return (Task) response.get().changeRelevantDataMap().getFirst(taskChange.id());
+            controller.requestChangeAsync(taskChange, this::handleSave);
         } else {
-            return null;
+            afterFailedSaveCallbacks.forEach(Runnable::run);
         }
     }
 
@@ -79,22 +78,18 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
                 : new PersistChange<>(task);
     }
 
-    protected TaskNode tryChange(Change taskChange, Change referencedInsertChange) {
-        Supplier<DataMapResponse> trySave = () ->
-                controller.requestChanges(List.of(
-                        taskChange,
-                        referencedInsertChange));
-
-        Optional<DataMapResponse> response = handleSave(trySave);
-
-        if (response.isPresent() && response.get().success()) {
-            return (TaskNode) response.get().changeRelevantDataMap().getFirst(referencedInsertChange.id());
+    protected void tryChange(Change taskChange, Change referencedInsertChange) {
+        if (isValid()) {
+            controller.requestChangesAsync(List.of(
+                    taskChange,
+                    referencedInsertChange),
+                    this::handleSave);
         } else {
-            return null;
+            afterFailedSaveCallbacks.forEach(Runnable::run);
         }
     }
 
-    public TaskNode createNode(TaskOrLinkID reference, InsertLocation location) {
+    public ChangeID createNode(TaskOrLinkID reference, InsertLocation location) {
         Change taskChange = getTaskChange();
 
         Change referencedInsertChange;
@@ -119,8 +114,16 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
         } else  {
             throw new IllegalArgumentException("Invalid reference type: " + reference.getClass());
         }
+        changeId = referencedInsertChange.id();
 
-        return tryChange(taskChange, referencedInsertChange);
+        tryChange(taskChange, referencedInsertChange);
+        return referencedInsertChange.id();
+    }
+
+    @Override
+    public void handleSave(DataMapResponse response) {
+        super.handleSave(response);
+        changeId = null;
     }
 
     public interface HasTaskNodeProvider {

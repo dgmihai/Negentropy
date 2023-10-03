@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
+import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
@@ -13,6 +14,7 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelper;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,37 +41,41 @@ public class NetDurationService {
 
     @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private NetDurationHelperManager helperManager;
-    
+
+    private static final List<TaskNodeTreeFilter> CACHED_FILTERS = List.of(
+            new NonSpecificTaskNodeTreeFilter(),
+            new NonSpecificTaskNodeTreeFilter()
+                    .availableAtTime(LocalDateTime.now()),
+            new NonSpecificTaskNodeTreeFilter()
+                    .completed(false),
+            new NonSpecificTaskNodeTreeFilter()
+                    .availableAtTime(LocalDateTime.now())
+                    .completed(false));
+
     private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
-    public synchronized NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
+    @PostConstruct
+    public void loadCachedFilters() {
+        log.debug("Loading cached filters");
+//        CACHED_FILTERS.forEach(this::getAllNetTaskDurations);
+    }
+
+    public NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
         return helperManager.getHelper(filter);
     }
 
     public Map<TaskID, Duration> getAllNetTaskDurations(TaskNodeTreeFilter filter) {
-        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
-        nonNullFilter.name(null); // We don't cache by name
-
-        return entityQueryService.findTasks(nonNullFilter)
-                .collect(Collectors.toMap(
-                        ID::of,
-                        link -> this.getNetDuration(link, nonNullFilter)
-                ));
+        return helperManager.getAllNetTaskDurations(filter);
     }
 
     public Map<LinkID, Duration> getAllNetNodeDurations(TaskNodeTreeFilter filter) {
-        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
-        nonNullFilter.name(null); // We don't cache by name
-
-        return entityQueryService.findLinks(nonNullFilter)
-                .collect(Collectors.toMap(
-                        ID::of,
-                        link -> this.getNetDuration(link, nonNullFilter)
-                ));
+        return helperManager.getAllNetNodeDurations(filter);
     }
 
-    public void clearLinks(Set<LinkID> durationUpdates) {
+    public void clearLinks(Set<TaskLink> durationUpdates) {
+        log.debug("Clearing " + durationUpdates.size() + " links");
         helperManager.clearLinks(durationUpdates);
+        new Thread(this::loadCachedFilters).start();
     }
 
     @Getter
@@ -121,20 +129,15 @@ public class NetDurationService {
     }
 
     public synchronized Duration getNetDuration(TaskLink link, TaskNodeTreeFilter filter) {
-        TaskNodeTreeFilter nonNullFilter = filter == null ? new TaskNodeTreeFilter() : filter;
-        nonNullFilter.name(null); // We don't cache by name
+        NonSpecificTaskNodeTreeFilter nonNullFilter = filter == null
+                ? new NonSpecificTaskNodeTreeFilter()
+                : NonSpecificTaskNodeTreeFilter.from(filter);
 
-        // TODO: Retry caching
-//        if (!(link.child().project() && link.projectDuration() != null) && (nonNullFilter.isEmpty())) {
-//            return getNetDurationEntity(link.child()).val();
-//        } else {
+        NetDurationHelper helper = helpers.computeIfAbsent(nonNullFilter, f ->
+                helperManager.getHelper(nonNullFilter)
+        );
 
-            NetDurationHelper helper = helpers.computeIfAbsent(nonNullFilter, f ->
-                    helperManager.getHelper(nonNullFilter)
-            );
-
-            return helper.getNetDuration(link);
-//        }
+        return helper.getNetDuration(link);
     }
 
 //    public Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {

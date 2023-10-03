@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.controller;
+package com.trajan.negentropy.client.session;
 
 import com.trajan.negentropy.server.backend.TagService;
 import com.trajan.negentropy.server.facade.*;

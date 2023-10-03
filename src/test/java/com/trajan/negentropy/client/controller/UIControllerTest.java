@@ -3,7 +3,6 @@ package com.trajan.negentropy.client.controller;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
@@ -34,17 +33,6 @@ class UIControllerTest extends ClientTestTemplate {
         init();
 
         controller = new TestUIController(testServices);
-    }
-
-    void assertTaskInserted(int position, String parent, TaskNode resultNode) {
-        TaskLink resultLink = entityQueryService.getLink(resultNode.linkId());
-        assertEquals(TEST_TASK_NAME, resultLink.child().name());
-        assertEquals(TEST_TAG.name(), resultLink.child().tags().stream().findFirst().get().name());
-        assertEquals(parent,
-                resultLink.parent() != null
-                        ? resultLink.parent().name()
-                        : null);
-        assertEquals(position, resultLink.position());
     }
 
     void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
@@ -95,16 +83,17 @@ class UIControllerTest extends ClientTestTemplate {
         assertNotNull(syncId);
 
         TaskNode resultNode;
+
         if (reference == null) {
-            resultNode = taskNodeProvider.createNode(
+            resultNode = taskNodeProvider.createNode_TEST(
                     null,
                     location);
         } else if (reference instanceof TaskID taskReference) {
-            resultNode = taskNodeProvider.createNode(
+            resultNode = taskNodeProvider.createNode_TEST(
                     taskReference,
                     location);
         } else if (reference instanceof LinkID linkReference) {
-            resultNode = taskNodeProvider.createNode(
+            resultNode = taskNodeProvider.createNode_TEST(
                     linkReference,
                     location);
         } else  {

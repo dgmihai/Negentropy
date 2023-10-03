@@ -3,7 +3,6 @@ package com.trajan.negentropy.client;
 import com.trajan.negentropy.client.components.appnav.AppNav;
 import com.trajan.negentropy.client.components.appnav.AppNavItem;
 import com.trajan.negentropy.client.routine.RoutineView;
-import com.trajan.negentropy.client.tree.TreeView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.Footer;

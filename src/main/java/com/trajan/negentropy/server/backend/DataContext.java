@@ -12,16 +12,12 @@ import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
 public interface DataContext {
-    void addToNetDurationOfAllAncestors(Duration change, TaskID descendantId);
-    void addToNetDurationOfTask(Duration change, TaskID taskId);
-
     TaskEntity mergeTask(Task task);
     TaskEntity mergeTaskTemplate(TaskID id, TaskTemplateData<Task, Tag> template);
 

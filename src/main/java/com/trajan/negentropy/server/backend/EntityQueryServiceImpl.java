@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -346,21 +345,20 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return this.findDescendantLinks(ancestorId, filter).map(TaskLink::child);
     }
 
-    @Override
-    public NetDuration getNetDuration(TaskID taskId) {
-        // TODO: Implement importance in time estimate caching
-        return this.getNetDuration(taskId, 0);
-    }
-
-    @Override
-    public NetDuration getNetDuration(TaskID taskId, int importance) {
-        TaskEntity task = this.getTask(taskId);
-        return task.netDurations().stream()
-                .filter(
-                netDuration -> importance == netDuration.importance())
-                .findFirst()
-                .orElseThrow();
-    }
+//    @Override
+//    public NetDuration getNetDuration(TaskID taskId) {
+//        return
+//    }
+//
+//    @Override
+//    public NetDuration getNetDuration(TaskID taskId, int importance) {
+//        TaskEntity task = this.getTask(taskId);
+//        return task.netDurations().stream()
+//                .filter(
+//                netDuration -> importance == netDuration.importance())
+//                .findFirst()
+//                .orElseThrow();
+//    }
 
     @Override
     public Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {
@@ -373,70 +371,70 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 });
     }
 
-    @Override
-    public Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
-        boolean save = false;
-
-        if (filter == null) {
-            try {
-                return getNetDuration(taskId).val();
-            } catch (NoSuchElementException e) {
-                logger.warn("No net duration found for task " + taskId.val() + ", calculating new.");
-                save = true;
-            }
-        } else {
-            if ((filter.name() == null || filter.name().isBlank())
-                    && filter.includedTagIds().isEmpty()
-                    && filter.excludedTagIds().isEmpty()
-                    && filter.importanceThreshold() != null) {
-                return getNetDuration(taskId, filter.importanceThreshold()).val();
-            }
-        }
-
-        boolean filterCached = activeFilter.equals(filter);
-
-        if (!filterCached) {
-            cachedTotalDurations.clear();
-        }
-
-        Predicate<TaskID> hasCachedNetDuration =
-                id -> filterCached && cachedTotalDurations.containsKey(id);
-
-        if (hasCachedNetDuration.test(taskId)) {
-            return cachedTotalDurations.get(taskId);
-        }
-
-        Stream<TaskLink> descendants = this.findDescendantLinks(taskId, filter);
-        LinkedList<TaskLink> descendantStack = new LinkedList<>();
-        descendants.takeWhile(t -> hasCachedNetDuration.test(ID.of(t.child())))
-                .forEachOrdered(descendantStack::push);
-
-        TaskEntity task = this.getTask(taskId);
-        if (descendantStack.isEmpty()) {
-            return this.getTask(taskId).duration();
-        }
-
-        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll().child()));
-        TaskLink next = descendantStack.poll();
-        while (next != null) {
-            durationSum = task.project()
-                    ? durationSum.plus(next.projectDuration())
-                    : durationSum.plus(next.child().duration());
-            cachedTotalDurations.put(ID.of(next.child()), durationSum);
-            next = descendantStack.poll();
-        }
-
-        cachedTotalDurations.put(taskId, durationSum.plus(task.duration()));
-
-        if (save) {
-            netDurationRepository.save(new NetDuration(
-                    task,
-                    0,
-                    durationSum)
-            );
-        }
-        return durationSum;
-    }
+//    @Override
+//    public Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
+//        boolean save = false;
+//
+//        if (filter == null) {
+//            try {
+//                return netDurationService.getNetDuration(taskId).val();
+//            } catch (NoSuchElementException e) {
+//                logger.warn("No net duration found for task " + taskId.val() + ", calculating new.");
+//                save = true;
+//            }
+//        } else {
+//            if ((filter.name() == null || filter.name().isBlank())
+//                    && filter.includedTagIds().isEmpty()
+//                    && filter.excludedTagIds().isEmpty()
+//                    && filter.importanceThreshold() != null) {
+//                return netDurationService.getNetDuration(taskId, filter.importanceThreshold()).val();
+//            }
+//        }
+//
+//        boolean filterCached = activeFilter.equals(filter);
+//
+//        if (!filterCached) {
+//            cachedTotalDurations.clear();
+//        }
+//
+//        Predicate<TaskID> hasCachedNetDuration =
+//                id -> filterCached && cachedTotalDurations.containsKey(id);
+//
+//        if (hasCachedNetDuration.test(taskId)) {
+//            return cachedTotalDurations.get(taskId);
+//        }
+//
+//        Stream<TaskLink> descendants = this.findDescendantLinks(taskId, filter);
+//        LinkedList<TaskLink> descendantStack = new LinkedList<>();
+//        descendants.takeWhile(t -> hasCachedNetDuration.test(ID.of(t.child())))
+//                .forEachOrdered(descendantStack::push);
+//
+//        TaskEntity task = this.getTask(taskId);
+//        if (descendantStack.isEmpty()) {
+//            return this.getTask(taskId).duration();
+//        }
+//
+//        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll().child()));
+//        TaskLink next = descendantStack.poll();
+//        while (next != null) {
+//            durationSum = task.project()
+//                    ? durationSum.plus(next.projectDuration())
+//                    : durationSum.plus(next.child().duration());
+//            cachedTotalDurations.put(ID.of(next.child()), durationSum);
+//            next = descendantStack.poll();
+//        }
+//
+//        cachedTotalDurations.put(taskId, durationSum.plus(task.duration()));
+//
+//        if (save) {
+//            netDurationRepository.save(new NetDuration(
+//                    task,
+//                    0,
+//                    durationSum)
+//            );
+//        }
+//        return durationSum;
+//    }
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {

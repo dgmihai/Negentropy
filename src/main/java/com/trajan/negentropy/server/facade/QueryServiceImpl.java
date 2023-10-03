@@ -193,8 +193,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Duration fetchNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
-        return entityQueryService.calculateNetDuration(taskId, filter);
-        // TODO: Cache: return this.fetchNetTimeDuration(taskId, 0);
+        return netDurationService.getNetDuration(taskId, filter);
     }
 
     @Override

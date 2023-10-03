@@ -21,6 +21,7 @@ public class NotificationMessage extends Div {
             notification.open();
         } catch (Exception e) {
             log.warn("Failed to open notification - is UI not available?");
+            e.printStackTrace();
         }
 
         return notification;

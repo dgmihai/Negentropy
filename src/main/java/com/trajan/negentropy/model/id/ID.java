@@ -57,6 +57,16 @@ public abstract class ID implements Serializable {
         }
     }
 
+    public static class ChangeID extends ID {
+        public ChangeID(int val) {
+            super(val);
+        }
+
+        public ChangeID(long val) {
+            super(val);
+        }
+    }
+
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "(" + val +")";

@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.UIController;
-import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.routine.components.RoutineCard;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.BannerProvider;

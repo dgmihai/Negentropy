@@ -13,6 +13,7 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
@@ -72,6 +73,29 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
             @Override
             public boolean isValid() {
                 return taskBinder.isValid() && nodeInfoBinder.isValid();
+            }
+
+            @Override
+            public void handleSave(DataMapResponse response) {
+                if (response != null) {
+                    switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+                        case CLEAR -> clear();
+                        case PERSIST -> {
+                            TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
+                            nodeInfoBinder.setBean(result.toDTO());
+                            taskBinder.setBean(result.task());
+                        }
+                        case KEEP_TEMPLATE -> {
+                            nameField.clear();
+                            descriptionArea.clear();
+                        }
+                        case CLOSE -> {
+                            clear();
+                            onClose.run();
+                        }
+                    }
+                }
+                super.handleSave(response);
             }
         };
     }
@@ -153,26 +177,5 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
 
         this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
                 projectDurationField, projectComboBox, buttonLayout);
-    }
-
-    @Override
-    public void handleSaveResult(TaskNode result) {
-        if (result != null) {
-            switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
-                case CLEAR -> this.clear();
-                case PERSIST -> {
-                    nodeInfoBinder.setBean(result.toDTO());
-                    taskBinder.setBean(result.task());
-                }
-                case KEEP_TEMPLATE -> {
-                    nameField.clear();
-                    descriptionArea.clear();
-                }
-                case CLOSE -> {
-                    this.clear();
-                    onClose.run();
-                }
-            }
-        }
     }
 }

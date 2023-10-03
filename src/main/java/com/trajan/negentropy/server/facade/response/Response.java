@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.facade.response;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,12 +50,12 @@ public class Response {
     }
 
     @Getter
-    public static class DataMapResponse extends DataResponse<MultiValueMap<Integer, PersistedDataDO<?>>> {
+    public static class DataMapResponse extends DataResponse<MultiValueMap<ChangeID, PersistedDataDO<?>>> {
         public DataMapResponse(boolean success, String message, SyncRecord aggregateSyncRecord) {
             super(success, message, aggregateSyncRecord);
         }
 
-        public DataMapResponse(boolean success, String message, MultiValueMap<Integer, PersistedDataDO<?>> resultsMap, SyncRecord aggregateSyncRecord) {
+        public DataMapResponse(boolean success, String message, MultiValueMap<ChangeID, PersistedDataDO<?>> resultsMap, SyncRecord aggregateSyncRecord) {
             super(success, message, resultsMap, aggregateSyncRecord);
         }
 

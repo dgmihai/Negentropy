@@ -1,6 +1,7 @@
 package com.trajan.negentropy.server.backend.sync;
 
 import com.querydsl.core.BooleanBuilder;
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.sync.ChangeRecordEntity;
@@ -45,6 +46,7 @@ import java.util.stream.StreamSupport;
 @Slf4j
 @Component
 @Transactional
+@Benchmark(millisFloor = 10)
 public class SyncManager {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private SyncRecordRepository syncRecordRepository;

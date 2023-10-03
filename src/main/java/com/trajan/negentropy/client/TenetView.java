@@ -3,7 +3,7 @@ package com.trajan.negentropy.client;
 import com.trajan.negentropy.client.components.grid.ColumnKey;
 import com.trajan.negentropy.client.components.grid.GridUtil;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
-import com.trajan.negentropy.client.controller.SessionServices;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Tenet;
 import com.vaadin.flow.component.Key;

@@ -10,7 +10,9 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -19,6 +21,7 @@ import lombok.Getter;
 public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     protected Binder<Task> taskBinder;
+    private ChangeID watchedChangeId = null;
 
     @Getter
     protected TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
@@ -35,6 +38,25 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         @Override
         public boolean isValid() {
             return taskBinder.isValid();
+        }
+
+        @Override
+        public void handleSave(DataMapResponse response) {
+            if (response != null) {
+                switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+                    case CLEAR -> clear();
+                    case PERSIST -> {
+                        TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
+                        taskBinder.setBean(result.task());
+                    }
+                    case KEEP_TEMPLATE -> nameField.clear();
+                    case CLOSE -> {
+                        clear();
+                        onClose.run();
+                    }
+                }
+            }
+            super.handleSave(response);
         }
     };
 
@@ -59,27 +81,11 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
         TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
-        TaskNode result = getTaskNodeProvider().createNode(
+        watchedChangeId = taskNodeProvider.createNode(
                 projectComboBox.getValue() == null
                         ? rootTaskID
                         : projectComboBox.getValue().id(),
                 location);
-
-        handleSaveResult(result);
-    }
-
-    protected void handleSaveResult(TaskNode result) {
-        if (result != null) {
-            switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
-                case CLEAR -> this.clear();
-                case PERSIST -> taskBinder.setBean(result.task());
-                case KEEP_TEMPLATE -> nameField.clear();
-                case CLOSE -> {
-                    this.clear();
-                    onClose.run();
-                }
-            }
-        }
     }
 
     @Override

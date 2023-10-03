@@ -2,18 +2,18 @@ package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
-import com.trajan.negentropy.client.components.filterform.FilterForm;
-import com.trajan.negentropy.client.components.filterform.TaskFilterForm;
-import com.trajan.negentropy.client.components.filterform.TaskNodeFilterForm;
-import com.trajan.negentropy.client.components.filterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
+import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearchAndFilterForm;
+import com.trajan.negentropy.client.components.searchandfilterform.TaskFilterForm;
+import com.trajan.negentropy.client.components.searchandfilterform.TaskNodeFilterForm;
+import com.trajan.negentropy.client.components.searchandfilterform.TreeFilterForm;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.client.tree.TreeView;
+import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.routine.Routine;
@@ -59,10 +59,8 @@ import java.util.Optional;
 @Scope("prototype")
 @Slf4j
 public class ToolbarTabSheet extends TabSheet {
-    @Autowired
-    private UIController controller;
-    @Autowired
-    private UserSettings settings;
+    @Autowired private UIController controller;
+    @Autowired private UserSettings settings;
 
     private TreeView treeView;
     private RoutineView routineView;
@@ -223,7 +221,7 @@ public class ToolbarTabSheet extends TabSheet {
         forceResync.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         forceResync.addClickListener(e -> {
             controller.taskNetworkGraph().reset();
-            controller.taskEntryDataProviderManager().refreshAllProviders();
+            controller.taskNetworkGraph().taskEntryDataProvider().refreshAll();
         });
 
         Button deleteCompleted = new Button("Delete All Completed Tasks");
@@ -277,7 +275,7 @@ public class ToolbarTabSheet extends TabSheet {
 
         layout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 2),
-                new FormLayout.ResponsiveStep(K.SHORT_WIDTH, 4));
+                new FormLayout.ResponsiveStep(K.SHORT_SCREEN_WIDTH, 4));
 
         optionsTab = mobile
                 ? new Tab("Options")
@@ -301,21 +299,21 @@ public class ToolbarTabSheet extends TabSheet {
         return filterForm;
     }
 
-    private void configureFilterForm(FilterForm filterForm) {
+    private void configureFilterForm(AbstractSearchAndFilterForm filterForm) {
         filterForm.name().setPlaceholder("Search for individual task");
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
         filterForm.name().setValueChangeMode(ValueChangeMode.TIMEOUT);
     }
 
-    public TaskListBox createTaskSetBox(FilterForm form) {
+    public TaskListBox createTaskSetBox(AbstractSearchAndFilterForm form) {
         taskSetBox = new TaskListBox(controller, form);
         taskSetBox.setWidthFull();
         taskSetBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
         return taskSetBox;
     }
 
-    private void configureTaskSearchProvider(FilterForm filterForm, TaskListBox taskSetBox) {
+    private void configureTaskSearchProvider(AbstractSearchAndFilterForm filterForm, TaskListBox taskSetBox) {
         taskSetBox.addValueChangeListener(event -> {
             Optional<Task> task = taskSetBox.getValue().stream().findFirst();
             task.ifPresent(t -> filterForm.binder().getBean().name(t.name()));

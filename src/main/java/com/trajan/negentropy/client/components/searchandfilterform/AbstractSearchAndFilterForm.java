@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.filterform;
+package com.trajan.negentropy.client.components.searchandfilterform;
 
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.ReadOnlySettableFormLayout;
@@ -21,8 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-public abstract class FilterForm extends ReadOnlySettableFormLayout {
-
+public abstract class AbstractSearchAndFilterForm extends ReadOnlySettableFormLayout {
     protected TextField name;
     protected Button resetButton;
     protected HorizontalLayout topLayout;

@@ -1,30 +1,28 @@
 package com.trajan.negentropy.client.controller;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
-import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
-import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
-import com.trajan.negentropy.client.controller.util.TaskNodeDisplay;
+import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.session.SessionServices;
+import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.sessionlogger.SessionLogged;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.NotificationMessage;
-import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
-import com.trajan.negentropy.model.id.*;
+import com.trajan.negentropy.model.id.RoutineID;
+import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
-import com.trajan.negentropy.model.sync.Change.MergeChange;
-import com.trajan.negentropy.model.sync.Change.PersistChange;
-import com.trajan.negentropy.server.Broadcaster;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.util.OrphanTaskCleaner;
 import com.trajan.negentropy.server.facade.response.Request;
@@ -32,11 +30,9 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -45,8 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @SpringComponent
@@ -61,19 +57,14 @@ public class UIController implements SessionLogged {
     @Autowired private UI currentUI;
 
     @Setter private TaskNodeProvider activeTaskNodeProvider;
-    @Setter private TaskNodeDisplay activeTaskNodeDisplay;
+    @Setter private HasRootNode activeTaskNodeDisplay;
 
     @Autowired protected TaskNetworkGraph taskNetworkGraph;
-    @Autowired protected TaskEntryDataProviderManager taskEntryDataProviderManager;
 
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
 
     @Autowired private RoutineDataProvider routineDataProvider;
-
-    @Autowired private Broadcaster serverBroadcaster;
-
-    private Registration broadcastRegistration;
 
     @PostConstruct
     public void init() {
@@ -82,17 +73,7 @@ public class UIController implements SessionLogged {
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
         String address = currentUI != null ? currentUI.getSession().getBrowser().getAddress() : null;
         String browser = currentUI != null ? currentUI.getSession().getBrowser().getBrowserApplication() : null;
-        log.info("Registering UI client " + uiId + " at " + address + " using " + browser +
-                " with server broadcaster");
-        broadcastRegistration = serverBroadcaster.register(this::sync);
-
-        this.sync();
-    }
-
-    @PreDestroy
-    public void destroy() {
-        broadcastRegistration.remove();
-        broadcastRegistration = null;
+        log.info("UI client: " + uiId + " at " + address + " using " + browser);
     }
 
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
@@ -105,18 +86,36 @@ public class UIController implements SessionLogged {
                 } else {
                     NotificationMessage.result(response.message());
                 }
-
-                this.sync(currentUI, response.aggregateSyncRecord());
             });
-        } else {
-            this.sync(response.aggregateSyncRecord());
         }
+
         return response;
     }
 
-    private DataMapResponse tryDataRequest(Supplier<DataMapResponse> serviceCall) {
+    private <T extends SyncResponse> T tryRequestAndSync(Supplier<T> serviceCall) throws Exception {
+        T response = serviceCall.get();
+
+        if (currentUI != null) {
+            currentUI.access(() -> {
+                if (!response.success()) {
+                    NotificationMessage.error(response.message());
+                } else {
+                    NotificationMessage.result(response.message());
+                }
+            });
+        }
+
+        this.sync();
+        return response;
+    }
+
+    private DataMapResponse tryDataRequest(Supplier<DataMapResponse> serviceCall, boolean sync) {
         try {
-            return tryRequest(serviceCall);
+            if (sync) {
+                return tryRequestAndSync(serviceCall);
+            } else {
+                return tryRequest(serviceCall);
+            }
         } catch (Throwable t) {
             NotificationMessage.error(t);
             return new DataMapResponse(t.getMessage());
@@ -133,168 +132,80 @@ public class UIController implements SessionLogged {
     }
 
     //@Override
+    @Deprecated
+    @VisibleForTesting
     public DataMapResponse requestChange(Change change) {
         return this.requestChanges(List.of(change));
     }
 
     public void requestChangeAsync(Change change) {
-        requestChangeAsync(change, null);
+        requestChangeAsync(change, null, null);
     }
 
     public void requestChangeAsync(Change change, TaskTreeGrid<?> gridRequiringFilterRefresh) {
+        requestChangeAsync(change, gridRequiringFilterRefresh, null);
+    }
+
+    public void requestChangeAsync(Change change, Consumer<DataMapResponse> callback) {
+        requestChangeAsync(change, null, callback);
+    }
+
+    public void requestChangeAsync(Change change, TaskTreeGrid<?> gridRequiringFilterRefresh, Consumer<DataMapResponse> callback) {
+        log.debug("Request change: " + change);
         CompletableFuture.runAsync(() -> {
+            if (callback != null) {
+                callback.accept(this.requestChanges(List.of(change)));
+            } else {
                 this.requestChanges(List.of(change));
-                if (gridRequiringFilterRefresh instanceof TaskEntryTreeGrid entryTreeGrid) {
-                    entryTreeGrid.gridDataProvider().refreshFilter();
-                }
+            }
         });
     }
 
     //@Override
     @Deprecated
+    @VisibleForTesting
     public DataMapResponse requestChanges(List<Change> changes) {
+        log.debug("Requesting " + changes.size() + " changes");
         return this.tryDataRequest(() -> services.change().execute(
-                Request.of(taskNetworkGraph.syncId(), changes)));
+                Request.of(taskNetworkGraph.syncId(), changes)), true);
     }
 
     public void requestChangesAsync(List<Change> changes) {
-        requestChangesAsync(changes, null);
+        requestChangesAsync(changes, null, null);
     }
 
     public void requestChangesAsync(List<Change> changes, TaskTreeGrid<?> gridRequiringFilterRefresh) {
+        requestChangesAsync(changes, gridRequiringFilterRefresh, null);
+    }
+
+    public void requestChangesAsync(List<Change> changes, Consumer<DataMapResponse> callback) {
+        requestChangesAsync(changes, null, callback);
+    }
+
+    public void requestChangesAsync(List<Change> changes, TaskTreeGrid<?> gridRequiringFilterRefresh, Consumer<DataMapResponse> callback) {
         CompletableFuture.runAsync(() -> {
-            this.tryDataRequest(() -> services.change().execute(
-                    Request.of(taskNetworkGraph.syncId(), changes)));
-            if (gridRequiringFilterRefresh instanceof TaskEntryTreeGrid entryTreeGrid) {
-                entryTreeGrid.gridDataProvider().refreshFilter();
+            if (callback != null) {
+                callback.accept(this.tryDataRequest(() -> services.change().execute(
+                        Request.of(taskNetworkGraph.syncId(), changes)), false));
+            } else {
+                this.tryDataRequest(() -> services.change().execute(
+                        Request.of(taskNetworkGraph.syncId(), changes)), false);
             }
         });
     }
 
-    public void sync() {
+    public synchronized void sync() {
         log.info("Checking for sync");
         SyncResponse response = trySyncRequest(() -> services.query().sync(taskNetworkGraph.syncId()));
-        currentUI.access(() -> {
-            try {
-                this.sync(currentUI, response.aggregateSyncRecord());
-            } catch (Throwable t) {
-                NotificationMessage.error(t);
-            }
-        });
+        try {
+            taskNetworkGraph.sync(response.aggregateSyncRecord());
+        } catch (Throwable t) {
+            NotificationMessage.error(t);
+        }
     }
 
     private void sync(SyncRecord syncRecord) {
-        if (currentUI == null) {
-            this.sync(null, syncRecord);
-        } else {
-            currentUI.access(() -> this.sync(currentUI, syncRecord));
-        }
-    }
-
-    private synchronized void sync(UI currentUI, SyncRecord aggregateSyncRecord) {
-        if (taskNetworkGraph.syncId() != aggregateSyncRecord.id()) {
-            List<Change> changes = aggregateSyncRecord.changes();
-            log.info("Syncing with sync id {}, {} changes, current sync id: {}",
-                    aggregateSyncRecord.id(), changes.size(), taskNetworkGraph.syncId());
-
-            if (settings != null) {
-                taskNetworkGraph.syncNetDurations(settings.filter());
-            } else {
-                taskNetworkGraph.syncNetDurations(null);
-            }
-
-            Map<TaskID, Task> taskMap = taskNetworkGraph.taskMap();
-            Map<LinkID, TaskNode> nodeMap = taskNetworkGraph.nodeMap();
-            boolean refreshAll = false;
-
-            for (Change change : changes) {
-                if (change instanceof MergeChange<?> mergeChange) {
-                    Object mergeData = mergeChange.data();
-                    if (mergeData instanceof Task task) {
-                        log.debug("Got merged task {}", task);
-                        taskMap.put(task.id(), task);
-                        for (LinkID linkId : taskNetworkGraph.nodesByTaskMap().getOrDefault(task.id(), List.of())) {
-                            taskEntryDataProviderManager.pendingNodeRefresh().put(linkId, false);
-                        }
-                    } else if (mergeData instanceof TaskNode node) {
-                        log.debug("Got merged node {}", node);
-                        nodeMap.put(node.id(), node);
-                        taskMap.put(node.task().id(), node.task());
-                        taskEntryDataProviderManager.pendingNodeRefresh().put(node.id(), false);
-                    } else if (mergeData instanceof Tag) {
-                        taskNetworkGraph.refreshTags();
-                    } else {
-                        throw new IllegalStateException("Unexpected value: " + mergeChange.data());
-                    }
-                } else if (change instanceof PersistChange<?> persist) {
-                    Object persistData = persist.data();
-                    if (persistData instanceof Task task) {
-                        log.debug("Got persisted task {}", task);
-                        taskNetworkGraph.addTask(task);
-                        for (LinkID linkId : taskNetworkGraph.nodesByTaskMap().getOrDefault(task.id(), List.of())) {
-                            taskEntryDataProviderManager.pendingNodeRefresh().put(linkId, false);
-                        }
-                    } else if (persistData instanceof TaskNode node) {
-                        log.debug("Got persisted node {}", node);
-                        taskNetworkGraph.addTaskNode(node);
-                        taskEntryDataProviderManager.pendingNodeRefresh().put(node.id(), false);
-                        TaskID parentId = node.parentId();
-                        if (parentId != null) {
-                            // TODO: Needs to be fixed
-//                        taskEntryDataProviderManager.pendingTaskRefresh().put(parentId, true);
-                            refreshAll = true;
-                        } else {
-                            refreshAll = true;
-                        }
-                    } else if (persistData instanceof Tag) {
-                        taskNetworkGraph.refreshTags();
-                    } else {
-                        throw new IllegalStateException("Unexpected value: " + persist.data());
-                    }
-                } else if (change instanceof DeleteChange<?> deleteChange) {
-                    Object deleteData = deleteChange.data();
-                    if (deleteData instanceof TaskID taskId) {
-                        log.debug("Got deleted task {}", taskId);
-                        taskNetworkGraph.removeTask(taskId);
-                    } else if (deleteData instanceof LinkID linkId) {
-                        log.debug("Got deleted node {}", linkId);
-                        TaskNode deletedNode = nodeMap.getOrDefault(linkId, null);
-                        if (deletedNode == null) {
-                            log.warn("Deleted node {} not found in node map", linkId);
-                            // Refresh all nodes
-                            refreshAll = true;
-                        } else {
-                            TaskID parentId = deletedNode.parentId();
-                            if (parentId != null) {
-                                for (LinkID lid : taskNetworkGraph.nodesByTaskMap().getOrDefault(parentId, List.of())) {
-                                    taskEntryDataProviderManager.pendingNodeRefresh().put(lid, true);
-                                }
-                            } else {
-                                refreshAll = true;
-                            }
-                        }
-                        taskNetworkGraph.removeTaskNode(linkId);
-                    } else if (deleteData instanceof TagID) {
-                        taskNetworkGraph.refreshTags();
-                    } else {
-                        throw new IllegalStateException("Unexpected value: " + deleteChange.data());
-                    }
-                } else {
-                    log.warn("Unknown change type: {}", change);
-                }
-
-            }
-
-            taskNetworkGraph.syncId(aggregateSyncRecord.id());
-
-            if (refreshAll) {
-                taskEntryDataProviderManager.refreshAllProviders();
-            } else {
-                taskEntryDataProviderManager.refreshQueuedItems();
-            }
-        } else {
-            log.debug("No sync required, sync ID's match");
-        }
+        taskNetworkGraph.sync(syncRecord);
     }
 
     @Autowired private NetDurationHelperManager netDurationHelperManager;
@@ -302,7 +213,6 @@ public class UIController implements SessionLogged {
     public void recalculateNetDurations() {
         log.debug("Recalculating time estimates");
         netDurationHelperManager.recalculateTimeEstimates();
-        this.sync();
     }
 
     @Autowired private OrphanTaskCleaner orphanCleaner;
@@ -463,5 +373,4 @@ public class UIController implements SessionLogged {
         return this.tryRoutineServiceCall(
                 () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
     }
-
 }

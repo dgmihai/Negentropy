@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.filterform;
+package com.trajan.negentropy.client.components.searchandfilterform;
 
 import com.trajan.negentropy.client.controller.UIController;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ public class TreeFilterForm extends TaskNodeFilterForm {
         binder.setBean(controller().settings().filter());
 
         binder.addValueChangeListener(event -> {
-            controller().taskEntryDataProviderManager().setFilter(binder.getBean());
+            controller().taskNetworkGraph().taskEntryDataProvider().setFilter(binder.getBean());
         });
     }
 }

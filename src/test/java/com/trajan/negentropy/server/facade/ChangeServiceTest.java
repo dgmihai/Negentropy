@@ -10,6 +10,7 @@ import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
@@ -47,6 +48,8 @@ public class ChangeServiceTest extends TaskTestTemplate {
     @BeforeAll
     void setup() {
         init();
+        TaskID twotwotwoId = tasks.get(TWOTWOTWO).id();
+        assertEquals(Duration.ofMinutes(1), queryService.fetchNetDuration(twotwotwoId, null));
     }
 
     void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
@@ -143,7 +146,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     private PersistedDataDO<?> execute(Change change) {
-        int id = change.id();
+        ChangeID id = change.id();
 
         DataMapResponse response = changeService.execute(Request.of(change));
         assertTrue(response.success());
@@ -191,6 +194,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
 //    fresh = freshNode.child();
 
     @Test
+    @Transactional
     void testPersistTaskAsChild() {
         Task parent = tasks.get(TWO);
         Task fresh = createTask("Fresh");
@@ -214,6 +218,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testInsertTaskAsChild() {
         Task parent = tasks.get(TWO);
         Task fresh = createTask("Fresh");
@@ -238,6 +243,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testPersistTaskAsChildAt() {
         Task parent = tasks.get(TWO);
         Task fresh = createTask("Fresh");
@@ -262,6 +268,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testPersistTaskAsRoot() {
         Task fresh = createTask("Fresh");
 
@@ -277,6 +284,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testInsertTaskAsRoot() {
         Task fresh = createTask("Fresh");
 
@@ -293,6 +301,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testUpdateTask() {
         Task task = tasks.get(ONE);
         task.name("Updated");
@@ -307,6 +316,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
 
     @Test
     @Disabled
+    @Transactional
     void testDeleteTask() {
         Task task = tasks.get(TWO);
 
@@ -385,6 +395,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testTaskLinkOrderAfterChange() {
         Task task4 = tasks.get(FOUR);
         Task task21 = tasks.get(TWOONE);
@@ -451,6 +462,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testInsertTaskBefore() {
         Task fresh = new Task().name("Fresh");
         Task next = tasks.get(TWOTWO);
@@ -482,6 +494,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testInsertTaskAfter() {
         Task fresh = new Task().name("Fresh");
         Task prev = tasks.get(TWOONE);
@@ -559,6 +572,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testNetDurationAdjustedOnRemoval() {
         TaskLink link = links.get(Triple.of(
                 TWOTWO, TWOTWOONE, 0));
@@ -570,6 +584,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testNetDurationAdjustedOnRemovalNested() {
         TaskLink link = links.get(Triple.of(
                 THREETWO, THREETWOONE_AND_THREETWOTHREE, 0));
@@ -587,6 +602,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testNetDurationOnTaskUpdate() {
         Task task222 = tasks.get(TWOTWOTWO);
 
@@ -594,9 +610,15 @@ public class ChangeServiceTest extends TaskTestTemplate {
 
         assertNetDuration(9, TWO);
         assertNetDuration(6, TWOTWO);
+
+        mergeTask(task222.duration(Duration.ofMinutes(1)));
+
+        assertNetDuration(7, TWO);
+        assertNetDuration(4, TWOTWO);
     }
 
     @Test
+    @Transactional
     void testNetDurationWhenTaskWithNoDurationAdded() {
         Task task22 = tasks.get(TWOTWO);
         Task fresh = new Task()
@@ -632,6 +654,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testNetDurationWhenParentHasNoDuration() {
         Task task22 = tasks.get(TWOTWO);
         Task parent = persistTask(new Task()
@@ -699,7 +722,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 InsertLocation.LAST,
                 filter,
                 suffix);
-        int id = deepCopy.id();
+        ChangeID id = deepCopy.id();
 
         DataMapResponse response = changeService.execute(Request.of(deepCopy));
         TaskNode newRootNode = (TaskNode) response.changeRelevantDataMap().getFirst(id);

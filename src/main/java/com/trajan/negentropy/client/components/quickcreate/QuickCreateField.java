@@ -86,7 +86,7 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
             nodeDTO = null;
         });
 
-        taskNodeProvider.afterSave(this::clear);
+        taskNodeProvider.afterSuccessfulSave(this::clear);
     }
 
     public void save() {
@@ -97,11 +97,8 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
 
                 TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
                 TaskID rootTaskId = rootNode == null ? null : rootNode.task().id();
-                TaskNode result = taskNodeProvider.createNode(rootTaskId,
+                taskNodeProvider.createNode(rootTaskId,
                         InsertLocation.LAST);
-                if (result != null) {
-                    this.clear();
-                }
             } catch (QuickCreateParser.ParseException e) {
                 NotificationMessage.error(e);
                 this.setErrorMessage(e.getMessage());

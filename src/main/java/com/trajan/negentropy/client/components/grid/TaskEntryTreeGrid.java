@@ -6,9 +6,7 @@ import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
-import com.trajan.negentropy.client.controller.TaskNetworkGraph;
-import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager;
-import com.trajan.negentropy.client.controller.dataproviders.TaskEntryDataProviderManager.TaskEntryDataProvider;
+import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -71,10 +69,7 @@ import java.util.stream.Collectors;
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     @Autowired private ShortenedCronValueProvider cronValueProvider;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
-    @Autowired private TaskEntryDataProviderManager dataProviderManager;
     @Autowired private ShortenedCronConverter cronConverter;
-    private TaskEntryDataProvider gridDataProvider;
-
 
     public static final List<ColumnKey> excludedColumns = List.of(
             ColumnKey.STATUS,
@@ -104,9 +99,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             new TaskTreeContextMenu(treeGrid);
         }
 
-        this.gridDataProvider = dataProviderManager.create();
-        dataProviderManager.allProviders().add(gridDataProvider);
-        this.treeGrid.setDataProvider(gridDataProvider);
+        this.treeGrid.setDataProvider(controller.taskNetworkGraph().taskEntryDataProvider());
 
         topBar.add(gridOptionsMenu(possibleColumns));
     }
@@ -284,6 +277,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             if (entry.node().recurring()) {
                 partNames.add(K.GRID_PARTNAME_RECURRING);
             }
+            if (entry.task().difficult()) {
+                partNames.add(K.GRID_PARTNAME_DIFFICULT);
+            }
             if (entry.node().parentId() != null) {
                 List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
                 if (childrenExceedingDurationLimit != null && childrenExceedingDurationLimit.contains(entry.node().linkId())) {
@@ -454,7 +450,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             });
 
             HorizontalLayout cronHeaderLayout = new HorizontalLayout(cronField, check);
-            cronHeaderLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+            cronHeaderLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+            cronField.setWidth("6em");
             editHeaderLayout.add(cronHeaderLayout);
         }
 
@@ -466,7 +463,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             editHeaderLayout.setResponsiveSteps(
                     new FormLayout.ResponsiveStep("0", 3),
-                    new FormLayout.ResponsiveStep(K.SHORT_WIDTH, 6));
+                    new FormLayout.ResponsiveStep(K.MEDIUM_SCREEN_WIDTH, 6));
 
             return editHeaderLayout;
         }
@@ -476,8 +473,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Override
     public Optional<TaskNode> rootNode() {
-        return gridDataProvider.rootEntry() != null
-                ? Optional.of(gridDataProvider.rootEntry().node())
+        return controller.taskNetworkGraph().taskEntryDataProvider().rootEntry() != null
+                ? Optional.of(controller.taskNetworkGraph().taskEntryDataProvider().rootEntry().node())
                 : Optional.empty();
     }
 

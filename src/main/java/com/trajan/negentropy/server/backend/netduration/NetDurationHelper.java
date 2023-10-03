@@ -1,10 +1,10 @@
 package com.trajan.negentropy.server.backend.netduration;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHierarchy;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
@@ -28,13 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 @Transactional
 @RequiredArgsConstructor
 @Getter
 @Setter
 @Slf4j
+@Benchmark(millisFloor = 10)
 public class NetDurationHelper {
     private final EntityQueryService entityQueryService;
     private final NetDurationRepository netDurationRepository;
@@ -44,21 +44,18 @@ public class NetDurationHelper {
     private MultiValueMap<LinkID, LinkID> projectChildrenOutsideDurationLimitMap = new LinkedMultiValueMap<>();
     private final NonSpecificTaskNodeTreeFilter filter;
 
-    public Map<TaskID, Duration> getNetDurations(Iterable<TaskLink> links) {
-        List<TaskEntity> tasks = StreamSupport.stream(links.spliterator(), false)
-                .map(TaskLink::child)
-                .collect(Collectors.toList());
-
-        List<NetDuration> estimates = netDurationRepository.findByTaskIn(tasks);
-
-        return estimates.stream()
-//                .filter(estimate ->
-//                        filter == null || (filter.importanceThreshold() == null
-//                        || estimate.importance() <= filter.importanceThreshold()))
+    public Map<TaskID, Duration> getAllNetTaskDurations() {
+        return entityQueryService.findTasks(filter)
                 .collect(Collectors.toMap(
-                        estimate -> ID.of(estimate.task()),
-                        NetDuration::val
-                ));
+                        ID::of,
+                        this::getNetDuration));
+    }
+
+    public Map<LinkID, Duration> getAllNetNodeDurations() {
+        return entityQueryService.findLinks(filter)
+                .collect(Collectors.toMap(
+                        ID::of,
+                        this::getNetDuration));
     }
 
     private Duration getNetDurationWithLimit(TaskOrTaskLinkEntity current, RoutineStepHierarchy parent,
@@ -69,14 +66,18 @@ public class NetDurationHelper {
             currentTask = link.child();
             currentLinkId = ID.of(link);
             if (netDurations.containsKey(currentLinkId) && parent == null && !customDurationLimit) {
-                log.debug("Returning cached net duration");
-                return netDurations.get(currentLinkId);
+                log.trace("Returning cached net duration");
+                Duration result = netDurations.get(currentLinkId);
+                if (result != null) return netDurations.get(currentLinkId);
+                log.trace("Cached net duration is null, recalculating");
             }
         } else if (current instanceof TaskEntity task) {
             currentTask = task;
         } else {
             throw new RuntimeException("Unknown type of TaskOrTaskLinkEntity");
         }
+
+        if (!customDurationLimit) projectChildrenOutsideDurationLimitMap.remove(currentLinkId);
 
         Map<TaskLink, Duration> requiredDurations = new HashMap<>();
         List<TaskLink> childLinks = entityQueryService.findChildLinks(ID.of(currentTask), filter).toList();
@@ -100,7 +101,7 @@ public class NetDurationHelper {
                     : getNetDuration(childLink);
 
             Duration potentialDuration = currentDurationSum.plus(childDuration);
-            if (!full && durationLimit.compareTo(potentialDuration) >= 0) {
+            if (!full && durationLimit.compareTo(potentialDuration) >= 0 && !childLink.child().required()) {
                 currentDurationSum = potentialDuration;
                 if (parent != null) getNetDuration(childLink, childHierarchy, null);
             } else if (childLink.child().required() && (parent != null)) {
@@ -116,6 +117,7 @@ public class NetDurationHelper {
 
         if (parent != null) parent.addToHierarchy(childHierarchy);
 
+        log.trace("Returning limit calculated net duration of " + currentTask.name() + ": " + currentDurationSum);
         return currentDurationSum;
     }
 
@@ -165,9 +167,10 @@ public class NetDurationHelper {
                 : null;
 
         if (current.id() != null && netDurations.containsKey(ID.of(current)) && parent == null) {
-            log.debug("Returning cached net duration");
+            log.trace("Returning cached net duration of " + current.child().name() + ": " + netDurations.get(ID.of(current)));
             return netDurations.get(ID.of(current));
         } else {
+            log.trace("Returning iterative net duration of " + current.child().name() + ": " + netDurations.get(ID.of(current)));
             return iterate(netDurationResult, parent, child, ID.of(current.child()));
         }
     }
@@ -188,7 +191,7 @@ public class NetDurationHelper {
             netDurations.put(ID.of(link), result);
             netDurationResult = netDurationResult.plus(result);
         }
-        if (parent!= null) parent.addToHierarchy(child);
+        if (parent != null) parent.addToHierarchy(child);
         return netDurationResult;
     }
 }

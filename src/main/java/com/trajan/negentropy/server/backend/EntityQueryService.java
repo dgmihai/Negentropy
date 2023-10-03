@@ -14,7 +14,6 @@ import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -261,13 +260,13 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskNodeTreeFilter filter);
 
-    NetDuration getNetDuration(TaskID taskId);
-
-    NetDuration getNetDuration(TaskID taskId, int importance);
+//    NetDuration getNetDuration(TaskID taskId);
+//
+//    NetDuration getNetDuration(TaskID taskId, int importance);
 
     Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 
-    Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter);
+//    Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter);
 
     int getLowestImportanceOfDescendants(TaskID ancestorId);
 

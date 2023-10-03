@@ -59,7 +59,6 @@ public class MultiSelectTreeGrid<T> extends TreeGrid<T> {
         }
     }
 
-
     protected Collection<T> getChildrenRecursively(Collection<T> items,
                                                    int depth) {
         List<T> itemsWithChildren = new ArrayList<>();

@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
-import com.trajan.negentropy.client.controller.dataproviders.RoutineDataProvider;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;

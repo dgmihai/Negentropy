@@ -47,10 +47,15 @@ public class BenchmarkAspect {
         if ((benchmark.millisFloor() == -1 || duration >= millisFloor) && duration > 0) {
             // Use NumberFormat with US locale for comma-separated formatting
             String formattedDuration = NumberFormat.getNumberInstance(Locale.US).format(duration);
-            if (duration > 300) {
-                log.warn(">>> EXCESSIVE DURATION FOR {}: {} {}({}) : {} ms <<<", callerName, returnType, methodName, argTypesString, formattedDuration);
+
+            if (duration > 1000) {
+                log.warn("#### {}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
+            } else if (duration > 300) {
+                log.warn("### {}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
+            } else if (duration > 100) {
+                log.debug("## {}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
             } else {
-                log.debug("{}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
+                log.debug("# {}: {} {}({}) : {} ms", callerName, returnType, methodName, argTypesString, formattedDuration);
             }
         }
 

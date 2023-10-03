@@ -35,10 +35,6 @@ public class DataContextTest extends TaskTestTemplate {
     private static final String DAILY_STRING = "@daily";
     private static final CronExpression DAILY_CRON = CronExpression.parse(DAILY_STRING);
 
-    private static final LocalDateTime TIME = LocalDateTime.now();
-
-    private TaskEntity projectTask;
-
     private void assertTask(TaskEntity taskEntity, Task task) {
         assertNotNull(task);
         assertNotNull(task.id());
@@ -57,7 +53,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .description("Task Description")
                 .duration(Duration.ofMinutes(120)))
                 .required(true)
-                .project(true);
+                .project(true)
+                .difficult(true);
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.mergeTag(new TagEntity().name("Tag1")),
@@ -241,6 +238,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(180),
                 false,
                 true,
+                false,
                 originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));
 
         TaskEntity mergedTaskEntity = dataContext.mergeTask(task);
