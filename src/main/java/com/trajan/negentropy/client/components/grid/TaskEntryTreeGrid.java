@@ -479,9 +479,59 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     private class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {
+        private final TreeGrid<TaskEntry> grid;
+
+        private void addInsertItem(GridSubMenu<TaskEntry> activeTaskSubMenu, String label, InsertLocation location) {
+            activeTaskSubMenu.addItem(label, e -> e.getItem().ifPresent(
+                    entry -> {
+                        Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
+                        controller.requestChangesAsync(List.of(
+                                taskPersist,
+                                new ReferencedInsertAtChange(
+                                        (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
+                                        entry.node().id(),
+                                        location,
+                                        taskPersist.id())));
+                    })
+            );
+        }
+
+        private void addMoveOrCopySelectedItem(GridSubMenu<TaskEntry> copySelectedSubMenu,
+                                               GridSubMenu<TaskEntry> moveSelectedSubMenu,
+                                               Map<String, InsertLocation> moveOrCopyOptions) {
+            moveOrCopyOptions.forEach( (label, location) -> {
+                int reverse = (location == InsertLocation.AFTER || location == InsertLocation.FIRST) ? -1 : 1;
+                List<GridSubMenu<TaskEntry>> subMenus = List.of(copySelectedSubMenu, moveSelectedSubMenu);
+                subMenus.forEach(menu -> menu.addItem(label, e -> {
+                    controller.requestChangesAsync(grid.getSelectedItems().stream()
+                            .collect(Collectors.groupingBy(
+                                    entry -> Objects.requireNonNullElse(
+                                            entry.node().parentId(), TaskID.nil()),
+                                    Collectors.collectingAndThen(
+                                            Collectors.toList(),
+                                            list -> list.stream()
+                                                    .sorted(Comparator.comparingInt(a ->
+                                                            reverse * a.node().position()))
+                                                    .collect(Collectors.toList()))
+                            )).values().stream()
+                            .flatMap(List::stream)
+                            .map(entry -> menu.equals(copySelectedSubMenu)
+                                    ? new InsertAtChange(new TaskNodeDTO(entry.node()),
+                                    e.getItem().get().node().id(),
+                                    location)
+                                    : new MoveChange(entry.node().linkId(),
+                                    e.getItem().get().node().id(),
+                                    location))
+                            .toList());
+
+                    grid.getSelectionModel().deselectAll();
+                }));
+            });
+        }
 
         public TaskTreeContextMenu(TreeGrid<TaskEntry> grid) {
             super(grid);
+            this.grid = grid;
 
             GridMenuItem<TaskEntry> activeTask = addItem("");
             GridSubMenu<TaskEntry> activeTaskSubMenu = activeTask.getSubMenu();
@@ -504,25 +554,10 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     entry -> controller.requestChangeAsync(new OverrideScheduledForChange(
                             entry.node().linkId(), LocalDateTime.now()))));
 
-            BiConsumer<String, InsertLocation> addInsertItem = (label, location) -> {
-                activeTaskSubMenu.addItem(label, e -> e.getItem().ifPresent(
-                        entry -> {
-                            Change taskPersist = Change.update(controller.activeTaskNodeProvider().getTask());
-                            controller.requestChangesAsync(List.of(
-                                    taskPersist,
-                                    new ReferencedInsertAtChange(
-                                            (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
-                                            entry.node().id(),
-                                            location,
-                                            taskPersist.id())));
-                        })
-                );
-            };
-
-            addInsertItem.accept("Before", InsertLocation.BEFORE);
-            addInsertItem.accept("After", InsertLocation.AFTER);
-            addInsertItem.accept("As First Subtask", InsertLocation.FIRST);
-            addInsertItem.accept("As Last Subtask", InsertLocation.LAST);
+            addInsertItem(activeTaskSubMenu, "Before", InsertLocation.BEFORE);
+            addInsertItem(activeTaskSubMenu, "After", InsertLocation.AFTER);
+            addInsertItem(activeTaskSubMenu, "As First Subtask", InsertLocation.FIRST);
+            addInsertItem(activeTaskSubMenu, "As Last Subtask", InsertLocation.LAST);
 
             add(new Hr());
 
@@ -545,42 +580,15 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             GridMenuItem<TaskEntry> copySelected = addItem("");
             GridSubMenu<TaskEntry> copySelectedSubMenu = copySelected.getSubMenu();
 
-            BiConsumer<String, InsertLocation> addMoveOrCopySelectedItem = (label, location) -> {
-                int reverse = (location == InsertLocation.AFTER || location == InsertLocation.FIRST) ? -1 : 1;
-                List<GridSubMenu<TaskEntry>> subMenus = List.of(copySelectedSubMenu, moveSelectedSubMenu);
-                subMenus.forEach(menu -> menu.addItem(label, e -> {
-                    controller.requestChangesAsync(grid.getSelectedItems().stream()
-                            .collect(Collectors.groupingBy(
-                                    entry -> Objects.requireNonNullElse(
-                                            entry.node().parentId(), TaskID.nil()),
-                                    Collectors.collectingAndThen(
-                                            Collectors.toList(),
-                                            list -> list.stream()
-                                                    .sorted(Comparator.comparingInt(a ->
-                                                            reverse * a.node().position()))
-                                                    .collect(Collectors.toList()))
-                            )).values().stream()
-                            .flatMap(List::stream)
-                            .map(entry -> menu.equals(copySelectedSubMenu)
-                                    ? new InsertAtChange(new TaskNodeDTO(entry.node()),
-                                        e.getItem().get().node().id(),
-                                        location)
-                                    : new MoveChange(entry.node().linkId(),
-                                        e.getItem().get().node().id(),
-                                        location))
-                            .toList());
 
-                    grid.getSelectionModel().deselectAll();
-                }));
-            };
 
             Map<String, InsertLocation> moveOrCopyOptions = new HashMap<>();
-            moveOrCopyOptions.put("As Subtasks At Front", InsertLocation.FIRST);
-            moveOrCopyOptions.put("As Subtasks At Back", InsertLocation.LAST);
             moveOrCopyOptions.put("Before", InsertLocation.BEFORE);
             moveOrCopyOptions.put("After", InsertLocation.AFTER);
+            moveOrCopyOptions.put("As Subtasks At Front", InsertLocation.FIRST);
+            moveOrCopyOptions.put("As Subtasks At Back", InsertLocation.LAST);
 
-            moveOrCopyOptions.forEach(addMoveOrCopySelectedItem);
+            addMoveOrCopySelectedItem(copySelectedSubMenu, moveSelectedSubMenu, moveOrCopyOptions);
 
             add(new Hr());
 

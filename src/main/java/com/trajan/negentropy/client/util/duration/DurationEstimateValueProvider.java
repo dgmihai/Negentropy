@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.util.duration;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.TimeFormat;
@@ -53,7 +54,7 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
             // TODO: Account for settings?
             case NET_DURATION -> controller.taskNetworkGraph().netDurationInfo().netTaskDurations().get(task.id());
             case TASK_DURATION -> task.duration();
-            case PROJECT_DURATION -> throw new IllegalArgumentException("Project duration not supported for tasks.");
+//            case PROJECT_DURATION -> throw new IllegalArgumentException("Project duration not supported for tasks.");
         };
 
         if (duration == null) return "";
@@ -67,11 +68,11 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
             // TODO: Account for settings?
             case NET_DURATION -> controller.taskNetworkGraph().netDurationInfo().netNodeDurations().get(node.id());
             case TASK_DURATION -> node.task().duration();
-            case PROJECT_DURATION -> node.projectDuration();
+//            case PROJECT_DURATION -> node.projectDuration();
         };
 
         if (duration == null) return "";
-        if (duration.isZero()) return "-- -- --";
+        if (duration.isZero()) return K.DURATION_PLACEHOLDER;
 
         switch (timeFormat) {
             case TIME -> {
@@ -97,6 +98,6 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
     public enum DurationType {
         NET_DURATION,
         TASK_DURATION,
-        PROJECT_DURATION
+//        PROJECT_DURATION
     }
 }

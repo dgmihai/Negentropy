@@ -57,7 +57,7 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     private String cron;
     private LocalDateTime scheduledFor = null;
 
-    private Duration projectDuration = null;
+    private Duration projectDuration = Duration.ZERO;
 
     public String toString() {
         return "LinkEntity[" + super.toString() + ", parent=" + parent + ", position=" + position + ", child=" + child + "]";

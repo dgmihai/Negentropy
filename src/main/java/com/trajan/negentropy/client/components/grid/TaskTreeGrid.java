@@ -464,11 +464,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             descriptionCancelButton.setVisible(editing);
         };
 
-
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);
 
-            controller.requestChange(new MergeChange<>(
+            controller.requestChangeAsync(new MergeChange<>(
                     new Task(t.task().id())
                             .description(descriptionArea.getValue())));
         };

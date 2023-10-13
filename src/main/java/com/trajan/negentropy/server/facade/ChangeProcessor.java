@@ -339,6 +339,11 @@ public class ChangeProcessor {
         durationUpdates.addAll(entityQueryService.findAncestorLinks(
                 ID.of(link.child()), null)
                 .collect(Collectors.toSet()));
+        if (link.child().project() && !link.projectDuration().isZero()) {
+            durationUpdates.addAll(entityQueryService.findChildLinks(
+                    ID.of(link.child()), null)
+                    .collect(Collectors.toSet()));
+        }
     }
 
     private void updateDuration(Set<TaskLink> durationUpdates, TaskEntity task) {

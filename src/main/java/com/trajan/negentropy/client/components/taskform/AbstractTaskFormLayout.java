@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
@@ -55,7 +56,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected HorizontalLayout nodeInfoLayout;
 
     // Link Only
-    protected TextField cronField;
+    protected CronSpan cronSpan;
     protected TextField projectDurationField;
     protected Checkbox recurringCheckbox;
 
@@ -131,6 +132,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setVisible(false);
         projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
 
+
         clearButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
         onSaveSelect = new Select<>();
@@ -181,6 +183,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         clearButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
+
 
         HorizontalLayout innerButtonLayout = new HorizontalLayout(saveButton, clearButton);
         HorizontalLayout innerButtonCheckboxes = new HorizontalLayout(onSaveSelect, saveAsLastCheckbox);

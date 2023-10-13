@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.components.fields.CronTextField;
+import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
@@ -48,7 +48,6 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     private Binder<T> binder;
     private Class<T> clazz;
 
-    protected TextField cronField;
     protected TextField projectDurationField;
     protected Checkbox recurringCheckbox;
 
@@ -85,8 +84,8 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         projectDurationField = new DurationTextField("Project ");
         projectDurationField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        cronField = new CronTextField();
-        cronField.setValueChangeMode(ValueChangeMode.EAGER);
+        cronSpan = new CronSpan();
+        cronSpan.cronField().setValueChangeMode(ValueChangeMode.EAGER);
 
         projectCheckbox.addValueChangeListener(e ->
                 projectDurationField.setVisible(e.getValue()));
@@ -106,7 +105,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
                         node -> node.task().duration(),
                         (node, duration) -> node.task().duration(duration));
 
-        binder.forField(cronField)
+        binder.forField(cronSpan.cronField())
                 .withConverter(new ShortenedCronConverter())
                 .bind(
                         node -> node.node().cron(),
@@ -159,10 +158,10 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     protected void configureLayout() {
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
 
-        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        cronField.setWidthFull();
+        cronSpan.setWidthFull();
+
         nodeInfoLayout = new HorizontalLayout(
-                recurringCheckbox, cronField);
+                cronSpan, recurringCheckbox);
 
         nodeInfoLayout.setWidthFull();
         nodeInfoLayout.setAlignItems(Alignment.CENTER);

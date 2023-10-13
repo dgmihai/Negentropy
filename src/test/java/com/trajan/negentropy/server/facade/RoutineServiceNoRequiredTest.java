@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Transactional
 public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredTasks {
 
     @Autowired private RoutineService routineService;
@@ -1183,13 +1184,15 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertTrue(response.success());
         routine = response.routine();
 
-        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofHours(1)));
-
         assertRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
+
+        assertEquals(Duration.ofHours(4), routine.estimatedDuration());
+
+
     }
 }

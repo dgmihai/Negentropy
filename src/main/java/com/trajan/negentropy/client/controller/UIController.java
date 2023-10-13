@@ -93,6 +93,7 @@ public class UIController implements SessionLogged {
     }
 
     private <T extends SyncResponse> T tryRequestAndSync(Supplier<T> serviceCall) throws Exception {
+        log.warn("Trying request with manual sync");
         T response = serviceCall.get();
 
         if (currentUI != null) {

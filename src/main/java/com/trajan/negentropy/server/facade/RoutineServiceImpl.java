@@ -6,7 +6,6 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineEntityHierarchy;
-import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHierarchy;
 import com.trajan.negentropy.model.entity.QTaskLink;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -128,7 +127,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     // Common function
-    private RoutineEntity createRoutineInternal(Data root, TaskNodeTreeFilter filter) {
+    private RoutineEntity initRoutine(Data root, TaskNodeTreeFilter filter) {
         Duration durationLimit = filter != null ? filter.durationLimit() : null;
         NonSpecificTaskNodeTreeFilter processedFilter = NonSpecificTaskNodeTreeFilter.from(filter);
         logger.trace("Populate routine with filter: " + processedFilter);
@@ -152,8 +151,11 @@ public class RoutineServiceImpl implements RoutineService {
         } else {
             throw new IllegalArgumentException("Root must be either a TaskEntity or a TaskLink.");
         }
+        return routine;
+    }
 
-        RoutineEntity result = routineRepository.save(routine);
+    private RoutineEntity persistRoutine(Data root, TaskNodeTreeFilter filter) {
+        RoutineEntity result = routineRepository.save(initRoutine(root, filter));
         logger.debug("Created routine: " + result.currentStep().task().name() + " with " + result.countSteps() + " steps.");
         return result;
     }
@@ -227,39 +229,42 @@ public class RoutineServiceImpl implements RoutineService {
 
                 Set<Long> persistedParentTaskIds = new HashSet<>();
                 MultiValueMap<Long, TaskLink> persistedParentMap = new LinkedMultiValueMap<>();
-                Iterable<TaskLink> persistedLinksFiltered = linkRepository.findAll(persistedLinksPredicate);
-
-                persistedLinksFiltered.forEach(link -> {
-                    if (link.parent() != null) {
-                        persistedParentTaskIds.add(link.parent().id());
-                        persistedParentMap.add(link.parent().id(), link);
-                    }
-                });
-
-                BooleanBuilder parentStepsWithNewChildrenPredicate = new BooleanBuilder(
-                        QRoutineStepEntity.routineStepEntity.routine.eq(routine))
-                        .and(QRoutineStepEntity.routineStepEntity.task.id.in(persistedParentTaskIds));
-
-                Iterable<RoutineStepEntity> parentStepsWithNewChildren = routineStepRepository.findAll(
-                        parentStepsWithNewChildrenPredicate);
-
-                parentStepsWithNewChildren.forEach(parentStep -> {
-                    List<TaskLink> newChildren = persistedParentMap.get(parentStep.task().id());
-                    newChildren.sort(Comparator.comparing(TaskLink::position));
-                    for (int i = 0; i < newChildren.size(); i++) {
-                        RoutineStepEntity child = parentStep.children().get(i);
-                        if (newChildren.get(i).position() > child.position()) {
-                            logger.debug("Adding new child " + newChildren.get(i).child().name() + " to parent " +
-                                    parentStep.task().name() + " at position " + i);
-                            RoutineStepEntityHierarchy parentHierarchy = new RoutineStepEntityHierarchy(parentStep);
-                            parentHierarchy.customIndexOfChild(i);
-                            Duration additionalDuration = helper.getNetDuration(newChildren.get(i), parentHierarchy, null);
-                            logger.debug("Previous estimated duration: " + routine.estimatedDuration() + ", additional duration: " + additionalDuration);
-                            routine.estimatedDuration(routine.estimatedDuration().plus(additionalDuration));
-                            logger.debug("New estimated duration: " + routine.estimatedDuration());
-                        }
-                    }
-                });
+                if (linkRepository.count(persistedLinksPredicate) > 0) {
+                    throw new NotImplementedException("Persisting links and recalculating routine is not yet implemented.");
+                }
+//                Iterable<TaskLink> persistedLinksFiltered = linkRepository.findAll(persistedLinksPredicate);
+//
+//                persistedLinksFiltered.forEach(link -> {
+//                    if (link.parent() != null) {
+//                        persistedParentTaskIds.add(link.parent().id());
+//                        persistedParentMap.add(link.parent().id(), link);
+//                    }
+//                });
+//
+//                BooleanBuilder parentStepsWithNewChildrenPredicate = new BooleanBuilder(
+//                        QRoutineStepEntity.routineStepEntity.routine.eq(routine))
+//                        .and(QRoutineStepEntity.routineStepEntity.task.id.in(persistedParentTaskIds));
+//
+//                Iterable<RoutineStepEntity> parentStepsWithNewChildren = routineStepRepository.findAll(
+//                        parentStepsWithNewChildrenPredicate);
+//
+//                parentStepsWithNewChildren.forEach(parentStep -> {
+//                    List<TaskLink> newChildren = persistedParentMap.get(parentStep.task().id());
+//                    newChildren.sort(Comparator.comparing(TaskLink::position));
+//                    for (int i = 0; i < newChildren.size(); i++) {
+//                        RoutineStepEntity child = parentStep.children().get(i);
+//                        if (newChildren.get(i).position() > child.position()) {
+//                            logger.debug("Adding new child " + newChildren.get(i).child().name() + " to parent " +
+//                                    parentStep.task().name() + " at position " + i);
+//                            RoutineStepEntityHierarchy parentHierarchy = new RoutineStepEntityHierarchy(parentStep);
+//                            parentHierarchy.customIndexOfChild(i);
+//                            Duration additionalDuration = helper.getNetDuration(newChildren.get(i), parentHierarchy, null);
+//                            logger.debug("Previous estimated duration: " + routine.estimatedDuration() + ", additional duration: " + additionalDuration);
+//                            routine.estimatedDuration(routine.estimatedDuration().plus(additionalDuration));
+//                            logger.debug("New estimated duration: " + routine.estimatedDuration());
+//                        }
+//                    }
+//                });
 
                 routine.currentPosition(routine.getAllChildren().indexOf(currentStep));
                 if (routine.currentPosition() == -1) {
@@ -280,7 +285,7 @@ public class RoutineServiceImpl implements RoutineService {
     public RoutineResponse createRoutine(@NotNull TaskID rootId, TaskNodeTreeFilter filter) {
         return this.process(() -> {
             TaskEntity rootTask = entityQueryService.getTask(rootId);
-            return createRoutineInternal(rootTask, filter);
+            return persistRoutine(rootTask, filter);
         });
     }
 
@@ -288,7 +293,7 @@ public class RoutineServiceImpl implements RoutineService {
     public RoutineResponse createRoutine(@NotNull LinkID rootId, TaskNodeTreeFilter filter) {
         return this.process(() -> {
             TaskLink rootLink = entityQueryService.getLink(rootId);
-            return createRoutineInternal(rootLink, filter);
+            return persistRoutine(rootLink, filter);
         });
     }
 

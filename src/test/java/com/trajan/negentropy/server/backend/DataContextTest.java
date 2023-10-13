@@ -23,8 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.helger.commons.mock.CommonsAssert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -98,7 +97,11 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.cron(), taskNode.cron());
         assertEquals(taskLink.createdAt(), taskNode.createdAt());
         assertEquals(taskLink.scheduledFor(), taskNode.scheduledFor());
-        assertEquals(taskLink.projectDuration(), taskNode.projectDuration());
+        if (taskNode.projectDuration() != null) {
+            assertEquals(taskLink.projectDuration(), taskNode.projectDuration());
+        } else {
+            assertTrue(taskLink.projectDuration().isZero());
+        }
         assertEquals(ID.of(taskLink.parent()), taskNode.parentId());
         assertEquals(ID.of(taskLink.child()), taskNode.child().id());
     }
@@ -302,6 +305,55 @@ public class DataContextTest extends TaskTestTemplate {
 
         TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
 
+        assertNode(mergedTaskLink, taskNode);
+    }
+
+    @Test
+    void testTaskLinkMergeNullProjectDuration() {
+        TaskEntity parentTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Parent Task"));
+        TaskEntity childTaskEntity = dataContext.TESTONLY_mergeTask(new TaskEntity().name("Child Task"));
+
+        TaskLink prevLink = dataContext.TESTONLY_mergeLink(new TaskLink()
+                .parent(parentTaskEntity)
+                .child(childTaskEntity)
+                .position(0));
+
+        TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink()
+                .parent(parentTaskEntity)
+                .child(childTaskEntity)
+                .importance(2)
+                .createdAt(MARK)
+                .completed(false)
+                .position(1)
+                .cron(DAILY_STRING)
+                .scheduledFor(LocalDateTime.MIN)
+                .projectDuration(Duration.ZERO));
+
+        TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
+                .parent(parentTaskEntity)
+                .child(childTaskEntity)
+                .position(2));
+
+        parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
+
+        TaskNode taskNode = new TaskNode(
+                ID.of(taskLink),
+                ID.of(parentTaskEntity),
+                dataContext.toDO(childTaskEntity),
+                1,
+                2,
+                MARK,
+                false,
+                false,
+                DAILY_CRON,
+                LocalDateTime.MIN,
+                null);
+
+        assertNode(taskLink, taskNode);
+
+        TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
+
+        taskNode.projectDuration(Duration.ZERO);
         assertNode(mergedTaskLink, taskNode);
     }
 

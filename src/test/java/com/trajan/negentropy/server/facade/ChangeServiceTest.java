@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.facade;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -800,4 +802,22 @@ public class ChangeServiceTest extends TaskTestTemplate {
         queryService.fetchDescendantNodes(root.id(), null)
                 .forEach(assertNodes);
     }
+
+    @Test
+    @Transactional
+    void testClearNodeCron() {
+        TaskNode two = nodes.get(Triple.of(NULL, TWO, 1));
+        assertNotNull(two.cron());
+
+        Change change = new MergeChange<>(two
+                .cron(CronExpression.parse(K.NULL_CRON)));
+
+        DataMapResponse response = changeService.execute(Request.of(change));
+
+        assertTrue(response.success());
+
+        TaskNode updated = (TaskNode) response.changeRelevantDataMap().get(change.id()).get(0);
+        assertNull(updated.cron());
+    }
+
 }

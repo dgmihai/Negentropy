@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.components.fields.CronTextField;
+import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
@@ -120,8 +120,8 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         projectDurationField = new DurationTextField("Project ");
         projectDurationField.setValueChangeMode(ValueChangeMode.EAGER);
 
-        cronField = new CronTextField();
-        cronField.setValueChangeMode(ValueChangeMode.EAGER);
+        cronSpan = new CronSpan();
+        cronSpan.cronField().setValueChangeMode(ValueChangeMode.EAGER);
 
         projectCheckbox.addValueChangeListener(e ->
                 projectDurationField.setVisible(e.getValue()));
@@ -133,7 +133,7 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
 
         nodeInfoBinder = new BeanValidationBinder<>(TaskNodeDTO.class);
 
-        nodeInfoBinder.forField(cronField)
+        nodeInfoBinder.forField(cronSpan.cronField())
                 .withConverter(new ShortenedCronConverter())
                 .bind(TaskNodeDTOData::cron, TaskNodeDTOData::cron);
 
@@ -156,18 +156,16 @@ public class TaskNodeInfoFormLayout extends TaskFormLayout {
         super.configureLayout();
 
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        cronField.setWidthFull();
+        cronSpan.setWidthFull();
 
         nodeInfoLayout = new HorizontalLayout(
-                cronField, recurringCheckbox);
+                cronSpan, recurringCheckbox);
 
         nodeInfoLayout.setWidthFull();
         nodeInfoLayout.setAlignItems(Alignment.CENTER);
         nodeInfoLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
         projectDurationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
     }
 
     @Override

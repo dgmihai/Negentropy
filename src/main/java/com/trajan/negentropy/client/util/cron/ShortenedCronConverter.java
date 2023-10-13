@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.util.cron;
 
+import com.trajan.negentropy.client.K;
 import com.vaadin.flow.data.binder.Result;
 import com.vaadin.flow.data.binder.ValueContext;
 import com.vaadin.flow.data.converter.Converter;
@@ -14,9 +15,9 @@ public class ShortenedCronConverter implements Converter<String, CronExpression>
             if (value.trim().equalsIgnoreCase("d")) {
                 return Result.ok(CronExpression.parse("@daily"));
             } else {
-                return Result.ok((value.isBlank())
-                        ? null
-                        : CronExpression.parse("0 0 " + value));
+                return (value.isBlank())
+                        ? Result.ok(CronExpression.parse(K.NULL_CRON))
+                        : Result.ok(CronExpression.parse("0 0 " + value));
             }
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());

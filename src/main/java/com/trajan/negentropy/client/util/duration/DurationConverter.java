@@ -20,6 +20,8 @@ public class DurationConverter implements Converter<String, Duration> {
     }
 
     public static Result<Duration> toModel(String value) {
+        if (value == null || value.isBlank()) return Result.ok(Duration.ZERO);
+
         Matcher matcher = COMPILED_DURATION_PATTERN.matcher(value);
         if (!matcher.find()) {
             return Result.error("Invalid format");
@@ -62,7 +64,7 @@ public class DurationConverter implements Converter<String, Duration> {
         if (minutes > 0) {
             parts.add(String.format("%d", minutes) + "m");
         }
-        if (seconds > 0 && hours == 0) {
+        if ((seconds > 0 && hours == 0)) {
             parts.add(String.format("%d", seconds) + "s");
         }
         return String.join(" ", parts);

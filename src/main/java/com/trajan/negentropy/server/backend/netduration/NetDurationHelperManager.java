@@ -21,10 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @Transactional
@@ -71,7 +68,8 @@ public class NetDurationHelperManager {
                     log.debug("Removing link " + link.child().name() + " from helper " + helper.filter());
                     helper.netDurations().remove(ID.of(link));
                     helper.projectChildrenOutsideDurationLimitMap().remove(ID.of(link));
-                }));
+                })
+        );
     }
 
     public synchronized void recalculateTimeEstimates() {

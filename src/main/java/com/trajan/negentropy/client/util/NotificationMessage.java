@@ -16,15 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NotificationMessage extends Div {
 
-    private static Notification notify(Notification notification) {
+    private static void notify(Notification notification) {
         try {
             notification.open();
         } catch (Exception e) {
             log.warn("Failed to open notification - is UI not available?");
             e.printStackTrace();
         }
-
-        return notification;
     }
 
     private static Notification create(String message) {
@@ -63,48 +61,52 @@ public class NotificationMessage extends Div {
         return notification;
     }
 
-    public static Notification result(String message) {
-        int duration = 3 * 1000;
+    public static void result(String message) {
+        if (message != null && !message.isBlank()) {
+            int duration = 3 * 1000;
 
-        Notification notification = create(message);
+            Notification notification = create(message);
 
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        notification.setDuration(duration);
-        notification.setPosition(Position.BOTTOM_CENTER);
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            notification.setDuration(duration);
+            notification.setPosition(Position.BOTTOM_CENTER);
 
-        return notify(notification);
+            notify(notification);
+        }
     }
 
-    public static Notification banner(String message) {
-        int duration = 10 * 1000;
+    public static void banner(String message) {
+        if (message != null && !message.isBlank()) {
+            int duration = 10 * 1000;
 
-        Notification notification = create(message);
+            Notification notification = create(message);
 
-        notification.addThemeVariants(NotificationVariant.LUMO_PRIMARY);
-        notification.setDuration(duration);
-        notification.setPosition(Position.TOP_CENTER);
+            notification.addThemeVariants(NotificationVariant.LUMO_PRIMARY);
+            notification.setDuration(duration);
+            notification.setPosition(Position.TOP_CENTER);
 
-        return notify(notification);
+            notify(notification);
+        }
     }
 
-    public static Notification error(String message) {
+    public static void error(String message) {
+        if (message != null && !message.isBlank()) {
+            Notification notification = create(message);
 
-        Notification notification = create(message);
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            notification.setPosition(Position.TOP_CENTER);
 
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        notification.setPosition(Position.TOP_CENTER);
-
-        return notify(notification);
+            notify(notification);
+        }
     }
 
-    public static Notification error(Throwable t) {
-
+    public static void error(Throwable t) {
         log.error(t.getMessage(), t);
         Notification notification = create(t.getLocalizedMessage());
 
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
 
-        return notify(notification);
+        notify(notification);
     }
 
 }

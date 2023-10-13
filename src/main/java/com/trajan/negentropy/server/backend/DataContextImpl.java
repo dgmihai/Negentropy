@@ -1,6 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
@@ -16,6 +17,7 @@ import com.trajan.negentropy.server.backend.repository.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,23 +48,6 @@ public class DataContextImpl implements DataContext {
     @PostConstruct
     public void onStart() {
         this.deleteAllOrphanedTags();
-    }
-
-    private void markAllAncestorsAsRequiringNetDurationRefresh(TaskLink descendantLink) {
-        Set<TaskLink> ancestors = entityQueryService.findAncestorLinks(descendantLink.childId(), null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        ancestors.add(descendantLink);
-
-        netDurationService.clearLinks(ancestors);
-    }
-
-    private void markAllAncestorsAsRequiringNetDurationRefresh(TaskID descendantId) {
-        Set<TaskLink> ancestors = entityQueryService.findAncestorLinks(descendantId, null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toUnmodifiableSet());
-
-        netDurationService.clearLinks(ancestors);
     }
 
     @Override
@@ -116,8 +101,6 @@ public class DataContextImpl implements DataContext {
                 .parentLinks(taskEntity.parentLinks())
                 .tags(tagEntities);
 
-        this.markAllAncestorsAsRequiringNetDurationRefresh(task.id());
-
         log.debug("Merged task: " + taskEntity);
         return taskEntity;
     }
@@ -141,6 +124,15 @@ public class DataContextImpl implements DataContext {
     public TaskLink mergeNode(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
+        if (node.cron() != null) {
+            if (node.cron().toString().equals(K.NULL_CRON)) {
+                linkEntity.cron((CronExpression) null);
+                node.cron(null);
+            } else {
+                linkEntity.cron(node.cron());
+            }
+        }
+
         boolean cronChanged = (node.cron() != null && !(Objects.equals(linkEntity.cron(), node.cron())));
         boolean isBeingCompleted = (node.completed() != null && !linkEntity.completed() && node.completed());
 
@@ -151,7 +143,6 @@ public class DataContextImpl implements DataContext {
                         node.recurring(), linkEntity.recurring()))
                 .completed(Objects.requireNonNullElse(
                         node.completed(), linkEntity.completed()))
-                .cron(Optional.ofNullable(node.cron()).orElse((linkEntity.cron())))
                 .projectDuration(Optional.ofNullable(
                         node.projectDuration())
                         .orElse(linkEntity.projectDuration()));
@@ -168,8 +159,6 @@ public class DataContextImpl implements DataContext {
             }
             linkEntity.completed(false);
         }
-
-        this.markAllAncestorsAsRequiringNetDurationRefresh(linkEntity);
 
         log.debug("Merged task link from node: " + linkEntity);
         return linkEntity;
@@ -222,9 +211,14 @@ public class DataContextImpl implements DataContext {
         boolean recurring = node.recurring() != null && node.recurring();
         boolean completed = node.completed() != null && (node.completed() && !recurring);
 
-        String cron = node.cron() == null ?
-                null :
-                node.cron().toString();
+        String cron = null;
+        if (node.cron() != null) {
+            if (node.cron().toString().equals(K.NULL_CRON)) {
+                node.cron(null);
+            } else {
+                cron = node.cron().toString();
+            }
+        }
 
         LocalDateTime now = DataContext.now();
         LocalDateTime scheduledFor = now;
@@ -234,7 +228,7 @@ public class DataContextImpl implements DataContext {
                     : node.cron().next(now);
         }
 
-        Duration projectDuration = node.projectDuration();
+        Duration projectDuration = Objects.requireNonNullElse(node.projectDuration(), Duration.ZERO);
 
         TaskLink link = linkRepository.save(new TaskLink(
                 null,
@@ -258,7 +252,6 @@ public class DataContextImpl implements DataContext {
         }
 
         child.parentLinks().add(link);
-        this.markAllAncestorsAsRequiringNetDurationRefresh(link);
 
         log.debug("Merged task link from node dto: " + link);
         return link;
@@ -343,7 +336,6 @@ public class DataContextImpl implements DataContext {
                     step.deletedLink(true);
                 });
 
-        this.markAllAncestorsAsRequiringNetDurationRefresh(link);
         linkRepository.delete(link);
     }
 

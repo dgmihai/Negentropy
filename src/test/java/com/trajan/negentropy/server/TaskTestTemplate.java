@@ -182,7 +182,7 @@ public class TaskTestTemplate {
                     nodeDTO.completed(),
                     false,
                     nodeDTO.cron(),
-                    nodeDTO.projectDuration());
+                    Objects.requireNonNullElse(nodeDTO.projectDuration(), Duration.ZERO));
 
             Change insertInto = new InsertIntoChange(freshNode, parentId, InsertLocation.LAST);
             ChangeID id = insertInto.id();

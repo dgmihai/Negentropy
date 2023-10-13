@@ -9,11 +9,13 @@ public class CronTextField extends TextField {
         super();
         setPlaceholder("Cron (H D M W)");
         setPattern(K.CRON_SHORT_PATTERN);
+        setClearButtonVisible(true);
     }
 
     public CronTextField small() {
         setPlaceholder("H D M W");
         addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        setClearButtonVisible(true);
         return this;
     }
 }

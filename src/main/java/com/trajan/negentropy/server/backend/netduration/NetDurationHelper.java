@@ -106,7 +106,7 @@ public class NetDurationHelper {
                 if (parent != null) getNetDuration(childLink, childHierarchy, null);
             } else if (childLink.child().required() && (parent != null)) {
                 getNetDuration(childLink, childHierarchy, null);
-            } else {
+            } else if (!childLink.child().required()) {
                 log.trace("Omitting " + childLink.child().name() + " from hierarchy");
                 if (currentLinkId != null && !customDurationLimit) {
                     projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(childLink));
@@ -141,7 +141,7 @@ public class NetDurationHelper {
         if (durationLimit != null) {
             realDurationLimit = durationLimit;
             customDurationLimit = true;
-        } else if (current.child().project() && current.projectDuration() != null) {
+        } else if (current.child().project() && !current.projectDuration().isZero()) {
             realDurationLimit = current.projectDuration();
         }
 
