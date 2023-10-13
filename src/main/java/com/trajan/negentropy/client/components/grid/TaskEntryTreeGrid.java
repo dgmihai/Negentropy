@@ -45,6 +45,7 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.theme.lumo.LumoIcon;
 import elemental.json.JsonObject;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -428,7 +429,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
         if (cronColumn != null || scheduledForColumn != null) {
             CronTextField cronField = new CronTextField().small();
-            Icon check = new Icon(VaadinIcon.CHECK);
+            Icon check = LumoIcon.CHECKMARK.create();
+            check.setSize("2em");
             check.addClassName(K.ICON_COLOR_PRIMARY);
 
             check.addClickListener(event -> {
@@ -452,6 +454,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             HorizontalLayout cronHeaderLayout = new HorizontalLayout(cronField, check);
             cronHeaderLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
             cronField.setWidth("6em");
+            cronHeaderLayout.setSpacing(false);
+            cronHeaderLayout.setPadding(false);
             editHeaderLayout.add(cronHeaderLayout);
         }
 
@@ -579,8 +583,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             GridSubMenu<TaskEntry> moveSelectedSubMenu = moveSelected.getSubMenu();
             GridMenuItem<TaskEntry> copySelected = addItem("");
             GridSubMenu<TaskEntry> copySelectedSubMenu = copySelected.getSubMenu();
-
-
 
             Map<String, InsertLocation> moveOrCopyOptions = new HashMap<>();
             moveOrCopyOptions.put("Before", InsertLocation.BEFORE);

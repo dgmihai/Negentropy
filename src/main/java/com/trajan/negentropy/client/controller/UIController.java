@@ -229,7 +229,7 @@ public class UIController implements SessionLogged {
         }
     }
 
-    public void deleteAllCompletedTasks() {
+    public void deleteAllCompletedTaskNodes() {
         log.debug("Deleting completed tasks");
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
                 .completed(true);

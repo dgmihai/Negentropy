@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
 import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearchAndFilterForm;
@@ -13,7 +14,6 @@ import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.routine.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.routine.Routine;
@@ -31,9 +31,13 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -45,6 +49,7 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -209,24 +214,26 @@ public class ToolbarTabSheet extends TabSheet {
     }
 
     private ToolbarTabSheet initOptionsTab(boolean mobile) {
-        Button recalculateNetDurations = new Button("Recalculate Net Durations");
-        recalculateNetDurations.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        recalculateNetDurations.addClickListener(e -> controller.recalculateNetDurations());
+        MenuBar optionsMenu = new MenuBar();
+        Span optionsMenuText = new Span("Additional Options");
+        optionsMenuText.add(LumoIcon.DROPDOWN.create());
+        MenuItem additionalOptions = optionsMenu.addItem(optionsMenuText);
+        SubMenu additionalOptionsSubmenu = additionalOptions.getSubMenu();
 
-        Button removeOrphanTasks = new Button("Delete All Orphan Tasks");
-        removeOrphanTasks.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        removeOrphanTasks.addClickListener(e -> controller.deleteAllOrphanedTasks());
+        additionalOptionsSubmenu.addItem("Recalculate Net Durations",
+                e -> controller.recalculateNetDurations());
 
-        Button forceResync = new Button("Force Data Resync");
-        forceResync.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        forceResync.addClickListener(e -> {
+        additionalOptionsSubmenu.addItem("Delete All Orphan Tasks",
+                e -> controller.deleteAllOrphanedTasks());
+
+        additionalOptionsSubmenu.addItem("Force Data Resync",
+                e -> {
             controller.taskNetworkGraph().reset();
             controller.taskNetworkGraph().taskEntryDataProvider().refreshAll();
         });
 
-        Button deleteCompleted = new Button("Delete All Completed Tasks");
-        deleteCompleted.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        deleteCompleted.addClickListener(e -> controller.deleteAllCompletedTasks());
+        additionalOptionsSubmenu.addItem("Delete All Completed Tasks",
+                e -> controller.deleteAllCompletedTaskNodes());
 
         RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
         gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
@@ -264,8 +271,7 @@ public class ToolbarTabSheet extends TabSheet {
             UI.getCurrent().getPage().reload();
         });
 
-        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, recalculateNetDurations,
-                removeOrphanTasks, forceResync, deleteCompleted);
+        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, optionsMenu);
         auxiliaryButtonLayout.setPadding(false);
         auxiliaryButtonLayout.setSpacing(false);
 

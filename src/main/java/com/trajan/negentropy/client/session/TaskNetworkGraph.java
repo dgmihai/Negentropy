@@ -128,13 +128,15 @@ public class TaskNetworkGraph implements SessionLogged {
                 Tag::id, tag -> tag));
     }
 
-    public int getChildCount(TaskID parentId, List<LinkID> filteredLinks) {
-        return (int) (parentId != null
+    public int getChildCount(TaskID parentId, List<LinkID> filteredLinks, Integer offset, Integer limit) {
+        Stream<LinkID> children = (parentId != null
                 ? network.outEdges(parentId)
                 : network.outEdges(TaskID.nil()))
                 .stream()
-                .filter(linkId -> filteredLinks == null || filteredLinks.contains(linkId))
-                .count();
+                .filter(linkId -> filteredLinks == null || filteredLinks.contains(linkId));
+        children = (offset != null) ? children.skip(offset) : children;
+        children = (limit != null) ? children.limit(limit) : children;
+        return (int) children.count();
     }
 
     public boolean hasChildren(TaskID parentId) {
@@ -179,25 +181,28 @@ public class TaskNetworkGraph implements SessionLogged {
         nodeMap.remove(linkId);
     }
 
-    public List<TaskNode> getChildren(TaskID parentId, List<LinkID> filteredLinks) {
+    public Stream<TaskNode> getChildren(TaskID parentId, List<LinkID> filteredLinks, Integer offset, Integer limit) {
         log.debug("Getting children for parent " + taskMap.get(parentId) + " where filtered tasks "
-                + (filteredLinks != null ? "count is " + filteredLinks.size() : "is null"));
+                + (filteredLinks != null ? "count is " + filteredLinks.size() : "is null with offset " + offset +
+                " and limit " + limit));
         try {
             Set<LinkID> children = parentId != null
                     ? network.outEdges(parentId)
                     : network.outEdges(TaskID.nil());
             Ordering<TaskNode> ordering = Ordering.natural().onResultOf(TaskNode::position);
-            List<TaskNode> filteredChildren = ordering.sortedCopy(children.stream()
+            Stream<TaskNode> childStream = children.stream()
                     .map(nodeMap::get)
                     .filter(node ->
                             filteredLinks == null
-                            || filteredLinks.contains(node.linkId()))
-                    .toList());
-            log.debug("Got " + filteredChildren.size() + " child links for parent " + taskMap.get(parentId));
-            return filteredChildren;
+                                    || filteredLinks.contains(node.linkId()))
+                    .sorted(ordering);
+            childStream = (offset != null) ? childStream.skip(offset) : childStream;
+            childStream = (limit != null) ? childStream.limit(limit) : childStream;
+            log.debug("Retrieving child links for parent " + taskMap.get(parentId));
+            return childStream;
         } catch (IllegalArgumentException e) {
             log.error("Failed to fetch children with exception - the DB may be empty.", e);
-            return List.of();
+            return Stream.of();
         }
     }
 
@@ -333,7 +338,7 @@ public class TaskNetworkGraph implements SessionLogged {
     }
 
     @Getter
-    @Benchmark(millisFloor = 10)
+    @Benchmark(millisFloor = 10) // Does not work since not Spring bean
     public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
         private SessionLogger log;
 
@@ -344,6 +349,7 @@ public class TaskNetworkGraph implements SessionLogged {
         private List<LinkID> filteredLinks;
         private TaskNodeTreeFilter filter;
 
+        @Autowired
         public TaskEntryDataProvider() {
             log = getLogger(this.getClass());
 
@@ -415,7 +421,7 @@ public class TaskNetworkGraph implements SessionLogged {
         public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
             log.trace("Getting child count for " + query.getParent());
             TaskID parentTaskID = query.getParent() != null ? query.getParent().task().id() : getRootTaskID();
-            return TaskNetworkGraph.this.getChildCount(parentTaskID, this.filteredLinks);
+            return TaskNetworkGraph.this.getChildCount(parentTaskID, this.filteredLinks, query.getOffset(), query.getLimit());
         }
 
         @Override
@@ -429,7 +435,7 @@ public class TaskNetworkGraph implements SessionLogged {
             }
 
             log.trace("Fetching children for parent " + parent);
-            return getChildren(parentTaskID, this.filteredLinks).stream()
+            return getChildren(parentTaskID, this.filteredLinks, query.getOffset(), query.getLimit())
                     .map(node -> {
                         log.trace("Fetching child: " + node);
                         TaskEntry entry = new TaskEntry(parent, nodeMap.get(node.id()));taskTaskEntriesMap.add(node.task().id(), entry);
