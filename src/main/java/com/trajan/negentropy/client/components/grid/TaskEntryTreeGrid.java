@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.grid;
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.CronTextField;
+import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
@@ -236,6 +237,28 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withProperty("hidden", entry -> entry.node().cron() == null))
                         .setKey(ColumnKey.RESCHEDULE_LATER.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.FORWARD))
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                        .setFlexGrow(0)
+                        .setTextAlign(ColumnTextAlign.CENTER);
+            }
+
+            case FROZEN -> {
+                Grid.Column<TaskEntry> positionFrozenColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                                        GridUtil.inlineVaadinIconLitExpression("lock",
+                                                "?active=\"${item.positionFrozen}\" " +
+                                                        "?hidden=\"${!item.visible}\""))
+                                .withFunction("onClick", entry ->
+                                        controller.requestChangeAsync(new MergeChange<>(
+                                                        new TaskNode(entry.node().linkId())
+                                                                .positionFrozen(!entry.node().positionFrozen())),
+                                                this))
+                                .withProperty("positionFrozen", entry ->
+                                        entry.node().positionFrozen())
+                                .withProperty("visible", entry ->
+                                        (entry.task().required() && entry.node().position() == 0)
+                                                || entry.node().positionFrozen()))
+                        .setKey(ColumnKey.FROZEN.toString())
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.LOCK))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);

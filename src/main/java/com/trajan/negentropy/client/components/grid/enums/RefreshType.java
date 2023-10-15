@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.grid;
+package com.trajan.negentropy.client.components.grid.enums;
 
 public enum RefreshType {
     ALL_ANCESTORS,

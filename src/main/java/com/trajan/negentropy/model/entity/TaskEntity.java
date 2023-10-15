@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -26,7 +25,6 @@ import java.util.Set;
 @EntityListeners(SyncManagerListener.class)
 @Table(name = "tasks")
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @ToString(onlyExplicitlyIncluded = true)

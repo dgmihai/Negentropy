@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.routine.components;
+package com.trajan.negentropy.client.components.routine;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;

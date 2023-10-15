@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.session;
 
-import com.trajan.negentropy.client.components.grid.ColumnKey;
+import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.controller.util.InsertMode;
@@ -47,7 +47,8 @@ public class UserSettings {
 
         TaskEntryTreeGrid.possibleColumns.forEach(columnKey -> {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
-                gridColumnVisibility.put(columnKey, (!columnKey.equals(ColumnKey.TAGS_COMBO)));
+                gridColumnVisibility.put(columnKey, (!(
+                        columnKey.equals(ColumnKey.TAGS_COMBO) || columnKey.equals(ColumnKey.FROZEN))));
             }
         });
 

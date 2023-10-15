@@ -7,7 +7,6 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.*;
-import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
@@ -16,7 +15,6 @@ import java.util.Objects;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
@@ -27,6 +25,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
     private TaskID parentId;
     private Task child;
     private Integer position;
+    private Boolean positionFrozen;
     private Integer importance;
 
     private LocalDateTime createdAt;
@@ -44,6 +43,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.cron = taskNodeInfoData.cron();
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
+        this.positionFrozen = taskNodeInfoData.positionFrozen();
         this.projectDuration = taskNodeInfoData.projectDuration();
         this.recurring = taskNodeInfoData.recurring();
     }
@@ -54,6 +54,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.cron = taskNodeInfoData.cron();
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
+        this.positionFrozen = taskNodeInfoData.positionFrozen();
         this.projectDuration = taskNodeInfoData.projectDuration();
         this.recurring = taskNodeInfoData.recurring();
     }
@@ -99,6 +100,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         if (parentId != null) result.append(", parentId=").append(parentId);
         if (child != null) result.append(", child=").append(child);
         if (position != null) result.append(", position=").append(position);
+        if (positionFrozen != null) result.append(", positionFrozen=").append(positionFrozen);
         if (importance != null) result.append(", importance=").append(importance);
         if (createdAt != null) result.append(", createdAt=").append(createdAt);
         if (completed != null) result.append(", completed=").append(completed);

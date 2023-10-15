@@ -48,6 +48,7 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     private TaskEntity child;
 
     private Integer position = 0;
+    private Boolean positionFrozen = false;
     private Integer importance = 0;
 
     private LocalDateTime createdAt = LocalDateTime.now();

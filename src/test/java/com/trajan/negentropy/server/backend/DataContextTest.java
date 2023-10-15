@@ -92,6 +92,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(ID.of(taskLink), taskNode.linkId());
         assertEquals(taskLink.importance(), taskNode.importance());
         assertEquals(taskLink.position(), taskNode.position());
+        assertEquals(taskLink.positionFrozen(), taskNode.positionFrozen());
         assertEquals(taskLink.completed(), taskNode.completed());
         assertEquals(taskLink.recurring(), taskNode.recurring());
         assertEquals(taskLink.cron(), taskNode.cron());
@@ -116,6 +117,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 0,
+                false,
                 0,
                 MARK,
                 false,
@@ -129,6 +131,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 2,
+                false,
                 1,
                 MARK,
                 false,
@@ -142,6 +145,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 2,
+                false,
                 0,
                 MARK,
                 false,
@@ -167,6 +171,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 2,
+                true,
                 0,
                 MARK,
                 true,
@@ -180,6 +185,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 1,
+                true,
                 0,
                 MARK,
                 true,
@@ -293,6 +299,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toDO(childTaskEntity),
                 1,
+                false,
                 2,
                 MARK,
                 false,
@@ -341,6 +348,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toDO(childTaskEntity),
                 1,
+                false,
                 2,
                 MARK,
                 false,
@@ -379,6 +387,7 @@ public class DataContextTest extends TaskTestTemplate {
                         ID.of(parentTaskEntity),
                         ID.of(childTaskEntity),
                         4,
+                        false,
                         2,
                         false,
                         false,
@@ -415,6 +424,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toDO(childTaskEntity),
                 1,
+                false,
                 2,
                 MARK,
                 true,
@@ -459,6 +469,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toDO(childTaskEntity),
                 0,
+                false,
                 2,
                 MARK,
                 true,

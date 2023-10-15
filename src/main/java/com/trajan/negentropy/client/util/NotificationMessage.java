@@ -16,13 +16,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NotificationMessage extends Div {
 
-    private static void notify(Notification notification) {
+    /*
+     * NOTE: These methods NEED to return a Notification object, otherwise they will not show.
+     */
+
+    private static Notification notify(Notification notification) {
         try {
             notification.open();
         } catch (Exception e) {
             log.warn("Failed to open notification - is UI not available?");
             e.printStackTrace();
         }
+
+        return notification;
     }
 
     private static Notification create(String message) {
@@ -61,7 +67,7 @@ public class NotificationMessage extends Div {
         return notification;
     }
 
-    public static void result(String message) {
+    public static Notification result(String message) {
         if (message != null && !message.isBlank()) {
             int duration = 3 * 1000;
 
@@ -71,11 +77,11 @@ public class NotificationMessage extends Div {
             notification.setDuration(duration);
             notification.setPosition(Position.BOTTOM_CENTER);
 
-            notify(notification);
-        }
+            return notify(notification);
+        } else return null;
     }
 
-    public static void banner(String message) {
+    public static Notification banner(String message) {
         if (message != null && !message.isBlank()) {
             int duration = 10 * 1000;
 
@@ -85,28 +91,28 @@ public class NotificationMessage extends Div {
             notification.setDuration(duration);
             notification.setPosition(Position.TOP_CENTER);
 
-            notify(notification);
-        }
+            return notify(notification);
+        } else return null;
     }
 
-    public static void error(String message) {
+    public static Notification error(String message) {
         if (message != null && !message.isBlank()) {
             Notification notification = create(message);
 
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Position.TOP_CENTER);
 
-            notify(notification);
-        }
+            return notify(notification);
+        } else return null;
     }
 
-    public static void error(Throwable t) {
+    public static Notification error(Throwable t) {
         log.error(t.getMessage(), t);
         Notification notification = create(t.getLocalizedMessage());
 
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
 
-        notify(notification);
+        return notify(notification);
     }
 
 }

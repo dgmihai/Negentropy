@@ -145,7 +145,9 @@ public class DataContextImpl implements DataContext {
                         node.completed(), linkEntity.completed()))
                 .projectDuration(Optional.ofNullable(
                         node.projectDuration())
-                        .orElse(linkEntity.projectDuration()));
+                        .orElse(linkEntity.projectDuration()))
+                .positionFrozen(Objects.requireNonNullElse(
+                        node.positionFrozen(), linkEntity.positionFrozen()));
 
         boolean hasCron = linkEntity.cron() != null;
 
@@ -185,25 +187,58 @@ public class DataContextImpl implements DataContext {
                     "; would create cyclical hierarchy.");
         }
 
+        boolean positionFrozen = node.positionFrozen() != null && node.positionFrozen();
         Integer position = node.position();
 
         log.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
+
+        List<TaskLink> childLinks = parent == null ?
+                entityQueryService.findChildLinks(null, null).toList() :
+                parent.childLinks();
 
         if (position == null || position == -1) {
             position = parent == null ?
                     entityQueryService.findChildCount(null, null) :
                     parent.childLinks().size();
             log.trace("Position: " + position);
-        } else {
-            List<TaskLink> childLinks = parent == null ?
-                    entityQueryService.findChildLinks(null, null).toList() :
-                    parent.childLinks();
+        }
+
+        if (position == 0) {
+            // Check for required tasks from the beginning of the list
             for (TaskLink childLink : childLinks) {
-                if (childLink.position() >= position) {
-                    childLink.position(childLink.position() + 1);
+                if (childLink.positionFrozen()) {
+                    position++;
+                } else {
+                    break;
                 }
             }
+
+            for (int i = position; i < childLinks.size(); i++) {
+                TaskLink current = childLinks.get(i);
+                current.position(current.position() + 1);
+            }
+        } else if (position >= childLinks.size()) {
+            // Check for required tasks from the end of the list
+            for (int i = childLinks.size() - 1; i >= 0; i--) {
+                TaskLink current = childLinks.get(i);
+                if (current.positionFrozen()) {
+                    position--;
+                    current.position(current.position() + 1);
+                } else {
+                    break;
+                }
+            }
+
+            if (position < 0) {
+                position = childLinks.size();
+            }
+        } else {
+            for (int i = position; i < childLinks.size(); i++) {
+                TaskLink current = childLinks.get(i);
+                current.position(current.position() + 1);
+            }
         }
+
 
         int importance = node.importance() == null ?
                 0 :
@@ -235,6 +270,7 @@ public class DataContextImpl implements DataContext {
                 parent,
                 child,
                 position,
+                positionFrozen,
                 importance,
                 now,
                 completed,
@@ -265,6 +301,7 @@ public class DataContextImpl implements DataContext {
                 link.parentId(),
                 this.toDO(link.child()),
                 link.position(),
+                link.positionFrozen(),
                 nodeTemplate.importance(),
                 link.createdAt(),
                 nodeTemplate.completed(),
@@ -405,6 +442,7 @@ public class DataContextImpl implements DataContext {
                 ID.of(link.parent()),
                 toDO(link.child()),
                 link.position(),
+                link.positionFrozen(),
                 link.importance(),
                 link.createdAt(),
                 link.completed(),

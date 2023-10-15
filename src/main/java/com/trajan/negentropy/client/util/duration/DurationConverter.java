@@ -50,9 +50,11 @@ public class DurationConverter implements Converter<String, Duration> {
 
         List<String> parts = new ArrayList<>();
 
+        String prefix = "", suffix = "";
         if (value.isNegative()) {
             value = value.abs();
-            parts.add("+");
+            prefix = "(";
+            suffix = ")";
         }
 
         long hours = value.toHours();
@@ -67,7 +69,12 @@ public class DurationConverter implements Converter<String, Duration> {
         if ((seconds > 0 && hours == 0)) {
             parts.add(String.format("%d", seconds) + "s");
         }
-        return String.join(" ", parts);
+
+        if (value.isNegative()) {
+            parts.add(")");
+        }
+
+        return prefix + String.join(" ", parts) + suffix;
     }
 }
 

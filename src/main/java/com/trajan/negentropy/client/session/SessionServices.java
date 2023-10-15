@@ -17,4 +17,5 @@ public class SessionServices {
     @Autowired private RoutineService routine;
     @Autowired private TenetService tenet;
     @Autowired private MoodService mood;
+    @Autowired private RecordService record;
 }

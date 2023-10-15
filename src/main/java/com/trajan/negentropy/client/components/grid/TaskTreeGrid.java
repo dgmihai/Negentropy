@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMenuItemDecorator;

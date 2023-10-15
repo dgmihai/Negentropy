@@ -1,8 +1,5 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
-import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
@@ -10,6 +7,8 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
@@ -22,16 +21,14 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-@PageTitle("Negentropy - Task Tree")
+@PageTitle("Task Tree")
 @UIScope
 @Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
-@Accessors(fluent = true)
 @Getter
 public class TreeView extends Div {
     @Autowired private SessionLoggerFactory loggerFactory;

@@ -6,6 +6,7 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -40,6 +41,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -153,6 +155,52 @@ public class TaskTestTemplate {
         return (Task) response.changeRelevantDataMap().getFirst(id);
     }
 
+    protected Task createTask(String name) {
+        return persistTask(new Task().name(name));
+    }
+
+    protected PersistedDataDO<?> execute(Change change) {
+        ChangeID id = change.id();
+
+        DataMapResponse response = changeService.execute(Request.of(change));
+        assertTrue(response.success());
+
+        return response.changeRelevantDataMap().getFirst(id);
+    }
+
+    protected Task mergeTask(Task task) {
+        return (Task) execute(new MergeChange<>(task));
+    }
+
+    protected TaskNode persistTaskNode(TaskNodeDTO taskNodeDTO) {
+        return (TaskNode) execute(new PersistChange<>(taskNodeDTO));
+    }
+
+    protected void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
+        List<TaskNode> nodeList = nodes
+                .peek(node -> System.out.println("Validate nodes peek: child=" + node.child()))
+                .toList();
+        System.out.println("EXPECTED: " + expected);
+        System.out.println("ACTUAL: " + nodeList.stream().map(node -> node.task().name()).toList());
+        TaskID parentId = nodeList.get(0).parentId();
+        for (int i=0; i<nodeList.size(); i++) {
+            TaskNode node = nodeList.get(i);
+            Task task;
+            Object obj = expected.get(i);
+            if (obj instanceof Task t) {
+                task = t;
+            } else if (obj instanceof String s) {
+                task = tasks.get(s);
+            } else {
+                throw new RuntimeException();
+            }
+
+            assertEquals(node.position(), i);
+            assertEquals(task.id(), node.child().id());
+            assertEquals(parentId, node.parentId());
+        }
+    }
+
     protected void initTasks(String parent, List<Pair<Task, TaskNodeDTO>> children) {
         for (int i=0; i<children.size(); i++) {
             Task task = children.get(i).getFirst();
@@ -176,6 +224,7 @@ public class TaskTestTemplate {
                     parentId,
                     childId,
                     i,
+                    false,
 //                  TODO: implement importance
 //                    task.importance,
                     0,

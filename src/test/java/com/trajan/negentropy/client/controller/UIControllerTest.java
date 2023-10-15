@@ -28,14 +28,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UIControllerTest extends ClientTestTemplate {
+
     @BeforeAll
     void setup() {
         init();
-
         controller = new TestUIController(testServices);
     }
 
-    void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
+    @Override
+    protected void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
         List<TaskNode> nodeList = nodes
                 .toList();
         System.out.println("EXPECTED: " + expected.stream()
@@ -70,7 +71,6 @@ class UIControllerTest extends ClientTestTemplate {
             } else {
                 throw new RuntimeException();
             }
-
 
             assertEquals(task.id(), node.child().id());
             assertEquals(parentId, node.parentId());

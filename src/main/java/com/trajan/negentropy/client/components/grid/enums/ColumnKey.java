@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.components.grid;
+package com.trajan.negentropy.client.components.grid.enums;
 
 public enum ColumnKey {
     DRAG_HANDLE("Drag Handle"),
@@ -13,6 +13,7 @@ public enum ColumnKey {
     TAGS("Tags"),
     PROJECT("Project"),
     REQUIRED("Required"),
+    FROZEN("Position Frozen"),
     RECURRING("Recurring"),
     CRON("Cron"),
     RESCHEDULE_NOW("Reschedule for Now"),

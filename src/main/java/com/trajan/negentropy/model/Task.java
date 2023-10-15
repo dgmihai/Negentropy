@@ -4,7 +4,6 @@ import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskData.TaskData;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -13,7 +12,6 @@ import java.util.Set;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

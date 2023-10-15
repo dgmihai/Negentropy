@@ -37,6 +37,8 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
     interface TaskNodeInfoData<T extends TaskNodeInfoData<T>> extends TaskNodeTemplateData<T> {
         T position(Integer position);
         Integer position();
+        T positionFrozen(Boolean positionFrozen);
+        Boolean positionFrozen();
         T projectDuration(Duration projectDuration);
         Duration projectDuration();
     }

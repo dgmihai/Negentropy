@@ -1,10 +1,9 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.components.grid.ColumnKey;
+import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.GridUtil;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.session.SessionServices;
-import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Tenet;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -29,12 +28,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-@PageTitle("Negentropy - Tenets")
+@PageTitle("Tenets")
 @UIScope
 @Route(value = "tenets", layout = MainLayout.class)
 @Uses(Icon.class)
 public class TenetView extends VerticalLayout {
-    @Autowired private BannerProvider bannerProvider;
     @Autowired private SessionServices services;
 
     @PostConstruct

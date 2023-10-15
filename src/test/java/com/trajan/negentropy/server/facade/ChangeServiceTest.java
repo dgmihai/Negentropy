@@ -5,7 +5,6 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
-import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -38,7 +37,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,31 +50,6 @@ public class ChangeServiceTest extends TaskTestTemplate {
         init();
         TaskID twotwotwoId = tasks.get(TWOTWOTWO).id();
         assertEquals(Duration.ofMinutes(1), queryService.fetchNetDuration(twotwotwoId, null));
-    }
-
-    void validateNodes(Stream<TaskNode> nodes, List<Object> expected) {
-        List<TaskNode> nodeList = nodes
-                .peek(node -> System.out.println("Validate nodes peek: child=" + node.child()))
-                .toList();
-        System.out.println("EXPECTED: " + expected);
-        System.out.println("ACTUAL: " + nodeList.stream().map(node -> node.task().name()).toList());
-        TaskID parentId = nodeList.get(0).parentId();
-        for (int i=0; i<nodeList.size(); i++) {
-            TaskNode node = nodeList.get(i);
-            Task task;
-            Object obj = expected.get(i);
-            if (obj instanceof Task t) {
-                task = t;
-            } else if (obj instanceof String s) {
-                task = tasks.get(s);
-            } else {
-                throw new RuntimeException();
-            }
-
-            assertEquals(node.position(), i);
-            assertEquals(task.id(), node.child().id());
-            assertEquals(parentId, node.parentId());
-        }
     }
 
     @Test
@@ -143,27 +116,6 @@ public class ChangeServiceTest extends TaskTestTemplate {
         testFindDescendantTasks(null, null, expectedTasks);
     }
 
-    private Task createTask(String name) {
-        return persistTask(new Task().name(name));
-    }
-
-    private PersistedDataDO<?> execute(Change change) {
-        ChangeID id = change.id();
-
-        DataMapResponse response = changeService.execute(Request.of(change));
-        assertTrue(response.success());
-
-        return response.changeRelevantDataMap().getFirst(id);
-    }
-
-    private Task mergeTask(Task task) {
-        return (Task) execute(new MergeChange<>(task));
-    }
-
-    private TaskNode persistTaskNode(TaskNodeDTO taskNodeDTO) {
-        return (TaskNode) execute(new PersistChange<>(taskNodeDTO));
-    }
-
     private TaskNode insertTaskInto(TaskID taskId, TaskID parentId, InsertLocation location) {
         return (TaskNode) execute(new InsertIntoChange(
                 new TaskNodeDTO()
@@ -179,21 +131,6 @@ public class ChangeServiceTest extends TaskTestTemplate {
                 referenceId,
                 location));
     }
-
-//    Change insertTask = new InsertIntoChange(
-//            new TaskNodeDTO()
-//                    .childId(fresh.changes()),
-//            parent.changes(),
-//            InsertLocation.CHILD);
-//    int changes = insertTask.changes();
-//
-//    DataMapResponse response = changeService.execute(Request.of(insertTask));
-//    assertTrue(response.success());
-//
-//    TaskNode freshNode = (TaskNode) response.resultsMap().getFirst(changes);
-//
-//    assertEquals(parent.changes(), freshNode.parentId());
-//    fresh = freshNode.child();
 
     @Test
     @Transactional

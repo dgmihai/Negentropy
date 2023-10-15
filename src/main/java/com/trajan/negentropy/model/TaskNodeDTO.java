@@ -7,13 +7,11 @@ import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
 
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTOData<TaskNodeDTO> {
@@ -21,6 +19,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
     private TaskID childId;
 
     private Integer position;
+    private Boolean positionFrozen;
     private Integer importance;
 
     private Boolean completed;
@@ -29,11 +28,12 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
 
     private Duration projectDuration;
 
-    public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Integer importance,
+    public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Boolean positionFrozen, Integer importance,
                        Boolean completed, Boolean recurring, CronExpression cron, Duration projectDuration) {
         this.parentId = parentId;
         this.childId = childId;
         this.position = position;
+        this.positionFrozen = positionFrozen;
         this.importance = importance;
         this.completed = completed;
         this.recurring = recurring;
@@ -45,6 +45,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         this.parentId = node.parentId();
         this.childId = node.childId();
         this.position = node.position();
+        this.positionFrozen = node.positionFrozen();
         this.importance = node.importance();
         this.completed = node.completed();
         this.recurring = node.recurring();
@@ -72,6 +73,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
                 parentId,
                 null,
                 position,
+                positionFrozen,
                 importance,
                 null,
                 completed,
@@ -92,6 +94,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         if (parentId != null) result.append("parentId=").append(parentId);
         if (childId != null) result.append(", childId=").append(childId);
         if (position != null) result.append(", position=").append(position);
+        if (positionFrozen != null) result.append(", positionFrozen=").append(positionFrozen);
         if (importance != null) result.append(", importance=").append(importance);
         if (completed != null) result.append(", completed=").append(completed);
         if (recurring != null) result.append(", recurring=").append(recurring);

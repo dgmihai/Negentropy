@@ -1,4 +1,4 @@
-package com.trajan.negentropy.client.routine.components;
+package com.trajan.negentropy.client.components.routine;
 
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;

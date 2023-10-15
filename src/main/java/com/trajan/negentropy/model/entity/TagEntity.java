@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.experimental.Accessors;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -17,7 +16,6 @@ import java.util.Set;
 @EntityListeners(SyncManagerListener.class)
 @Table(name = "tags")
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 public class TagEntity extends AbstractEntity implements TagData<TagEntity> {

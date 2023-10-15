@@ -7,7 +7,7 @@ import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
-import com.trajan.negentropy.client.routine.components.RoutineCard;
+import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Mood;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-@PageTitle("Negentropy - Routine")
+@PageTitle("Routine")
 @UIScope
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
