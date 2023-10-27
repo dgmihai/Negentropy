@@ -58,7 +58,7 @@ public class TreeView extends Div {
 
         toolbarTabSheet.init(this,
                 TabType.CLOSE_TAB,
-                TabType.CREATE_NEW_TASK_TAB,
+                TabType.CREATE_NEW_TASK_TAB_FULL,
                 TabType.INSERT_TASK_TAB,
                 TabType.SEARCH_AND_FILTER_TAB,
                 TabType.OPTIONS_TAB,

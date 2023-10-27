@@ -27,7 +27,12 @@ public class Broadcaster<T> {
     public synchronized void broadcast(T content) {
         log.debug("Broadcasting " + content.getClass().getSimpleName() + " to " + listeners.size() + " listeners");
         for (Consumer<T> listener : listeners) {
-            notify(listener, content);
+            try {
+                this.notify(listener, content);
+            } catch (Exception e) {
+                log.error("Exception while notifying listener", e);
+                listeners.remove(listener);
+            }
         }
     }
 

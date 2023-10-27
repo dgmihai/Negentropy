@@ -9,4 +9,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Benchmark {
     long millisFloor() default -1;
+    boolean trace() default false;
 }

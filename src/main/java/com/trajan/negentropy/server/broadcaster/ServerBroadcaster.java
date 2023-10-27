@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server;
+package com.trajan.negentropy.server.broadcaster;
 
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.server.broadcaster.AsyncBroadcaster;

@@ -12,6 +12,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
+import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.repository.*;
 import jakarta.annotation.PostConstruct;
@@ -23,10 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -454,15 +452,25 @@ public class DataContextImpl implements DataContext {
 
     @Override
     public Routine toDO(RoutineEntity routineEntity) {
+        Map<StepID, RoutineStep> steps = routineEntity.getAllChildren().stream()
+                .map(this::toDO)
+                .collect(Collectors.toMap(
+                        RoutineStep::id,
+                        step -> step));
+
+        List<StepID> childrenIds = routineEntity.children().stream()
+                .map(ID::of)
+                .toList();
+
         return new Routine(
                 ID.of(routineEntity),
-                routineEntity.children().stream()
-                        .map(this::toDO)
-                        .toList(),
+                steps,
+                childrenIds,
                 routineEntity.currentPosition(),
                 routineEntity.estimatedDuration(),
                 routineEntity.estimatedDurationLastUpdatedTime(),
                 routineEntity.status(),
+                routineEntity.autoSync(),
                 routineEntity.syncId());
     }
 

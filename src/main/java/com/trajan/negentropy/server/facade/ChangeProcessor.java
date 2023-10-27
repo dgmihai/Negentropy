@@ -49,6 +49,7 @@ public class ChangeProcessor {
     @Autowired private DataContext dataContext;
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationService netDurationService;
+    @Autowired private RoutineService routineService;
 
     @Setter
     private Consumer<Set<TaskLink>> updateSyncManagerDurations;
@@ -294,6 +295,7 @@ public class ChangeProcessor {
             message = joiner.toString();
         }
 
+        routineService.notifyChanges(durationUpdates);
         netDurationService.clearLinks(durationUpdates);
         updateSyncManagerDurations.accept(durationUpdates);
         return Pair.of(message, dataResults);

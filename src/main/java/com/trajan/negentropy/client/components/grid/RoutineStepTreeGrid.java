@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
-import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayout;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
@@ -174,7 +174,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
         if (routineStep instanceof RoutineNodeStep routineNodeStep) {
             return new GridInlineEditorTaskNodeFormLayout<>(controller, routineNodeStep, RoutineNodeStep.class);
         } else {
-            return new TaskNodeInfoFormLayout(controller, routineStep.task());
+            return new TaskNodeInfoFormFullLayout(controller, routineStep.task());
         }
     }
 

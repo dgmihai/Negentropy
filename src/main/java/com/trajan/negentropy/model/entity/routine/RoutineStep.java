@@ -9,9 +9,6 @@ import com.trajan.negentropy.model.data.RoutineStepData;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
-import com.trajan.negentropy.model.interfaces.Ancestor;
-import com.trajan.negentropy.model.interfaces.Timeable;
-import com.trajan.negentropy.util.RoutineUtil;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -26,7 +23,7 @@ import java.util.Optional;
 @Getter
 @Setter
 @ToString
-public abstract class RoutineStep implements RoutineStepData, Timeable, HasTaskData, MayHaveTaskNodeData, Ancestor<RoutineStep> {
+public abstract class RoutineStep implements RoutineStepData<RoutineStep>, HasTaskData, MayHaveTaskNodeData {
     protected StepID id;
 
     protected RoutineID routineId;
@@ -51,11 +48,6 @@ public abstract class RoutineStep implements RoutineStepData, Timeable, HasTaskD
     @Override
     public String description() {
         return task().description();
-    }
-
-    @Override
-    public Duration remainingDuration(LocalDateTime time) {
-        return RoutineUtil.getStepDisplayTime(this, time);
     }
 
     @Override

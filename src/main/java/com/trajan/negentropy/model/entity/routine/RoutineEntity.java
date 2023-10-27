@@ -55,10 +55,16 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
     @Column(columnDefinition="TEXT")
     private String serializedFilter;
 
+    private Boolean autoSync= true;
     private Long syncId;
 
     public SyncID syncId() {
         return (syncId != null) ? new SyncID(syncId) : null;
+    }
+
+    @Override
+    public RoutineStepEntity rootStep() {
+        return children.get(0);
     }
 
     public List<RoutineStepEntity> getAllChildren() {

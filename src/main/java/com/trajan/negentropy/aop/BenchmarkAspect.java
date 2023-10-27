@@ -30,7 +30,8 @@ public class BenchmarkAspect {
         String argTypesString = argTypes.collect(Collectors.joining(", "));
         // Measure time before method execution
         long startTime = System.currentTimeMillis();
-        log.trace("Benchmarking: {}: {} {}({})", callerName, returnType, methodName, argTypesString);
+        boolean trace = benchmark.trace();
+        if (trace) log.debug("Benchmarking: {}: {} {}({})", callerName, returnType, methodName, argTypesString);
 
         Object result = pjp.proceed(); // Proceed with the actual method execution
 

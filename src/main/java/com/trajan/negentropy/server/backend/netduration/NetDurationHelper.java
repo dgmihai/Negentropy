@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.netduration;
 
+import com.google.common.base.Stopwatch;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHierarchy;
@@ -18,6 +19,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -34,15 +38,17 @@ import java.util.stream.Stream;
 @Getter
 @Setter
 @Slf4j
-@Benchmark(millisFloor = 10)
+@Benchmark(trace = true)
+@Component
+@Scope("prototype")
 public class NetDurationHelper {
-    private final EntityQueryService entityQueryService;
-    private final NetDurationRepository netDurationRepository;
-    private final LinkRepository linkRepository;
+    @Autowired private EntityQueryService entityQueryService;
+    @Autowired private NetDurationRepository netDurationRepository;
+    @Autowired private LinkRepository linkRepository;
 
     private Map<LinkID, Duration> netDurations = new HashMap<>();
     private MultiValueMap<LinkID, LinkID> projectChildrenOutsideDurationLimitMap = new LinkedMultiValueMap<>();
-    private final NonSpecificTaskNodeTreeFilter filter;
+    private NonSpecificTaskNodeTreeFilter filter;
 
     public Map<TaskID, Duration> getAllNetTaskDurations() {
         return entityQueryService.findTasks(filter)
@@ -60,6 +66,7 @@ public class NetDurationHelper {
 
     private Duration getNetDurationWithLimit(TaskOrTaskLinkEntity current, RoutineStepHierarchy parent,
                                              Duration durationLimit, boolean customDurationLimit) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         LinkID currentLinkId = null;
         TaskEntity currentTask;
         if (current instanceof TaskLink link) {
@@ -118,6 +125,7 @@ public class NetDurationHelper {
         if (parent != null) parent.addToHierarchy(childHierarchy);
 
         log.trace("Returning limit calculated net duration of " + currentTask.name() + ": " + currentDurationSum);
+        log.debug("Calculated net duration of " + currentTask.name() + " in " + stopwatch.stop().elapsed().toMillis() + "ms");
         return currentDurationSum;
     }
 

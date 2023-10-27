@@ -29,7 +29,7 @@ import java.util.Optional;
 @Setter
 @ToString(callSuper = true)
 @Slf4j
-public class RoutineStepEntity extends AbstractEntity implements RoutineStepData, Ancestor<RoutineStepEntity> {
+public class RoutineStepEntity extends AbstractEntity implements RoutineStepData<RoutineStepEntity>, Ancestor<RoutineStepEntity> {
     
     @Id
     @Column(nullable = false, updatable = false)
@@ -84,6 +84,16 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
 
     public RoutineStepEntity(TaskEntity task) {
         this.task = task;
+    }
+
+    @Override
+    public String name() {
+        return task().name();
+    }
+
+    @Override
+    public String description() {
+        return task().name();
     }
 
     @Override

@@ -5,10 +5,8 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.interfaces.Descendant;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 @AllArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @ToString

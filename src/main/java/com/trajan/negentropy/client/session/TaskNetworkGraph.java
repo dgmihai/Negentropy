@@ -1,11 +1,11 @@
 package com.trajan.negentropy.client.session;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Ordering;
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.sessionlogger.SessionLogged;
 import com.trajan.negentropy.client.sessionlogger.SessionLogger;
 import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
@@ -23,10 +23,8 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
-import com.trajan.negentropy.server.ServerBroadcaster;
+import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
-import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
-import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -42,7 +40,6 @@ import org.springframework.util.MultiValueMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,7 +47,7 @@ import java.util.stream.Stream;
 @SpringComponent
 @VaadinSessionScope
 @Getter
-@Benchmark(millisFloor = 10)
+@Benchmark
 public class TaskNetworkGraph implements SessionLogged {
     @Autowired private SessionLoggerFactory loggerFactory;
     private SessionLogger log;
@@ -64,7 +61,7 @@ public class TaskNetworkGraph implements SessionLogged {
     private Registration broadcastRegistration;
     @Autowired private VaadinSession session;
 
-    private TaskEntryDataProvider taskEntryDataProvider;
+    @Autowired private TaskEntryDataProvider taskEntryDataProvider;
 
     private MutableNetwork<TaskID, LinkID> network;
 
@@ -84,8 +81,6 @@ public class TaskNetworkGraph implements SessionLogged {
     @PostConstruct
     public void init() {
         log = getLogger(this.getClass());
-
-        taskEntryDataProvider = new TaskEntryDataProvider();
 
         network = NetworkBuilder.directed()
                 .allowsParallelEdges(true)
@@ -109,6 +104,8 @@ public class TaskNetworkGraph implements SessionLogged {
         log.info("Session: " + address + " using " + browser);
         if (this.serverBroadcaster != null) broadcastRegistration = serverBroadcaster.register(this::sync);
         log.info("Initialized TaskNetworkGraph with {} nodes", network.nodes().size());
+
+        taskEntryDataProvider.init(this);
     }
 
     @PreDestroy
@@ -212,7 +209,7 @@ public class TaskNetworkGraph implements SessionLogged {
                 .toList();
     }
 
-    public synchronized void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
+    private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
         if (syncId != this.syncId) {
             log.debug("Syncing net durations with filter " + filter);
             filterMap.clear();
@@ -230,6 +227,7 @@ public class TaskNetworkGraph implements SessionLogged {
     private Map<NonSpecificTaskNodeTreeFilter, NetDurationInfo> filterMap = new HashMap<>();
 
     public synchronized void sync(SyncRecord aggregateSyncRecord) {
+        Stopwatch stopWatch = Stopwatch.createStarted();
         if (this.syncId != aggregateSyncRecord.id()) {
             List<Change> changes = aggregateSyncRecord.changes();
             log.info("Syncing with sync id {}, {} changes, current sync id: {}",
@@ -248,6 +246,7 @@ public class TaskNetworkGraph implements SessionLogged {
             Map<LinkID, Boolean> pendingNodeRefresh = new HashMap<>();
             boolean refreshAll = false;
 
+            log.debug("MARK 1: {} ms", stopWatch.elapsed().toMillis());
             for (Change change : changes) {
                 if (change instanceof MergeChange<?> mergeChange) {
                     Object mergeData = mergeChange.data();
@@ -281,11 +280,12 @@ public class TaskNetworkGraph implements SessionLogged {
                         pendingNodeRefresh.put(node.id(), false);
                         TaskID parentId = node.parentId();
                         if (parentId != null) {
-                            // TODO: Needs to be fixed
-//                        taskEntryDataProviderManager.pendingTaskRefresh().put(parentId, true);
-                            refreshAll = true;
+                            for (LinkID linkId : this.nodesByTaskMap().getOrDefault(parentId, List.of())) {
+                                pendingNodeRefresh.put(linkId, false);
+                            }
                         } else {
                             refreshAll = true;
+                            break;
                         }
                     } else if (persistData instanceof Tag) {
                         this.refreshTags();
@@ -304,6 +304,7 @@ public class TaskNetworkGraph implements SessionLogged {
                             log.warn("Deleted node {} not found in node map", linkId);
                             // Refresh all nodes
                             refreshAll = true;
+                            break;
                         } else {
                             TaskID parentId = deletedNode.parentId();
                             if (parentId != null) {
@@ -312,6 +313,7 @@ public class TaskNetworkGraph implements SessionLogged {
                                 }
                             } else {
                                 refreshAll = true;
+                                break;
                             }
                         }
                         this.removeTaskNode(linkId);
@@ -327,130 +329,16 @@ public class TaskNetworkGraph implements SessionLogged {
                 this.syncId(aggregateSyncRecord.id());
             }
 
+            log.debug("MARK 2: {} ms", stopWatch.elapsed().toMillis());
             if (refreshAll) {
                 taskEntryDataProvider.refreshAll();
             } else {
                 taskEntryDataProvider.refreshNodes(pendingNodeRefresh);
             }
+            log.debug("MARK 3: {} ms", stopWatch.elapsed().toMillis());
+            stopWatch.stop();
         } else {
             log.debug("No sync required, sync ID's match");
-        }
-    }
-
-    @Getter
-    @Benchmark(millisFloor = 10) // Does not work since not Spring bean
-    public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
-        private SessionLogger log;
-
-        @Getter private final MultiValueMap<TaskID, TaskEntry> taskTaskEntriesMap = new LinkedMultiValueMap<>();
-        @Getter private final MultiValueMap<LinkID, TaskEntry> linkTaskEntriesMap = new LinkedMultiValueMap<>();
-
-        private TaskEntry rootEntry;
-        private List<LinkID> filteredLinks;
-        private TaskNodeTreeFilter filter;
-
-        @Autowired
-        public TaskEntryDataProvider() {
-            log = getLogger(this.getClass());
-
-            log.info("TaskEntryGridDataProvider init");
-            this.rootEntry = null;
-            if (settings != null) {
-                this.setFilter(settings.filter());
-            } else {
-                this.setFilter(null);
-            }
-        }
-
-        public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {
-            log.debug("Refreshing nodes");
-            session.access(() -> {
-                for (Entry<LinkID, Boolean> mapEntry : linkIdMap.entrySet()) {
-                    LinkID id = mapEntry.getKey();
-                    log.debug("Refreshing node with id {}", id);
-                    if (linkTaskEntriesMap.containsKey(id)) {
-                        List<TaskEntry> taskEntries = linkTaskEntriesMap.get(id);
-
-                        for (TaskEntry entry : taskEntries) {
-                            entry.node((nodeMap.get(entry.node().id())));
-                            entry.node().child(taskMap.get(entry.node().child().id()));
-                            this.refreshItem(entry, mapEntry.getValue());
-                        }
-                    }
-                }
-            });
-        }
-
-        public void rootEntry(TaskEntry rootEntry) {
-            log.debug("Setting root entry: " + rootEntry);
-            this.rootEntry = rootEntry;
-            this.refreshAll();
-        }
-
-        public TaskID getRootTaskID() {
-            return rootEntry != null ? rootEntry.task().id() : null;
-        }
-
-        @Override
-        public void refreshAll() {
-            log.debug("Refreshing all");
-
-            session.access(() -> {
-                refreshFilter();
-                super.refreshAll();
-            });
-        }
-        public void refreshFilter() {
-            log.debug("Refreshing filter");
-            this.filteredLinks = getFilteredLinks(filteredLinks, filter);
-        }
-
-        public void setFilter(TaskNodeTreeFilter filter) {
-            this.filter = filter;
-            this.filteredLinks = getFilteredLinks(filteredLinks, filter);
-            super.refreshAll();
-            getNetDurations(filter);
-        }
-
-        @Override
-        public boolean isInMemory() {
-            return true;
-        }
-
-        @Override
-        public int getChildCount(HierarchicalQuery<TaskEntry, Void> query) {
-            log.trace("Getting child count for " + query.getParent());
-            TaskID parentTaskID = query.getParent() != null ? query.getParent().task().id() : getRootTaskID();
-            return TaskNetworkGraph.this.getChildCount(parentTaskID, this.filteredLinks, query.getOffset(), query.getLimit());
-        }
-
-        @Override
-        protected Stream<TaskEntry> fetchChildrenFromBackEnd(HierarchicalQuery<TaskEntry, Void> query) {
-            TaskEntry parent = query.getParent() != null ? query.getParent() : rootEntry;
-            TaskID parentTaskID = parent != null ? parent.task().id() : getRootTaskID();
-
-            if (parent == null) {
-                linkTaskEntriesMap.clear();
-                taskTaskEntriesMap.clear();
-            }
-
-            log.trace("Fetching children for parent " + parent);
-            return getChildren(parentTaskID, this.filteredLinks, query.getOffset(), query.getLimit())
-                    .map(node -> {
-                        log.trace("Fetching child: " + node);
-                        TaskEntry entry = new TaskEntry(parent, nodeMap.get(node.id()));taskTaskEntriesMap.add(node.task().id(), entry);
-                        linkTaskEntriesMap.add(node.id(), entry);
-                        log.trace("Adding new entry: " + entry);
-                        return entry;
-                    });
-        }
-
-        @Override
-        public boolean hasChildren(TaskEntry item) {
-            if (item == null) return true;
-            boolean result = TaskNetworkGraph.this.hasChildren(item.task().id());
-            log.trace("Item {} has children: {}", item.task().name(), result);
-            return result;
         }
     }
 }

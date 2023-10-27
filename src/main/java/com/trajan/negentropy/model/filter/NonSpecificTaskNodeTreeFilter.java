@@ -7,6 +7,9 @@ public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
     public NonSpecificTaskNodeTreeFilter() {
         super();
         this.name = null;
+        this.completed = false;
+        this.durationLimit = null;
+        this.ignoreScheduling = false;
     }
 
     public static NonSpecificTaskNodeTreeFilter from(TaskNodeTreeFilter filter) {
@@ -15,7 +18,7 @@ public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
         } else {
             return filter != null
                     ? (NonSpecificTaskNodeTreeFilter) new NonSpecificTaskNodeTreeFilter()
-                    .name("") // We explicitly exclude name from the filter
+                    .name(null) // We explicitly exclude name from the filter
                     .completed(false)
                     .recurring(filter.recurring())
                     .availableAtTime(filter.availableAtTime())

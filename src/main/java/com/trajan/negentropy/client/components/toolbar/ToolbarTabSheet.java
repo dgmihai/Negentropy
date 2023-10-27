@@ -8,7 +8,8 @@ import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearc
 import com.trajan.negentropy.client.components.searchandfilterform.TaskFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TaskNodeFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TreeFilterForm;
-import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayout;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormMinorLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.routine.RoutineView;
@@ -84,7 +85,8 @@ public class ToolbarTabSheet extends TabSheet {
 
     public enum TabType {
         CLOSE_TAB,
-        CREATE_NEW_TASK_TAB,
+        CREATE_NEW_TASK_TAB_FULL,
+        CREATE_NEW_TASK_TAB_MINOR,
         INSERT_TASK_TAB,
         START_ROUTINE_TAB,
         SEARCH_AND_FILTER_TAB,
@@ -95,7 +97,7 @@ public class ToolbarTabSheet extends TabSheet {
         ADD_STEP_TAB
     }
 
-    private TaskNodeInfoFormLayout createTaskForm;
+    private TaskNodeInfoFormMinorLayout createTaskForm;
     private QuickCreateField quickCreateField;
     private TaskListBox taskSetBox;
 
@@ -118,7 +120,8 @@ public class ToolbarTabSheet extends TabSheet {
             for (TabType tabName : tabsNames) {
                 switch (tabName) {
                     case CLOSE_TAB -> initCloseTab(mobile);
-                    case CREATE_NEW_TASK_TAB -> initCreateNewTaskTab(mobile);
+                    case CREATE_NEW_TASK_TAB_FULL -> initCreateNewTaskTab(mobile, true);
+                    case CREATE_NEW_TASK_TAB_MINOR -> initCreateNewTaskTab(mobile, false);
                     case INSERT_TASK_TAB -> initInsertTaskTab(mobile);
                     case START_ROUTINE_TAB -> initStartRoutineFromTaskTab(mobile);
                     case SEARCH_AND_FILTER_TAB -> initSearchAndFilterTab(mobile);
@@ -155,8 +158,25 @@ public class ToolbarTabSheet extends TabSheet {
         add(closeTab, new Div());
     }
 
-    private ToolbarTabSheet initCreateNewTaskTab(boolean mobile) {
-        this.createTaskForm = new TaskNodeInfoFormLayout(controller);
+    private ToolbarTabSheet initCreateNewTaskTab(boolean mobile, boolean full) {
+        this.createTaskForm = (full)
+                ? new TaskNodeInfoFormFullLayout(controller)
+                : new TaskNodeInfoFormMinorLayout(controller);
+
+        createTaskForm.preexistingTaskSearchButton().addClickListener(e -> {
+            if (searchAndFilterTab != null) {
+                String current = createTaskForm.nameField().getValue();
+                this.setSelectedTab(searchAndFilterTab);
+                searchAndFilterTab.getChildren()
+                        .filter(component -> component instanceof AbstractSearchAndFilterForm)
+                        .findFirst()
+                        .ifPresent(f -> {
+                            AbstractSearchAndFilterForm form = (AbstractSearchAndFilterForm) f;
+                            form.name().setValue(current);
+                        });
+            }
+        });
+
         createTaskForm.taskBinder().setBean(new Task());
 
 //        createTaskForm.afterClear(() -> {
@@ -358,6 +378,20 @@ public class ToolbarTabSheet extends TabSheet {
                 : new TaskProviderTab(taskSetBox, VaadinIcon.FILE_SEARCH.create());
 
         configureTaskSearchProvider(filterForm, taskSetBox);
+
+        filterForm.goToCreateNewTaskFormButton().addClickListener(e -> {
+            if (createNewTaskTab != null) {
+                String current = filterForm.name().getValue();
+                this.setSelectedTab(createNewTaskTab);
+                createNewTaskTab.getChildren()
+                        .filter(component -> component instanceof TaskNodeInfoFormMinorLayout)
+                        .findFirst()
+                        .ifPresent(f -> {
+                            TaskNodeInfoFormFullLayout form = (TaskNodeInfoFormFullLayout) f;
+                            form.nameField().setValue(current);
+                        });
+            }
+        });
 
         VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox);
         layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.NONE,

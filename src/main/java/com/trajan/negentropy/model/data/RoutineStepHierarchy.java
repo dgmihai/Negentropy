@@ -57,10 +57,26 @@ public abstract class RoutineStepHierarchy {
         }
     }
 
+    public static RoutineStepEntityHierarchy createRoutineEntityHierarchy(RoutineStepEntityHierarchy hierarchy,
+                                                                          TaskLink link, RoutineEntity routine) {
+        if (hierarchy == null) return null;
+        return (hierarchy instanceof RoutineRecalculationHierarchy)
+                ? new RoutineRecalculationHierarchy(link, routine)
+                : new RoutineStepEntityHierarchy(link, routine);
+    }
+
+    public static RoutineStepEntityHierarchy createRoutineEntityHierarchy(RoutineStepEntityHierarchy hierarchy,
+                                                                          TaskEntity task, RoutineEntity routine) {
+        if (hierarchy == null) return null;
+        return (hierarchy instanceof RoutineRecalculationHierarchy)
+                ? new RoutineRecalculationHierarchy(task, routine)
+                : new RoutineStepEntityHierarchy(task, routine);
+    }
+
     @Getter
     @RequiredArgsConstructor
     public static class RoutineStepEntityHierarchy extends RoutineStepHierarchy {
-        private final RoutineStepEntity parent;
+        protected final RoutineStepEntity parent;
 
         public RoutineStepEntityHierarchy(TaskLink link, RoutineEntity routine) {
             this(new RoutineStepEntity(link)
@@ -89,6 +105,27 @@ public abstract class RoutineStepHierarchy {
         @Override
         public List<RoutineStepEntity> children() {
             return parent.children();
+        }
+    }
+
+    @Getter
+    public static class RoutineRecalculationHierarchy extends RoutineStepEntityHierarchy {
+
+        public RoutineRecalculationHierarchy(TaskLink link, RoutineEntity routine) {
+            super(link, routine);
+        }
+
+        public RoutineRecalculationHierarchy(TaskEntity task, RoutineEntity routine) {
+            super(task, routine);
+        }
+
+        @Override
+        public void addToHierarchy(RoutineStepEntityHierarchy hierarchy) {
+            log.debug("Adding to hierarchy: " + hierarchy.parent.task().name());
+            RoutineStepEntity child = hierarchy.parent();
+            finalizeStep(child, this);
+            child.parentStep(parent);
+            child.routine(parent.routine());
         }
     }
 }

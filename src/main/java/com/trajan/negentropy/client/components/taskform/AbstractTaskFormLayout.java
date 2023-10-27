@@ -34,17 +34,15 @@ import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Accessors(fluent = true)
 public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         implements HasTaskNodeProvider {
-    protected TextField nameField;
+    @Getter protected TextField nameField;
     protected TextField durationField;
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox requiredCheckbox;
@@ -102,7 +100,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected void configureFields() {
         nameField = new TextField();
         nameField.setPlaceholder("Name *");
-        nameField.setValueChangeMode(ValueChangeMode.EAGER);
+        nameField.setValueChangeMode(ValueChangeMode.LAZY);
         nameField.setRequired(true);
 
         durationField = new DurationTextField();

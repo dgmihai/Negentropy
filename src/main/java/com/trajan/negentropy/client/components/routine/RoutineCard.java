@@ -5,15 +5,15 @@ import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.model.sync.Change;
-import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -26,28 +26,33 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ReadOnlyHasValue;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 @Slf4j
 public class RoutineCard extends VerticalLayout {
-    private final UIController controller;
+    @Getter private final UIController controller;
 
-    private TaskInfoBar rootTaskbar;
-//    private TaskInfoBar parentTaskbar;
+    private List<Component> nestedTaskInfoBars;
     private RoutineCardButton next;
     private RoutineCardToggleableButton prev;
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
-    private RoutineCardToggleableButton recalculate;
+    private RoutineCardBooleanButton recalculate;
     private RoutineCardButton postpone;
     private RoutineCardButton close;
     private Span currentTaskName;
-    private RoutineTimer timer;
+    private CountdownTimer timer;
     private TextArea description;
+
+    private VerticalLayout taskInfoBarLayout;
 
     private Routine routine;
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
@@ -67,14 +72,23 @@ public class RoutineCard extends VerticalLayout {
             binder.setBean(routine.currentStep());
             initComponents();
         }
+
         layout();
+
+        controller.registerRoutineCard(routine.id(), r -> {
+            log.debug("Updated routine: " + r);
+            updateRoutine(r);
+        });
     }
 
-    private void processStep(Function<StepID, RoutineResponse> stepFunction) {
-        RoutineResponse response = stepFunction.apply(binder.getBean().id());
+    public void processStep(Function<StepID, RoutineResponse> stepFunction) {
+        processStep(binder.getBean().id(), stepFunction);
+    }
+
+    public void processStep(StepID stepId, Function<StepID, RoutineResponse> stepFunction) {
+        RoutineResponse response = stepFunction.apply(stepId);
         if (response.success()) {
-            this.routine = response.routine();
-            this.updateComponents();
+            this.updateRoutine(routine);
         }
     }
 
@@ -82,13 +96,17 @@ public class RoutineCard extends VerticalLayout {
         log.debug("Processing routine: " + binder.getBean().routineId());
         RoutineResponse response = stepFunction.apply(binder.getBean().routineId());
         if (response.success()) {
-            this.routine = response.routine();
-            this.updateComponents();
+            this.updateRoutine(routine);
         }
     }
 
     private boolean isActive() {
         return binder.getBean().status().equals(TimeableStatus.ACTIVE);
+    }
+
+    private void updateRoutine(Routine routine) {
+        this.routine = routine;
+        this.updateComponents();
     }
 
     private void updateComponents() {
@@ -103,9 +121,11 @@ public class RoutineCard extends VerticalLayout {
             pause.setVisible(isActive());
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
-            recalculate.setEnabled(!controller.taskNetworkGraph().syncId().equals(routine.syncId()));
-            rootTaskbar.setTimeable(routine);
-            rootTaskbar.timer().run(isActive());
+            recalculate.setBoolean(routine.autoSync());
+
+            this.setNestedTaskInfoBars();
+            taskInfoBarLayout.removeAll();
+            taskInfoBarLayout.add(nestedTaskInfoBars);
         }
         if (routineStepTreeGrid.routine() != null) {
             routineStepTreeGrid.setRoutine(routine);
@@ -119,9 +139,9 @@ public class RoutineCard extends VerticalLayout {
         Span completed;
         if (routine.rootStep().startTime() == null) {
             NotificationMessage.error("Start at least one step in a routine before completing!");
-            completed = new Span("Completed '" + routine.name() + "!");
+            completed = new Span(routine.status().toString() + " '" + routine.name() + "!");
         } else {
-            completed = new Span("Completed '" + routine.name() + "' in " +
+            completed = new Span(routine.status().toString() + " '" + routine.name() + "' in " +
                     DurationConverter.toPresentation(Duration.between(
                             routine.rootStep().startTime(),
                             routine.finishTime()))
@@ -142,8 +162,28 @@ public class RoutineCard extends VerticalLayout {
         this.add(skipped);
     }
 
+    private void setNestedTaskInfoBars() {
+        if (nestedTaskInfoBars == null) {
+            nestedTaskInfoBars = new ArrayList<>();
+        } else {
+            nestedTaskInfoBars.clear();
+        }
+
+        RoutineStep current = binder.getBean();
+        while (current.parentId() != null) {
+            current = routine.steps().get(current.parentId());
+            createTaskInfoBar(current);
+        }
+    }
+
+    private void createTaskInfoBar(Timeable timeable) {
+        TaskInfoBar taskInfoBar = new TaskInfoBar(timeable, this);
+        if (!timeable.description().isBlank()) taskInfoBar.setOpened(true);
+        nestedTaskInfoBars.add(taskInfoBar);
+    }
+
     private void initComponents() {
-        rootTaskbar = new TaskInfoBar(routine, controller);
+        this.setNestedTaskInfoBars();
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> this.processStep(
@@ -161,9 +201,13 @@ public class RoutineCard extends VerticalLayout {
         pause.addClickListener(event -> this.processStep(
                 controller::pauseRoutineStep));
 
-        recalculate = new RoutineCardToggleableButton(VaadinIcon.REFRESH.create());
-        recalculate.addClickListener(event -> this.processRoutine(
-                controller::recalculateRoutine));
+        recalculate = new RoutineCardBooleanButton(VaadinIcon.REFRESH.create());
+        recalculate.setBoolean(routine.autoSync());
+        recalculate.addClickListener(event -> this.processRoutine(routineId -> {
+            boolean autoSync = routine.autoSync();
+            recalculate.setEnabled(!autoSync);
+            return controller.setAutoSync(routineId, !autoSync);
+        }));
 
         skip = new RoutineCardButton(VaadinIcon.STEP_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
@@ -174,8 +218,8 @@ public class RoutineCard extends VerticalLayout {
                 controller::postponeRoutineStep));
 
         close = new RoutineCardButton(VaadinIcon.CLOSE.create());
-        close.addClickListener(event -> this.processRoutine(
-                controller::skipRoutine));
+        close.addClickListener(event -> this.processStep(
+        stepId -> controller.setRoutineStepExcluded(stepId, true)));
 
         currentTaskName = new Span(binder.getBean().task().name());
         ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(
@@ -183,20 +227,20 @@ public class RoutineCard extends VerticalLayout {
         binder.forField(taskName)
                 .bindReadOnly(step -> step.task().name());
 
-        timer = new RoutineTimer(binder.getBean(), controller);
+        timer = new CountdownTimer(binder.getBean());
 
+        taskInfoBarLayout = new VerticalLayout();
         this.updateComponents();
 
         description = new TextArea();
         binder.forField(description)
                 .bind(step -> step.task().description(),
                         (step, text) -> step.task().description(text));
-        description.setValueChangeMode(ValueChangeMode.LAZY);
+        description.setValueChangeMode(ValueChangeMode.ON_CHANGE);
         description.addValueChangeListener(event -> {
-            Change change = Change.update(binder.getBean().task());
-            DataMapResponse response = controller.requestChange(change);
-            if (response.success()) {
-                binder.getBean().task(((Task) response.changeRelevantDataMap().getFirst(change.id())));
+            if (event.isFromClient()) {
+                Change change = Change.update(binder.getBean().task());
+                controller.requestChangeAsync(change);
             }
         });
     }
@@ -204,8 +248,6 @@ public class RoutineCard extends VerticalLayout {
     private void layout() {
         this.setSpacing(false);
         this.addClassName("card");
-
-        rootTaskbar.setPadding(false);
 
         HorizontalLayout lower = new HorizontalLayout();
         lower.addClassName("header");
@@ -245,7 +287,13 @@ public class RoutineCard extends VerticalLayout {
         description.setWidthFull();
 
         lower.add(left, middle, right);
-        this.add(rootTaskbar, header, lower);
+
+        taskInfoBarLayout.setPadding(false);
+        taskInfoBarLayout.setSpacing(false);
+        taskInfoBarLayout.setMargin(false);
+
+        this.add(taskInfoBarLayout);
+        this.add(header, lower);
         this.setWidthFull();
 
         header.getElement().addEventListener("click", e -> {
@@ -267,18 +315,19 @@ public class RoutineCard extends VerticalLayout {
         }
     }
 
-    private static class RoutineCardToggleableButton extends Div {
-        public RoutineCardToggleableButton(Icon icon) {
+    @Getter
+    @Setter
+    private static class RoutineCardBooleanButton extends Div {
+        private boolean enabled = true;
+
+        public RoutineCardBooleanButton(Icon icon) {
             super(icon);
 
             icon.addClassNames(
                     LumoUtility.IconSize.MEDIUM);
         }
 
-        @Override
-        public void setEnabled(boolean enabled) {
-            super.setEnabled(enabled);
-
+        public void setBoolean(boolean enabled) {
             if (enabled) {
                 this.addClassName(K.COLOR_PRIMARY);
                 this.removeClassName(K.COLOR_UNSELECTED);
@@ -286,6 +335,18 @@ public class RoutineCard extends VerticalLayout {
                 this.removeClassName(K.COLOR_PRIMARY);
                 this.addClassName(K.COLOR_UNSELECTED);
             }
+        }
+    }
+
+    private static class RoutineCardToggleableButton extends RoutineCardBooleanButton {
+        public RoutineCardToggleableButton(Icon icon) {
+            super(icon);
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            this.setBoolean(enabled);
+            super.setEnabled(enabled);
         }
     }
 }

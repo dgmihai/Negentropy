@@ -1,20 +1,22 @@
 package com.trajan.negentropy.client.routine;
 
 import com.trajan.negentropy.client.MainLayout;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
+import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
+import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
-import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.sessionlogger.SessionLogger;
+import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Mood;
 import com.trajan.negentropy.model.entity.Emotion;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.server.facade.RoutineService;
+import com.trajan.negentropy.util.TimeableUtil;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
@@ -58,6 +60,8 @@ public class RoutineView extends VerticalLayout {
 
     @Autowired private RoutineStepTreeGrid routineStepTreeGrid;
     @Autowired private ToolbarTabSheet toolbarTabSheet;
+    @Autowired private TimeableUtil timeableUtil;
+
     private final Grid<Routine> activeRoutineGrid = new Grid<>();
 
     private final Set<TimeableStatus> visibleRoutineStatuses = Set.of(
@@ -73,14 +77,16 @@ public class RoutineView extends VerticalLayout {
         this.setJustifyContentMode(JustifyContentMode.START);
 
         toolbarTabSheet.init(this, () -> routineStepTreeGrid.clearRoutine(),
-                ToolbarTabSheet.TabType.ADD_STEP_TAB,
-                ToolbarTabSheet.TabType.HIDE_ROUTINE_STEPS_TAB,
-                ToolbarTabSheet.TabType.SHOW_ROUTINE_STEPS_TAB,
-                ToolbarTabSheet.TabType.START_ROUTINE_TAB,
-                ToolbarTabSheet.TabType.OPTIONS_TAB);
+                TabType.HIDE_ROUTINE_STEPS_TAB,
+                TabType.SHOW_ROUTINE_STEPS_TAB,
+                TabType.CREATE_NEW_TASK_TAB_MINOR,
+                TabType.INSERT_TASK_TAB,
+                TabType.START_ROUTINE_TAB,
+                TabType.OPTIONS_TAB);
 
         routineStepTreeGrid.setVisible(settings.routineStepsGridVisible());
         routineStepTreeGrid.init(settings.routineViewColumnVisibility(), SelectionMode.NONE);
+        routineStepTreeGrid.addClassName("routine-step-tree-grid");
         routineStepTreeGrid.setSizeFull();
 
         toolbarTabSheet.addSelectedChangeListener(event -> {
@@ -104,6 +110,7 @@ public class RoutineView extends VerticalLayout {
         activeRoutineGrid.addSelectionListener(event ->
                 event.getFirstSelectedItem().ifPresent(routine -> {
                     routineStepTreeGrid.setRoutine(routine.id());
+                    activeRoutineGrid.select(routine);
                 })
         );
         activeRoutineGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
@@ -113,7 +120,7 @@ public class RoutineView extends VerticalLayout {
 
     public Routine getActiveRoutine() {
         Set<Routine> selectedRoutines = activeRoutineGrid.getSelectedItems();
-        return selectedRoutines.size() > 0 ? activeRoutineGrid.getSelectedItems().iterator().next() : null;
+        return !selectedRoutines.isEmpty() ? activeRoutineGrid.getSelectedItems().iterator().next() : null;
     }
 
     public void refreshRoutines() {

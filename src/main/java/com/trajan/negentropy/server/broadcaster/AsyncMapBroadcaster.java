@@ -11,11 +11,11 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 @Scope("prototype")
-public class AsyncBroadcaster<T> extends Broadcaster<T> {
+public class AsyncMapBroadcaster<K, V> extends MapBroadcaster<K, V> {
     private final Executor executor = Executors.newSingleThreadExecutor();
 
     @Override
-    protected void notify(Consumer<T> listener, T content) {
+    public void notify(Consumer<V> listener, V content) {
         executor.execute(() -> listener.accept(content));
     }
 }

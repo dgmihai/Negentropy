@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend.netduration;
 
+import com.trajan.negentropy.util.SpringContext;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -11,7 +12,6 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
-import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 @Transactional
@@ -30,7 +33,7 @@ import java.util.*;
 public class NetDurationHelperManager {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationRepository netDurationRepository;
-    @Autowired private LinkRepository linkRepository;
+    @Autowired private SpringContext springContext;
 
     private final Map<NonSpecificTaskNodeTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
@@ -44,10 +47,10 @@ public class NetDurationHelperManager {
             return helpers.get(nonNullFilter);
         }
 
-        return helpers.computeIfAbsent(nonNullFilter, f ->
-            new NetDurationHelper(entityQueryService, netDurationRepository, linkRepository,
-                    f)
-        );
+        return helpers.computeIfAbsent(nonNullFilter, f -> {
+                NetDurationHelper helper = SpringContext.getBean(NetDurationHelper.class);
+                return helper.filter(f);
+        });
     }
 
     public Map<TaskID, Duration> getAllNetTaskDurations(TaskNodeTreeFilter filter) {

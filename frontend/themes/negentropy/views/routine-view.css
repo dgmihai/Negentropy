@@ -7,7 +7,7 @@
   line-height: var(--lumo-line-height-m);
 }
 
-.routine-view vaadin-grid[selected] {
+.routine-view .routine-step-tree-grid::part[selected-row-cell] {
   box-shadow: var(--lumo-box-shadow-l);
 }
 
@@ -41,6 +41,10 @@
   height: var(--lumo-size-m);
   margin-right: calc(var(--lumo-space-s) * 1.5);
   width: var(--lumo-size-m);
+}
+
+.routine-view .card vaadin-details-summary::part(content) {
+  width: 100%;
 }
 
 .routine-view .card .header {
@@ -81,7 +85,7 @@
   --lumo-text-field-size: var(--lumo-size-s);
 }
 
-.routine-view .card  vaadin-text-area::part(input-field) {
+.routine-view .card vaadin-text-area::part(input-field) {
   background-color: var(--lumo-tint-70pct);
 }
 
@@ -94,14 +98,6 @@
   height: calc(var(--lumo-icon-size-s) * 0.8);
   margin-right: var(--lumo-space-s);
   width: calc(var(--lumo-icon-size-s) * 0.8);
-}
-
-.routine-view .likes,
-.routine-view .comments,
-.routine-view .shares {
-  color: var(--lumo-tertiary-text-color);
-  font-size: var(--lumo-font-size-xs);
-  margin-right: var(--lumo-space-l);
 }
 
 .routine-view .mood-input {

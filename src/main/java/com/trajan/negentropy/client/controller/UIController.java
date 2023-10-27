@@ -3,10 +3,10 @@ package com.trajan.negentropy.client.controller;
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
-import com.trajan.negentropy.client.session.RoutineDataProvider;
-import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
@@ -16,6 +16,7 @@ import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
@@ -25,6 +26,7 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.util.OrphanTaskCleaner;
+import com.trajan.negentropy.server.broadcaster.MapBroadcaster;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
@@ -33,6 +35,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -40,7 +43,9 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -289,7 +294,12 @@ public class UIController implements SessionLogged {
 
     public RoutineResponse recalculateRoutine(RoutineID routineId) {
         log.debug("Recalculating routine: " + routineId);
-        return tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId, LocalDateTime.now()));
+        return tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId));
+    }
+
+    public RoutineResponse setAutoSync(RoutineID routineId, boolean autoSync) {
+        log.debug("Setting auto sync for routine: " + routineId + " to " + autoSync);
+        return tryRoutineServiceCall(() -> services.routine().setAutoSync(routineId, autoSync));
     }
 
     //@Override
@@ -373,5 +383,28 @@ public class UIController implements SessionLogged {
         log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
         return this.tryRoutineServiceCall(
                 () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
+    }
+
+    //==================================================================================================================
+    // Routine Broadcaster
+    //==================================================================================================================
+
+    @Getter (AccessLevel.NONE)
+    private final MapBroadcaster<RoutineID, Routine> routineCardBroadcaster = new MapBroadcaster<>();
+
+    @Getter (AccessLevel.NONE)
+    private final Set<RoutineID> trackedRoutines = new HashSet<>();
+
+    public void registerRoutineCard(RoutineID routineId, Consumer<Routine> listener) {
+        if (!trackedRoutines.contains(routineId)) {
+            services.routine().register(routineId, r -> routineCardBroadcaster.broadcast(routineId, r));
+            trackedRoutines.add(routineId);
+        }
+
+        routineCardBroadcaster.register(routineId, r -> {
+            if (currentUI != null) {
+                currentUI.access(() -> listener.accept(r));
+            }
+        });
     }
 }
