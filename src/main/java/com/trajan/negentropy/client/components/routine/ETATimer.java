@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.routine;
 
+import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.util.SpringContext;
@@ -33,6 +34,7 @@ public class ETATimer extends AbstractTimer {
 
         this.setStartTime(remainingDuration.toSeconds());
 
-        this.play();
+        boolean isActive = timeable.status().equals(TimeableStatus.ACTIVE);
+        this.isRunning(!isActive);
     }
 }

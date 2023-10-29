@@ -1,9 +1,7 @@
 package com.trajan.negentropy.client;
 
 import com.trajan.negentropy.client.session.SessionServices;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.RecordSpan;
 import com.trajan.negentropy.model.entity.TimeableStatus;
@@ -22,7 +20,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
@@ -36,17 +33,13 @@ import java.util.Set;
 @UIScope
 @Route(value = "records", layout = MainLayout.class)
 @Uses(Icon.class)
-public class RecordView extends VerticalLayout implements SessionLogged {
-    @Autowired
-    @Getter private SessionLoggerFactory loggerFactory;
-    @Getter protected SessionLogger log;
+public class RecordView extends VerticalLayout {
+    private final UILogger log = new UILogger();
 
     @Autowired private SessionServices services;
 
     @PostConstruct
     public void init() {
-        log = getLogger(this.getClass());
-
         this.addClassName("record-view");
         this.setSizeFull();
 

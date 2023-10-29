@@ -7,10 +7,7 @@ import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -23,7 +20,10 @@ import java.util.Set;
 
 @Entity
 @EntityListeners(SyncManagerListener.class)
-@Table(name = "tasks")
+@Table(name = "tasks", indexes = {
+        @Index(columnList = "name", name = "idx_task_name"),
+        @Index(columnList = "project", name = "idx_task_project")
+})
 @NoArgsConstructor
 @Getter
 @Setter
@@ -78,7 +78,7 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, T
     private List<TaskLink> parentLinks = new ArrayList<>();
 
     @ManyToMany(
-            fetch = FetchType.EAGER,
+            fetch = FetchType.LAZY,
             cascade = CascadeType.REMOVE)
     @JoinTable(
             name = "task_tags",

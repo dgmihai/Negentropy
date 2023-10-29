@@ -2,14 +2,15 @@ package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
-import com.vaadin.flow.component.*;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.shared.Registration;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 
 @Getter
-@Accessors(fluent=true)
 public class TaskProviderTab extends Tab implements HasTaskNodeProvider {
     private final HasTaskNodeProvider taskNodeProviderOwner;
 

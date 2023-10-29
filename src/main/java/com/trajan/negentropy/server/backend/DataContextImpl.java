@@ -77,7 +77,7 @@ public class DataContextImpl implements DataContext {
         }
 
         Set<TagEntity> tagEntities = task.tags() == null ?
-                taskEntity.tags() :
+                tagRepository.findByTasks(taskEntity).collect(Collectors.toSet()) :
                 task.tags().stream()
                         .map(this::mergeTag)
                         .collect(Collectors.toSet());
@@ -152,12 +152,19 @@ public class DataContextImpl implements DataContext {
         if (cronChanged && hasCron) {
             linkEntity.scheduledFor(DataContext.now());
         }
-        if (isBeingCompleted && linkEntity.recurring()) {
-            log.debug("Updating scheduled time");
-            if (hasCron) {
-                linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
+
+        if (isBeingCompleted) {
+            if (linkEntity.recurring()) {
+                log.debug("Updating scheduled time");
+                if (hasCron) {
+                    linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
+                }
+                linkEntity.completed(false);
             }
-            linkEntity.completed(false);
+
+            routineStepRepository.save(new RoutineStepEntity(linkEntity)
+                    .finishTime(DataContext.now())
+                    .status(TimeableStatus.COMPLETED));
         }
 
         log.debug("Merged task link from node: " + linkEntity);
@@ -428,7 +435,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.required(),
                 taskEntity.project(),
                 taskEntity.difficult(),
-                taskEntity.tags().stream()
+                tagRepository.findByTasksId(taskEntity.id())
                         .map(this::toDO)
                         .collect(Collectors.toSet()));
     }

@@ -1,6 +1,5 @@
-package com.trajan.negentropy.client.routine;
+package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.MainLayout;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
@@ -8,8 +7,7 @@ import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Mood;
 import com.trajan.negentropy.model.entity.Emotion;
@@ -33,7 +31,6 @@ import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
@@ -46,11 +43,9 @@ import java.util.Set;
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
 @Uses(Icon.class)
-@Accessors(fluent = true)
 @Getter
 public class RoutineView extends VerticalLayout {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    private SessionLogger log;
+    private final UILogger log = new UILogger();
 
     @Autowired private BannerProvider bannerProvider;
     @Autowired private UIController controller;
@@ -70,8 +65,6 @@ public class RoutineView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
-        log = loggerFactory.getLogger(this.getClass());
-
         this.addClassName("routine-view");
         this.setSizeFull();
         this.setJustifyContentMode(JustifyContentMode.START);
@@ -79,7 +72,7 @@ public class RoutineView extends VerticalLayout {
         toolbarTabSheet.init(this, () -> routineStepTreeGrid.clearRoutine(),
                 TabType.HIDE_ROUTINE_STEPS_TAB,
                 TabType.SHOW_ROUTINE_STEPS_TAB,
-                TabType.CREATE_NEW_TASK_TAB_MINOR,
+                TabType.CREATE_NEW_TASK_TAB_FULL,
                 TabType.INSERT_TASK_TAB,
                 TabType.START_ROUTINE_TAB,
                 TabType.OPTIONS_TAB);

@@ -29,6 +29,6 @@ public class CountdownTimer extends AbstractTimer {
         this.setStartTime(remainingSeconds);
 
         boolean isActive = timeable.status().equals(TimeableStatus.ACTIVE);
-        this.play();
+        this.isRunning(isActive);
     }
 }

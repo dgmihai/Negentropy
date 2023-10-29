@@ -7,10 +7,9 @@ import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayout;
-import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.TaskNode;
@@ -30,9 +29,7 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
@@ -41,11 +38,9 @@ import java.util.*;
 @SpringComponent
 @RouteScope // TODO: Route vs UI scope?
 @Scope("prototype")
-@Accessors(fluent = true)
 @Getter
 public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    private SessionLogger log;
+    private final UILogger log = new UILogger();
 
     @Autowired private RoutineDataProvider routineDataProvider;
 
@@ -60,11 +55,6 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             .toList();
 
     @Autowired private TimeableStatusValueProvider timeableStatusValueProvider;
-
-    @PostConstruct
-    public void init() {
-        log = getLogger(this.getClass());
-    }
 
     @Override
     protected MultiSelectTreeGrid<RoutineStep> createGrid() {

@@ -5,8 +5,6 @@ import com.vaadin.flow.component.icon.Icon;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.function.BooleanSupplier;
 
@@ -14,7 +12,6 @@ import java.util.function.BooleanSupplier;
 @Getter
 @Setter
 public class InlineIconToggleButton extends InlineIconButton {
-    private static final Logger logger = LoggerFactory.getLogger(InlineIconToggleButton.class);
 
     private Runnable onActivate = () -> {};
     private Runnable onDeactivate = () -> {};

@@ -5,12 +5,10 @@ import com.trajan.negentropy.model.Tag;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Accessors(fluent = true)
 public class TagComboBox extends MultiSelectComboBox<Tag> {
     protected final UIController controller;
     @Setter

@@ -44,6 +44,11 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
         getElement().callJsFunction("ready");
     }
 
+    public void isRunning(boolean running) {
+        if (running) play();
+        else pause();
+    }
+
     @Synchronize(property = "isRunning", value = "is-running-changed")
     public boolean isRunning() {
         return getElement().getProperty("isRunning", false);
@@ -77,5 +82,6 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
 
     public void setTimeable(Timeable timeable) {
         this.reset();
-        this.timeable = timeable;    }
+        this.timeable = timeable;
+    }
 }

@@ -1,6 +1,9 @@
 package com.trajan.negentropy.server.backend;
 
-import com.trajan.negentropy.model.*;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -9,6 +12,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.server.TaskTestTemplate;
+import com.trajan.negentropy.server.backend.repository.TagRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 public class DataContextTest extends TaskTestTemplate {
     @Autowired private DataContext dataContext;
+    @Autowired private TagRepository tagRepository;
 
     private static final String DAILY_STRING = "@daily";
     private static final CronExpression DAILY_CRON = CronExpression.parse(DAILY_STRING);
@@ -65,7 +70,7 @@ public class DataContextTest extends TaskTestTemplate {
         Task task = dataContext.toDO(taskEntity);
 
         assertTask(taskEntity, task);
-        assertEquals(tagEntities.size(), task.tags().size());
+        assertEquals(tagEntities.size(), tagRepository.findByTasksId(task.id().val()).count());
 
         task.tags().forEach(tag -> {
             TagEntity originalTag = tagEntities.stream()

@@ -14,10 +14,8 @@ import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Getter
-@Slf4j
 public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
     public TaskNodeInfoFormFullLayout(UIController controller) {
         super(controller);

@@ -7,8 +7,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
@@ -31,8 +30,7 @@ import java.util.List;
 @Uses(Icon.class)
 @Getter
 public class TreeView extends Div {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    private SessionLogger log;
+    private final UILogger log = new UILogger();
 
     @Autowired private BannerProvider bannerProvider;
     @Autowired private UIController controller;
@@ -48,8 +46,6 @@ public class TreeView extends Div {
 
     @PostConstruct
     public void init() {
-        log = loggerFactory.getLogger(this.getClass());
-
         this.addClassName("tree-view");
 
 //        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);

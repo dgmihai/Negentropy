@@ -10,12 +10,10 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.listbox.MultiSelectListBox;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class TaskListBox extends MultiSelectListBox<Task> implements HasTaskNodeProvider {
     @Getter
     protected final UIController controller;
@@ -50,7 +48,6 @@ public class TaskListBox extends MultiSelectListBox<Task> implements HasTaskNode
     }
 
     public void fetchTasks(TaskTreeFilter filter) {
-        log.debug("FETCH TASKS: " + filter);
         if (!filter.isEmpty()) {
             setItems(controller.services().query().fetchAllTasks(filter).collect(Collectors.toSet()));
         } else {

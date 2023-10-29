@@ -12,9 +12,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderFactory;
 import com.trajan.negentropy.model.Tag;
@@ -58,7 +56,6 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -78,9 +75,8 @@ import java.util.stream.Collectors;
 @Scope("prototype")
 @Accessors(fluent = true)
 @Getter
-public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements HasRootNode, SessionLogged {
-    @Autowired protected SessionLoggerFactory loggerFactory;
-    protected SessionLogger log;
+public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements HasRootNode {
+    private final UILogger log = new UILogger();
 
     @Autowired protected UIController controller;
     @Autowired protected UserSettings settings;
@@ -103,11 +99,6 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     protected SelectionMode selectionMode;
 
     protected abstract MultiSelectTreeGrid<T> createGrid();
-
-    @PostConstruct
-    public void init() {
-        log = getLogger(this.getClass());
-    }
 
     public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns, SelectionMode selectionMode) {
         treeGrid = createGrid();

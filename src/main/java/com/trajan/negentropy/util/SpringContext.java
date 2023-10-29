@@ -16,7 +16,7 @@ public class SpringContext implements ApplicationContextAware {
      * @param beanClass
      * @return
      */
-    public static <T extends Object> T getBean(Class<T> beanClass) {
+    public static <T> T getBean(Class<T> beanClass) {
         return context.getBean(beanClass);
     }
 

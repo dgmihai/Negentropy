@@ -21,7 +21,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Entity
-@Table(name = "routine_steps")
+@Table(name = "routine_steps", indexes = {
+        @Index(columnList = "status", name = "idx_status"),
+        @Index(columnList = "startTime, finishTime", name = "idx_time"),
+        @Index(columnList = "link_id", name = "idx_step_link"),
+        @Index(columnList = "task_id", name = "idx_step_task"),
+        @Index(columnList = "routine_id", name = "idx_step_routine"),
+        @Index(columnList = "parent_step_id", name = "idx_parent_step")
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(fluent = true)

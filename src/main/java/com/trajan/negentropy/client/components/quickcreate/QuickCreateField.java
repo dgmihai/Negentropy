@@ -17,10 +17,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.springframework.data.util.Pair;
 
-@Accessors(fluent = true)
 public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     @Getter
     private final UIController controller;

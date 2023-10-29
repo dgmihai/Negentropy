@@ -23,7 +23,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @EntityListeners(SyncManagerListener.class)
-@Table(name = "task_links")
+@Table(name = "task_links", indexes = {
+        @Index(columnList = "parent_id", name = "idx_link_parent"),
+        @Index(columnList = "scheduled_for", name = "idx_link_scheduled_for"),
+        @Index(columnList = "completed", name = "idx_link_completed"),
+        @Index(columnList = "recurring", name = "idx_link_recurring"),
+        @Index(columnList = "completed, scheduled_for, recurring", name = "idx_link_filter")
+})
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -56,6 +62,7 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
 
     private Boolean recurring = false;
     private String cron;
+    @Column(name = "scheduled_for")
     private LocalDateTime scheduledFor = null;
 
     private Duration projectDuration = Duration.ZERO;

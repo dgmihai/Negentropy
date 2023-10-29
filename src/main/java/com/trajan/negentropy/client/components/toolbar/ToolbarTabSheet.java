@@ -12,7 +12,7 @@ import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayo
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormMinorLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
-import com.trajan.negentropy.client.routine.RoutineView;
+import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
@@ -53,7 +53,6 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
@@ -63,7 +62,6 @@ import java.util.Optional;
 
 @SpringComponent
 @Scope("prototype")
-@Slf4j
 public class ToolbarTabSheet extends TabSheet {
     @Autowired private UIController controller;
     @Autowired private UserSettings settings;
@@ -179,9 +177,6 @@ public class ToolbarTabSheet extends TabSheet {
 
         createTaskForm.taskBinder().setBean(new Task());
 
-//        createTaskForm.afterClear(() -> {
-
-//        });
         createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
 
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,

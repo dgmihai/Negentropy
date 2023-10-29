@@ -18,7 +18,6 @@ public class OrphanTaskCleaner {
         entityQueryService.findOrphanedTasks().forEach(task -> {
             log.debug("Deleting orphaned task: " + task);
             try {
-                task.tags().clear();
                 taskRepository.delete(task);
             } catch (Throwable t) {
                 log.error("Error deleting orphaned task: " + task, t);

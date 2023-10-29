@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.components.grid.subcomponents;
 
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
@@ -11,6 +12,8 @@ import com.vaadin.flow.component.tabs.TabsVariant;
 import java.util.Stack;
 
 public class NestedTaskTabs extends Tabs {
+    private final UILogger log = new UILogger();
+
     private final TaskEntryTreeGrid taskEntryTreeGrid;
     private TaskEntry currentEntry;
 
@@ -41,21 +44,20 @@ public class NestedTaskTabs extends Tabs {
     }
 
     public void onSelectNewRootEntry(TaskEntry entry) {
-        if(entry != null) {
-            Stack<TaskEntry> stack = new Stack<>();
-            TaskEntry current = entry;
+        log.debug("onSelectNewRootEntry: " + entry);
+        Stack<TaskEntry> stack = new Stack<>();
+        TaskEntry current = entry;
 
-            while (current != null && !current.equals(currentEntry)) {
-                stack.push(current);
-                current = current.parent();
-            }
-
-            TaskTab tab = null;
-            while (!stack.empty()) {
-                tab = new TaskTab(stack.pop());
-                this.add(tab);
-            }
-            setSelectedTab(tab);
+        while (current != null && !current.equals(currentEntry)) {
+            stack.push(current);
+            current = current.parent();
         }
+
+        TaskTab tab = null;
+        while (!stack.empty()) {
+            tab = new TaskTab(stack.pop());
+            this.add(tab);
+        }
+        setSelectedTab(tab);
     }
 }

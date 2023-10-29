@@ -10,9 +10,7 @@ import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -55,11 +53,10 @@ import java.util.function.Supplier;
 @Accessors(fluent = true)
 @Getter
 @Benchmark(millisFloor = 10)
-public class UIController implements SessionLogged {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    protected SessionLogger log;
+public class UIController {
+    private final UILogger log = new UILogger();
 
-    @Autowired private UI currentUI;
+    @Autowired private UiAccessManager uiAccessManager;
 
     @Setter private TaskNodeProvider activeTaskNodeProvider;
     @Setter private HasRootNode activeTaskNodeDisplay;
@@ -73,44 +70,33 @@ public class UIController implements SessionLogged {
 
     @PostConstruct
     public void init() {
-        log = getLogger(this.getClass());
-
+        UI currentUI = UI.getCurrent();
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
         String address = currentUI != null ? currentUI.getSession().getBrowser().getAddress() : null;
         String browser = currentUI != null ? currentUI.getSession().getBrowser().getBrowserApplication() : null;
         log.info("UI client: " + uiId + " at " + address + " using " + browser);
     }
 
+    private <T extends SyncResponse> void handleResponse(T response) {
+        uiAccessManager.acquire(() -> {
+            if (!response.success()) {
+                NotificationMessage.error(response.message());
+            } else {
+                NotificationMessage.result(response.message());
+            }
+        });
+    }
+
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
         T response = serviceCall.get();
-
-        if (currentUI != null) {
-            currentUI.access(() -> {
-                if (!response.success()) {
-                    NotificationMessage.error(response.message());
-                } else {
-                    NotificationMessage.result(response.message());
-                }
-            });
-        }
-
+        handleResponse(response);
         return response;
     }
 
     private <T extends SyncResponse> T tryRequestAndSync(Supplier<T> serviceCall) throws Exception {
         log.warn("Trying request with manual sync");
         T response = serviceCall.get();
-
-        if (currentUI != null) {
-            currentUI.access(() -> {
-                if (!response.success()) {
-                    NotificationMessage.error(response.message());
-                } else {
-                    NotificationMessage.result(response.message());
-                }
-            });
-        }
-
+        handleResponse(response);
         this.sync();
         return response;
     }
@@ -253,16 +239,14 @@ public class UIController implements SessionLogged {
         try {
             RoutineResponse response = serviceCall.get();
 
-            if (currentUI != null) {
-                currentUI.access(() -> {
-                    if (!response.success()) {
-                        NotificationMessage.error(response.message());
-                    } else {
-                        NotificationMessage.result(response.message());
-                        routineDataProvider.refreshAll();
-                    }
-                });
-            }
+            uiAccessManager.acquire(() -> {
+                if (!response.success()) {
+                    NotificationMessage.error(response.message());
+                } else {
+                    NotificationMessage.result(response.message());
+                    routineDataProvider.refreshAll();
+                }
+            });
 
             return response;
         } catch (Throwable t) {
@@ -402,9 +386,7 @@ public class UIController implements SessionLogged {
         }
 
         routineCardBroadcaster.register(routineId, r -> {
-            if (currentUI != null) {
-                currentUI.access(() -> listener.accept(r));
-            }
+            uiAccessManager.acquire(() -> listener.accept(r));
         });
     }
 }

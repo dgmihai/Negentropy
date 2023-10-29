@@ -2,16 +2,17 @@ package com.trajan.negentropy.client.components.grid;
 
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
-import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
-import com.trajan.negentropy.client.routine.RoutineView;
+import com.trajan.negentropy.client.session.TaskNetworkGraph;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
@@ -48,7 +49,6 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoIcon;
 import elemental.json.JsonObject;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +69,8 @@ import java.util.stream.Collectors;
 @Accessors(fluent = true)
 @Getter
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
+    private final UILogger log = new UILogger();
+
     @Autowired private ShortenedCronValueProvider cronValueProvider;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
     @Autowired private ShortenedCronConverter cronConverter;
@@ -81,11 +83,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     public static final List<ColumnKey> possibleColumns = Arrays.stream(ColumnKey.values())
             .filter(columnKey -> !excludedColumns.contains(columnKey))
             .toList();
-
-    @PostConstruct
-    public void init() {
-        log = getLogger(this.getClass());
-    }
 
     @Override
     protected MultiSelectTreeGrid<TaskEntry> createGrid() {

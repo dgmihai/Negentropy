@@ -25,10 +25,8 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Getter
-@Slf4j
 public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
     protected Binder<TaskNodeDTO> nodeInfoBinder;
     protected HorizontalLayout nameFieldLayout;

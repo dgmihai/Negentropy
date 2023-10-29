@@ -10,9 +10,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 
-@Accessors(fluent = true)
 @Getter
 public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
     private final UIController controller;

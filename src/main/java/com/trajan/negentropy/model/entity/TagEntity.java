@@ -32,6 +32,7 @@ public class TagEntity extends AbstractEntity implements TagData<TagEntity> {
 
     @ToString.Exclude
     @ManyToMany(
+            fetch = FetchType.LAZY,
             mappedBy = "tags")
     private Set<TaskEntity> tasks = new LinkedHashSet<>();
 

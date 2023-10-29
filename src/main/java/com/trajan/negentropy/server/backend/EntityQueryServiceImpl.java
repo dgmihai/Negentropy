@@ -154,21 +154,21 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
             // Filter by included task IDs, and if this filter is by inner join or not
             if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
+                List<TagEntity> includedTags = tagRepository.findByIdIn(filter.includedTagIds()
+                        .stream().map(ID::val).toList());
                 Consumer<TagEntity> filterFunction =
                         (filter.options().contains(TaskTreeFilter.INNER_JOIN_INCLUDED_TAGS)) ?
-                        tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
-                        tagEntity -> builder.or(qTask.tags.contains(tagEntity));
+                                tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
+                                tagEntity -> builder.or(qTask.tags.contains(tagEntity));
 
-                filter.includedTagIds().stream()
-                        .map(this::getTag)
-                        .forEach(filterFunction);
+                includedTags.forEach(filterFunction);
             }
 
             // Filter by tags that must be excluded
             if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
-                filter.excludedTagIds().stream()
-                        .map(this::getTag)
-                        .forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity).not()));
+                List<TagEntity> excludedTags = tagRepository.findByIdIn(filter.excludedTagIds()
+                        .stream().map(ID::val).toList());
+                excludedTags.forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity).not()));
             }
         }
 

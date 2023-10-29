@@ -172,7 +172,7 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Stream<Tag> fetchTags(TaskID taskId) {
-        return entityQueryService.getTask(taskId).tags().stream()
+        return tagService.getTagsForTask(taskId)
                 .map(dataContext::toDO);
     }
 

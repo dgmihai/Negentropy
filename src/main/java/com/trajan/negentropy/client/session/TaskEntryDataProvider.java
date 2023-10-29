@@ -2,9 +2,7 @@ package com.trajan.negentropy.client.session;
 
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.SessionLogger;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -28,9 +26,8 @@ import java.util.stream.Stream;
 @VaadinSessionScope
 @Getter
 @Benchmark
-public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> implements SessionLogged {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    private SessionLogger log;
+public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
+    private final SessionLogger log = new SessionLogger();
 
     private TaskNetworkGraph taskNetworkGraph;
 
@@ -46,7 +43,6 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     @PostConstruct
     public void init() {
-        log = getLogger(this.getClass());
         log.info("TaskEntryGridDataProvider init");
     }
 

@@ -2,6 +2,7 @@ package com.trajan.negentropy.server.backend;
 
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.id.TagID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.repository.TagRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -33,5 +35,9 @@ public class TagService {
 
     public Optional<TagEntity> getTagEntityByName(String tagName) {
         return tagRepository.findFirstByName(tagName);
+    }
+
+    public Stream<TagEntity> getTagsForTask(TaskID taskId) {
+        return tagRepository.findByTasksId(taskId.val());
     }
 }

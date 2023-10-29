@@ -6,9 +6,7 @@ import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.client.sessionlogger.SessionLogged;
-import com.trajan.negentropy.client.sessionlogger.SessionLogger;
-import com.trajan.negentropy.client.sessionlogger.SessionLoggerFactory;
+import com.trajan.negentropy.client.logger.SessionLogger;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -23,8 +21,8 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
-import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
+import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -48,9 +46,8 @@ import java.util.stream.Stream;
 @VaadinSessionScope
 @Getter
 @Benchmark
-public class TaskNetworkGraph implements SessionLogged {
-    @Autowired private SessionLoggerFactory loggerFactory;
-    private SessionLogger log;
+public class TaskNetworkGraph {
+    private final SessionLogger log = new SessionLogger();
 
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
@@ -80,8 +77,6 @@ public class TaskNetworkGraph implements SessionLogged {
 
     @PostConstruct
     public void init() {
-        log = getLogger(this.getClass());
-
         network = NetworkBuilder.directed()
                 .allowsParallelEdges(true)
                 .edgeOrder(ElementOrder.unordered())
