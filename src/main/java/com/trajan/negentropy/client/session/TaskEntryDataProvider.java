@@ -3,7 +3,7 @@ package com.trajan.negentropy.client.session;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.logger.SessionLogger;
-import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.vaadin.flow.data.provider.hierarchy.AbstractBackEndHierarchicalDataProvider;
@@ -39,7 +39,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     private TaskEntry rootEntry;
     private List<LinkID> filteredLinks;
-    private TaskNodeTreeFilter filter;
+    private NestableTaskNodeTreeFilter filter;
 
     @PostConstruct
     public void init() {
@@ -95,12 +95,12 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     }
     public void refreshFilter() {
         log.debug("Refreshing filter");
-        this.filteredLinks = taskNetworkGraph.getFilteredLinks(filteredLinks, filter);
+        this.filteredLinks = taskNetworkGraph.getFilteredLinks( filter);
     }
 
-    public void setFilter(TaskNodeTreeFilter filter) {
+    public void setFilter(NestableTaskNodeTreeFilter filter) {
         this.filter = filter;
-        this.filteredLinks = taskNetworkGraph.getFilteredLinks(filteredLinks, filter);
+        this.filteredLinks = taskNetworkGraph.getFilteredLinks(filter);
         super.refreshAll();
         taskNetworkGraph.getNetDurations(filter);
     }

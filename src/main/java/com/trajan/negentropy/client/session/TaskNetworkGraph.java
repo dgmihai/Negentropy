@@ -13,6 +13,7 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -196,10 +197,11 @@ public class TaskNetworkGraph {
         }
     }
 
-    public List<LinkID> getFilteredLinks(List<LinkID> previous, TaskNodeTreeFilter filter) {
+    public List<LinkID> getFilteredLinks(NestableTaskNodeTreeFilter filter) {
         log.debug("Getting filtered links with filter " + filter);
-        return services.query().fetchAllNodesAsIds(filter)
-                .toList();
+        return (filter.nested())
+                ? services.query().fetchAllNodesNestedAsIds(filter).toList()
+                : services.query().fetchAllNodesAsIds(filter).toList();
     }
 
     private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {

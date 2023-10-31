@@ -19,6 +19,7 @@ import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.InsertRoutineStepChange;
@@ -307,7 +308,7 @@ public class ToolbarTabSheet extends TabSheet {
 
     public TaskNodeFilterForm createTaskNodeFilterForm() {
         TaskNodeFilterForm filterForm = new TaskNodeFilterForm(controller);
-        filterForm.binder().setBean(new TaskNodeTreeFilter());
+        filterForm.binder().setBean(new NestableTaskNodeTreeFilter());
         configureFilterForm(filterForm);
         return filterForm;
     }

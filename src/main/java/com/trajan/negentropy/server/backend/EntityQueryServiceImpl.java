@@ -244,22 +244,22 @@ public class EntityQueryServiceImpl implements EntityQueryService {
             this.filter = filter;
             this.consumer = consumer;
 
-            findLinks(filter)
-                    .peek(this::process)
-                    .map(link -> ID.of(link.parent()))
-                    .toList()
-                    .forEach(this::recurse);
+            List<TaskLink> results = findLinks(filter).toList();
+
+            results.forEach(this::process);
+            results.forEach(link -> this.recurse(link.parentId()));
 
             return streamBuilder.build();
         }
 
         private void recurse(TaskID currentTaskId) {
-            findParentLinks(currentTaskId, filter)
+            findParentLinks(currentTaskId, null)
                     .filter(link -> !visited.contains(ID.of(link)))
-                    .forEach(link -> {
-                        process(link);
-                        recurse(ID.of(link.parent()));
-                    });
+                    .peek(this::process)
+                    .map(link -> ID.of(link.parent()))
+                    .filter(Objects::nonNull)
+                    .toList()
+                    .forEach(this::recurse);
         }
     }
 

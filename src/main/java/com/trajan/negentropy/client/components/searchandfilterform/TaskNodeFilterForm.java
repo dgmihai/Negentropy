@@ -1,7 +1,7 @@
 package com.trajan.negentropy.client.components.searchandfilterform;
 
 import com.trajan.negentropy.client.controller.UIController;
-import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Span;
@@ -14,11 +14,12 @@ import lombok.Getter;
 public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
     private final UIController controller;
 
-    protected Binder<TaskNodeTreeFilter> binder = new BeanValidationBinder<>(TaskNodeTreeFilter.class);
+    protected Binder<NestableTaskNodeTreeFilter> binder = new BeanValidationBinder<>(NestableTaskNodeTreeFilter.class);
 
     private Checkbox completed;
     private Checkbox recurring;
     private Checkbox ignoreScheduling;
+    private Checkbox nested;
 
     public TaskNodeFilterForm(UIController controller) {
         this.controller = controller;
@@ -56,6 +57,11 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
                     }}
         );
 
+        nested = new Checkbox("Nested");
+        binder.bind(nested,
+                NestableTaskNodeTreeFilter::nested,
+                NestableTaskNodeTreeFilter::nested);
+
         ignoreScheduling = new Checkbox("Ignore Scheduling");
         binder.bind(ignoreScheduling,
                 filter -> filter.ignoreScheduling() != null ? filter.ignoreScheduling() : false,
@@ -68,7 +74,7 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
 //        additionalCheckboxes.setMargin(false);
 
         VerticalLayout checkboxLayout = new VerticalLayout(
-                filterOptions, new Span(completed, recurring, hasChildren, ignoreScheduling));
+                filterOptions, new Span(completed, nested, recurring, hasChildren, ignoreScheduling));
         checkboxLayout.setWidthFull();
         checkboxLayout.setSpacing(false);
         checkboxLayout.setPadding(false);

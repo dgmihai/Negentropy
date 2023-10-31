@@ -2,7 +2,6 @@ package com.trajan.negentropy.model.filter;
 
 import com.trajan.negentropy.model.id.TagID;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -10,7 +9,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
-@Accessors(fluent = true)
 @NoArgsConstructor
 @Getter
 @Setter
@@ -85,5 +83,12 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
                 : availableAtTime.truncatedTo(ChronoUnit.HOURS);
         this.availableAtTime = availableAtTime;
         return this;
+    }
+
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    public static class NestableTaskNodeTreeFilter extends TaskNodeTreeFilter {
+        private boolean nested = true;
     }
 }
