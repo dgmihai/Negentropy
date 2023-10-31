@@ -8,8 +8,8 @@ html {
       --lumo-primary-color-50pct: hsla(311, 46%, 30%, 0.5);
       --lumo-primary-color-10pct: hsla(311, 46%, 30%, 0.1);
       --lumo-primary-color-5pct: hsla(311, 46%, 50%, 0.05);
-      --lumo-complimentary-color: hsl(43, 89%, 38%);
-      --lumo-complimentary-color-5pct: hsla(43, 89%, 38%, 0.05);
+      --lumo-complementary-color: hsl(43, 89%, 38%);
+      --lumo-complementary-color-5pct: hsla(43, 89%, 38%, 0.05);
       --lumo-error-color: hsla(3, 100%, 38%, 0.72);
       --lumo-error-color-50pct: hsla(3, 100%, 38%, 0.5);
       --lumo-error-color-10pct: hsla(3, 100%, 38%, 0.1);

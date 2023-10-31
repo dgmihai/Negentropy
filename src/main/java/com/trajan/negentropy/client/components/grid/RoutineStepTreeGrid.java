@@ -8,8 +8,8 @@ import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNode
 import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
-import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.TaskNode;
@@ -19,7 +19,6 @@ import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
-import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -113,14 +112,10 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                                         "?active=\"${item.excludable}\" " +
                                                 "?hidden=\"${item.hidden}\""))
                         .withFunction("onClick", step -> {
-                            RoutineResponse response = controller.setRoutineStepExcluded(
-                                    step.id(),
-                                    excludable.contains(step.status()));
-                            if (response.success()) {
-                                this.setRoutine(response.routine());
-                            } else {
-                                NotificationMessage.error("Failed to skip/unskip routine step: " + response.message());
-                            }
+                            controller.setRoutineStepExcluded(step.id(), excludable.contains(step.status()),
+                                    response -> this.setRoutine(response.routine()),
+                                    response -> NotificationMessage.error("Failed to skip/unskip routine step: "
+                                            + response.message()));
                         })
                         .withProperty("excludable", step ->
                                 excludable.contains(step.status()))
@@ -136,15 +131,14 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             case GOTO -> treeGrid.addColumn(LitRenderer.<RoutineStep>of(
                                     GridUtil.inlineVaadinIconLitExpression("crosshairs",
                                             ""))
-                            .withFunction("onClick", step -> {
-                                controller.pauseRoutineStep(routine.currentStep().id());
-                                RoutineResponse response = controller.startRoutineStep(step.id());
-                                if (response.success()) {
-                                    this.setRoutine(response.routine());
-                                } else {
-                                    NotificationMessage.error("Failed to set current routine step: " + response.message());
-                                }
-                            })
+                            .withFunction("onClick", step ->
+                                    controller.pauseRoutineStep(routine.currentStep().id(),
+                                    r -> controller.startRoutineStep(step.id(),
+                                            response -> this.setRoutine(response.routine()),
+                                            response -> NotificationMessage.error("Failed to start routine step: "
+                                                    + response.message())),
+                                    r -> NotificationMessage.error("Failed to pause routine step: "
+                                            + r.message())))
                     )
                     .setKey(ColumnKey.GOTO.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.CROSSHAIRS))

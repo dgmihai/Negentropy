@@ -24,11 +24,12 @@ public class TaskTreeFilter implements Serializable {
     protected Set<TagID> excludedTagIds = new HashSet<>();
     protected Set<String> options = new HashSet<>();
     protected Boolean ignoreScheduling;
+    protected Boolean hasChildren;
 
     public static final String ONLY_REQUIRED = "Only Required";
     public static final String ONLY_PROJECTS = "Only Projects";
-    public static final String ALWAYS_INCLUDE_PARENTS = "Include Parents";
-    public static final String INNER_JOIN_INCLUDED_TAGS = "Inner Join Included Tags";
+    public static final String ALWAYS_INCLUDE_PARENTS = "All Parents";
+    public static final String INNER_JOIN_INCLUDED_TAGS = "Inclusive Incl. Tags";
 
     public TaskTreeFilter(String... options) {
         this.options.addAll(Set.of(options));

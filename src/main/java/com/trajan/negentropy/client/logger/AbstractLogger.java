@@ -1,9 +1,11 @@
 package com.trajan.negentropy.client.logger;
 
+import com.trajan.negentropy.util.SpringContext;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.support.ScopeNotActiveException;
 
 import java.lang.StackWalker.StackFrame;
 
@@ -23,7 +25,22 @@ public abstract class AbstractLogger <T extends PrefixProvider> {
         UP
     }
 
-    protected abstract T getPrefixProvider();
+    protected abstract Class<T> getProviderClass();
+
+    protected abstract T constructProvider();
+
+    protected T getPrefixProvider() {
+        try {
+            return SpringContext.getBean(getProviderClass());
+        } catch (ScopeNotActiveException e) {
+            if (SpringContext.context().getEnvironment().containsProperty("inTesting")) {
+                // Occurs during testing
+                return constructProvider();
+            } else {
+                throw e;
+            }
+        }
+    }
 
     public AbstractLogger() {
         this.setPrefix();

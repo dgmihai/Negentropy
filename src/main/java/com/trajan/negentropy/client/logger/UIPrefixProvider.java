@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 public class UIPrefixProvider implements PrefixProvider {
     @Autowired private SessionPrefixProvider sessionPrefixProvider;
-    @Autowired private UI ui;
 
     @Getter private String prefix = "[] : ";
 
     @PostConstruct
     public void init() {
+        UI ui = UI.getCurrent();
         prefix = "[" + ui.getUIId() + " : " + sessionPrefixProvider.sessionHash() + "]: ";
         log.info("Setting UI prefix '" + prefix);
     }

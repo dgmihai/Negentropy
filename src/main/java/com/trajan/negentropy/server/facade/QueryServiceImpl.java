@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TagID;
@@ -31,7 +32,7 @@ import java.util.stream.Stream;
 
 @Service
 @Transactional
-@Benchmark
+@Benchmark(millisFloor = 10)
 public class QueryServiceImpl implements QueryService {
     
     @Autowired private EntityQueryService entityQueryService;
@@ -52,7 +53,6 @@ public class QueryServiceImpl implements QueryService {
                 .map(dataContext::toDO);
     }
 
-
     @Override
     public TaskNode fetchNode(LinkID linkId) {
         return dataContext.toDO(entityQueryService.getLink(linkId));
@@ -72,7 +72,20 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Stream<LinkID> fetchAllNodesAsIds(TaskNodeTreeFilter filter) {
-        return entityQueryService.findLinkIds(filter);
+        return entityQueryService.findLinks(filter)
+                .map(ID::of);
+    }
+
+    @Override
+    public Stream<TaskNode> fetchAllNodesNested(TaskNodeTreeFilter filter) {
+        return entityQueryService.findLinksNested(filter)
+                .map(dataContext::toDO);
+    }
+
+    @Override
+    public Stream<LinkID> fetchAllNodesNestedAsIds(TaskNodeTreeFilter filter) {
+        return entityQueryService.findLinksNested(filter)
+                .map(ID::of);
     }
 
     @Override

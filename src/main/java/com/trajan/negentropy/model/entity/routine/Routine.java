@@ -5,7 +5,6 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
-import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import com.trajan.negentropy.util.SpringContext;
 import com.trajan.negentropy.util.TimeableUtil;
@@ -27,7 +26,7 @@ import java.util.Map;
 @Getter
 @Setter
 @ToString
-public class Routine implements RoutineData, Timeable {
+public class Routine implements RoutineData<RoutineStep> {
     private RoutineID id;
 
     private Map<StepID, RoutineStep> steps;
@@ -36,9 +35,6 @@ public class Routine implements RoutineData, Timeable {
     private List<StepID> childrenIds;
 
     private int currentPosition;
-
-    private Duration estimatedDuration;
-    private LocalDateTime estimatedDurationLastUpdatedTime;
 
     private TimeableStatus status;
 
@@ -53,21 +49,16 @@ public class Routine implements RoutineData, Timeable {
         return steps.get(childrenIds.get(0));
     }
 
-    @Override
     @ToString.Include
     public String name() {
         return rootStep().name();
     }
 
-    @Override
-    public String description() {
-        return rootStep().description();
-    }
-
-    @Override
-    public Duration duration() {
+    public Duration estimatedDuration() {
         TimeableUtil timeableUtil = SpringContext.getBean(TimeableUtil.class);
-        return timeableUtil.getRemainingNetDuration(rootStep(), LocalDateTime.now());
+        return rootStep().status().equals(TimeableStatus.NOT_STARTED)
+                ? getAllChildren().stream().map(RoutineStep::duration).reduce(Duration.ZERO, Duration::plus)
+                : timeableUtil.getRemainingNetDuration(rootStep(), rootStep().startTime);
     }
 
     @Override

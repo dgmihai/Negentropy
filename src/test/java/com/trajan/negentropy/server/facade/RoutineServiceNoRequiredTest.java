@@ -79,7 +79,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(node.child().id()),
-                response.routine().estimatedDuration());
+                timeableUtil.getRemainingNetDuration(response.routine().rootStep(), response.routine().startTime()));
 
         RoutineEntity routineEntity = entityQueryService.getRoutine(response.routine().id());
         TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(routineEntity.serializedFilter());
@@ -679,7 +679,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 time3);
 
         assertEquals(Duration.between(time4, time5), routine.currentStep().elapsedSuspendedDuration());
-        assertEquals(time5, routine.currentStep().lastSuspendedTime());
+        assertNull(routine.currentStep().lastSuspendedTime());
 
         assertEquals(
                 Duration.between(time4, time5),
@@ -1091,7 +1091,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         position = routine.currentPosition();
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
-                routineService::completeStep);
+                routineService::excludeStep);
         stepThreeTwo = routine.getAllChildren().get(position);
 
         assertRoutineStepExecution(
@@ -1105,7 +1105,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertRoutineStep(
                 stepThreeTwo,
                 THREETWO,
-                TimeableStatus.COMPLETED);
+                TimeableStatus.EXCLUDED);
 
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
@@ -1115,7 +1115,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
                 routine,
                 0,
                 THREE_AND_FIVE,
-                TimeableStatus.COMPLETED,
+                TimeableStatus.EXCLUDED,
                 TimeableStatus.COMPLETED,
                 time0);
     }
@@ -1237,13 +1237,13 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplateNoRequiredT
         assertTrue(response.success());
         routine = response.routine();
 
-        assertEquals(routine.estimatedDuration(), originalDuration.minus(Duration.ofMinutes(30)));
-
         assertRoutine(List.of(
                         TWOTWO,
                         TWOTWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
+
+        assertEquals(originalDuration.minus(Duration.ofMinutes(30)), routine.estimatedDuration());
     }
 
     @Test

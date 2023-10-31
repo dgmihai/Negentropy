@@ -28,7 +28,10 @@ public class CountdownTimer extends AbstractTimer {
         Number remainingSeconds = remainingDuration.negated().toSeconds();
         this.setStartTime(remainingSeconds);
 
-        boolean isActive = timeable.status().equals(TimeableStatus.ACTIVE);
-        this.isRunning(isActive);
+        if (timeable.status().equals(TimeableStatus.ACTIVE)) {
+            this.play();
+        } else {
+            this.pause();
+        }
     }
 }

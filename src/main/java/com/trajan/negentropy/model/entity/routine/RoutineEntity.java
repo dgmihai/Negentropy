@@ -44,9 +44,6 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
 
     private Integer currentPosition = 0;
 
-    private LocalDateTime estimatedDurationLastUpdatedTime;
-    private Duration estimatedDuration;
-
     @Enumerated(EnumType.STRING)
     private TimeableStatus status = TimeableStatus.NOT_STARTED;
 
@@ -75,8 +72,14 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
         return getAllChildren().get(currentPosition);
     }
 
+    @Override
+    public LocalDateTime startTime() {
+        return rootStep().startTime();
+    }
+
+    @Override
     public LocalDateTime finishTime() {
-        return currentStep().finishTime();
+        return rootStep().finishTime();
     }
 
     public int countSteps() {

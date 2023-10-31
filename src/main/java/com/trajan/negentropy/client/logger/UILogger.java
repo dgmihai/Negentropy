@@ -1,12 +1,16 @@
 package com.trajan.negentropy.client.logger;
 
-import com.trajan.negentropy.util.SpringContext;
-
 public class UILogger extends AbstractLogger<UIPrefixProvider> {
 
+
     @Override
-    protected UIPrefixProvider getPrefixProvider() {
-        return SpringContext.getBean(UIPrefixProvider.class);
+    protected Class<UIPrefixProvider> getProviderClass() {
+        return UIPrefixProvider.class;
+    }
+
+    @Override
+    protected UIPrefixProvider constructProvider() {
+        return new UIPrefixProvider();
     }
 
     public UILogger() {

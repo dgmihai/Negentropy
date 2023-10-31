@@ -29,12 +29,8 @@ public class TenetService {
 
     public Tenet getRandom() {
         long count = tenetRepository.count();
-        if (count > 0) {
-            int random = (int) (Math.random() * count);
-            return dataContext.toDO(tenetRepository.findAll().get(random));
-        } else {
-            return null;
-        }
+        int random = (int) (Math.random() * count);
+        return dataContext.toDO(tenetRepository.findAll().get(random));
     }
 
     public Stream<Tenet> getAll() {

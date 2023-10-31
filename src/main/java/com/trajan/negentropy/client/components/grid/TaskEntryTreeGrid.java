@@ -11,6 +11,7 @@ import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNode
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
+import com.trajan.negentropy.client.session.TaskEntryDataProvider;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
@@ -73,6 +74,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Autowired private ShortenedCronValueProvider cronValueProvider;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
+    @Autowired private TaskEntryDataProvider taskEntryDataProvider;
     @Autowired private ShortenedCronConverter cronConverter;
 
     public static final List<ColumnKey> excludedColumns = List.of(
@@ -98,7 +100,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             new TaskTreeContextMenu(treeGrid);
         }
 
-        this.treeGrid.setDataProvider(controller.taskNetworkGraph().taskEntryDataProvider());
+        this.treeGrid.setDataProvider(taskEntryDataProvider());
 
         topBar.add(gridOptionsMenu(possibleColumns));
     }
@@ -497,8 +499,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Override
     public Optional<TaskNode> rootNode() {
-        return controller.taskNetworkGraph().taskEntryDataProvider().rootEntry() != null
-                ? Optional.of(controller.taskNetworkGraph().taskEntryDataProvider().rootEntry().node())
+        return controller.taskEntryDataProvider().rootEntry() != null
+                ? Optional.of(controller.taskEntryDataProvider().rootEntry().node())
                 : Optional.empty();
     }
 
@@ -561,17 +563,15 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             GridSubMenu<TaskEntry> activeTaskSubMenu = activeTask.getSubMenu();
 
             GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine", e -> e.getItem().ifPresent(
-                    entry -> {
-                        controller.createRoutine(entry.node());
-                        UI.getCurrent().navigate(RoutineView.class);
-                    }
+                    entry -> controller.createRoutine(entry.node(),
+                            response -> UI.getCurrent().navigate(RoutineView.class),
+                            response -> {})
             ));
 
             GridMenuItem<TaskEntry> startRoutineWithSpecificDuration = addItem("Start Routine For Duration...", e -> e.getItem().ifPresent(
-                    entry -> {
-                        controller.createRoutine(entry.node());
-                        UI.getCurrent().navigate(RoutineView.class);
-                    }
+                    entry -> controller.createRoutine(entry.node(),
+                            response -> UI.getCurrent().navigate(RoutineView.class),
+                            response -> {})
             ));
 
             GridMenuItem<TaskEntry> resetSchedule = addItem("Reset Schedule", e -> e.getItem().ifPresent(

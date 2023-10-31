@@ -18,6 +18,8 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
     protected static final String INLINE = "inline";
     protected static final String CURRENT_TIME = "currentTime";
     protected static final String START_TIME = "startTime";
+    protected static final String IS_RUNNING = "isRunning";
+    protected static final String IS_ACTIVE = "isActive";
 
     protected Timeable timeable;
 
@@ -36,6 +38,11 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
         getElement().callJsFunction("play");
     }
 
+    public void play(boolean isActive) {
+        isActive(isActive);
+        play();
+    }
+
     public void pause() {
         getElement().callJsFunction("pause");
     }
@@ -44,9 +51,8 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
         getElement().callJsFunction("ready");
     }
 
-    public void isRunning(boolean running) {
-        if (running) play();
-        else pause();
+    public void isActive(boolean active) {
+        getElement().setProperty(IS_ACTIVE, active);
     }
 
     @Synchronize(property = "isRunning", value = "is-running-changed")

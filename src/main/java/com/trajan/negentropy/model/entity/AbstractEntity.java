@@ -1,16 +1,15 @@
 package com.trajan.negentropy.model.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.Objects;
 
 @MappedSuperclass
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 public abstract class AbstractEntity {
@@ -33,11 +32,11 @@ public abstract class AbstractEntity {
 
     @Override
     public int hashCode() {
-        return id().hashCode();
+        return id() != null ? id().hashCode() : super.hashCode();
     }
 
     @Override
     public String toString() {
-        return "changes: " + id();
+        return "AbstractEntity[" + id() + "]";
     }
 }

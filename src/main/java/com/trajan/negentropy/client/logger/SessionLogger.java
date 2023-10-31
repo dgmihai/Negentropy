@@ -1,12 +1,15 @@
 package com.trajan.negentropy.client.logger;
 
-import com.trajan.negentropy.util.SpringContext;
-
 public class SessionLogger extends AbstractLogger<SessionPrefixProvider> {
 
     @Override
-    protected SessionPrefixProvider getPrefixProvider() {
-        return SpringContext.getBean(SessionPrefixProvider.class);
+    protected Class<SessionPrefixProvider> getProviderClass() {
+        return SessionPrefixProvider.class;
+    }
+
+    @Override
+    protected SessionPrefixProvider constructProvider() {
+        return new SessionPrefixProvider();
     }
 
     public SessionLogger() {

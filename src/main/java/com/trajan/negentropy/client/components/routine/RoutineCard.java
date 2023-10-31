@@ -5,7 +5,6 @@ import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
-import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
@@ -15,7 +14,6 @@ import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
-import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.Component;
@@ -34,11 +32,13 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.logging.log4j.util.TriConsumer;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class RoutineCard extends VerticalLayout {
     private final UILogger log = new UILogger();
@@ -61,17 +61,17 @@ public class RoutineCard extends VerticalLayout {
 
     private VerticalLayout taskInfoBarLayout;
 
-    private Routine routine;
+    @Getter private Routine routine;
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    private RoutineStepTreeGrid routineStepTreeGrid;
+    private final RoutineStepTreeGrid routineStepTreeGrid;
 
     public RoutineCard(Routine routine, UIController controller, RoutineStepTreeGrid routineStepTreeGrid) {
         this.controller = controller;
         this.routineStepTreeGrid = routineStepTreeGrid;
 
         this.routine = routine;
-        log.debug("Routine card created for routine  <" + routine.name() + "> with " + routine.countSteps() + " steps.");
+        log.debug("Routine card created for routine <" + routine.name() + "> with " + routine.countSteps() + " steps.");
 
         if (routine.status().equals(TimeableStatus.COMPLETED)) {
             this.setCardCompleted();
@@ -88,23 +88,20 @@ public class RoutineCard extends VerticalLayout {
         });
     }
 
-    public void processStep(Function<StepID, RoutineResponse> stepFunction) {
+    public void processStep(TriConsumer<StepID, Consumer<RoutineResponse>, Consumer<RoutineResponse>> stepFunction) {
         processStep(binder.getBean().id(), stepFunction);
     }
 
-    public void processStep(StepID stepId, Function<StepID, RoutineResponse> stepFunction) {
-        RoutineResponse response = stepFunction.apply(stepId);
-        if (response.success()) {
-            this.updateRoutine(routine);
-        }
+    public void processStep(StepID stepId, TriConsumer<StepID, Consumer<RoutineResponse>, Consumer<RoutineResponse>> stepFunction) {
+        stepFunction.accept(stepId,
+                response -> this.updateRoutine(routine),
+                null);
     }
 
-    private void processRoutine(Function<RoutineID, RoutineResponse> stepFunction) {
-        log.debug("Processing routine: " + binder.getBean().routineId());
-        RoutineResponse response = stepFunction.apply(binder.getBean().routineId());
-        if (response.success()) {
-            this.updateRoutine(routine);
-        }
+    private void processRoutine(TriConsumer<RoutineID, Consumer<RoutineResponse>, Consumer<RoutineResponse>> stepFunction) {
+        stepFunction.accept(binder.getBean().routineId(),
+                response -> this.updateRoutine(routine),
+                null);
     }
 
     private boolean isActive() {
@@ -179,14 +176,15 @@ public class RoutineCard extends VerticalLayout {
         RoutineStep current = binder.getBean();
         while (current.parentId() != null) {
             current = routine.steps().get(current.parentId());
-            createTaskInfoBar(current);
+            TaskInfoBar taskInfoBar = new TaskInfoBar(current, this, true);
+            if (!current.description().isBlank()) taskInfoBar.setOpened(true);
+            nestedTaskInfoBars.add(0, taskInfoBar);
         }
-    }
 
-    private void createTaskInfoBar(Timeable timeable) {
-        TaskInfoBar taskInfoBar = new TaskInfoBar(timeable, this);
-        if (!timeable.description().isBlank()) taskInfoBar.setOpened(true);
-        nestedTaskInfoBars.add(0, taskInfoBar);
+        if (nestedTaskInfoBars.isEmpty()) {
+            nestedTaskInfoBars.addAll(new TaskInfoBar(current, this, false)
+                    .getContent().toList());
+        }
     }
 
     private void initComponents() {
@@ -210,11 +208,12 @@ public class RoutineCard extends VerticalLayout {
 
         recalculate = new RoutineCardBooleanButton(VaadinIcon.REFRESH.create());
         recalculate.setBoolean(routine.autoSync());
-        recalculate.addClickListener(event -> this.processRoutine(routineId -> {
+        recalculate.addClickListener(event -> {
             boolean autoSync = routine.autoSync();
-            recalculate.setEnabled(!autoSync);
-            return controller.setAutoSync(routineId, !autoSync);
-        }));
+            controller.setAutoSync(routine.id(), !autoSync,
+                    r -> recalculate.setEnabled(!autoSync),
+                    null);
+        });
 
         skip = new RoutineCardButton(VaadinIcon.STEP_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
@@ -226,20 +225,11 @@ public class RoutineCard extends VerticalLayout {
 
         close = new RoutineCardButton(VaadinIcon.CLOSE.create());
         close.addClickListener(event -> this.processStep(
-        stepId -> controller.setRoutineStepExcluded(stepId, true)));
+                controller::excludeStep));
 
-        toTaskTree = new RoutineCardButton(VaadinIcon.SEARCH.create());
-        toTaskTree.addClickListener(event -> {
-            UI.getCurrent().navigate(TreeView.class);
-            TreeView treeView = (TreeView) UI.getCurrent().getCurrentView();
-            TaskNetworkGraph taskNetworkGraph = treeView.networkGraph();
-
-            TaskNode currentNode = binder.getBean().node();
-            log.debug("Navigating to task tree to node: " + currentNode);
-            TaskEntry newRootEntry = taskNetworkGraph.taskEntryDataProvider().linkTaskEntriesMap().getFirst(currentNode.id());
-            if (newRootEntry == null) newRootEntry = new TaskEntry(null, binder.getBean().node());
-            treeView.firstTaskTreeGrid().nestedTabs().onSelectNewRootEntry(newRootEntry);
-        });
+        toTaskTree = new RoutineCardButton(VaadinIcon.TREE_TABLE.create());
+        toTaskTree.addClickListener(event -> RoutineCard.toTaskTree(
+                () -> binder.getBean().node(), controller));
 
         currentTaskName = new Span(binder.getBean().task().name());
         ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(
@@ -322,6 +312,19 @@ public class RoutineCard extends VerticalLayout {
             } else {
                 processStep(controller::startRoutineStep);
             }
+        });
+    }
+
+    public static void toTaskTree(Supplier<TaskNode> nodeSupplier, UIController controller) {
+        UI ui = UI.getCurrent();
+        ui.access(() -> {
+            ui.navigate(TreeView.class);
+            TreeView treeView = (TreeView) ui.getCurrentView();
+
+            TaskNode currentNode = nodeSupplier.get();
+            TaskEntry newRootEntry = controller.taskEntryDataProvider().linkTaskEntriesMap().getFirst(currentNode.id());
+            if (newRootEntry == null) newRootEntry = new TaskEntry(null, currentNode);
+            treeView.firstTaskTreeGrid().nestedTabs().onSelectNewRootEntry(newRootEntry);
         });
     }
 

@@ -88,8 +88,7 @@ public interface EntityQueryService {
     Stream<TaskEntity> findTasks(TaskTreeFilter filter);
 
     Stream<TaskLink> findLinks(TaskNodeTreeFilter filter);
-
-    Stream<LinkID> findLinkIds(TaskNodeTreeFilter filter);
+    Stream<TaskLink> findLinksNested(TaskNodeTreeFilter filter);
 
     /**
      * Counts the child tasks of a task.
@@ -260,17 +259,9 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskNodeTreeFilter filter);
 
-//    NetDuration getNetDuration(TaskID taskId);
-//
-//    NetDuration getNetDuration(TaskID taskId, int importance);
-
     Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 
-//    Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter);
-
     int getLowestImportanceOfDescendants(TaskID ancestorId);
-
-    Stream<TaskLink> findLeafTaskLinks(TaskNodeTreeFilter filter);
 
     Stream<TaskEntity> findOrphanedTasks();
 

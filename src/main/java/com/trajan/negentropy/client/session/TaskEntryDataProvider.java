@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvider<TaskEntry, Void> {
     private final SessionLogger log = new SessionLogger();
 
-    private TaskNetworkGraph taskNetworkGraph;
+    @Autowired private TaskNetworkGraph taskNetworkGraph;
 
     @Autowired private UserSettings settings;
     @Autowired private VaadinSession session;
@@ -44,16 +44,13 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     @PostConstruct
     public void init() {
         log.info("TaskEntryGridDataProvider init");
-    }
-
-    public void init(TaskNetworkGraph taskNetworkGraph) {
-        this.taskNetworkGraph = taskNetworkGraph;
         this.rootEntry = null;
         if (settings != null) {
             this.setFilter(settings.filter());
         } else {
             this.setFilter(null);
         }
+        taskNetworkGraph.taskEntryDataProvider(this);
     }
 
     public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {

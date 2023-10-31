@@ -6,11 +6,8 @@ import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
-import com.trajan.negentropy.client.session.RoutineDataProvider;
-import com.trajan.negentropy.client.session.SessionServices;
-import com.trajan.negentropy.client.session.TaskNetworkGraph;
-import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.client.session.*;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -45,6 +42,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -55,13 +54,15 @@ import java.util.function.Supplier;
 @Benchmark(millisFloor = 10)
 public class UIController {
     private final UILogger log = new UILogger();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    @Autowired private UiAccessManager uiAccessManager;
+    @Autowired private UIAccessor uiAccessor;
 
     @Setter private TaskNodeProvider activeTaskNodeProvider;
     @Setter private HasRootNode activeTaskNodeDisplay;
 
     @Autowired protected TaskNetworkGraph taskNetworkGraph;
+    @Autowired protected TaskEntryDataProvider taskEntryDataProvider;
 
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
@@ -78,13 +79,13 @@ public class UIController {
     }
 
     private <T extends SyncResponse> void handleResponse(T response) {
-        uiAccessManager.acquire(() -> {
+        executor.execute(() -> uiAccessor.acquire(() -> {
             if (!response.success()) {
                 NotificationMessage.error(response.message());
             } else {
                 NotificationMessage.result(response.message());
             }
-        });
+        }));
     }
 
     private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
@@ -175,13 +176,11 @@ public class UIController {
     }
 
     public void requestChangesAsync(List<Change> changes, TaskTreeGrid<?> gridRequiringFilterRefresh, Consumer<DataMapResponse> callback) {
-        CompletableFuture.runAsync(() -> {
+        executor.execute(() -> {
+            DataMapResponse response = this.tryDataRequest(() -> services.change().execute(
+                    Request.of(taskNetworkGraph.syncId(), changes)), false);
             if (callback != null) {
-                callback.accept(this.tryDataRequest(() -> services.change().execute(
-                        Request.of(taskNetworkGraph.syncId(), changes)), false));
-            } else {
-                this.tryDataRequest(() -> services.change().execute(
-                        Request.of(taskNetworkGraph.syncId(), changes)), false);
+                uiAccessor.acquire(() -> callback.accept(response));
             }
         });
     }
@@ -223,6 +222,7 @@ public class UIController {
     public void deleteAllCompletedTaskNodes() {
         log.debug("Deleting completed tasks");
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .hasChildren(false)
                 .completed(true);
 
         requestChangesAsync(services.query().fetchAllNodesAsIds(filter)
@@ -235,103 +235,140 @@ public class UIController {
     // Routine Management
     //==================================================================================================================
 
-    private RoutineResponse tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall) {
+    private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
+                                       Consumer<RoutineResponse> onSuccess,
+                                       Consumer<RoutineResponse> onFailure) {
         try {
-            RoutineResponse response = serviceCall.get();
+            executor.execute(() -> {
+                RoutineResponse response = serviceCall.get();
 
-            uiAccessManager.acquire(() -> {
-                if (!response.success()) {
-                    NotificationMessage.error(response.message());
-                } else {
-                    NotificationMessage.result(response.message());
-                    routineDataProvider.refreshAll();
-                }
+                uiAccessor.acquire(() -> {
+                    if (!response.success()) {
+                        NotificationMessage.error(response.message());
+                        if (onFailure != null) onFailure.accept(response);
+                    } else {
+                        NotificationMessage.result(response.message());
+                        routineDataProvider.refreshAll();
+                        if (onSuccess != null) onSuccess.accept(response);
+                    }
+                });
             });
-
-            return response;
         } catch (Throwable t) {
-            NotificationMessage.error(t);
             log.error("Error executing routine service call", t);
-            return new RoutineResponse(false, null, t.getMessage());
+            uiAccessor.acquire(() -> NotificationMessage.error(t));
         }
     }
 
-    public RoutineResponse createRoutine(TaskNode rootNode) {
+    public void createRoutine(TaskNode rootNode,
+                              Consumer<RoutineResponse> onSuccess,
+                              Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from node: " + rootNode.task().name());
-        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()));
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse createRoutine(TaskNode rootNode, TaskNodeTreeFilter filter) {
+    public void createRoutine(TaskNode rootNode, TaskNodeTreeFilter filter,
+                              Consumer<RoutineResponse> onSuccess,
+                              Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from task: " + rootNode.task().name());
-        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id(), filter));
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id(), filter),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse createRoutine(Task rootTask) {
+    public void createRoutine(Task rootTask,
+                              Consumer<RoutineResponse> onSuccess,
+                              Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from task: " + rootTask.name());
-        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()));
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse createRoutine(Task rootTask, TaskNodeTreeFilter filter) {
+    public void createRoutine(Task rootTask, TaskNodeTreeFilter filter,
+                              Consumer<RoutineResponse> onSuccess,
+                              Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from task: " + rootTask.name());
-        return tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter));
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse recalculateRoutine(RoutineID routineId) {
+    public void recalculateRoutine(RoutineID routineId,
+                                   Consumer<RoutineResponse> onSuccess,
+                                   Consumer<RoutineResponse> onFailure) {
         log.debug("Recalculating routine: " + routineId);
-        return tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId));
+        tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse setAutoSync(RoutineID routineId, boolean autoSync) {
+    public void setAutoSync(RoutineID routineId, boolean autoSync,
+                            Consumer<RoutineResponse> onSuccess,
+                            Consumer<RoutineResponse> onFailure) {
         log.debug("Setting auto sync for routine: " + routineId + " to " + autoSync);
-        return tryRoutineServiceCall(() -> services.routine().setAutoSync(routineId, autoSync));
+        tryRoutineServiceCall(() -> services.routine().setAutoSync(routineId, autoSync),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse startRoutineStep(StepID stepId) {
+    public void startRoutineStep(StepID stepId,
+                                 Consumer<RoutineResponse> onSuccess,
+                                 Consumer<RoutineResponse> onFailure) {
         log.debug("Starting routine step: " + stepId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().startStep(stepId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().startStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse pauseRoutineStep(StepID stepId) {
+    public void pauseRoutineStep(StepID stepId,
+                                 Consumer<RoutineResponse> onSuccess,
+                                 Consumer<RoutineResponse> onFailure) {
         log.debug("Pausing routine step: " + stepId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().suspendStep(stepId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().suspendStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse previousRoutineStep(StepID stepId) {
+    public void previousRoutineStep(StepID stepId,
+                                    Consumer<RoutineResponse> onSuccess,
+                                    Consumer<RoutineResponse> onFailure) {
         log.debug("Going to previous step of routine step: " + stepId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().previousStep(stepId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().previousStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse completeRoutineStep(StepID stepId) {
+    public void completeRoutineStep(StepID stepId,
+                                    Consumer<RoutineResponse> onSuccess,
+                                    Consumer<RoutineResponse> onFailure) {
         log.debug("Completing routine step: " + stepId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().completeStep(stepId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().completeStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse skipRoutineStep(StepID stepId) {
+    public void skipRoutineStep(StepID stepId,
+                                Consumer<RoutineResponse> onSuccess,
+                                Consumer<RoutineResponse> onFailure) {
         log.debug("Skipping routine step: " + stepId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().skipStep(stepId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().skipStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    //@Override
-    public RoutineResponse skipRoutine(RoutineID routineId) {
+    public void skipRoutine(RoutineID routineId,
+                            Consumer<RoutineResponse> onSuccess,
+                            Consumer<RoutineResponse> onFailure) {
         log.debug("Skipping routine: " + routineId);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().skipRoutine(routineId, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().skipRoutine(routineId, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
-    public RoutineResponse postponeRoutineStep(StepID stepID) {
+    public void postponeRoutineStep(StepID stepID,
+                                    Consumer<RoutineResponse> onSuccess,
+                                    Consumer<RoutineResponse> onFailure) {
         log.debug("Postponing routine step: " + stepID);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().postponeStep(stepID, LocalDateTime.now()));
+        tryRoutineServiceCall(() -> services.routine().postponeStep(stepID, LocalDateTime.now()),
+                onSuccess, onFailure);
+    }
+
+    public void excludeStep(StepID stepID,
+                            Consumer<RoutineResponse> onSuccess,
+                            Consumer<RoutineResponse> onFailure) {
+        log.debug("Postponing routine step: " + stepID);
+        tryRoutineServiceCall(() -> services.routine().excludeStep(stepID, LocalDateTime.now()),
+                onSuccess, onFailure);
     }
 
     //@Override
@@ -363,11 +400,14 @@ public class UIController {
     }
 
     //@Override
-    public RoutineResponse setRoutineStepExcluded(StepID stepId, boolean exclude) {
+    public void setRoutineStepExcluded(StepID stepId, boolean exclude,
+                                       Consumer<RoutineResponse> onSuccess,
+                                       Consumer<RoutineResponse> onFailure) {
         log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
-        return this.tryRoutineServiceCall(
-                () -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude));
+        tryRoutineServiceCall(() -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude),
+                onSuccess, onFailure);
     }
+
 
     //==================================================================================================================
     // Routine Broadcaster
@@ -386,7 +426,7 @@ public class UIController {
         }
 
         routineCardBroadcaster.register(routineId, r -> {
-            uiAccessManager.acquire(() -> listener.accept(r));
+            uiAccessor.acquire(() -> listener.accept(r));
         });
     }
 }

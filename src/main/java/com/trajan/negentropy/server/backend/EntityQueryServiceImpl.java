@@ -152,23 +152,43 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 }
             }
 
-            // Filter by included task IDs, and if this filter is by inner join or not
-            if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
-                List<TagEntity> includedTags = tagRepository.findByIdIn(filter.includedTagIds()
-                        .stream().map(ID::val).toList());
-                Consumer<TagEntity> filterFunction =
-                        (filter.options().contains(TaskTreeFilter.INNER_JOIN_INCLUDED_TAGS)) ?
-                                tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
-                                tagEntity -> builder.or(qTask.tags.contains(tagEntity));
+            try {
+                // Filter by included task IDs, and if this filter is by inner join or not
+                if (filter.includedTagIds() != null && !filter.includedTagIds().isEmpty()) {
 
-                includedTags.forEach(filterFunction);
+                        List<TagEntity> includedTags = filter.includedTagIds()
+                                .stream()
+                                .map(tagId -> tagRepository.findById(tagId.val()).get())
+                                .toList();
+
+                        Consumer<TagEntity> filterFunction =
+                                (filter.options().contains(TaskTreeFilter.INNER_JOIN_INCLUDED_TAGS)) ?
+                                        tagEntity -> builder.and(qTask.tags.contains(tagEntity)) :
+                                        tagEntity -> builder.or(qTask.tags.contains(tagEntity));
+
+                        includedTags.forEach(filterFunction);
+                }
+
+                // Filter by tags that must be excluded
+                if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
+                        List<TagEntity> excludedTags = filter.excludedTagIds()
+                                .stream()
+                                .map(tagId -> tagRepository.findById(tagId.val()).get())
+                                .toList();
+
+                        excludedTags.forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity).not()));
+                }
+            } catch (NoSuchElementException e) {
+                    logger.warn("Filter contained invalid tag ID: " + e.getMessage());
+                    throw e;
             }
 
-            // Filter by tags that must be excluded
-            if (filter.excludedTagIds() != null && !filter.excludedTagIds().isEmpty()) {
-                List<TagEntity> excludedTags = tagRepository.findByIdIn(filter.excludedTagIds()
-                        .stream().map(ID::val).toList());
-                excludedTags.forEach(tagEntity -> builder.and(qTask.tags.contains(tagEntity).not()));
+            if (filter.hasChildren() != null) {
+                if (filter.hasChildren()) {
+                    builder.and(qTask.childLinks.isNotEmpty());
+                } else {
+                    builder.and(qTask.childLinks.isEmpty());
+                }
             }
         }
 
@@ -203,8 +223,44 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public Stream<LinkID> findLinkIds(TaskNodeTreeFilter filter) {
-        return findLinks(filter).map(ID::of);
+    public Stream<TaskLink> findLinksNested(TaskNodeTreeFilter filter) {
+        HierarchicalSearchHelper helper = new HierarchicalSearchHelper();
+        return helper.search(filter, null);
+    }
+
+    public class HierarchicalSearchHelper {
+        private final Set<LinkID> visited = new HashSet<>();
+        private final Stream.Builder<TaskLink> streamBuilder = Stream.builder();
+        private Consumer<TaskLink> consumer;
+        private TaskNodeTreeFilter filter;
+
+        private void process(TaskLink link) {
+            if (consumer != null) consumer.accept(link);
+            visited.add(ID.of(link));
+            streamBuilder.add(link);
+        }
+
+        public synchronized Stream<TaskLink> search(TaskNodeTreeFilter filter, Consumer<TaskLink> consumer) {
+            this.filter = filter;
+            this.consumer = consumer;
+
+            findLinks(filter)
+                    .peek(this::process)
+                    .map(link -> ID.of(link.parent()))
+                    .toList()
+                    .forEach(this::recurse);
+
+            return streamBuilder.build();
+        }
+
+        private void recurse(TaskID currentTaskId) {
+            findParentLinks(currentTaskId, filter)
+                    .filter(link -> !visited.contains(ID.of(link)))
+                    .forEach(link -> {
+                        process(link);
+                        recurse(ID.of(link.parent()));
+                    });
+        }
     }
 
     private BooleanBuilder byParent(TaskID taskId, TaskNodeTreeFilter filter) {
@@ -442,14 +498,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return netDurationRepository.findOne(
                         qNetDuration.task.id.eq(ancestorId.val())).orElseThrow()
                 .importance();
-    }
-
-    @Override
-    public Stream<TaskLink> findLeafTaskLinks(TaskNodeTreeFilter filter) {
-        return StreamSupport.stream(linkRepository.findAll(
-                Q_LINK.child.childLinks.isEmpty()
-                        .and(this.filterLinkPredicate(filter)))
-                .spliterator(), false);
     }
 
     @Override

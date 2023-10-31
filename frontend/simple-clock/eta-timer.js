@@ -1,34 +1,92 @@
-import {AbstractTimer} from './abstract-timer.js';
 import {PolymerElement, html} from '@polymer/polymer/polymer-element.js';
 
-class ETATimer extends AbstractTimer {
+class ETATimer extends PolymerElement {
 
-  _updateTime(timestamp) {
-    if (!this.isRunning) return;
-    var now = timestamp / 1000;
-    var progress = now - this._elapsedTime;
-    this.currentTime = this.currentTime + progress;
-    this.formattedTime = this._calculateETA(this.currentTime);
-    this._elapsedTime = now;
-    window.requestAnimationFrame(this._updateTime.bind(this));
+  static get template() {
+    return html`
+      <style>
+        :host {
+          display: block;
+        }
+      </style>
+      {{formattedTime}}
+    `;
   }
 
-  _calculateETA(time) {
-    let currentDateTime = new Date();
-    let futureDateTime = new Date(currentDateTime.getTime() + time * 1000);
+  static get properties() {
+    return {
+      netDuration: {
+        type: Number,
+        value: 0
+      },
+      isActive: {
+        type: Boolean,
+        value: false
+      },
+      formattedTime: {
+        type: String,
+        value: '-'
+      },
+      _lastFrameTime: {
+        type: Number,
+        value: 0
+      },
+      showSeconds: {
+        type: Boolean,
+        value: false
+      }
+    };
+  }
 
-    if (futureDateTime < currentDateTime) {
-      futureDateTime.setDate(futureDateTime.getDate() + 1);
+  ready() {
+    super.ready();
+    this._lastFrameTime = Date.now();
+    this._tick = this._tick.bind(this);
+    window.requestAnimationFrame(this._tick);
+  }
+
+  _calculateTime() {
+    const currentTime = Date.now();
+
+    if (this.isActive) {
+      const elapsedTime = currentTime - this._lastFrameTime;
+      this._lastFrameTime = currentTime;
+      this.netDuration -= elapsedTime;
+      if (this.netDuration < 0) this.netDuration = 0;
     }
 
-    let hours = futureDateTime.getHours();
-    let minutes = futureDateTime.getMinutes();
-    let period = hours >= 12 ? 'PM' : 'AM';
+    let time = currentTime + this.netDuration;
+    const date = new Date(0);
+    date.setMilliseconds(time);
+    this.formattedTime = this._formatTime(date);
+  }
 
-    hours = hours % 12 || 12;
-    minutes = minutes < 10 ? '0' + minutes : minutes;
+  _tick() {
+    this._calculateTime();
+    window.requestAnimationFrame(this._tick);
+  }
 
-    return `${hours}:${minutes} ${period}`;
+  _formatTime(time, timeZone = 'default') {
+    // Hours are off by one for some reason?
+    time.setHours(time.getHours() + 1);
+
+    const options = {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: this.showSeconds ? '2-digit' : undefined,
+      timeZone: timeZone !== 'default' ? timeZone : undefined,
+    };
+
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(time);
+    const formattedParts = parts.map(({ type, value }) => {
+      if (type === 'dayPeriod') {
+        return value.toUpperCase();
+      }
+      return value;
+    });
+
+    return formattedParts.join('');
   }
 }
 

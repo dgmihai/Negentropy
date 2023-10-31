@@ -13,8 +13,7 @@ public class TreeFilterForm extends TaskNodeFilterForm {
 
         binder.setBean(controller().settings().filter());
 
-        binder.addValueChangeListener(event -> {
-            controller().taskNetworkGraph().taskEntryDataProvider().setFilter(binder.getBean());
-        });
+        binder.addValueChangeListener(event ->
+                controller().taskEntryDataProvider().setFilter(binder.getBean()));
     }
 }

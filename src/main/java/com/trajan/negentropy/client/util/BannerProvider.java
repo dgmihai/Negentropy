@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.util;
 
 import com.trajan.negentropy.client.session.SessionServices;
+import com.trajan.negentropy.model.Tenet;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
@@ -12,6 +13,7 @@ public class BannerProvider {
     @Autowired private SessionServices services;
     @PostConstruct
     public void showRandomTenet() {
-        NotificationMessage.banner(services.tenet().getRandom().body());
+        Tenet random = services.tenet().getRandom();
+        if (random != null) NotificationMessage.banner(random.body());
     }
 }

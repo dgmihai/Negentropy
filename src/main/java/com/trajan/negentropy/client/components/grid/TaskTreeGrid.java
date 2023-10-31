@@ -10,11 +10,12 @@ import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
-import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
-import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
+import com.trajan.negentropy.client.session.TaskNetworkGraph;
+import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
-import com.trajan.negentropy.client.util.duration.DurationEstimateValueProviderFactory;
+import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider.DurationType;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data;
@@ -79,9 +80,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     private final UILogger log = new UILogger();
 
     @Autowired protected UIController controller;
+    @Autowired protected TaskNetworkGraph taskNetworkGraph;
     @Autowired protected UserSettings settings;
-
-    @Autowired protected DurationEstimateValueProviderFactory<T> durationEstimateValueProviderFactory;
 
     protected MultiSelectTreeGrid<T> treeGrid;
     protected Editor<T> editor;
@@ -341,8 +341,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setTextAlign(ColumnTextAlign.CENTER);
 
                 case DURATION -> treeGrid.addColumn(
-                        durationEstimateValueProviderFactory.get(
-                                DurationEstimateValueProvider.DurationType.TASK_DURATION))
+                        new DurationEstimateValueProvider<>(taskNetworkGraph,
+                                DurationType.TASK_DURATION))
                         .setKey(ColumnKey.DURATION.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.CLOCK))
                         .setWidth(GridUtil.DURATION_COL_WIDTH)
@@ -355,7 +355,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             GridUtil.headerIconPrimary(VaadinIcon.CLOCK)));
                     columnHeaderButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
 
-                    DurationEstimateValueProvider<T> provider = durationEstimateValueProviderFactory.get(
+                    DurationEstimateValueProvider<T> provider = new DurationEstimateValueProvider<>(taskNetworkGraph,
                             DurationEstimateValueProvider.DurationType.NET_DURATION);
                     columnHeaderButton.addSingleClickListener(event -> {
                         log.debug("Toggle net duration format");

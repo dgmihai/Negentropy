@@ -2,15 +2,15 @@ import {PolymerElement, html} from '@polymer/polymer/polymer-element.js';
 
 export class AbstractTimer extends PolymerElement {
 
-  static get template() {
-     return html`
-       <style>
-         :host {
-           display: block;
-         }
-       </style>
-       {{formattedTime}}
-     `;
+    static get template() {
+      return html`
+        <style>
+          :host {
+            display: block;
+          }
+        </style>
+        {{formattedTime}}
+      `;
     }
 
     static get properties() {
@@ -24,6 +24,10 @@ export class AbstractTimer extends PolymerElement {
           value: 0
         },
         isRunning: {
+          type: Boolean,
+          value: false
+        },
+        isActive: {
           type: Boolean,
           value: false
         },
@@ -44,18 +48,44 @@ export class AbstractTimer extends PolymerElement {
 
     ready() {
       super.ready();
-      this.set('currentTime', this.startTime);
-      this.set('formattedTime', this._formatTime(this.currentTime));
+      this.currentTime = this.startTime;
+      this.formattedTime = this._formatTime(this.currentTime);
+      this._updateTime = this._updateTime.bind(this);
     }
 
     play() {
+      if (this.isRunning) return;
       if (this.currentTime >= this._maxValue) return;
       this._elapsedTime = performance.now() / 1000;
       this.isRunning = true;
-      window.requestAnimationFrame(this._updateTime.bind(this));
+      this.isActive = true;
+      window.requestAnimationFrame(this._updateTime);
     }
 
     pause() {
       this.isRunning = false;
+      this.isActive = false;
+    }
+
+    _updateTime(timestamp) {
+      if (!this.isRunning) return;
+      if (!this.currentTime >= this._maxValue) {
+        this.pause();
+        return;
+
+      }
+      var now = timestamp / 1000;
+
+      var progress = now - this._elapsedTime;
+      this.currentTime = this.currentTime + progress;
+
+      this.formattedTime = this._formatTime(this.currentTime);
+
+      this._elapsedTime = now;
+      window.requestAnimationFrame(this._updateTime);
+    }
+
+    _formatTime(time) {
+       return time.toString();
     }
 }

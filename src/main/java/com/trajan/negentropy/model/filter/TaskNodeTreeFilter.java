@@ -73,6 +73,12 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
         return this;
     }
 
+    @Override
+    public TaskNodeTreeFilter hasChildren(Boolean hasChildren) {
+        this.hasChildren = hasChildren;
+        return this;
+    }
+
     public TaskNodeTreeFilter availableAtTime(LocalDateTime availableAtTime) {
         availableAtTime = availableAtTime == null
                 ? null

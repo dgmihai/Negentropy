@@ -6,6 +6,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -29,6 +30,7 @@ public abstract class AbstractSearchAndFilterForm extends ReadOnlySettableFormLa
     protected CheckboxGroup<String> filterOptions;
     protected TagComboBox tagsToExclude;
     protected TagComboBox tagsToInclude;
+    protected Checkbox hasChildren;
 
     public abstract Binder<? extends TaskTreeFilter> binder();
     protected abstract UIController controller();
@@ -94,5 +96,16 @@ public abstract class AbstractSearchAndFilterForm extends ReadOnlySettableFormLa
                 (filter, includedTags) -> filter.includedTagIds(includedTags.stream()
                         .map(Tag::id)
                         .collect(Collectors.toSet())));
+
+        hasChildren = new Checkbox("Only Parents");
+        binder().bind(hasChildren,
+                filter -> filter.hasChildren() != null,
+                (filter, value) -> {
+                    if (value) {
+                        filter.hasChildren(false);
+                    } else {
+                        filter.hasChildren(null);
+                    }
+        });
     }
 }

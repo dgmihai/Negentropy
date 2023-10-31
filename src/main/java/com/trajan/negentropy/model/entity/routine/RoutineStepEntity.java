@@ -5,11 +5,10 @@ import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.interfaces.Ancestor;
+import com.trajan.negentropy.model.interfaces.Timeable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -31,13 +30,12 @@ import java.util.Optional;
 })
 @AllArgsConstructor
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @ToString(callSuper = true)
 @Slf4j
-public class RoutineStepEntity extends AbstractEntity implements RoutineStepData<RoutineStepEntity>, Ancestor<RoutineStepEntity> {
-    
+public class RoutineStepEntity extends AbstractEntity implements Timeable<RoutineStepEntity>, RoutineStepData<RoutineStepEntity> {
+
     @Id
     @Column(nullable = false, updatable = false)
     @SequenceGenerator(name = "routine_step_seq", sequenceName = "routine_step_seq")
@@ -93,12 +91,10 @@ public class RoutineStepEntity extends AbstractEntity implements RoutineStepData
         this.task = task;
     }
 
-    @Override
     public String name() {
         return task().name();
     }
 
-    @Override
     public String description() {
         return task().name();
     }

@@ -4,8 +4,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -62,19 +61,18 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
                 filter -> filter.ignoreScheduling() != null ? filter.ignoreScheduling() : false,
                 TaskTreeFilter::ignoreScheduling);
 
-        HorizontalLayout additionalCheckboxes = new HorizontalLayout(completed, recurring, ignoreScheduling);
-        additionalCheckboxes.setWidthFull();
-        additionalCheckboxes.setJustifyContentMode(JustifyContentMode.START);
-        additionalCheckboxes.setPadding(false);
-        additionalCheckboxes.setMargin(false);
+//        HorizontalLayout additionalCheckboxes = new HorizontalLayout(completed, recurring, hasChildren, ignoreScheduling);
+//        additionalCheckboxes.setWidthFull();
+//        additionalCheckboxes.setJustifyContentMode(JustifyContentMode.START);
+//        additionalCheckboxes.setPadding(false);
+//        additionalCheckboxes.setMargin(false);
 
         VerticalLayout checkboxLayout = new VerticalLayout(
-                filterOptions,
-                additionalCheckboxes);
+                filterOptions, new Span(completed, recurring, hasChildren, ignoreScheduling));
         checkboxLayout.setWidthFull();
+        checkboxLayout.setSpacing(false);
         checkboxLayout.setPadding(false);
         checkboxLayout.setMargin(false);
-        checkboxLayout.setSpacing(false);
 
         this.add(topLayout, checkboxLayout, tagsToInclude, tagsToExclude);
     }

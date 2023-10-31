@@ -32,7 +32,7 @@ class SerializationUtilTest {
                 .completed(false)
                 .availableAtTime(LocalDateTime.now());
 
-        filter.options.add(TaskNodeTreeFilter.ALWAYS_INCLUDE_PARENTS);
+        filter.options.add(TaskNodeTreeFilter.INNER_JOIN_INCLUDED_TAGS);
 
         assertSerialization(filter);
     }

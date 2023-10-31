@@ -37,8 +37,8 @@ public interface RoutineService {
     RoutineResponse suspendStep(StepID stepId, LocalDateTime time);
     RoutineResponse completeStep(StepID stepId, LocalDateTime time);
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);
-
     RoutineResponse postponeStep(StepID stepId, LocalDateTime time);
+    RoutineResponse excludeStep(StepID stepID, LocalDateTime time);
 
     RoutineResponse previousStep(StepID stepId, LocalDateTime time);
 

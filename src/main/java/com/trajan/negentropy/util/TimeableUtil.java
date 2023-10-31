@@ -1,9 +1,7 @@
 package com.trajan.negentropy.util;
 
-import com.trajan.negentropy.model.data.RoutineData;
-import com.trajan.negentropy.model.data.RoutineStepData;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.interfaces.Timeable;
-import com.trajan.negentropy.model.interfaces.TimeableAncestor;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,8 +18,8 @@ public class TimeableUtil {
     }
 
     public Duration getElapsedActiveDuration(Timeable timeable, LocalDateTime time) {
-        Duration elapsedSuspendedDuration = (timeable instanceof RoutineStepData<?> stepData)
-                ? stepData.elapsedSuspendedDuration()
+        Duration elapsedSuspendedDuration = timeable.elapsedSuspendedDuration() != null
+                ? timeable.elapsedSuspendedDuration()
                 : Duration.ZERO;
         return switch (timeable.status()) {
             case NOT_STARTED:
@@ -31,26 +29,16 @@ public class TimeableUtil {
                         ? Duration.between(timeable.startTime(), time)
                             .minus(elapsedSuspendedDuration)
                         : Duration.between(timeable.startTime(), time);
-            case COMPLETED, SKIPPED:
+            case COMPLETED, POSTPONED, EXCLUDED:
                 yield timeable.startTime() != null
                         ? Duration.between(timeable.startTime(), timeable.finishTime())
                             .minus(elapsedSuspendedDuration)
                         : Duration.ZERO;
-            case SUSPENDED, EXCLUDED, POSTPONED:
-                if (timeable.startTime() != null) {
-                        if (timeable instanceof RoutineStepData<?> stepData) {
-                            yield Duration.between(timeable.startTime(), stepData.lastSuspendedTime())
-                                    .minus(elapsedSuspendedDuration);
-                        } else if (timeable.finishTime() != null) {
-                            yield Duration.between(timeable.startTime(), timeable.finishTime())
-                                    .minus(elapsedSuspendedDuration);
-                        } else {
-                            yield Duration.between(timeable.startTime(), time)
-                                    .minus(elapsedSuspendedDuration);
-                        }
-                } else {
-                    yield Duration.ZERO;
-                }
+            case SUSPENDED, SKIPPED:
+                yield timeable.startTime() != null
+                        ? Duration.between(timeable.startTime(), timeable.lastSuspendedTime())
+                            .minus(elapsedSuspendedDuration)
+                        : Duration.ZERO;
         };
     }
 
@@ -65,7 +53,7 @@ public class TimeableUtil {
         };
     }
 
-    public <T extends TimeableAncestor<T>> Duration getRemainingNetDuration(T step, LocalDateTime time) {
+    public Duration getRemainingNetDuration(RoutineStep step, LocalDateTime time) {
         return switch (step.status()) {
             case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED:
                 yield DFSUtil.traverse(step).stream()
@@ -77,28 +65,6 @@ public class TimeableUtil {
             case COMPLETED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;
         };
-    }
-
-//    public static LocalDateTime getETA(TimeableAncestor<?> step, LocalDateTime time) {
-//        return switch (step.status()) {
-//            case NOT_STARTED, ACTIVE, SUSPENDED:
-//                yield time.plus(getRemainingNetDuration(step, time));
-//            case SKIPPED, COMPLETED, POSTPONED, EXCLUDED:
-//                yield time;
-//        };
-//    }
-
-    public <T extends RoutineStepData<T>> Duration getRemainingRoutineDuration(RoutineData<T> routine, LocalDateTime time) {
-        try {
-            return getRemainingNetDuration(routine.rootStep(), time);
-        } catch (Throwable e) {
-            log.error("Error calculating remaining routine duration.", e);
-            throw e;
-        }
-    }
-
-    public void setRoutineDuration(RoutineData<?> routine, LocalDateTime time) {
-        routine.estimatedDuration(getRemainingRoutineDuration(routine, time));
     }
 
     public LocalDateTime currentTime() {

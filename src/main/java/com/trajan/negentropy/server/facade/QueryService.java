@@ -52,6 +52,10 @@ public interface QueryService {
 
     Stream<LinkID> fetchAllNodesAsIds(TaskNodeTreeFilter filter);
 
+    Stream<TaskNode> fetchAllNodesNested(TaskNodeTreeFilter filter);
+
+    Stream<LinkID> fetchAllNodesNestedAsIds(TaskNodeTreeFilter filter);
+
     /**
      * Get all tasks that meet a set of filters and tags.
      *

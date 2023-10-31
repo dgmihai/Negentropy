@@ -305,8 +305,9 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
 
     @Test
     public void testFindTasksWithNoMatchingIncludedTag() {
-        TagEntity tagEntity = (TagEntity) new TagEntity()
+        TagEntity tagEntity = new TagEntity()
                 .id(-1L);
+
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
                 .includedTagIds(Set.of(ID.of(tagEntity)));
 
@@ -423,6 +424,18 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    public void testFindChildCountWithFilterOfHasChildren() {
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .hasChildren(true);
+
+        testFindChildCount(TWO, filter, 1);
+
+        testFindChildCount(THREE_AND_FIVE, filter, 1);
+
+        testFindChildCount(TWOTWO, filter, 0);
+    }
+
+    @Test
     public void testFindChildCountWithFilterOfRequiredWithParents() {
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter(
                 TaskNodeTreeFilter.ONLY_REQUIRED,
@@ -511,6 +524,16 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
     public void testHasChildrenWithFilterOfCompleted() {
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
                 .completed(true);
+
+        testHasChildren(TWO, filter, true);
+        testHasChildren(TWOTWO, filter, false);
+        testHasChildren(THREE_AND_FIVE, filter, true);
+    }
+
+    @Test
+    public void testHasChildrenWithFilterOfHasChildren() {
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .hasChildren(true);
 
         testHasChildren(TWO, filter, true);
         testHasChildren(TWOTWO, filter, false);
@@ -767,6 +790,33 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         Iterable<String> expectedResults = List.of(
                 THREEONE,
                 THREETWO);
+
+        testFindChildTasks(parent, filter, expectedResults);
+    }
+
+    @Test
+    public void testFindChildTasksWithFilterOfHasChildren() {
+        String parent = THREE_AND_FIVE;
+
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .hasChildren(true);
+
+        Iterable<String> expectedResults = List.of(
+                THREETWO);
+
+        testFindChildTasks(parent, filter, expectedResults);
+    }
+
+    @Test
+    public void testFindChildTasksWithFilterOfNotHasChildren() {
+        String parent = THREE_AND_FIVE;
+
+        TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
+                .hasChildren(false);
+
+        Iterable<String> expectedResults = List.of(
+                THREEONE,
+                THREETHREE);
 
         testFindChildTasks(parent, filter, expectedResults);
     }

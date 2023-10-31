@@ -39,7 +39,7 @@ vaadin-grid::part(project-task) {
     background-color:
       var(--lumo-complementary-color-5pct-opaque);
     color:
-      var(--lumo-complimentary-color);
+      var(--lumo-complementary-color);
 }
 
 vaadin-grid::part(completed-node) {

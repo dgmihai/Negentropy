@@ -435,9 +435,10 @@ public class DataContextImpl implements DataContext {
                 taskEntity.required(),
                 taskEntity.project(),
                 taskEntity.difficult(),
-                tagRepository.findByTasksId(taskEntity.id())
-                        .map(this::toDO)
-                        .collect(Collectors.toSet()));
+                new HashSet<>());
+//                tagRepository.findByTasksId(taskEntity.id())
+//                        .map(this::toDO)
+//                        .collect(Collectors.toSet()));
     }
 
     @Override
@@ -474,8 +475,6 @@ public class DataContextImpl implements DataContext {
                 steps,
                 childrenIds,
                 routineEntity.currentPosition(),
-                routineEntity.estimatedDuration(),
-                routineEntity.estimatedDurationLastUpdatedTime(),
                 routineEntity.status(),
                 routineEntity.autoSync(),
                 routineEntity.syncId());

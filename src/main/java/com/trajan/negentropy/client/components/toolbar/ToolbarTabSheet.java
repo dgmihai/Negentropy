@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.toolbar;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
@@ -12,7 +13,6 @@ import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayo
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormMinorLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
-import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
@@ -24,7 +24,6 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.InsertRoutineStepChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
-import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
@@ -244,7 +243,7 @@ public class ToolbarTabSheet extends TabSheet {
         additionalOptionsSubmenu.addItem("Force Data Resync",
                 e -> {
             controller.taskNetworkGraph().reset();
-            controller.taskNetworkGraph().taskEntryDataProvider().refreshAll();
+            controller.taskEntryDataProvider().refreshAll();
         });
 
         additionalOptionsSubmenu.addItem("Delete All Completed Tasks",
@@ -420,7 +419,11 @@ public class ToolbarTabSheet extends TabSheet {
 
             filter.durationLimit(durationLimit);
 
-            controller.createRoutine(taskSetBox.taskNodeProvider().getTask(), filter);
+            controller.createRoutine(taskSetBox.taskNodeProvider().getTask(), filter,
+                    response -> {
+                        if (routineView != null) routineView.refreshRoutines();
+                    },
+                    null);
             if (routineView != null) routineView.refreshRoutines();
         });
 
@@ -507,10 +510,9 @@ public class ToolbarTabSheet extends TabSheet {
                         task = (Task) response.changeRelevantDataMap().getFirst(persistTask.id());
                     }
                 }
-                RoutineResponse response = controller.createRoutine(task);
-                if (response.success()) {
-                    addStepComboBox.clear();
-                }
+                controller.createRoutine(task,
+                        r -> addStepComboBox.clear(),
+                        null);
             }
         }
     }

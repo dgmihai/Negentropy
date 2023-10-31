@@ -43,9 +43,9 @@ public class CustomValueTagComboBox extends TagComboBox {
                     new Tag(null, name));
             DataMapResponse response = controller.requestChange(persistTagChange);
             Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
+            Set<Tag> tags = new HashSet<>(this.getValue());
             items.add(newTag);
             this.setItems(items);
-            Set<Tag> tags = new HashSet<>(this.getValue());
             tags.add(newTag);
             this.setValue(tags);
             onCustomValueSet.accept(newTag);

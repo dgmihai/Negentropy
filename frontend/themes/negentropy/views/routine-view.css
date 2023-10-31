@@ -7,16 +7,13 @@
   line-height: var(--lumo-line-height-m);
 }
 
-.routine-view .routine-step-tree-grid::part[selected-row-cell] {
-  box-shadow: var(--lumo-box-shadow-l);
-}
-
 .routine-view .card {
   background-color: var(--lumo-shade-5pct);
   border-radius: var(--lumo-border-radius);
   box-shadow: var(--lumo-box-shadow-s);
   padding: calc(var(--lumo-space-s) * 1.5) var(--lumo-space-m);
   align-items: baseline;
+  --_lumo-grid-selected-row-color: var(--lumo-complementary-color-5pct);
 }
 
 .routine-view .card[active] {

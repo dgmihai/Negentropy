@@ -9,8 +9,8 @@ import com.trajan.negentropy.model.data.RoutineStepData;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.interfaces.Timeable;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -19,11 +19,10 @@ import java.util.Optional;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @ToString
-public abstract class RoutineStep implements RoutineStepData<RoutineStep>, HasTaskData, MayHaveTaskNodeData {
+public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepData<RoutineStep>, HasTaskData, MayHaveTaskNodeData {
     protected StepID id;
 
     protected RoutineID routineId;

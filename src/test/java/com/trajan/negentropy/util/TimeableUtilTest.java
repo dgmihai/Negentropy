@@ -1,7 +1,9 @@
 package com.trajan.negentropy.util;
 
+import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.TimeableStatus;
-import com.trajan.negentropy.model.interfaces.TimeableAncestor;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 class TimeableUtilTest {
     private static TestTimeable root;
-    private static Map<String, TestTimeable> timeables;
+    private static Map<String, RoutineStep> timeables;
     private static LocalDateTime NOW;
 
     private final TimeableUtil timeableUtil = new TimeableUtil() {
@@ -35,23 +37,19 @@ class TimeableUtilTest {
     @Getter
     @Setter
     @Accessors(fluent = true)
-    static class TestTimeable implements TimeableAncestor<TestTimeable> {
-        private List<TestTimeable> children = new ArrayList<>();
-        private String name;
-        private String description;
-        private Duration duration;
-        private LocalDateTime startTime;
-        private LocalDateTime finishTime;
-        private TimeableStatus status;
+    static class TestTimeable extends RoutineTaskStep {
+        public TestTimeable(Task task) {
+            super(task);
+        }
     }
 
     private static TestTimeable createTimeable(String name) {
-        TestTimeable timeable = new TestTimeable();
-        timeable.children = new ArrayList<>();
-        timeable.name = name;
-        timeable.description = name;
-        timeable.duration = Duration.ofMinutes(10);
-        timeable.status = TimeableStatus.NOT_STARTED;
+        TestTimeable timeable = new TestTimeable(new Task(null)
+                .name(name)
+                .description(name)
+                .duration(Duration.ofMinutes(10)));
+        timeable.children(new ArrayList<>());
+        timeable.status(TimeableStatus.NOT_STARTED);
         return timeable;
     }
 
@@ -61,7 +59,8 @@ class TimeableUtilTest {
         root.children().addAll(List.of(
                 createTimeable("A"),
                 createTimeable("B"),
-                createTimeable("C")));
+                createTimeable("C"),
+                createTimeable("D")));
         root.children().get(1).children().addAll(List.of(
                 createTimeable("W"),
                 createTimeable("X"),
@@ -69,7 +68,7 @@ class TimeableUtilTest {
                 createTimeable("Z")));
 
         timeables = DFSUtil.traverse(root).stream().collect(Collectors.toMap(
-                TestTimeable::name,
+                RoutineStep::name,
                 timeable -> timeable));
 
         timeables.get("root").status(TimeableStatus.ACTIVE)
@@ -87,7 +86,12 @@ class TimeableUtilTest {
                 .startTime(LocalDateTime.MIN.plusMinutes(30))
                 .finishTime(LocalDateTime.MIN.plusMinutes(35));
         timeables.get("Z").status(TimeableStatus.SUSPENDED)
-                .startTime(LocalDateTime.MIN.plusMinutes(35));
+                .startTime(LocalDateTime.MIN.plusMinutes(35))
+                .lastSuspendedTime(LocalDateTime.MIN.plusMinutes(50));
+        timeables.get("D").status(TimeableStatus.ACTIVE)
+                .startTime(LocalDateTime.MIN)
+                .lastSuspendedTime(LocalDateTime.MIN.plusMinutes(5))
+                .elapsedSuspendedDuration(Duration.ofMinutes(45));
 
         NOW = LocalDateTime.MIN.plusMinutes(50);
     }
@@ -117,6 +121,9 @@ class TimeableUtilTest {
 
         assertEquals(Duration.ZERO,
                 timeableUtil.getElapsedActiveDuration(timeables.get("C"), NOW));
+
+        assertEquals(Duration.ofMinutes(5),
+                timeableUtil.getElapsedActiveDuration(timeables.get("D"), NOW));
     }
 
     @Test
@@ -144,11 +151,15 @@ class TimeableUtilTest {
 
         assertEquals(Duration.ofMinutes(10),
                 timeableUtil.getRemainingDuration(timeables.get("C"), NOW));
+
+        assertEquals(Duration.ofMinutes(5),
+                timeableUtil.getRemainingDuration(timeables.get("D"), NOW));
+
     }
 
     @Test
     public void testGetRemainingNetDuration() {
-        assertEquals(Duration.ofMinutes(20),
+        assertEquals(Duration.ofMinutes(25),
                 timeableUtil.getRemainingNetDuration(timeables.get("root"), NOW));
 
         assertEquals(Duration.ZERO,
@@ -171,5 +182,8 @@ class TimeableUtilTest {
 
         assertEquals(Duration.ofMinutes(10),
                 timeableUtil.getRemainingNetDuration(timeables.get("C"), NOW));
+
+        assertEquals(Duration.ofMinutes(5),
+                timeableUtil.getRemainingNetDuration(timeables.get("D"), NOW));
     }
 }

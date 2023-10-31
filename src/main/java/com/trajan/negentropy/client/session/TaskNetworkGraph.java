@@ -31,6 +31,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -51,14 +52,13 @@ public class TaskNetworkGraph {
 
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
+    @Setter protected TaskEntryDataProvider taskEntryDataProvider;
 
     private SyncID syncId;
     @Autowired private ServerBroadcaster serverBroadcaster;
     @Getter(AccessLevel.NONE)
     private Registration broadcastRegistration;
     @Autowired private VaadinSession session;
-
-    @Autowired private TaskEntryDataProvider taskEntryDataProvider;
 
     private MutableNetwork<TaskID, LinkID> network;
 
@@ -99,8 +99,6 @@ public class TaskNetworkGraph {
         log.info("Session: " + address + " using " + browser);
         if (this.serverBroadcaster != null) broadcastRegistration = serverBroadcaster.register(this::sync);
         log.info("Initialized TaskNetworkGraph with {} nodes", network.nodes().size());
-
-        taskEntryDataProvider.init(this);
     }
 
     @PreDestroy
@@ -205,7 +203,7 @@ public class TaskNetworkGraph {
     }
 
     private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
-        if (syncId != this.syncId) {
+        if (syncId != this.syncId || this.netDurationInfo == null) {
             log.debug("Syncing net durations with filter " + filter);
             filterMap.clear();
             this.netDurationInfo = filterMap.compute(NonSpecificTaskNodeTreeFilter.from(filter), (f, x) ->

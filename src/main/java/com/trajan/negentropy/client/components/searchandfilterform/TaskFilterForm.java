@@ -5,7 +5,6 @@ import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -40,8 +39,6 @@ public class TaskFilterForm extends AbstractSearchAndFilterForm {
     @Override
     protected void configureLayout() {
         topLayout = new HorizontalLayout(name, goToCreateNewTaskFormButton, resetButton);
-        topLayout.setWidthFull();
-        topLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
         this.add(topLayout, filterOptions, tagsToInclude, tagsToExclude);
     }

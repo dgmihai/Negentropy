@@ -4,12 +4,22 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class AncestorOrderingUtil<I, T extends Ancestor<T>> {
     private final Function<T, I> getIdentifier; // May return null
+    @Getter
+    private final Multimap<I, T> newDuplicates = ArrayListMultimap.create();
+    @Getter
+    private final Map<T, List<T>> parentChildMap = new HashMap<>();
+    public BiFunction<T, T, T> onAdd = (parent, child) -> child;
 
     public AncestorOrderingUtil(Function<T, I> getIdentifier) {
         this.getIdentifier = getIdentifier;
@@ -17,15 +27,19 @@ public class AncestorOrderingUtil<I, T extends Ancestor<T>> {
 
     public T rearrangeAncestor(@NotNull T existing, @NotNull T target) {
         Multimap<I, T> existingMultimap = ArrayListMultimap.create();
+        newDuplicates.clear();
+        parentChildMap.clear();
+
         buildEntityMap(existing, existingMultimap);
 
-        Map<T, List<T>> parentChildMap = new HashMap<>();
-        T newRoot = rearrange(target, existingMultimap, parentChildMap, new HashMap<>(), new HashSet<>());
+        T newRoot = rearrange(target, existingMultimap, new HashMap<>());
 
         for (Map.Entry<T, List<T>> entry : parentChildMap.entrySet()) {
             List<T> children = entry.getKey().children();
             children.clear();
-            children.addAll(entry.getValue());
+            for (T child : entry.getValue()) {
+                children.add(onAdd.apply(entry.getKey(), child));
+            }
         }
 
         return newRoot;
@@ -41,25 +55,26 @@ public class AncestorOrderingUtil<I, T extends Ancestor<T>> {
         }
     }
 
-    private T rearrange(T target, Multimap<I, T> existingMultimap, Map<T, List<T>> parentChildMap,
-                        Map<I, Integer> idCountMap, Set<I> newDuplicates) {
+    private T rearrange(T target, Multimap<I, T> existingMultimap,
+                        Map<I, Integer> idCountMap) {
         I entityId = getIdentifier.apply(target);
+
         int targetCount = idCountMap.getOrDefault(entityId, 0);
         List<T> existingEntities = new ArrayList<>(existingMultimap.get(entityId));
 
         T rearranged;
-        if (existingEntities.size() > targetCount && !newDuplicates.contains(entityId)) {
+        if (existingEntities.size() > targetCount && !newDuplicates.containsKey(entityId)) {
             rearranged = existingEntities.get(targetCount);
         } else {
             rearranged = target;
-            newDuplicates.add(entityId);
+            newDuplicates.put(entityId, target);
         }
 
         idCountMap.put(entityId, targetCount + 1);
 
         List<T> children = parentChildMap.computeIfAbsent(rearranged, k -> new ArrayList<>());
         for (T targetChild : target.children()) {
-            T rearrangedChild = rearrange(targetChild, existingMultimap, parentChildMap, idCountMap, newDuplicates);
+            T rearrangedChild = rearrange(targetChild, existingMultimap, idCountMap);
             if (rearrangedChild != null) {
                 children.add(rearrangedChild);
             }

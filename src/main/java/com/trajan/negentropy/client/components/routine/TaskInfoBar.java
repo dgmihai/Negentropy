@@ -3,7 +3,6 @@ package com.trajan.negentropy.client.components.routine;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
-import com.trajan.negentropy.model.interfaces.Timeable;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.html.Div;
@@ -28,24 +27,23 @@ public class TaskInfoBar extends Details {
     private final ETATimer timer;
     private final Span description;
 
-    private final Binder<Timeable> binder = new BeanValidationBinder<>(Timeable.class);
+    private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    public TaskInfoBar(Timeable timeable, RoutineCard parent) {
+    public TaskInfoBar(RoutineStep step, RoutineCard parent, boolean withButtons) {
         super();
         this.parent = parent;
         controller = parent.controller();
 
         this.addClassName("bar");
 
-        binder.setBean(timeable);
+        binder.setBean(step);
 
         name = new Span();
         name.addClassName("date");
         name.setWidthFull();
 
-        timer = new ETATimer(binder.getBean());
+        timer = new ETATimer(binder.getBean(), parent.routine());
         timer.addClassNames("date", "timer");
-//        timer.run(timer.timeable().status().equals(TimeableStatus.ACTIVE));
 
         description = new Span();
         description.addClassName("description");
@@ -58,12 +56,12 @@ public class TaskInfoBar extends Details {
         upper.setWidthFull();
         upper.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
-        VerticalLayout lower = new VerticalLayout(description);
-        lower.setWidthFull();
-        lower.setSpacing(false);
-        lower.addClassName(LumoUtility.Padding.Vertical.NONE);
+        if (withButtons) {
+            VerticalLayout lower = new VerticalLayout(description);
+            lower.setWidthFull();
+            lower.setSpacing(false);
+            lower.addClassName(LumoUtility.Padding.Vertical.NONE);
 
-        if (binder.getBean() instanceof RoutineStep step) {
             TaskInfoBarButton next = new TaskInfoBarButton(VaadinIcon.CHEVRON_RIGHT.create());
             next.addClickListener(event -> parent.processStep(step.id(),
                     controller::completeRoutineStep));
@@ -82,32 +80,35 @@ public class TaskInfoBar extends Details {
 
             TaskInfoBarButton close = new TaskInfoBarButton(VaadinIcon.CLOSE.create());
             close.addClickListener(event -> parent.processStep(step.id(),
-                    stepID -> controller.setRoutineStepExcluded(stepID, true)));
+                    (stepID, s, f) -> controller.setRoutineStepExcluded(stepID, true, s, f)));
 
-            HorizontalLayout buttons = new HorizontalLayout(prev, close, skip, postpone, next);
+            TaskInfoBarButton toTreeView = new TaskInfoBarButton(VaadinIcon.TREE_TABLE.create());
+            toTreeView.addClickListener(event -> RoutineCard.toTaskTree(step::node, controller));
+
+            HorizontalLayout buttons = new HorizontalLayout(prev, close, toTreeView, skip, postpone, next);
             buttons.setWidthFull();
             buttons.setJustifyContentMode(JustifyContentMode.BETWEEN);
             lower.add(buttons);
+            this.setContent(lower);
         }
 
         this.setSummary(upper);
-        this.setContent(lower);
 
         this.setWidthFull();
 
-        this.setTimeable(timeable);
+        this.setStep(step);
         this.addThemeVariants(DetailsVariant.SMALL);
         this.addClassName(Margin.NONE);
     }
 
-    public void setTimeable(Timeable timeable) {
-        binder.setBean(timeable);
+    public void setStep(RoutineStep step) {
+        binder.setBean(step);
 
         name.setText(binder.getBean().name());
 
-        timer.setTimeable(timeable);
+        timer.setTimeable(step, parent.routine());
 
-        description.setText(binder.getBean().description());
+        description.setText(step.description());
         description.setWidthFull();
 
         this.setWidthFull();

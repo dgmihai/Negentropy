@@ -19,4 +19,8 @@ public enum TimeableStatus {
     public String toString() {
         return text;
     }
+
+    public boolean isFinished() {
+        return this == COMPLETED || this == EXCLUDED || this == POSTPONED;
+    }
 }
