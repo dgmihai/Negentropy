@@ -1,6 +1,8 @@
 package com.trajan.negentropy.model.id;
 
-public class StepID extends ID {
+import java.io.Serializable;
+
+public class StepID extends ID implements Serializable {
     StepID(long val) {
         super(val);
     }

@@ -8,11 +8,10 @@ public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
         super();
         this.name = null;
         this.completed = false;
-        this.durationLimit = null;
         this.ignoreScheduling = false;
     }
 
-    public static NonSpecificTaskNodeTreeFilter from(TaskNodeTreeFilter filter) {
+    public static NonSpecificTaskNodeTreeFilter parse(TaskNodeTreeFilter filter) {
         if (filter instanceof NonSpecificTaskNodeTreeFilter) {
             return (NonSpecificTaskNodeTreeFilter) filter;
         } else {
@@ -23,7 +22,6 @@ public class NonSpecificTaskNodeTreeFilter extends TaskNodeTreeFilter {
                     .recurring(filter.recurring())
                     .availableAtTime(filter.availableAtTime())
                     .importanceThreshold(filter.importanceThreshold())
-                    .durationLimit(null)// We also explicitly exclude durationLimit
                     .includedTagIds(filter.includedTagIds())
                     .excludedTagIds(filter.excludedTagIds())
                     .ignoreScheduling(false)

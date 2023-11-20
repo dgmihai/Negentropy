@@ -7,13 +7,20 @@
   line-height: var(--lumo-line-height-m);
 }
 
+.active-routine-grid {
+  --_lumo-grid-selected-row-color: ;
+}
+
+.active-routine-grid::part(selected-row-cell) {
+  background-color: var(--lumo-complementary-color-5pct);
+}
+
 .routine-view .card {
   background-color: var(--lumo-shade-5pct);
   border-radius: var(--lumo-border-radius);
   box-shadow: var(--lumo-box-shadow-s);
   padding: calc(var(--lumo-space-s) * 1.5) var(--lumo-space-m);
   align-items: baseline;
-  --_lumo-grid-selected-row-color: var(--lumo-complementary-color-5pct);
 }
 
 .routine-view .card[active] {
@@ -65,6 +72,12 @@
   margin-right: var(--lumo-space-s);
 }
 
+.routine-view .name-timer {
+  display: flex;
+  justify-content: flex-end;
+  width: 5.5em;
+}
+
 .routine-view .date {
   color: var(--lumo-body-text-color);
   font-size: var(--lumo-font-size-m);
@@ -72,7 +85,7 @@
 
 .routine-view .bar .timer {
   text-align: right;
-  width: 5rem;
+  width: 6rem;
 }
 
 .routine-view .card .description {
@@ -108,8 +121,4 @@
 
 .routine-view .add-step-combo-box {
   width: 25rem;
-}
-
-.routine-view .start-routine-button-layout {
-  align-items: center;
 }

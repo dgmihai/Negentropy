@@ -190,6 +190,11 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public Collection<TaskID> fetchTaskIdsByTagId(TagID tagId) {
+        return tagService.getTaskIdByTagId(tagId);
+    }
+
+    @Override
     public Map<LinkID, Duration> fetchAllNetNodeDurations(TaskNodeTreeFilter filter) {
         return netDurationService.getAllNetNodeDurations(filter);
     }

@@ -10,11 +10,12 @@ import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.*;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.sync.Change;
@@ -27,13 +28,15 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.UIDetachedException;
+import com.vaadin.flow.server.Command;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -41,45 +44,65 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @SpringComponent
 @UIScope
-@Accessors(fluent = true)
 @Getter
 @Benchmark(millisFloor = 10)
 public class UIController {
     private final UILogger log = new UILogger();
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private ExecutorService executor;
 
-    @Autowired private UIAccessor uiAccessor;
+    @Autowired
+    private UI ui;
 
-    @Setter private TaskNodeProvider activeTaskNodeProvider;
-    @Setter private HasRootNode activeTaskNodeDisplay;
+    @Setter
+    private TaskNodeProvider activeTaskNodeProvider;
+    @Setter
+    private HasRootNode activeTaskNodeDisplay;
 
-    @Autowired protected TaskNetworkGraph taskNetworkGraph;
-    @Autowired protected TaskEntryDataProvider taskEntryDataProvider;
+    @Autowired
+    protected TaskNetworkGraph taskNetworkGraph;
+    @Autowired
+    protected TaskEntryDataProvider taskEntryDataProvider;
 
-    @Autowired protected SessionServices services;
-    @Autowired protected UserSettings settings;
+    @Autowired
+    protected SessionServices services;
+    @Autowired
+    protected UserSettings settings;
 
-    @Autowired private RoutineDataProvider routineDataProvider;
+    @Autowired
+    private RoutineDataProvider routineDataProvider;
 
     @PostConstruct
     public void init() {
+        executor = this.createExecutor();
+
         UI currentUI = UI.getCurrent();
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
         String address = currentUI != null ? currentUI.getSession().getBrowser().getAddress() : null;
         String browser = currentUI != null ? currentUI.getSession().getBrowser().getBrowserApplication() : null;
         log.info("UI client: " + uiId + " at " + address + " using " + browser);
+
+        this.sync();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        executor.shutdown();
+    }
+
+    private ExecutorService createExecutor() {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 30L,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>());
     }
 
     private <T extends SyncResponse> void handleResponse(T response) {
-        executor.execute(() -> uiAccessor.acquire(() -> {
+        executor.execute(() -> accessUI("Handle response", () -> {
             if (!response.success()) {
                 NotificationMessage.error(response.message());
             } else {
@@ -88,13 +111,13 @@ public class UIController {
         }));
     }
 
-    private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) throws Exception {
+    private <T extends SyncResponse> T tryRequest(Supplier<T> serviceCall) {
         T response = serviceCall.get();
         handleResponse(response);
         return response;
     }
 
-    private <T extends SyncResponse> T tryRequestAndSync(Supplier<T> serviceCall) throws Exception {
+    private <T extends SyncResponse> T tryRequestAndSync(Supplier<T> serviceCall) {
         log.warn("Trying request with manual sync");
         T response = serviceCall.get();
         handleResponse(response);
@@ -180,7 +203,7 @@ public class UIController {
             DataMapResponse response = this.tryDataRequest(() -> services.change().execute(
                     Request.of(taskNetworkGraph.syncId(), changes)), false);
             if (callback != null) {
-                uiAccessor.acquire(() -> callback.accept(response));
+                accessUI("Request changes", () -> callback.accept(response), true);
             }
         });
     }
@@ -199,14 +222,17 @@ public class UIController {
         taskNetworkGraph.sync(syncRecord);
     }
 
-    @Autowired private NetDurationHelperManager netDurationHelperManager;
+    @Autowired
+    private NetDurationHelperManager netDurationHelperManager;
+
     //@Override
     public void recalculateNetDurations() {
         log.debug("Recalculating time estimates");
         netDurationHelperManager.recalculateTimeEstimates();
     }
 
-    @Autowired private OrphanTaskCleaner orphanCleaner;
+    @Autowired
+    private OrphanTaskCleaner orphanCleaner;
 
     public void deleteAllOrphanedTasks() {
         log.debug("Deleting orphan tasks");
@@ -236,45 +262,59 @@ public class UIController {
     //==================================================================================================================
 
     private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
-                                       Consumer<RoutineResponse> onSuccess,
-                                       Consumer<RoutineResponse> onFailure) {
-        try {
-            executor.execute(() -> {
-                RoutineResponse response = serviceCall.get();
+                                                    Consumer<RoutineResponse> onSuccess,
+                                                    Consumer<RoutineResponse> onFailure) {
+        tryRoutineServiceCall(serviceCall, onSuccess, onFailure, 2);
+    }
 
-                uiAccessor.acquire(() -> {
-                    if (!response.success()) {
-                        NotificationMessage.error(response.message());
-                        if (onFailure != null) onFailure.accept(response);
-                    } else {
-                        NotificationMessage.result(response.message());
-                        routineDataProvider.refreshAll();
-                        if (onSuccess != null) onSuccess.accept(response);
-                    }
-                });
-            });
-        } catch (Throwable t) {
+    private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
+                                                    Consumer<RoutineResponse> onSuccess,
+                                                    Consumer<RoutineResponse> onFailure,
+                                                    int retries) {
+        try {
+            RoutineResponse response = serviceCall.get();
+
+            executor.execute(() -> accessUI("Routine service call", () -> {
+                if (!response.success()) {
+                    NotificationMessage.error(response.message());
+                    if (onFailure != null) onFailure.accept(response);
+                } else {
+                    NotificationMessage.result(response.message());
+                    routineDataProvider.refreshAll();
+                    if (onSuccess != null) onSuccess.accept(response);
+                }
+            }));
+        } catch (RejectedExecutionException e) {
+            log.warn("Routine service call rejected", e);
+            executor = createExecutor();
+            if (retries > 0) {
+                retries--;
+                tryRoutineServiceCall(serviceCall, onSuccess, onFailure, retries);
+            } else {
+                accessUI("Routine service call rejected", () -> NotificationMessage.error(e));
+            }
+        } catch(Throwable t) {
             log.error("Error executing routine service call", t);
-            uiAccessor.acquire(() -> NotificationMessage.error(t));
+            accessUI("Routine service call error", () -> NotificationMessage.error(t));
         }
     }
 
-    public void createRoutine(TaskNode rootNode,
+    public void createRoutine(List<PersistedDataDO> rootData, TaskNodeTreeFilter filter,
                               Consumer<RoutineResponse> onSuccess,
                               Consumer<RoutineResponse> onFailure) {
-        log.debug("Creating routine from node: " + rootNode.task().name());
-        tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id()),
+        if (rootData.isEmpty()) {
+            NotificationMessage.error("No root data provided");
+            return;
+        }
+
+        log.debug("Creating routine from task: " + rootData.get(0).name());
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootData.stream()
+                        .map(data -> (TaskOrLinkID) data.id())
+                        .toList(), filter),
                 onSuccess, onFailure);
     }
 
-    public void createRoutine(TaskNode rootNode, TaskNodeTreeFilter filter,
-                              Consumer<RoutineResponse> onSuccess,
-                              Consumer<RoutineResponse> onFailure) {
-        log.debug("Creating routine from task: " + rootNode.task().name());
-        tryRoutineServiceCall(() -> services.routine().createRoutine(rootNode.id(), filter),
-                onSuccess, onFailure);
-    }
-
+    @Deprecated
     public void createRoutine(Task rootTask,
                               Consumer<RoutineResponse> onSuccess,
                               Consumer<RoutineResponse> onFailure) {
@@ -408,7 +448,6 @@ public class UIController {
                 onSuccess, onFailure);
     }
 
-
     //==================================================================================================================
     // Routine Broadcaster
     //==================================================================================================================
@@ -420,13 +459,48 @@ public class UIController {
     private final Set<RoutineID> trackedRoutines = new HashSet<>();
 
     public void registerRoutineCard(RoutineID routineId, Consumer<Routine> listener) {
+        log.debug("Registering routine card");
         if (!trackedRoutines.contains(routineId)) {
             services.routine().register(routineId, r -> routineCardBroadcaster.broadcast(routineId, r));
             trackedRoutines.add(routineId);
+        } else {
+            log.warn("Routine already tracked: " + routineId);
         }
 
         routineCardBroadcaster.register(routineId, r -> {
-            uiAccessor.acquire(() -> listener.accept(r));
+            accessUI("Routine broadcaster", () -> listener.accept(r));
         });
+    }
+
+    //==================================================================================================================
+    // UI Accessor
+    //==================================================================================================================
+
+    public void accessUI(String caller, Command command) {
+        this.accessUI(caller, command, false);
+    }
+
+    public void accessUI(String caller, Command command, boolean synchronous) {
+        log.debug(caller + " attempting to acquire UI");
+        if (ui != null) {
+            int retries = 3;
+            while (retries > 0) {
+                try {
+                    if (synchronous) {
+                        ui.accessSynchronously(command);
+                    } else {
+                        ui.access(command);
+                    }
+                    break;
+                } catch (UIDetachedException e) {
+                    log.warn("UI is detached, retry " + (4 - retries), e);
+                    ui = UI.getCurrent();
+                    retries--;
+                }
+            }
+        } else {
+            log.warn("UI instance not available");
+            command.execute();
+        }
     }
 }

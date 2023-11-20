@@ -7,6 +7,7 @@ import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
@@ -26,7 +27,7 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     @Getter
     private final TaskNodeProvider taskNodeProvider;
 
-    private Task task = null;
+    private TaskDTO task = null;
     private TaskNodeInfoData<TaskNodeDTO> nodeDTO = null;
 
     public QuickCreateField(UIController controller) {
@@ -34,7 +35,7 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
         this.controller = controller;
         this.taskNodeProvider = new TaskNodeProvider(controller) {
             @Override
-            public Task getTask() {
+            public TaskDTO getTask() {
                 return task;
             }
 
@@ -109,7 +110,7 @@ public class QuickCreateField extends TextField implements HasTaskNodeProvider {
     }
 
     private void parse(String input) throws QuickCreateParser.ParseException {
-        Pair<Task, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
+        Pair<TaskDTO, TaskNodeInfoData<TaskNodeDTO>> result = QuickCreateParser.parse(input);
         task = result.getFirst();
         nodeDTO = result.getSecond();
     }

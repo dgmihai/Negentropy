@@ -208,6 +208,8 @@ public interface QueryService {
      */
     Stream<Tag> fetchTags(TaskID taskId);
 
+    Collection<TaskID> fetchTaskIdsByTagId(TagID tagId);
+
     Map<LinkID, Duration> fetchAllNetNodeDurations(TaskNodeTreeFilter filter);
     Map<TaskID, Duration> fetchAllNetTaskDurations(TaskNodeTreeFilter filter);
 

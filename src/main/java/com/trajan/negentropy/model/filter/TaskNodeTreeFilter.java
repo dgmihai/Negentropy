@@ -4,7 +4,6 @@ import com.trajan.negentropy.model.id.TagID;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
@@ -21,7 +20,6 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     protected Boolean recurring;
     protected LocalDateTime availableAtTime;
     protected Integer importanceThreshold;
-    protected Duration durationLimit;
 
     public TaskNodeTreeFilter(String... options) {
         super(options);
@@ -91,4 +89,6 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     public static class NestableTaskNodeTreeFilter extends TaskNodeTreeFilter {
         private boolean nested = true;
     }
+
+
 }

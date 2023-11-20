@@ -14,22 +14,20 @@ import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.*;
 
 @SpringComponent
 @VaadinSessionScope
-@Accessors(fluent = true)
 @Getter
 public class UserSettings {
     private final List<LinkedHashMap<ColumnKey, Boolean>> treeViewColumnVisibilities = new ArrayList<>();
     private final LinkedHashMap<ColumnKey, Boolean> routineViewColumnVisibility = new LinkedHashMap<>();
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
 
-    @Setter(AccessLevel.PACKAGE) private NestableTaskNodeTreeFilter filter =
-            (NestableTaskNodeTreeFilter) new NestableTaskNodeTreeFilter()
-                    .completed(false);
+    public static final NestableTaskNodeTreeFilter DEFAULT_FILTER = (NestableTaskNodeTreeFilter) new NestableTaskNodeTreeFilter()
+            .completed(false);
+    @Setter(AccessLevel.PACKAGE) private NestableTaskNodeTreeFilter filter = DEFAULT_FILTER;
     @Setter private boolean enableContextMenu = true;
     @Setter private SelectionMode gridSelectionMode = SelectionMode.MULTI;
     @Setter private GridTiling gridTiling = GridTiling.NONE;
@@ -38,6 +36,7 @@ public class UserSettings {
     @Setter private boolean routineStepsGridVisible = false;
     @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
     @Setter private TaskEntry currentRootEntry = null;
+    private final String DEFAULT_PROJECT = "Still To Plan";
 
     @Setter
     private DescriptionViewDefaultSetting descriptionViewDefaultSetting = DescriptionViewDefaultSetting.IF_PRESENT;

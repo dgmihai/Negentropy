@@ -23,7 +23,7 @@ public class MapBroadcaster<K, V> {
     }
 
     public synchronized void broadcast(K key, V content) {
-        List<Consumer<V>> results = listenerMap.get(key);
+        List<Consumer<V>> results = List.copyOf(listenerMap.get(key));
         if (!results.isEmpty()) {
             log.debug("Broadcasting " + content.getClass().getSimpleName() + " to " + results.size() + " listeners");
             for (Consumer<V> listener : results) {

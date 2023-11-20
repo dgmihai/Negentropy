@@ -11,9 +11,7 @@ public abstract class SaveEventListener<T> {
     protected List<Runnable> afterSuccessfulSaveCallbacks = new ArrayList<>();
     protected List<Runnable> afterFailedSaveCallbacks = new ArrayList<>();
 
-    public boolean isValid() {
-        return true;
-    }
+    public abstract boolean isValid();
 
     public abstract boolean wasSaveSuccessful(T result);
 

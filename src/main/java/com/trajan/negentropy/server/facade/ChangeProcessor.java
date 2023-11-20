@@ -3,11 +3,11 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
-import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.TaskEntity;
@@ -212,12 +212,12 @@ public class ChangeProcessor {
             } else if (change instanceof MultiMergeChange<?, ?> multiMerge) {
                 Data template = multiMerge.template();
 
-                if (template instanceof TaskTemplateData<?, ?> taskTemplate) {
+                if (template instanceof TaskDTO taskTemplate) {
                     log.debug("Merging task template: {}", taskTemplate);
                     for (ID taskId : multiMerge.ids()) {
                         TaskEntity resultEntity = dataContext.mergeTaskTemplate(
                                 (TaskID) taskId,
-                                (TaskTemplateData<Task, Tag>) taskTemplate);
+                                taskTemplate);
                         updateDuration(durationUpdates, resultEntity);
                         dataResults.add(multiMerge.id(), dataContext.toDO(resultEntity));
                     }
@@ -341,7 +341,7 @@ public class ChangeProcessor {
         durationUpdates.addAll(entityQueryService.findAncestorLinks(
                 ID.of(link.child()), null)
                 .collect(Collectors.toSet()));
-        if (link.child().project() && !link.projectDuration().isZero()) {
+        if (link.child().project() && !link.projectDurationLimit().isZero()) {
             durationUpdates.addAll(entityQueryService.findChildLinks(
                     ID.of(link.child()), null)
                     .collect(Collectors.toSet()));

@@ -1,13 +1,14 @@
 package com.trajan.negentropy.client;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
@@ -25,10 +26,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 @PageTitle("Task Tree")
-@UIScope
 @Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
+@UIScope
 @Getter
+@Benchmark(millisFloor = 10)
 public class TreeView extends Div {
     private final UILogger log = new UILogger();
 
@@ -46,6 +48,7 @@ public class TreeView extends Div {
 
     @PostConstruct
     public void init() {
+        log.info("Initializing TreeView");
         this.addClassName("tree-view");
 
 //        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
@@ -69,7 +72,6 @@ public class TreeView extends Div {
             TaskEntryTreeGrid grid = grids.get(i);
             grid.init(settings.treeViewColumnVisibilities().get(i),
                     settings.gridSelectionMode());
-            grid.nestedTabs().onSelectNewRootEntry(settings.currentRootEntry());
             grid.setWidthFull();
             grid.setHeight("86%");
         }

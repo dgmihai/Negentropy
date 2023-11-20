@@ -1,9 +1,12 @@
 package com.trajan.negentropy.server;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
@@ -38,7 +41,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -138,6 +145,7 @@ public class TaskTestTemplate {
     protected final Map<String, Task> tasks = new HashMap<>();
     protected final Map<Triple<String, String, Integer>, TaskNode> nodes = new HashMap<>();
     protected final Map<String, Tag> tags = new HashMap<>();
+    protected final Multimap<TaskID, Tag> taskTags = HashMultimap.create();
 
     protected final Map<String, TaskEntity> taskEntities = new HashMap<>();
     protected final Map<Triple<String, String, Integer>, TaskLink> links = new HashMap<>();
@@ -220,6 +228,9 @@ public class TaskTestTemplate {
             TaskID parentId = parent == null ?
                     null : tasks.get(parent).id();
 
+            LocalTime etaLimit = Objects.requireNonNullElse(nodeDTO.projectEtaLimit(), TaskLink.DEFAULT_PROJECT_ETA_LIMIT);
+            log.debug("Persisting task node {} with eta limit {}", name, etaLimit);
+
             TaskNodeDTO freshNode = new TaskNodeDTO(
                     parentId,
                     childId,
@@ -231,7 +242,9 @@ public class TaskTestTemplate {
                     nodeDTO.completed(),
                     false,
                     nodeDTO.cron(),
-                    Objects.requireNonNullElse(nodeDTO.projectDuration(), Duration.ZERO));
+                    Objects.requireNonNullElse(nodeDTO.projectDurationLimit(), TaskLink.DEFAULT_PROJECT_DURATION_LIMIT),
+                    Objects.requireNonNullElse(nodeDTO.projectStepCountLimit(), TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT),
+                    etaLimit);
 
             Change insertInto = new InsertIntoChange(freshNode, parentId, InsertLocation.LAST);
             ChangeID id = insertInto.id();
@@ -239,21 +252,34 @@ public class TaskTestTemplate {
             DataMapResponse response = changeService.execute(Request.of(insertInto));
             TaskNode node = (TaskNode) response.changeRelevantDataMap().getFirst(id);
 
+            assertEquals(LocalTime.MAX, node.projectEtaLimit());
+
             Triple<String, String, Integer> linkKey = Triple.of(
                     Objects.requireNonNullElse(parent, NULL),
                     name,
                     i);
 
-            TaskLink link = entityQueryService.getLink(node.linkId())
+            TaskLink link = entityQueryService.getLink(node.linkId());
+
+//            assertEquals(LocalTime.MAX, link.projectEtaLimit());
+
+            link
                     .createdAt(MARK)
                     .scheduledFor(MARK);
+
+//            assertEquals(LocalTime.MAX, link.projectEtaLimit());
 
             if (node.cron() != null) {
                 link.scheduledFor(node.cron().next(MARK));
             }
 
+//            assertEquals(LocalTime.MAX, node.projectEtaLimit());
+
             link = dataContext.TESTONLY_mergeLink(link);
             node = queryService.fetchNode(ID.of(link));
+
+            log.debug("Persisted task node {} with eta limit {}", node.name(), node.projectEtaLimit());
+//            assertEquals(LocalTime.MAX, node.projectEtaLimit());
 
             nodes.put(linkKey, node);
             links.put(linkKey, entityQueryService.getLink(node.linkId()));
@@ -269,10 +295,8 @@ public class TaskTestTemplate {
         }
         tags.put(tagName, tag);
         for (String taskToTag : tasksToTag) {
-            Task task = tasks.get(taskToTag);
-            Set<Tag> tags = new HashSet<>(task.tags());
-            tags.add(tag);
-            task.tags(tags);
+            taskTags.put(tasks.get(taskToTag).id(), tag);
+            TaskDTO task = new TaskDTO(tasks.get(taskToTag), taskTags.get(tasks.get(taskToTag).id()));
             changeService.execute(Request.of(new MergeChange<>(task)));
         }
     }
@@ -351,7 +375,7 @@ public class TaskTestTemplate {
                                         .project(true),
                                 new TaskNodeDTO()
                                         .cron(daily)
-                                        .projectDuration(Duration.ofMinutes(1))
+                                        .projectDurationLimit(Duration.ofMinutes(1))
                         ), Pair.of(
                                 new Task()
                                         .name(THREE_AND_FIVE)
@@ -359,21 +383,21 @@ public class TaskTestTemplate {
                                         .project(true),
                                 new TaskNodeDTO()
                                         .cron(weekly)
-                                        .projectDuration(Duration.ofMinutes(1))
+                                        .projectDurationLimit(Duration.ofMinutes(1))
                         ), Pair.of(
                                 new Task()
                                         .name(FOUR)
                                         .required(false)
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDuration(Duration.ofSeconds(1))
+                                        .projectDurationLimit(Duration.ofSeconds(1))
                         ),Pair.of(
                                 new Task()
                                         .name(THREE_AND_FIVE)
                                         .required(false)
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDuration(Duration.ofMinutes(5))
+                                        .projectDurationLimit(Duration.ofMinutes(5))
                                         .completed(true)
                         ), Pair.of(
                                 new Task()
@@ -399,7 +423,7 @@ public class TaskTestTemplate {
                                         .project(false),
                                 new TaskNodeDTO()
                                         .cron(afterTheTenth)
-                                        .projectDuration(Duration.ofMinutes(5))
+                                        .projectDurationLimit(Duration.ofMinutes(5))
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTHREE)

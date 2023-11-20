@@ -2,19 +2,16 @@ package com.trajan.negentropy.model.filter;
 
 import com.trajan.negentropy.model.id.TagID;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Accessors(fluent = true)
 @NoArgsConstructor
 @Getter
 @Setter
 @EqualsAndHashCode
-@ToString
 public class TaskTreeFilter implements Serializable {
     @ToString.Exclude
     private static final long serialVersionUID = 1L;
@@ -29,7 +26,7 @@ public class TaskTreeFilter implements Serializable {
     public static final String ONLY_REQUIRED = "Only Required";
     public static final String ONLY_PROJECTS = "Only Projects";
     public static final String ALWAYS_INCLUDE_PARENTS = "All Parents";
-    public static final String INNER_JOIN_INCLUDED_TAGS = "Inclusive Incl. Tags";
+    public static final String INNER_JOIN_INCLUDED_TAGS = "'AND' Tags";
 
     public TaskTreeFilter(String... options) {
         this.options.addAll(Set.of(options));
@@ -48,7 +45,7 @@ public class TaskTreeFilter implements Serializable {
         String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String opts = String.join(", ", options);
-        return "TaskTreeFilter{" +
+        return this.getClass().getSimpleName() + "{" +
                 "name='" + name + '\'' +
                 ", includedTagIds=[" + includedTags + "]" +
                 ", excludedTagIds=[" + excludedTags + "]" +

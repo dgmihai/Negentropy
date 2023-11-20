@@ -5,6 +5,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
@@ -33,8 +34,11 @@ public class TaskListBox extends MultiSelectListBox<Task> implements HasTaskNode
             }
 
             @Override
-            public Task getTask() {
-                return getValue().stream().findFirst().orElse(null);
+            public TaskDTO getTask() {
+                Task task = getValue().stream().findFirst().orElse(null);
+                return (task != null)
+                        ? new TaskDTO(task, controller.taskNetworkGraph().getTags(task.id()))
+                        : null;
             }
 
             @Override

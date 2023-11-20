@@ -2,7 +2,7 @@ package com.trajan.negentropy.client.components.quickcreate;
 
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Tag;
-import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.vaadin.flow.data.binder.Result;
@@ -25,12 +25,12 @@ public class QuickCreateParser {
     public static final String RECURRING = "rec";
     public static final String TOP = "top";
 
-    public static Pair<Task, TaskNodeInfoData<TaskNodeDTO>> parse(String input) throws ParseException {
+    public static Pair<TaskDTO, TaskNodeInfoData<TaskNodeDTO>> parse(String input) throws ParseException {
         logger.debug("Parsing " + input);
-        Task task = new Task()
-                .description("")
-                .duration(Duration.ZERO)
+        TaskDTO task = new TaskDTO()
                 .tags(new HashSet<>());
+        task.description("")
+            .duration(Duration.ZERO);
         TaskNodeInfoData<TaskNodeDTO> nodeDTO = new TaskNodeDTO()
                 .recurring(false);
 

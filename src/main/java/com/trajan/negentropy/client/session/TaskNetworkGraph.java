@@ -1,6 +1,8 @@
 package com.trajan.negentropy.client.session;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.MutableNetwork;
@@ -41,7 +43,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SpringComponent
@@ -66,6 +67,7 @@ public class TaskNetworkGraph {
     private Map<TaskID, Task> taskMap = new HashMap<>();
     private Map<LinkID, TaskNode> nodeMap = new HashMap<>();
     private Map<TagID, Tag> tagMap = new HashMap<>();
+    private Multimap<TaskID, Tag> taskTagMap = HashMultimap.create();
     private MultiValueMap<TaskID, LinkID> nodesByTaskMap = new LinkedMultiValueMap<>();
 
     private NetDurationInfo netDurationInfo;
@@ -89,6 +91,12 @@ public class TaskNetworkGraph {
         log.info("Initial sync id: {}", this.syncId.val());
         services.query().fetchDescendantNodes(null, null)
                 .forEach(this::addTaskNode);
+        services.query().fetchAllTags().forEach(tag -> {
+            tagMap.put(tag.id(), tag);
+            services.query().fetchTaskIdsByTagId(tag.id())
+                    .forEach(task -> taskTagMap.put(task, tagMap.get(tag.id())));
+        });
+
         if (settings != null) {
             this.syncNetDurations(this.syncId, settings.filter());
         } else {
@@ -115,8 +123,11 @@ public class TaskNetworkGraph {
     }
 
     public void refreshTags() {
-        tagMap = services.query().fetchAllTags().collect(Collectors.toMap(
-                Tag::id, tag -> tag));
+        services.query().fetchAllTags().forEach(tag -> {
+            tagMap.put(tag.id(), tag);
+            services.query().fetchTaskIdsByTagId(tag.id())
+                    .forEach(task -> taskTagMap.put(task, tagMap.get(tag.id())));
+        });
     }
 
     public int getChildCount(TaskID parentId, List<LinkID> filteredLinks, Integer offset, Integer limit) {
@@ -199,7 +210,7 @@ public class TaskNetworkGraph {
 
     public List<LinkID> getFilteredLinks(NestableTaskNodeTreeFilter filter) {
         log.debug("Getting filtered links with filter " + filter);
-        return (filter.nested())
+        return (filter != null && filter.nested() && filter.name() != null && !filter.name().isBlank())
                 ? services.query().fetchAllNodesNestedAsIds(filter).toList()
                 : services.query().fetchAllNodesAsIds(filter).toList();
     }
@@ -208,22 +219,26 @@ public class TaskNetworkGraph {
         if (syncId != this.syncId || this.netDurationInfo == null) {
             log.debug("Syncing net durations with filter " + filter);
             filterMap.clear();
-            this.netDurationInfo = filterMap.compute(NonSpecificTaskNodeTreeFilter.from(filter), (f, x) ->
+            this.netDurationInfo = filterMap.compute(NonSpecificTaskNodeTreeFilter.parse(filter), (f, x) ->
                     services.query().fetchNetDurationInfo(f));
         }
     }
 
     public void getNetDurations(TaskNodeTreeFilter filter) {
         log.debug("Getting net durations with filter " + filter);
-        this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.from(filter), f ->
+        this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
                 services.query().fetchNetDurationInfo(f));
+    }
+
+    public Set<Tag> getTags(TaskID task) {
+        return Set.copyOf(taskTagMap.get(task));
     }
 
     private Map<NonSpecificTaskNodeTreeFilter, NetDurationInfo> filterMap = new HashMap<>();
 
     public synchronized void sync(SyncRecord aggregateSyncRecord) {
         Stopwatch stopWatch = Stopwatch.createStarted();
-        if (this.syncId != aggregateSyncRecord.id()) {
+        if (!this.syncId.equals(aggregateSyncRecord.id())) {
             List<Change> changes = aggregateSyncRecord.changes();
             log.info("Syncing with sync id {}, {} changes, current sync id: {}",
                     aggregateSyncRecord.id(), changes.size(), this.syncId);
@@ -240,8 +255,8 @@ public class TaskNetworkGraph {
             // ID, Boolean = true to recurse through all children, false for only that single entry
             Map<LinkID, Boolean> pendingNodeRefresh = new HashMap<>();
             boolean refreshAll = false;
+            boolean refreshTags = false;
 
-            log.debug("MARK 1: {} ms", stopWatch.elapsed().toMillis());
             for (Change change : changes) {
                 if (change instanceof MergeChange<?> mergeChange) {
                     Object mergeData = mergeChange.data();
@@ -257,7 +272,7 @@ public class TaskNetworkGraph {
                         taskMap.put(node.task().id(), node.task());
                         pendingNodeRefresh.put(node.id(), false);
                     } else if (mergeData instanceof Tag) {
-                        this.refreshTags();
+                        refreshTags = true;
                     } else {
                         throw new IllegalStateException("Unexpected value: " + mergeChange.data());
                     }
@@ -272,18 +287,9 @@ public class TaskNetworkGraph {
                     } else if (persistData instanceof TaskNode node) {
                         log.debug("Got persisted node {}", node);
                         this.addTaskNode(node);
-                        pendingNodeRefresh.put(node.id(), false);
-                        TaskID parentId = node.parentId();
-                        if (parentId != null) {
-                            for (LinkID linkId : this.nodesByTaskMap().getOrDefault(parentId, List.of())) {
-                                pendingNodeRefresh.put(linkId, false);
-                            }
-                        } else {
-                            refreshAll = true;
-                            break;
-                        }
+                        refreshAll = true;
                     } else if (persistData instanceof Tag) {
-                        this.refreshTags();
+                        refreshTags = true;
                     } else {
                         throw new IllegalStateException("Unexpected value: " + persist.data());
                     }
@@ -294,26 +300,10 @@ public class TaskNetworkGraph {
                         this.removeTask(taskId);
                     } else if (deleteData instanceof LinkID linkId) {
                         log.debug("Got deleted node {}", linkId);
-                        TaskNode deletedNode = nodeMap.getOrDefault(linkId, null);
-                        if (deletedNode == null) {
-                            log.warn("Deleted node {} not found in node map", linkId);
-                            // Refresh all nodes
-                            refreshAll = true;
-                            break;
-                        } else {
-                            TaskID parentId = deletedNode.parentId();
-                            if (parentId != null) {
-                                for (LinkID lid : this.nodesByTaskMap().getOrDefault(parentId, List.of())) {
-                                    pendingNodeRefresh.put(lid, true);
-                                }
-                            } else {
-                                refreshAll = true;
-                                break;
-                            }
-                        }
                         this.removeTaskNode(linkId);
+                        refreshAll = true;
                     } else if (deleteData instanceof TagID) {
-                        this.refreshTags();
+                        refreshTags = true;
                     } else {
                         throw new IllegalStateException("Unexpected value: " + deleteChange.data());
                     }
@@ -324,13 +314,16 @@ public class TaskNetworkGraph {
                 this.syncId(aggregateSyncRecord.id());
             }
 
-            log.debug("MARK 2: {} ms", stopWatch.elapsed().toMillis());
+            if (refreshTags) {
+                this.refreshTags();
+            }
+
             if (refreshAll) {
                 taskEntryDataProvider.refreshAll();
             } else {
                 taskEntryDataProvider.refreshNodes(pendingNodeRefresh);
             }
-            log.debug("MARK 3: {} ms", stopWatch.elapsed().toMillis());
+
             stopWatch.stop();
         } else {
             log.debug("No sync required, sync ID's match");

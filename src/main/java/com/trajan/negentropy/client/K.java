@@ -16,10 +16,11 @@ public class K {
     public static final String ICON_COLOR_GRAYED = "grayed-color-icon";
     public static final String ICON_COLOR_BRIGHT = "bright-color-icon";
 
+    public static final String BACKGROUND_COLOR_PRIMARY = "primary-color-10pct-background";
 
     public static final String QUICK_CREATE = "Quick Create";
 
-    public static final String GRID_PARTNAME_REQUIRED = "required-task";
+    public static final String GRID_PARTNAME_FUTURE = "future-task";
     public static final String GRID_PARTNAME_COMPLETED = "completed-node";
     public static final String GRID_PARTNAME_RECURRING = "recurring-node";
     public static final String GRID_PARTNAME_PROJECT = "project-task";

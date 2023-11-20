@@ -29,7 +29,7 @@ import java.util.Set;
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
 @Slf4j
-public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity, TagEntity>, HasDuration, TaskOrTaskLinkEntity {
+public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, HasDuration, TaskOrTaskLinkEntity {
 
     @Id
     @Column(nullable = false, updatable = false)

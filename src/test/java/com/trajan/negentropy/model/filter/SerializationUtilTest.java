@@ -27,7 +27,7 @@ class SerializationUtilTest {
     @Test
     void testSerialization() throws Exception {
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
-                .durationLimit(Duration.ofHours(3))
+//                .durationLimit(Duration.ofHours(3))
                 .name("test")
                 .completed(false)
                 .availableAtTime(LocalDateTime.now());

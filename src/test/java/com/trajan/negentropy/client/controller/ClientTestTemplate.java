@@ -4,10 +4,12 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
@@ -35,7 +37,8 @@ public class ClientTestTemplate extends TaskTestTemplate {
     void assertTaskInserted(int position, String parent, TaskNode resultNode) {
         TaskLink resultLink = entityQueryService.getLink(resultNode.linkId());
         assertEquals(TEST_TASK_NAME, resultLink.child().name());
-        assertEquals(TEST_TAG.name(), resultLink.child().tags().stream().findFirst().get().name());
+        assertEquals(TEST_TAG.name(), queryService.fetchTags(ID.of(resultLink.child()))
+                .findFirst().get().name());
         assertEquals(parent,
                 resultLink.parent() != null
                         ? resultLink.parent().name()
@@ -57,10 +60,10 @@ public class ClientTestTemplate extends TaskTestTemplate {
         }
 
         @Override
-        public Task getTask() {
-            return new Task()
-                    .name(TEST_TASK_NAME)
-                    .tags(Set.of(TEST_TAG));
+        public TaskDTO getTask() {
+            TaskDTO task = new TaskDTO();
+            task.tags(Set.of(TEST_TAG)).name(TEST_TASK_NAME);
+            return task;
         }
 
         @Override
@@ -144,6 +147,11 @@ public class ClientTestTemplate extends TaskTestTemplate {
             }
             afterFailedSaveCallbacks.forEach(Runnable::run);
             return null;
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
         }
     }
 }

@@ -9,7 +9,7 @@ import java.util.Set;
 public interface HasTaskData {
     Task task();
 
-    interface TaskTemplateData<TASK extends TaskTemplateData<TASK, TAG>, TAG extends TagData<TAG>>
+    interface TaskTemplateData<TASK extends TaskTemplateData<TASK>>
             extends Data {
         TASK description(String description);
         String description();
@@ -21,12 +21,16 @@ public interface HasTaskData {
         Boolean project();
         TASK difficult(Boolean difficult);
         Boolean difficult();
+    }
+
+    interface TaskTemplateDataWithTags<TASK extends TaskTemplateDataWithTags<TASK, TAG>, TAG extends TagData<TAG>>
+            extends TaskTemplateData<TASK> {
         TASK tags(Set<TAG> tags);
         Set<TAG> tags();
     }
 
-    interface TaskData<TASK extends TaskData<TASK, TAG>, TAG extends TagData<TAG>>
-            extends TaskTemplateData<TASK, TAG>, Named {
+    interface TaskData<TASK extends TaskData<TASK>>
+            extends TaskTemplateData<TASK>, Named {
         TASK name(String name);
 
         default String typeName() {

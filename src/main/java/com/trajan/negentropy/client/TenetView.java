@@ -29,9 +29,9 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @PageTitle("Tenets")
-@UIScope
 @Route(value = "tenets", layout = MainLayout.class)
 @Uses(Icon.class)
+@UIScope
 public class TenetView extends VerticalLayout {
     @Autowired private SessionServices services;
 

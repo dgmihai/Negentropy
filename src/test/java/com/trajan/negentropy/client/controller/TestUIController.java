@@ -13,7 +13,12 @@ public class TestUIController extends UIController {
     public static class TestTaskNetworkGraph extends TaskNetworkGraph {
         TestTaskNetworkGraph(SessionServices services) {
             this.services = services;
-            this.taskEntryDataProvider = new TaskEntryDataProvider();
+            this.taskEntryDataProvider = new TaskEntryDataProvider() {
+                @Override
+                public void refreshAll() {
+                    // Do nothing
+                }
+            };
             init();
         }
     }

@@ -12,7 +12,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractTimer extends Component implements HasSize, HasStyle, Serializable {
+public abstract class AbstractTimer <T extends Timeable> extends Component implements HasSize, HasStyle, Serializable {
     private static final long serialVersionUID = 1L;
     protected static final String DISPLAY = "display";
     protected static final String INLINE = "inline";
@@ -21,9 +21,9 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
     protected static final String IS_RUNNING = "isRunning";
     protected static final String IS_ACTIVE = "isActive";
 
-    protected Timeable timeable;
+    protected T timeable;
 
-    public AbstractTimer(Timeable timeable) {
+    public AbstractTimer(T timeable) {
         getElement().getStyle().set(DISPLAY, INLINE);
         setTimeable(timeable);
     }
@@ -86,7 +86,7 @@ public abstract class AbstractTimer extends Component implements HasSize, HasSty
         getStyle().set(DISPLAY, visible ? INLINE : "none");
     }
 
-    public void setTimeable(Timeable timeable) {
+    public void setTimeable(T timeable) {
         this.reset();
         this.timeable = timeable;
     }

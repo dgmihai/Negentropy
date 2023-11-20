@@ -2,25 +2,36 @@ package com.trajan.negentropy.client;
 
 import com.trajan.negentropy.client.components.appnav.AppNav;
 import com.trajan.negentropy.client.components.appnav.AppNavItem;
+import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormDialog;
+import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.util.SpringContext;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Footer;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Header;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import lombok.extern.slf4j.Slf4j;
+import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Left;
+import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Right;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
-@Slf4j
 public class MainLayout extends AppLayout {
+    private final UILogger log = new UILogger();
 
     private H2 viewTitle;
 
     public MainLayout() {
         setPrimarySection(Section.DRAWER);
+        UI.getCurrent().getPage().setTitle("Negentropy");
         addDrawerContent();
         addHeaderContent();
     }
@@ -32,7 +43,22 @@ public class MainLayout extends AppLayout {
         viewTitle = new H2();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
 
-        addToNavbar(false, toggle, viewTitle);
+        Button addTask = new Button(VaadinIcon.PLUS.create());
+        addTask.addClassName(LumoUtility.FontSize.LARGE);
+        addTask.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+        addTask.addClickListener(event -> {
+            Dialog newTaskDialog = new Dialog();
+
+            UIController controller = SpringContext.getBean(UIController.class);
+
+            newTaskDialog.setHeaderTitle("Add Task");
+            newTaskDialog.add(new TaskNodeInfoFormDialog(newTaskDialog, controller));
+            newTaskDialog.open();
+        });
+
+        addTask.addClassNames(Left.AUTO, Right.SMALL);
+
+        addToNavbar(false, toggle, viewTitle, addTask);
     }
 
     private void addDrawerContent() {
@@ -60,9 +86,7 @@ public class MainLayout extends AppLayout {
     }
 
     private Footer createFooter() {
-        Footer layout = new Footer();
-
-        return layout;
+        return new Footer();
     }
 
     @Override

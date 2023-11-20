@@ -68,7 +68,8 @@ class ETATimer extends PolymerElement {
 
   _formatTime(time, timeZone = 'default') {
     // Hours are off by one for some reason?
-    time.setHours(time.getHours() + 1);
+    // UPDATE: Fucking daylight savings
+    // time.setHours(time.getHours() + 1);
 
     const options = {
       hour: 'numeric',

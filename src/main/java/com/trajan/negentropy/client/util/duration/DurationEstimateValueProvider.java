@@ -67,7 +67,7 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
             // TODO: Account for settings?
             case NET_DURATION -> taskNetworkGraph.netDurationInfo().netNodeDurations().get(node.id());
             case TASK_DURATION -> node.task().duration();
-//            case PROJECT_DURATION -> node.projectDuration();
+//            case PROJECT_DURATION -> node.projectDurationLimit();
         };
 
         if (duration == null) return "";

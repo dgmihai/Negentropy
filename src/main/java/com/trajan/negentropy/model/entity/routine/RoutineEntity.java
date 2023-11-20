@@ -16,7 +16,6 @@ import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,29 +59,16 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
     }
 
     @Override
-    public RoutineStepEntity rootStep() {
-        return children.get(0);
-    }
-
-    public List<RoutineStepEntity> getAllChildren() {
-        return DFSUtil.traverse(children.get(0));
-    }
-
     public RoutineStepEntity currentStep() {
-        return getAllChildren().get(currentPosition);
+        return (RoutineStepEntity) RoutineData.super.currentStep();
     }
 
     @Override
-    public LocalDateTime startTime() {
-        return rootStep().startTime();
-    }
-
-    @Override
-    public LocalDateTime finishTime() {
-        return rootStep().finishTime();
-    }
-
-    public int countSteps() {
-        return getAllChildren().size();
+    public List<RoutineStepEntity> getDescendants() {
+        List<RoutineStepEntity> descendants = new ArrayList<>();
+        for (RoutineStepEntity child : children) {
+            descendants.addAll(DFSUtil.traverse(child));
+        }
+        return descendants;
     }
 }

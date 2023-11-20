@@ -112,6 +112,10 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(Q_LINK.scheduledFor.loe(filter.availableAtTime() != null
                         ? filter.availableAtTime()
                         : LocalDateTime.now()));
+                // TODO: Filter by eta limit as well
+//                builder.and(Q_LINK.projectEtaLimit.after(filter.availableAtTime() != null
+//                        ? filter.availableAtTime().toLocalTime()
+//                        : LocalTime.now()));
             }
 
             if (filter.completed() != null) {
@@ -474,7 +478,7 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 //        TaskLink next = descendantStack.poll();
 //        while (next != null) {
 //            durationSum = task.project()
-//                    ? durationSum.plus(next.projectDuration())
+//                    ? durationSum.plus(next.projectDurationLimit())
 //                    : durationSum.plus(next.child().duration());
 //            cachedTotalDurations.put(ID.of(next.child()), durationSum);
 //            next = descendantStack.poll();

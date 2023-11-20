@@ -29,7 +29,7 @@ public class TaskInfoBar extends Details {
 
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    public TaskInfoBar(RoutineStep step, RoutineCard parent, boolean withButtons) {
+    public TaskInfoBar(RoutineStep step, RoutineCard parent, boolean withContent) {
         super();
         this.parent = parent;
         controller = parent.controller();
@@ -56,7 +56,7 @@ public class TaskInfoBar extends Details {
         upper.setWidthFull();
         upper.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
-        if (withButtons) {
+        if (withContent) {
             VerticalLayout lower = new VerticalLayout(description);
             lower.setWidthFull();
             lower.setSpacing(false);

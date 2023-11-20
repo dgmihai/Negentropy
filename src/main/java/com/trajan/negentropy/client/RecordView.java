@@ -30,9 +30,9 @@ import java.util.Set;
 
 
 @PageTitle("Records")
-@UIScope
 @Route(value = "records", layout = MainLayout.class)
 @Uses(Icon.class)
+@UIScope
 public class RecordView extends VerticalLayout {
     private final UILogger log = new UILogger();
 

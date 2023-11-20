@@ -18,28 +18,33 @@ public class TimeableUtil {
     }
 
     public Duration getElapsedActiveDuration(Timeable timeable, LocalDateTime time) {
-        Duration elapsedSuspendedDuration = timeable.elapsedSuspendedDuration() != null
-                ? timeable.elapsedSuspendedDuration()
-                : Duration.ZERO;
-        return switch (timeable.status()) {
-            case NOT_STARTED:
-                yield Duration.ZERO;
-            case ACTIVE:
-                yield timeable.startTime() != null
-                        ? Duration.between(timeable.startTime(), time)
-                            .minus(elapsedSuspendedDuration)
-                        : Duration.between(timeable.startTime(), time);
-            case COMPLETED, POSTPONED, EXCLUDED:
-                yield timeable.startTime() != null
-                        ? Duration.between(timeable.startTime(), timeable.finishTime())
-                            .minus(elapsedSuspendedDuration)
-                        : Duration.ZERO;
-            case SUSPENDED, SKIPPED:
-                yield timeable.startTime() != null
-                        ? Duration.between(timeable.startTime(), timeable.lastSuspendedTime())
-                            .minus(elapsedSuspendedDuration)
-                        : Duration.ZERO;
-        };
+        try {
+            Duration elapsedSuspendedDuration = timeable.elapsedSuspendedDuration() != null
+                    ? timeable.elapsedSuspendedDuration()
+                    : Duration.ZERO;
+            return switch (timeable.status()) {
+                case NOT_STARTED:
+                    yield Duration.ZERO;
+                case ACTIVE:
+                    yield timeable.startTime() != null
+                            ? Duration.between(timeable.startTime(), time)
+                                .minus(elapsedSuspendedDuration)
+                            : Duration.between(timeable.startTime(), time);
+                case COMPLETED, POSTPONED, EXCLUDED:
+                    yield timeable.startTime() != null
+                            ? Duration.between(timeable.startTime(), timeable.finishTime())
+                                .minus(elapsedSuspendedDuration)
+                            : Duration.ZERO;
+                case SUSPENDED, SKIPPED:
+                    yield timeable.startTime() != null
+                            ? Duration.between(timeable.startTime(), timeable.lastSuspendedTime())
+                                .minus(elapsedSuspendedDuration)
+                            : Duration.ZERO;
+            };
+        } catch (NullPointerException e) {
+            log.error("Error getting elapsed active duration for: " + timeable, e);
+            return Duration.ZERO;
+        }
     }
 
     public Duration getRemainingDuration(Timeable timeable, LocalDateTime time) {
@@ -54,12 +59,16 @@ public class TimeableUtil {
     }
 
     public Duration getRemainingNetDuration(RoutineStep step, LocalDateTime time) {
+        return this.getRemainingNetDuration(step, time, false);
+    }
+
+    public Duration getRemainingNetDuration(RoutineStep step, LocalDateTime time, boolean allowNegative) {
         return switch (step.status()) {
             case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED:
                 yield DFSUtil.traverse(step).stream()
                         .map(s -> {
                             Duration remaining = getRemainingDuration(s, time);
-                            return remaining.isNegative() ? Duration.ZERO : remaining;
+                            return remaining.isNegative() && !allowNegative ? Duration.ZERO : remaining;
                         })
                         .reduce(Duration.ZERO, Duration::plus);
             case COMPLETED, EXCLUDED, POSTPONED:

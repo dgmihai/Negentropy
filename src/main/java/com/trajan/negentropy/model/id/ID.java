@@ -1,5 +1,6 @@
 package com.trajan.negentropy.model.id;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -8,18 +9,22 @@ import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
-@Accessors(fluent = true)
 @Getter
 @AllArgsConstructor
 @EqualsAndHashCode
 public abstract class ID implements Serializable {
+
     protected final long val;
 
-    public interface TaskOrLinkID {}
+    @EqualsAndHashCode(callSuper = true)
+    public static abstract class TaskOrLinkID extends ID {
+        public TaskOrLinkID(long val) {
+            super(val);
+        }
+    };
 
     public static TaskID of(TaskEntity taskEntity) {
         return taskEntity == null ?
@@ -68,6 +73,7 @@ public abstract class ID implements Serializable {
     }
 
     @Override
+    @JsonValue
     public String toString() {
         return this.getClass().getSimpleName() + "(" + val +")";
     }

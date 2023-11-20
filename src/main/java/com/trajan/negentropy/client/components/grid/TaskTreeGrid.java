@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.grid;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
@@ -18,6 +19,7 @@ import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider.DurationType;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.id.ID;
@@ -58,10 +60,8 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import java.util.*;
@@ -73,9 +73,8 @@ import java.util.stream.Collectors;
 
 @SpringComponent
 @RouteScope
-@Scope("prototype")
-@Accessors(fluent = true)
 @Getter
+@Benchmark(millisFloor = 10)
 public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements HasRootNode {
     private final UILogger log = new UILogger();
 
@@ -303,10 +302,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             tagComboBox.setClassName("grid-combo-box");
                             tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
                             tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
-                            tagComboBox.setValue(t.task().tags());
+                            tagComboBox.setValue(taskNetworkGraph.taskTagMap().get(t.task().id()));
                             tagComboBox.addValueChangeListener(event ->
                                     controller.requestChangeAsync(new MergeChange<>(
-                                            new Task(t.task().id())
+                                            new TaskDTO(t.task().id())
                                                     .tags(event.getValue())),
                                             this));
                             return tagComboBox;
@@ -318,7 +317,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setClassName("tag-column");
 
                 case TAGS -> treeGrid.addColumn(
-                                t -> t.task().tags().stream()
+                                t -> taskNetworkGraph.taskTagMap().get(t.task().id()).stream()
                                         .map(Tag::name)
                                         .collect(Collectors.joining(" | ")))
                         .setKey(ColumnKey.TAGS.toString())

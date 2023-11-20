@@ -10,6 +10,7 @@ import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.SaveEventListener;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
+import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
@@ -35,9 +36,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
@@ -48,29 +47,27 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected Checkbox requiredCheckbox;
     protected Checkbox projectCheckbox;
     protected TextArea descriptionArea;
-    protected ComboBox<Task> projectComboBox;
+    @Getter protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
     protected HorizontalLayout taskInfoLayout;
     protected HorizontalLayout nodeInfoLayout;
 
     // Link Only
     protected CronSpan cronSpan;
-    protected TextField projectDurationField;
     protected Checkbox recurringCheckbox;
 
-    protected Button saveButton;
+    @Getter protected Button saveButton;
     protected Button clearButton;
 
     protected SaveEventListener<DataMapResponse> saveEventListener;
 
-    @Getter
-    protected Checkbox saveAsLastCheckbox;
-    protected Select<String> onSaveSelect;
+    @Getter protected Checkbox saveAsLastCheckbox;
+    @Getter protected Select<String> onSaveSelect;
 
     @Getter
     protected UIController controller;
 
-    public abstract TaskNodeProvider getTaskNodeProvider();
+    public abstract FormTaskNodeProvider getTaskNodeProvider();
 
     @Getter
     protected ClearEventListener clearEventListener = new ClearEventListener() {
@@ -83,6 +80,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     @Getter
     @Setter
     protected Runnable onClose = () -> {};
+
+    protected Set<Tag> tags = new HashSet<>();
 
     public AbstractTaskFormLayout(UIController controller) {
         this.controller = controller;
@@ -102,9 +101,12 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         nameField.setPlaceholder("Name *");
         nameField.setValueChangeMode(ValueChangeMode.LAZY);
         nameField.setRequired(true);
+        nameField.setClearButtonVisible(true);
+        this.addAttachListener(e -> nameField.focus());
 
         durationField = new DurationTextField();
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
+        durationField.setClearButtonVisible(true);
         durationField.setRequired(true);
 
         requiredCheckbox = new Checkbox("Required");
@@ -113,6 +115,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
         descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+        descriptionArea.setClearButtonVisible(true);
 
         saveButton = new Button();
         setSaveButtonText(null);
@@ -129,7 +132,6 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setPlaceholder("Add directly to project");
         projectComboBox.setVisible(false);
         projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
-
 
         clearButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
@@ -155,6 +157,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
     public void clear() {
         this.clearEventListener().clear();
+        this.tags.clear();
     }
 
     protected void configureInteractions() {
@@ -225,4 +228,15 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     }
 
     protected abstract void initLayout();
+
+    public abstract class FormTaskNodeProvider extends TaskNodeProvider {
+        public FormTaskNodeProvider(UIController controller) {
+            super(controller);
+        }
+
+        @Override
+        public boolean isValid() {
+            return !nameField.isEmpty();
+        }
+    }
 }

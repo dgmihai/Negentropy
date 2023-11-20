@@ -2,9 +2,8 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
-import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.vaadin.flow.component.html.Hr;
@@ -16,11 +15,11 @@ import lombok.Getter;
 public class RoutineStepFormLayout extends AbstractTaskFormLayout {
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
-    private final TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
+    private final FormTaskNodeProvider taskNodeProvider = new FormTaskNodeProvider(controller) {
         @Override
-        public Task getTask() {
+        public TaskDTO getTask() {
             return isValid()
-                    ? binder().getBean().task()
+                    ? new TaskDTO(binder().getBean().task(), tags)
                     : null;
         }
 
@@ -33,7 +32,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
 
         @Override
         public boolean isValid() {
-            return binder.isValid();
+            return super.isValid() && binder.isValid();
         }
     };
 
@@ -49,7 +48,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
     }
 
     @Override
-    public TaskNodeProvider getTaskNodeProvider() {
+    public FormTaskNodeProvider getTaskNodeProvider() {
         return taskNodeProvider;
     }
 
@@ -88,12 +87,12 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
                         (node, description) -> node.task().description(description));
 
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
-                binder.getBean().task().tags().add(tag));
+                tags.add(tag));
 
         binder.forField(tagComboBox)
                 .bind(
-                        node -> node.task().tags(),
-                        (node, tags) -> node.task().tags(tags));
+                        node -> controller.taskNetworkGraph().getTags(node.task().id()),
+                        (node, tags) -> this.tags = tags);
 
         onSaveSelect.setVisible(false);
         saveAsLastCheckbox.setVisible(false);

@@ -38,16 +38,16 @@ public class NetDurationHelperManager {
     private final Map<NonSpecificTaskNodeTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
     public synchronized NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
-        NonSpecificTaskNodeTreeFilter nonNullFilter = NonSpecificTaskNodeTreeFilter.from(filter);
+        NonSpecificTaskNodeTreeFilter indexableFilter = NonSpecificTaskNodeTreeFilter.parse(filter);
 
-        log.debug("Getting helper for filter: " + nonNullFilter);
+        log.debug("Getting helper for filter: " + indexableFilter);
 
-        if (helpers.containsKey(nonNullFilter)) {
+        if (helpers.containsKey(indexableFilter)) {
             log.debug("Existing helper found");
-            return helpers.get(nonNullFilter);
+            return helpers.get(indexableFilter);
         }
 
-        return helpers.computeIfAbsent(nonNullFilter, f -> {
+        return helpers.computeIfAbsent(indexableFilter, f -> {
                 NetDurationHelper helper = SpringContext.getBean(NetDurationHelper.class);
                 return helper.filter(f);
         });
@@ -82,7 +82,7 @@ public class NetDurationHelperManager {
         for (TaskEntity task : entityQueryService.findTasks(null).toList()) {
             List<Duration> durations = entityQueryService.findDescendantLinks(ID.of(task), null)
                     .map(link -> link.child().project()
-                            ? link.projectDuration()
+                            ? link.projectDurationLimit()
                             : link.child().duration())
                     .toList();
 

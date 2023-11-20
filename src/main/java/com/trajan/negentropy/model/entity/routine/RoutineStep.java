@@ -1,5 +1,6 @@
 package com.trajan.negentropy.model.entity.routine;
 
+import com.fasterxml.jackson.annotation.*;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.HasTaskData;
@@ -17,12 +18,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = RoutineStep.RoutineTaskStep.class, name = "RoutineTaskStep"),
+        @JsonSubTypes.Type(value = RoutineStep.RoutineNodeStep.class, name = "RoutineNodeStep")
+})
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
+@Getter(onMethod_={@JsonProperty})
 @Setter
 @ToString
-public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepData<RoutineStep>, HasTaskData, MayHaveTaskNodeData {
+public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepData<RoutineStep>, HasTaskData,
+        MayHaveTaskNodeData {
     protected StepID id;
 
     protected RoutineID routineId;
@@ -61,8 +69,10 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
     abstract public Optional<TaskNode> nodeOptional();
     abstract public RoutineStep node(TaskNode node);
 
-    @Getter
+    @JsonTypeName("RoutineTaskStep")
+    @Getter(onMethod_={@JsonProperty})
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class RoutineTaskStep extends RoutineStep {
         private Task task;
 
@@ -89,8 +99,10 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
         }
     }
 
-    @Getter
+    @JsonTypeName("RoutineNodeStep")
+    @Getter(onMethod_={@JsonProperty})
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class RoutineNodeStep extends RoutineStep implements HasTaskNodeData {
         private TaskNode node;
 

@@ -30,7 +30,7 @@
       var(--lumo-secondary-text-color);
 }
 
-vaadin-grid::part(required-task) {
+vaadin-grid::part(future-task) {
     font-style:
         oblique;
 }

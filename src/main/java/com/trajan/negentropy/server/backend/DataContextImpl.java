@@ -1,9 +1,10 @@
 package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.LinkedListMultimap;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.*;
-import com.trajan.negentropy.model.data.HasTaskData.TaskTemplateData;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,11 +78,14 @@ public class DataContextImpl implements DataContext {
 //            }
         }
 
-        Set<TagEntity> tagEntities = task.tags() == null ?
-                tagRepository.findByTasks(taskEntity).collect(Collectors.toSet()) :
-                task.tags().stream()
-                        .map(this::mergeTag)
-                        .collect(Collectors.toSet());
+        if (task instanceof TaskDTO taskDTO) {
+            Set<TagEntity> tagEntities = taskDTO.tags() == null ?
+                    tagRepository.findByTasks(taskEntity).collect(Collectors.toSet()) :
+                    taskDTO.tags().stream()
+                            .map(this::mergeTag)
+                            .collect(Collectors.toSet());
+            taskEntity.tags(tagEntities);
+        }
 
         taskEntity
                 .name(Objects.requireNonNullElse(
@@ -96,16 +101,15 @@ public class DataContextImpl implements DataContext {
                 .difficult(Objects.requireNonNullElse(
                         task.difficult(), taskEntity.difficult()))
                 .childLinks(taskEntity.childLinks())
-                .parentLinks(taskEntity.parentLinks())
-                .tags(tagEntities);
+                .parentLinks(taskEntity.parentLinks());
 
         log.debug("Merged task: " + taskEntity);
         return taskEntity;
     }
 
     @Override
-    public TaskEntity mergeTaskTemplate(TaskID id, TaskTemplateData<Task, Tag> template) {
-        Task task = new Task(
+    public TaskEntity mergeTaskTemplate(TaskID id, TaskDTO template) {
+        TaskDTO task = new TaskDTO(
                 id,
                 null,
                 template.description(),
@@ -116,7 +120,6 @@ public class DataContextImpl implements DataContext {
                 template.tags());
         return this.mergeTask(task);
     }
-
 
     @Override
     public TaskLink mergeNode(TaskNode node) {
@@ -141,9 +144,15 @@ public class DataContextImpl implements DataContext {
                         node.recurring(), linkEntity.recurring()))
                 .completed(Objects.requireNonNullElse(
                         node.completed(), linkEntity.completed()))
-                .projectDuration(Optional.ofNullable(
-                        node.projectDuration())
-                        .orElse(linkEntity.projectDuration()))
+                .projectDurationLimit(Optional.ofNullable(
+                        node.projectDurationLimit())
+                        .orElse(linkEntity.projectDurationLimit()))
+                .projectStepCountLimit(Optional.ofNullable(
+                        node.projectStepCountLimit())
+                        .orElse(linkEntity.projectStepCountLimit()))
+                .projectEtaLimit(Optional.ofNullable(
+                        node.projectEtaLimit())
+                        .orElse(linkEntity.projectEtaLimit()))
                 .positionFrozen(Objects.requireNonNullElse(
                         node.positionFrozen(), linkEntity.positionFrozen()));
 
@@ -268,7 +277,9 @@ public class DataContextImpl implements DataContext {
                     : node.cron().next(now);
         }
 
-        Duration projectDuration = Objects.requireNonNullElse(node.projectDuration(), Duration.ZERO);
+        Duration projectDurationLimit = Objects.requireNonNullElse(node.projectDurationLimit(), TaskLink.DEFAULT_PROJECT_DURATION_LIMIT);
+        Integer projectStepCountLimit = Objects.requireNonNullElse(node.projectStepCountLimit(), TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT);
+        LocalTime projectEtaLimit = Objects.requireNonNullElse(node.projectEtaLimit(), TaskLink.DEFAULT_PROJECT_ETA_LIMIT);
 
         TaskLink link = linkRepository.save(new TaskLink(
                 null,
@@ -282,7 +293,9 @@ public class DataContextImpl implements DataContext {
                 recurring,
                 cron,
                 scheduledFor,
-                projectDuration));
+                projectDurationLimit,
+                projectStepCountLimit,
+                projectEtaLimit.toString()));
 
         if (parent != null) {
             try {
@@ -313,7 +326,9 @@ public class DataContextImpl implements DataContext {
                 nodeTemplate.recurring(),
                 nodeTemplate.cron(),
                 link.scheduledFor(),
-                link.projectDuration()));
+                link.projectDurationLimit(),
+                link.projectStepCountLimit(),
+                link.projectEtaLimit()));
     }
 
 
@@ -434,11 +449,14 @@ public class DataContextImpl implements DataContext {
                 taskEntity.duration(),
                 taskEntity.required(),
                 taskEntity.project(),
-                taskEntity.difficult(),
-                new HashSet<>());
-//                tagRepository.findByTasksId(taskEntity.id())
-//                        .map(this::toDO)
-//                        .collect(Collectors.toSet()));
+                taskEntity.difficult());
+    }
+
+    @Override
+    public TaskDTO toDTO(TaskEntity taskEntity) {
+        return new TaskDTO(toDO(taskEntity), tagRepository.findByTasksId(taskEntity.id())
+                .map(this::toDO)
+                .collect(Collectors.toSet()));
     }
 
     @Override
@@ -455,25 +473,33 @@ public class DataContextImpl implements DataContext {
                 link.recurring(),
                 link.cron(),
                 link.scheduledFor(),
-                link.projectDuration());
+                link.projectDurationLimit(),
+                link.projectStepCountLimit(),
+                link.projectEtaLimit());
     }
 
     @Override
     public Routine toDO(RoutineEntity routineEntity) {
-        Map<StepID, RoutineStep> steps = routineEntity.getAllChildren().stream()
-                .map(this::toDO)
-                .collect(Collectors.toMap(
-                        RoutineStep::id,
-                        step -> step));
+        LinkedList<RoutineStep> children = new LinkedList<>();
+        LinkedListMultimap<StepID, StepID> adjacencyMap = LinkedListMultimap.create();
+        Map<StepID, RoutineStep> stepMap = new HashMap<>();
 
-        List<StepID> childrenIds = routineEntity.children().stream()
-                .map(ID::of)
-                .toList();
+        routineEntity.children().forEach(child -> {
+            children.add(this.toDO(child));
+        });
+
+        routineEntity.getDescendants().stream()
+                .map(this::toDO)
+                .forEach(step -> {
+                    stepMap.put(step.id(), step);
+                    adjacencyMap.put(step.parentId(), step.id());
+                });
 
         return new Routine(
                 ID.of(routineEntity),
-                steps,
-                childrenIds,
+                stepMap,
+                adjacencyMap,
+                children,
                 routineEntity.currentPosition(),
                 routineEntity.status(),
                 routineEntity.autoSync(),

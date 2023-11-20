@@ -2,7 +2,9 @@ package com.trajan.negentropy.model.id;
 
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 
-public class TaskID extends ID implements TaskOrLinkID {
+import java.io.Serializable;
+
+public class TaskID extends TaskOrLinkID implements Serializable {
     public TaskID(long val) {
         super(val);
     }

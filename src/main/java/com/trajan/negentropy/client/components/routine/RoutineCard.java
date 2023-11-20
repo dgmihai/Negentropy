@@ -6,7 +6,6 @@ import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.logger.UILogger;
-import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
@@ -140,20 +139,25 @@ public class RoutineCard extends VerticalLayout {
         this.removeAll();
         this.getElement().setAttribute("active", isActive());
 
-        Span completed;
-        if (routine.rootStep().startTime() == null) {
-            NotificationMessage.error("Start at least one step in a routine before completing!");
-            completed = new Span(routine.status().toString() + " '" + routine.name() + "!");
+        Span finalStatus;
+        if (routine.startTime() == null) {
+            finalStatus = new Span(routine.status().toString() + " '" + routine.name() + "'");
         } else {
-            completed = new Span(routine.status().toString() + " '" + routine.name() + "' in " +
-                    DurationConverter.toPresentation(Duration.between(
-                            routine.rootStep().startTime(),
-                            routine.finishTime()))
-                    + "!");
+            if (routine.startTime() != null && routine.finishTime() != null) {
+                log.debug("Routine start time: " + routine.startTime());
+                log.debug("Routine finish time: " + routine.finishTime());
+                finalStatus = new Span(routine.status().toString() + " '" + routine.name() + "' in " +
+                        DurationConverter.toPresentation(Duration.between(
+                                routine.startTime(),
+                                routine.finishTime()))
+                        + "!");
+            } else {
+                finalStatus = new Span(routine.status().toString() + " '" + routine.name() + "'");
+            }
         }
 
-        completed.addClassName("name");
-        this.add(completed);
+        finalStatus.addClassName("name");
+        this.add(finalStatus);
     }
 
     private void setCardSkipped() {
@@ -182,8 +186,7 @@ public class RoutineCard extends VerticalLayout {
         }
 
         if (nestedTaskInfoBars.isEmpty()) {
-            nestedTaskInfoBars.addAll(new TaskInfoBar(current, this, false)
-                    .getContent().toList());
+            nestedTaskInfoBars.add(new TaskInfoBar(current, this, false));
         }
     }
 
@@ -275,6 +278,7 @@ public class RoutineCard extends VerticalLayout {
 
         currentTaskName.addClassName("name");
         timer.addClassName("name");
+        timer.addClassName("name-timer");
 
         HorizontalLayout header = new HorizontalLayout();
         header.addClassName("header");

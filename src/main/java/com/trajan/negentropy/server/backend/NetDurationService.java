@@ -131,7 +131,7 @@ public class NetDurationService {
     public synchronized Duration getNetDuration(TaskLink link, TaskNodeTreeFilter filter) {
         NonSpecificTaskNodeTreeFilter nonNullFilter = filter == null
                 ? new NonSpecificTaskNodeTreeFilter()
-                : NonSpecificTaskNodeTreeFilter.from(filter);
+                : NonSpecificTaskNodeTreeFilter.parse(filter);
 
         NetDurationHelper helper = helpers.computeIfAbsent(nonNullFilter, f ->
                 helperManager.getHelper(nonNullFilter)

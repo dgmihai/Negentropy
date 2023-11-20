@@ -11,6 +11,9 @@ public interface RoutineStepData <T extends RoutineStepData<T>> extends Ancestor
     TimeableStatus status();
     LocalDateTime lastSuspendedTime();
     Duration elapsedSuspendedDuration();
+    LocalDateTime startTime();
+    LocalDateTime finishTime();
+    String name();
 
     default String typeName() {
         return "Routine Step";

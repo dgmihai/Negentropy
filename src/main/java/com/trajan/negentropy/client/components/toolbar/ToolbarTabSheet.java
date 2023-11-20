@@ -3,8 +3,10 @@ package com.trajan.negentropy.client.components.toolbar;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.TreeView;
-import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
+import com.trajan.negentropy.client.components.routinelimit.CustomRoutineLimitDialog;
+import com.trajan.negentropy.client.components.routinelimit.RoutineSelect;
+import com.trajan.negentropy.client.components.routinelimit.RoutineSelect.SelectOptions;
 import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearchAndFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TaskFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TaskNodeFilterForm;
@@ -15,16 +17,15 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
-import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.entity.routine.Routine;
-import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.InsertRoutineStepChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
@@ -56,9 +57,10 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
-import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @SpringComponent
 @Scope("prototype")
@@ -162,10 +164,10 @@ public class ToolbarTabSheet extends TabSheet {
                 : new TaskNodeInfoFormMinorLayout(controller);
 
         createTaskForm.preexistingTaskSearchButton().addClickListener(e -> {
-            if (searchAndFilterTab != null) {
+            if (insertTaskTab != null) {
                 String current = createTaskForm.nameField().getValue();
-                this.setSelectedTab(searchAndFilterTab);
-                searchAndFilterTab.getChildren()
+                this.setSelectedTab(insertTaskTab);
+                insertTaskTab.getChildren()
                         .filter(component -> component instanceof AbstractSearchAndFilterForm)
                         .findFirst()
                         .ifPresent(f -> {
@@ -216,13 +218,26 @@ public class ToolbarTabSheet extends TabSheet {
 
     private ToolbarTabSheet initSearchAndFilterTab(boolean mobile) {
         filterForm = new TreeFilterForm(controller);
-        filterForm.name().setPlaceholder("Filter task grid");
+        filterForm.name().setPlaceholder("Filter by Task Name");
         filterForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
         searchAndFilterTab = mobile
                 ? new Tab("Search & Filter")
                 : new Tab(VaadinIcon.SEARCH.create());
+
+        filterForm.binder().addValueChangeListener(event -> {
+            NestableTaskNodeTreeFilter filter = filterForm.binder().getBean();
+            if (filter.options().equals(Set.of()) &&
+                    filter.name().isBlank() &&
+                    !filter.completed() &&
+                    filter.includedTagIds().equals(Set.of()) &&
+                    filter.excludedTagIds().equals(Set.of())) {
+                searchAndFilterTab.removeClassName(K.BACKGROUND_COLOR_PRIMARY);
+            } else {
+                searchAndFilterTab.addClassName(K.BACKGROUND_COLOR_PRIMARY);
+            }
+        });
 
         add(searchAndFilterTab, filterForm);
         return this;
@@ -398,8 +413,17 @@ public class ToolbarTabSheet extends TabSheet {
 
     private ToolbarTabSheet initStartRoutineFromTaskTab(boolean mobile) {
         TaskNodeFilterForm filterForm = createTaskNodeFilterForm();
+        filterForm.nested().setValue(false);
+        filterForm.nested().setVisible(false);
+        filterForm.binder().getBean().completed(false);
         taskSetBox = createTaskSetBox(filterForm);
-        DurationTextField customDurationLimit = new DurationTextField("Custom Limit ");
+
+        taskSetBox.addSelectionListener(e -> taskSetBox.getSelectedItems().stream().findFirst()
+                .ifPresent(task -> {
+                    CustomRoutineLimitDialog dialog = SpringContext.getBean(CustomRoutineLimitDialog.class);
+                    taskSetBox.deselectAll();
+                    dialog.open(List.of(task));
+        }));
 
         startRoutineTab = mobile
                 ? new TaskProviderTab(taskSetBox, "Start Routine")
@@ -407,39 +431,12 @@ public class ToolbarTabSheet extends TabSheet {
 
         configureTaskSearchProvider(filterForm, taskSetBox);
 
-        Button startRoutineButton = new Button("Start Routine");
-        startRoutineButton.addClickListener(event -> {
-            TaskNodeTreeFilter filter =  (searchAndFilterTab != null)
-                    ? this.filterForm.binder().getBean()
-                    : new TaskNodeTreeFilter();
+        RoutineSelect routineSelect = SpringContext.getBean(RoutineSelect.class);
+        routineSelect.setValue(SelectOptions.NO_FILTER);
 
-            Duration durationLimit = (customDurationLimit.getValue() != null)
-                    ? DurationConverter.toModel(customDurationLimit.getValue())
-                        .getOrThrow(null)
-                    : null;
-
-            filter.durationLimit(durationLimit);
-
-            controller.createRoutine(taskSetBox.taskNodeProvider().getTask(), filter,
-                    response -> {
-                        if (routineView != null) routineView.refreshRoutines();
-                    },
-                    null);
-            if (routineView != null) routineView.refreshRoutines();
-        });
-
-        startRoutineButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        HorizontalLayout bottomLayout = new HorizontalLayout(startRoutineButton, customDurationLimit);
-        bottomLayout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
-                LumoUtility.BoxSizing.BORDER);
-        bottomLayout.setWidthFull();
-        bottomLayout.setClassName("start-routine-button-layout");
-
-        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox, bottomLayout);
+        VerticalLayout layout = new VerticalLayout(filterForm, taskSetBox);
         layout.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
-
 
         add(startRoutineTab, layout);
         return this;

@@ -43,7 +43,6 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
 
     @PostConstruct
     public void init() {
-        log.info("TaskEntryGridDataProvider init");
         this.rootEntry = null;
         if (settings != null) {
             this.setFilter(settings.filter());
@@ -95,7 +94,7 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
     }
     public void refreshFilter() {
         log.debug("Refreshing filter");
-        this.filteredLinks = taskNetworkGraph.getFilteredLinks( filter);
+        this.filteredLinks = taskNetworkGraph.getFilteredLinks(filter);
     }
 
     public void setFilter(NestableTaskNodeTreeFilter filter) {

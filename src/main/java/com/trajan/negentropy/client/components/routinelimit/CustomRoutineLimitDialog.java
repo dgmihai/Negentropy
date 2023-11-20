@@ -1,0 +1,69 @@
+package com.trajan.negentropy.client.components.routinelimit;
+
+import com.trajan.negentropy.client.RoutineView;
+import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.model.data.Data.PersistedDataDO;
+import com.trajan.negentropy.util.SpringContext;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.Shortcuts;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.dialog.DialogVariant;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@Scope("prototype")
+public class CustomRoutineLimitDialog {
+    @Autowired private UIController controller;
+
+    @Getter private final Dialog dialog = new Dialog();
+    private List<PersistedDataDO> data;
+    private RoutineLimitForm limitForm;
+
+    @PostConstruct
+    public void init() {
+        dialog.setHeaderTitle("Start Routine");
+
+        limitForm = SpringContext.getBean(RoutineLimitForm.class);
+
+        Shortcuts.addShortcutListener(dialog,
+                e -> dialog.close(),
+                Key.ESCAPE);
+        Shortcuts.addShortcutListener(dialog,
+                e -> {if (!limitForm.durationField().isInvalid()) start();},
+                Key.ESCAPE);
+
+        Button startButton = new Button("Start", e -> start());
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        startButton.getStyle().set("margin-right", "auto");
+
+        dialog.getFooter().add(startButton, cancelButton);
+        dialog.add(limitForm);
+
+        dialog.addThemeVariants(DialogVariant.LUMO_NO_PADDING);
+        UI.getCurrent().add(dialog);
+    }
+
+    public void open(List<PersistedDataDO> data) {
+        this.data = data;
+        dialog.open();
+    }
+
+    public void start() {
+        controller.createRoutine(data, limitForm.getFilter(),
+                r -> {
+                    UI.getCurrent().navigate(RoutineView.class);
+                    dialog.close();
+                },
+                null);
+    }
+}

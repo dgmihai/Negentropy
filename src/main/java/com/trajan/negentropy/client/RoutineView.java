@@ -1,13 +1,14 @@
 package com.trajan.negentropy.client;
 
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Mood;
 import com.trajan.negentropy.model.entity.Emotion;
@@ -37,15 +38,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-@PageTitle("Routine")
-@UIScope
+@PageTitle("Routines")
 @Route(value = "routine", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
 @Uses(Icon.class)
+@UIScope
 @Getter
+@Benchmark(millisFloor = 10)
 public class RoutineView extends VerticalLayout {
     private final UILogger log = new UILogger();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Autowired private BannerProvider bannerProvider;
     @Autowired private UIController controller;
@@ -65,6 +70,7 @@ public class RoutineView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
+        log.info("Initializing RoutineView");
         this.addClassName("routine-view");
         this.setSizeFull();
         this.setJustifyContentMode(JustifyContentMode.START);
@@ -93,11 +99,12 @@ public class RoutineView extends VerticalLayout {
             }
         });
 
-        refreshRoutines();
+        this.refreshRoutines();
 
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS);
         activeRoutineGrid.addComponentColumn(routine -> new RoutineCard(routine, controller, routineStepTreeGrid));
         activeRoutineGrid.setAllRowsVisible(true); // TODO: Verify this works
+        activeRoutineGrid.setClassName("active-routine-grid");
         activeRoutineGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
 
         activeRoutineGrid.addSelectionListener(event ->
@@ -117,9 +124,14 @@ public class RoutineView extends VerticalLayout {
     }
 
     public void refreshRoutines() {
-        List<Routine> routines = routineDataProvider.fetch(new Query<>(
-                visibleRoutineStatuses)).toList();
-        activeRoutineGrid.setItems(routines);
+        executor.execute(() -> {
+            List<Routine> routines = routineDataProvider.fetch(new Query<>(
+                    visibleRoutineStatuses)).toList();
+            controller.accessUI(this.getClass().getSimpleName(),
+                    () -> {
+                activeRoutineGrid.setItems(routines);
+            });
+        });
     }
 
     public class MoodInput extends HorizontalLayout {

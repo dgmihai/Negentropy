@@ -40,6 +40,11 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-primary-color);
 }
 
+.primary-color-10pct-background {
+    background-color:
+      var(--lumo-primary-color-10pct);
+}
+
 .unselected-color-icon {
     fill:
       var(--lumo-secondary-text-color);

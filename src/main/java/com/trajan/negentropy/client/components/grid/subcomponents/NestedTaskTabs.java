@@ -23,7 +23,7 @@ public class NestedTaskTabs extends Tabs {
 
         this.add(new Tab(new Icon(VaadinIcon.HOME)));
 
-        this.onSelectNewRootEntry(null);
+        this.onSelectNewRootEntry(taskEntryTreeGrid.settings().currentRootEntry());
         this.addSelectedChangeListener(e -> setRootEntry());
 
         this.addThemeVariants(TabsVariant.LUMO_SMALL);

@@ -4,9 +4,9 @@ import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
-import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
@@ -42,23 +42,12 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
         projectCheckbox.setVisible(false);
     }
 
-    public TaskNodeInfoFormMinorLayout(UIController controller, Task task) {
-        super(controller);
-        initTaskNodeDataProvider();
-        initClearEventListener();
-
-        taskBinder.setBean(task);
-        nodeInfoBinder.setBean(new TaskNodeDTO()
-                .childId(task.id()));
-        projectComboBox.setVisible(false);
-        projectCheckbox.setVisible(false);
-    }
-
+    @Override
     protected void initTaskNodeDataProvider() {
-        taskNodeProvider = new TaskNodeProvider(controller) {
+        taskNodeProvider = new FormTaskNodeProvider(controller) {
             @Override
-            public Task getTask() {
-                return taskBinder.getBean();
+            public TaskDTO getTask() {
+                return new TaskDTO(taskBinder.getBean(), tags);
             }
 
             @Override
@@ -68,7 +57,7 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
 
             @Override
             public boolean isValid() {
-                return taskBinder.isValid() && nodeInfoBinder.isValid();
+                return super.isValid() && taskBinder.isValid() && nodeInfoBinder.isValid();
             }
 
             @Override
@@ -80,6 +69,7 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
                             TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
                             nodeInfoBinder.setBean(result.toDTO());
                             taskBinder.setBean(result.task());
+                            tags = controller.taskNetworkGraph().getTags(result.task().id());
                         }
                         case KEEP_TEMPLATE -> {
                             nameField.clear();
@@ -145,6 +135,9 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
 
         nodeInfoBinder = new BeanValidationBinder<>(TaskNodeDTO.class);
 
+        nodeInfoBinder.addValueChangeListener(e ->
+                saveButton.setEnabled(nodeInfoBinder.isValid()));
+
         nodeInfoBinder.forField(cronSpan.cronField())
                 .withConverter(new ShortenedCronConverter())
                 .bind(TaskNodeDTOData::cron, TaskNodeDTOData::cron);
@@ -156,6 +149,7 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
     @Override
     protected void configureInteractions() {
         super.configureInteractions();
+        initTaskNodeDataProvider();
         taskNodeProvider().afterSave(() -> nameField.focus());
     }
 

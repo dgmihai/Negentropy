@@ -20,6 +20,7 @@ import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @EntityListeners(SyncManagerListener.class)
@@ -65,7 +66,13 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     @Column(name = "scheduled_for")
     private LocalDateTime scheduledFor = null;
 
-    private Duration projectDuration = Duration.ZERO;
+    public static Duration DEFAULT_PROJECT_DURATION_LIMIT = Duration.ZERO;
+    public static Integer DEFAULT_PROJECT_STEP_COUNT_LIMIT = -1;
+    public static LocalTime DEFAULT_PROJECT_ETA_LIMIT = LocalTime.MAX;
+
+    private Duration projectDurationLimit = DEFAULT_PROJECT_DURATION_LIMIT;
+    private Integer projectStepCountLimit = DEFAULT_PROJECT_STEP_COUNT_LIMIT;
+    private String projectEtaLimit = DEFAULT_PROJECT_ETA_LIMIT.toString();
 
     public String toString() {
         return "LinkEntity[" + super.toString() + ", parent=" + parent + ", position=" + position + ", child=" + child + "]";
@@ -114,8 +121,40 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
 
     @Override
     public Duration duration() {
-        return (child.project() && this.projectDuration != null)
-                ? projectDuration
-                : child.duration();
+        Duration duration = child.duration();
+        if (child.project()) {
+            if (projectDurationLimit != null && !projectDurationLimit.equals(DEFAULT_PROJECT_DURATION_LIMIT) && duration.compareTo(projectDurationLimit) > 0) {
+                duration = projectDurationLimit;
+            }
+            if (projectEtaLimit != null && !projectEtaLimit().equals(DEFAULT_PROJECT_ETA_LIMIT)) {
+                Duration difference = Duration.between(LocalTime.now(), projectEtaLimit());
+                if (difference.isNegative()) {
+                    difference = Duration.ZERO;
+                }
+                if (duration.compareTo(difference) > 0) {
+                    duration = difference;
+                }
+            }
+            // TODO: Project step count limit somehow?
+        }
+        return duration;
     }
+
+    @Override
+    public TaskLink projectEtaLimit(LocalTime projectEtaLimit) {
+        this.projectEtaLimit = (projectEtaLimit != null && !projectEtaLimit.equals(DEFAULT_PROJECT_ETA_LIMIT))
+                ? projectEtaLimit.toString()
+                : null;
+        return this;
+    }
+
+    @Override
+    public LocalTime projectEtaLimit() {
+        if (projectEtaLimit != null) {
+            return LocalTime.parse(projectEtaLimit);
+        } else {
+            return null;
+        }
+    }
+
 }

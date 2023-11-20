@@ -12,7 +12,7 @@ import java.lang.StackWalker.StackFrame;
 public abstract class AbstractLogger <T extends PrefixProvider> {
     protected final Logger log;
     protected String prefix;
-    protected static final String EMPTY_PREFIX = "[] :";
+    protected static final String EMPTY_PREFIX = "[NO SCOPE] :";
 
     protected T prefixProvider;
 
@@ -33,12 +33,7 @@ public abstract class AbstractLogger <T extends PrefixProvider> {
         try {
             return SpringContext.getBean(getProviderClass());
         } catch (ScopeNotActiveException e) {
-            if (SpringContext.context().getEnvironment().containsProperty("inTesting")) {
-                // Occurs during testing
-                return constructProvider();
-            } else {
-                throw e;
-            }
+            return constructProvider();
         }
     }
 

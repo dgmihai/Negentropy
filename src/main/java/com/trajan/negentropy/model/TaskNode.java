@@ -1,21 +1,25 @@
 package com.trajan.negentropy.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskNodeData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.HasTaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.util.CronExpressionSerializer;
 import lombok.*;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Objects;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
-@Getter
+@Getter(onMethod_={@JsonProperty})
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, HasTaskNodeDTOData<TaskNode>, PersistedDataDO<LinkID>, Comparable<TaskNode> {
@@ -32,10 +36,13 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
     private Boolean completed;
 
     private Boolean recurring;
+    @JsonSerialize(using = CronExpressionSerializer.class)
     private CronExpression cron;
     private LocalDateTime scheduledFor;
 
-    private Duration projectDuration;
+    private Duration projectDurationLimit;
+    private Integer projectStepCountLimit;
+    private LocalTime projectEtaLimit;
 
     public TaskNode(TaskNodeInfoData<?> taskNodeInfoData) {
         this.linkId = null;
@@ -44,7 +51,9 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
         this.positionFrozen = taskNodeInfoData.positionFrozen();
-        this.projectDuration = taskNodeInfoData.projectDuration();
+        this.projectDurationLimit = taskNodeInfoData.projectDurationLimit();
+        this.projectStepCountLimit = taskNodeInfoData.projectStepCountLimit();
+        this.projectEtaLimit = taskNodeInfoData.projectEtaLimit();
         this.recurring = taskNodeInfoData.recurring();
     }
 
@@ -55,7 +64,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
         this.positionFrozen = taskNodeInfoData.positionFrozen();
-        this.projectDuration = taskNodeInfoData.projectDuration();
+        this.projectDurationLimit = taskNodeInfoData.projectDurationLimit();
         this.recurring = taskNodeInfoData.recurring();
     }
 
@@ -107,7 +116,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         if (recurring != null) result.append(", recurring=").append(recurring);
         if (cron != null) result.append(", cron=").append(cron);
         if (scheduledFor != null) result.append(", scheduledFor=").append(scheduledFor);
-        if (projectDuration != null) result.append(", projectDuration=").append(projectDuration);
+        if (projectDurationLimit != null) result.append(", projectDurationLimit=").append(projectDurationLimit);
 
         result.append(")");
         return result.toString();

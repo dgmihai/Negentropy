@@ -25,7 +25,7 @@ public enum Emotion {
     HATRED_RAGE("Hatred-Rage"),
     JEALOUSY("Jealousy"),
     INSECURITY_GUILT_UNWORTHINESS("Insecurity-Guilt-Unworthiness"),
-    FEAR_GRIEF_DEPRESSION_DESPAIR_POWERLESSNESS("Fear-Grief-Depression-Despair-Powerlessness");
+    FEAR_GRIEF_DEPRESSION_DESPAIR_POWERLESSNESS("Fear-Grief-Depression-Despair-Powerlessness-Victimhood");
 
     private final String text;
 

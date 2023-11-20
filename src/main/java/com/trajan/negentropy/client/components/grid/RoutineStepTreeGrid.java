@@ -3,10 +3,7 @@ package com.trajan.negentropy.client.components.grid;
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
-import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
-import com.trajan.negentropy.client.components.taskform.RoutineStepFormLayout;
-import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayout;
+import com.trajan.negentropy.client.components.taskform.*;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
@@ -17,6 +14,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineTaskStep;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
@@ -77,7 +75,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                 partNames.add(K.GRID_PARTNAME_COMPLETED);
             }
             if (step.task().required()) {
-                partNames.add(K.GRID_PARTNAME_REQUIRED);
+                partNames.add(K.GRID_PARTNAME_FUTURE);
             }
             if (step.task().project()) {
                 partNames.add(K.GRID_PARTNAME_PROJECT);
@@ -102,10 +100,12 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                 Set<TimeableStatus> excludable = Set.of(
                         TimeableStatus.NOT_STARTED,
                         TimeableStatus.SUSPENDED,
-                        TimeableStatus.ACTIVE);
+                        TimeableStatus.ACTIVE,
+                        TimeableStatus.SKIPPED);
 
                 Set<TimeableStatus> hidden = Set.of(
-                        TimeableStatus.COMPLETED
+                        TimeableStatus.COMPLETED,
+                        TimeableStatus.POSTPONED
                 );
                 treeGrid.addColumn(LitRenderer.<RoutineStep>of(
                                         GridUtil.inlineVaadinIconLitExpression("minus-circle-o",
@@ -129,19 +129,19 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             }
 
             case GOTO -> treeGrid.addColumn(LitRenderer.<RoutineStep>of(
-                                    GridUtil.inlineVaadinIconLitExpression("crosshairs",
+                                    GridUtil.inlineVaadinIconLitExpression("pointer",
                                             ""))
                             .withFunction("onClick", step ->
                                     controller.pauseRoutineStep(routine.currentStep().id(),
                                     r -> controller.startRoutineStep(step.id(),
                                             response -> this.setRoutine(response.routine()),
-                                            response -> NotificationMessage.error("Failed to start routine step: "
+                                            response -> NotificationMessage.error("Failed to go to new routine step: "
                                                     + response.message())),
-                                    r -> NotificationMessage.error("Failed to pause routine step: "
+                                    r -> NotificationMessage.error("Failed to go to new routine step: "
                                             + r.message())))
                     )
                     .setKey(ColumnKey.GOTO.toString())
-                    .setHeader(GridUtil.headerIcon(VaadinIcon.CROSSHAIRS))
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.AREA_SELECT))
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
@@ -157,8 +157,10 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     protected AbstractTaskFormLayout getTaskFormLayout(RoutineStep routineStep) {
         if (routineStep instanceof RoutineNodeStep routineNodeStep) {
             return new GridInlineEditorTaskNodeFormLayout<>(controller, routineNodeStep, RoutineNodeStep.class);
+        } else if (routineStep instanceof RoutineTaskStep routineTaskStep) {
+            return new RoutineStepFormLayout(controller, routineTaskStep);
         } else {
-            return new TaskNodeInfoFormFullLayout(controller, routineStep.task());
+            throw new IllegalArgumentException("Unknown routine step type: " + routineStep.getClass());
         }
     }
 
@@ -242,6 +244,6 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     public Optional<TaskNode> rootNode() {
-        return Optional.of(routine.rootStep().node());
+        return Optional.of(routine.children().get(0).node());
     }
 }

@@ -75,7 +75,7 @@ public abstract class AbstractSearchAndFilterForm extends ReadOnlySettableFormLa
         topLayout.setWidthFull();
         topLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.EVENLY);
 
-        tagsToExclude = new TagComboBox("Filter: Excluded Tags", controller());
+        tagsToExclude = new TagComboBox("Filter: Exclude Tags", controller());
         tagsToExclude.setClearButtonVisible(true);
         tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         binder().bind(tagsToExclude,

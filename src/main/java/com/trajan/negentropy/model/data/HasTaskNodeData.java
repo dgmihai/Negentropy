@@ -7,6 +7,7 @@ import com.trajan.negentropy.model.id.TaskID;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Optional;
 
 public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
@@ -39,8 +40,12 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
         Integer position();
         T positionFrozen(Boolean positionFrozen);
         Boolean positionFrozen();
-        T projectDuration(Duration projectDuration);
-        Duration projectDuration();
+        T projectDurationLimit(Duration projectDurationLimit);
+        Duration projectDurationLimit();
+        T projectStepCountLimit(Integer projectStepCountLimit);
+        Integer projectStepCountLimit();
+        T projectEtaLimit(LocalTime projectEtaLimit);
+        LocalTime projectEtaLimit();
     }
 
     interface TaskNodeDTOData<T extends TaskNodeDTOData<T>> extends TaskNodeInfoData<T> {

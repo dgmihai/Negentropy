@@ -1,19 +1,20 @@
 package com.trajan.negentropy.client.components.grid;
 
 import com.google.common.base.Joiner;
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
-import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
+import com.trajan.negentropy.client.components.routinelimit.CustomRoutineLimitDialog;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.TaskEntryDataProvider;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
-import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
@@ -21,13 +22,14 @@ import com.trajan.negentropy.client.util.cron.ShortenedCronValueProvider;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
+import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
@@ -51,9 +53,7 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoIcon;
 import elemental.json.JsonObject;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.LocalDateTime;
@@ -65,10 +65,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @SpringComponent
-@RouteScope // TODO: Route vs UI scope?
-@Scope("prototype")
-@Accessors(fluent = true)
+@RouteScope
 @Getter
+@Benchmark
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     private final UILogger log = new UILogger();
 
@@ -291,8 +290,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             if (entry.node().completed()) {
                 partNames.add(K.GRID_PARTNAME_COMPLETED);
             }
-            if (entry.task().required()) {
-                partNames.add(K.GRID_PARTNAME_REQUIRED);
+            if (entry.node().scheduledFor().isAfter(LocalDateTime.now())) {
+                partNames.add(K.GRID_PARTNAME_FUTURE);
             }
             if (entry.task().project()) {
                 partNames.add(K.GRID_PARTNAME_PROJECT);
@@ -504,8 +503,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 : Optional.empty();
     }
 
+    // ================================================================================================================
+    // TaskTreeContextMenu
+    // ================================================================================================================
+
     private class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {
         private final TreeGrid<TaskEntry> grid;
+        private final CustomRoutineLimitDialog CustomRoutineLimitDialog;
 
         private void addInsertItem(GridSubMenu<TaskEntry> activeTaskSubMenu, String label, InsertLocation location) {
             activeTaskSubMenu.addItem(label, e -> e.getItem().ifPresent(
@@ -558,21 +562,20 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         public TaskTreeContextMenu(TreeGrid<TaskEntry> grid) {
             super(grid);
             this.grid = grid;
+            this.CustomRoutineLimitDialog = SpringContext.getBean(CustomRoutineLimitDialog.class);
 
             GridMenuItem<TaskEntry> activeTask = addItem("");
+            Hr activeTaskHr = new Hr();
             GridSubMenu<TaskEntry> activeTaskSubMenu = activeTask.getSubMenu();
 
-            GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine", e -> e.getItem().ifPresent(
-                    entry -> controller.createRoutine(entry.node(),
-                            response -> UI.getCurrent().navigate(RoutineView.class),
-                            response -> {})
-            ));
+            GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine",
+                    e -> e.getItem().ifPresent(entry -> CustomRoutineLimitDialog.open(List.of(entry.task()))));
 
-            GridMenuItem<TaskEntry> startRoutineWithSpecificDuration = addItem("Start Routine For Duration...", e -> e.getItem().ifPresent(
-                    entry -> controller.createRoutine(entry.node(),
-                            response -> UI.getCurrent().navigate(RoutineView.class),
-                            response -> {})
-            ));
+            GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
+                    e -> CustomRoutineLimitDialog.open(
+                            treeGrid.getSelectedItems().stream()
+                                    .map(entry -> (PersistedDataDO) entry.node())
+                                    .toList()));
 
             GridMenuItem<TaskEntry> resetSchedule = addItem("Reset Schedule", e -> e.getItem().ifPresent(
                     entry -> controller.requestChangeAsync(new OverrideScheduledForChange(
@@ -684,12 +687,14 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             if (task != null) {
                                 activeTask.setText("Insert " + task.name());
                                 activeTask.setVisible(true);
+                                activeTaskHr.setVisible(true);
                             }
                         } catch (Exception e) {
                             NotificationMessage.error(e);
                         }
                     } else {
                         activeTask.setVisible(false);
+                        activeTaskHr.setVisible(false);
                     }
 
                     Set<TaskEntry> selected = grid.getSelectedItems();
@@ -699,6 +704,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         moveTarget.setVisible(true);
                         moveSelected.setVisible(false);
                         copySelected.setVisible(false);
+                        startRoutineSelected.setVisible(false);
                         moveTarget.setText("Move " + entry.task().name());
                     } else {
                         moveTarget.setVisible(false);
@@ -706,13 +712,18 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         moveSelected.setText("Move " + selectedSize + " tasks");
                         copySelected.setVisible(true);
                         copySelected.setText("Copy " + selectedSize + " tasks");
+                        startRoutineSelected.setVisible(true);
+                        startRoutineSelected.setText("Start Routine from " + selectedSize + " tasks");
                         multiEdit.setText("Edit " + selectedSize + " tasks");
                     }
 
                     activeTaskSubMenu.getItems().forEach(menuItem -> menuItem.setEnabled(hasActiveTaskProvider));
 
                     startRoutine.setEnabled(true);
+                    startRoutine.setText("Start Routine from " + entry.task().name());
+
                     remove.setEnabled(true);
+                    remove.setText("Remove " + entry.task().name());
                     resetSchedule.setEnabled(entry.node().cron() != null);
 
                     return true;
@@ -728,6 +739,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             return super.onBeforeOpenMenu(eventDetail);
         }
     }
+
+    // ================================================================================================================
+    // CustomRoutineLimitDialog
+    // ================================================================================================================
+
 
 
 }

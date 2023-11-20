@@ -2,16 +2,17 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
-import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.id.ID.ChangeID;
-import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
@@ -24,45 +25,50 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     private ChangeID watchedChangeId = null;
 
     @Getter
-    protected TaskNodeProvider taskNodeProvider = new TaskNodeProvider(controller) {
-        @Override
-        public Task getTask() {
-            return taskBinder.getBean();
-        }
-
-        @Override
-        public TaskNodeInfoData<?> getNodeInfo() {
-            return new TaskNodeDTO();
-        }
-
-        @Override
-        public boolean isValid() {
-            return taskBinder.isValid();
-        }
-
-        @Override
-        public void handleSave(DataMapResponse response) {
-            if (response != null) {
-                switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
-                    case CLEAR -> clear();
-                    case PERSIST -> {
-                        TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
-                        taskBinder.setBean(result.task());
-                    }
-                    case KEEP_TEMPLATE -> nameField.clear();
-                    case CLOSE -> {
-                        clear();
-                        onClose.run();
-                    }
-                }
-            }
-            super.handleSave(response);
-        }
-    };
+    protected FormTaskNodeProvider taskNodeProvider;
 
     @Override
-    public TaskNodeProvider getTaskNodeProvider() {
+    public FormTaskNodeProvider getTaskNodeProvider() {
         return taskNodeProvider;
+    }
+
+    protected void initTaskNodeDataProvider() {
+        taskNodeProvider = new FormTaskNodeProvider(controller) {
+            @Override
+            public TaskDTO getTask() {
+                return new TaskDTO(taskBinder.getBean(), tags);
+            }
+
+            @Override
+            public TaskNodeInfoData<?> getNodeInfo() {
+                return new TaskNodeDTO();
+            }
+
+            @Override
+            public boolean isValid() {
+                return taskBinder.isValid() && super.isValid();
+            }
+
+            @Override
+            public void handleSave(DataMapResponse response) {
+                if (response != null) {
+                    switch (OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()) {
+                        case CLEAR -> clear();
+                        case PERSIST -> {
+                            TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
+                            taskBinder.setBean(result.task());
+                            tags = controller.taskNetworkGraph().getTags(result.task().id());
+                        }
+                        case KEEP_TEMPLATE -> nameField.clear();
+                        case CLOSE -> {
+                            clear();
+                            onClose.run();
+                        }
+                    }
+                }
+                super.handleSave(response);
+            }
+        };
     }
 
     public TaskFormLayout(UIController controller) {
@@ -73,19 +79,33 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         taskBinder.setBean(new Task());
     }
 
+    public TaskFormLayout(UIController controller, Task task) {
+        super(controller);
+
+        configureAll();
+
+        taskBinder.setBean(task);
+    }
+
     @Override
     public void save() {
         InsertLocation location = saveAsLastCheckbox.getValue() ?
                 InsertLocation.LAST :
                 InsertLocation.FIRST;
 
-        TaskNode rootNode = controller.activeTaskNodeDisplay().rootNode().orElse(null);
-        TaskID rootTaskID = rootNode == null ? null : rootNode.task().id();
-        watchedChangeId = taskNodeProvider.createNode(
-                projectComboBox.getValue() == null
-                        ? rootTaskID
-                        : projectComboBox.getValue().id(),
-                location);
+        Task taskReference = projectComboBox.getValue();
+        TaskOrLinkID reference;
+
+        if (taskReference == null) {
+            HasRootNode taskNodeDisplay = controller.activeTaskNodeDisplay();
+            TaskNode rootNode = taskNodeDisplay != null
+                    ? controller.activeTaskNodeDisplay().rootNode().orElse(null)
+                    : null;
+            reference = rootNode == null ? null : rootNode.task().id();
+        } else {
+            reference = taskReference.id();
+        }
+        watchedChangeId = taskNodeProvider.createNode(reference, location);
     }
 
     @Override
@@ -104,15 +124,16 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(Task::description, Task::description);
 
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
-                taskBinder.getBean().tags().add(tag));
+                tags.add(tag));
 
         taskBinder.forField(projectCheckbox)
                 .bind(Task::project, Task::project);
         taskBinder.forField(requiredCheckbox)
                 .bind(Task::required, Task::required);
 
-        taskBinder.forField(tagComboBox)
-                .bind(Task::tags, Task::tags);
+        taskBinder.forField(tagComboBox).bind(
+                task -> controller.taskNetworkGraph().getTags(task.id()),
+                (task, tags) -> this.tags = tags);
 
         onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
         onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(
