@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 public class SessionPrefixProvider implements PrefixProvider {
     private String prefix = "[] : ";
+    private String body = "";
     private String browser = "";
     private String address = "";
 
@@ -21,7 +22,20 @@ public class SessionPrefixProvider implements PrefixProvider {
         VaadinSession session = VaadinSession.getCurrent();
         address = session.getBrowser().getAddress();
         browser = session.getBrowser().getBrowserApplication();
-        prefix = "[" +  sessionHash() + "]: ";
+        String additional = "";
+        if (browser.contains("iPhone")) {
+            additional = " (iOS)";
+        } else if (browser.contains("Android")) {
+            additional = " (Android)";
+        } else if (browser.contains("Windows")) {
+            additional = " (Win)";
+        } else if (browser.contains("Linux")) {
+            additional = " (Linux)";
+        } else if (browser.contains("Mac")) {
+            additional = " (Mac)";
+        }
+        body = address + additional;
+        prefix = "[" + body + "]: ";
         log.info("Setting session prefix '" + prefix + "' for session on browser " + browser + " at address " + address);
     }
 

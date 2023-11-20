@@ -1,6 +1,5 @@
 package com.trajan.negentropy.server.facade;
 
-import com.google.common.base.Stopwatch;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.aop.Benchmark;
@@ -107,10 +106,7 @@ public class RoutineServiceImpl implements RoutineService {
     private RoutineResponse process(Supplier<RoutineEntity> routineSupplier) {
         try {
             RoutineEntity routine = routineSupplier.get();
-            Stopwatch stopwatch = Stopwatch.createStarted();
             Routine routineDO = dataContext.toDO(routine);
-            stopwatch.stop();
-            log.debug("Stopwatch: " + stopwatch);
             routineBroadcaster.broadcast(ID.of(routine), routineDO);
             return new RoutineResponse(true, routineDO, K.OK);
         } catch (Exception e) {
@@ -335,7 +331,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     private RoutineEntity activateStep(RoutineEntity routine, LocalDateTime time) {
         RoutineStepEntity step = (RoutineStepEntity) routine.currentStep();
-        log.debug("Activating step " + step.task().name() + " in routine " + routine.id() + ".");
+        log.debug("Activating step <" + step.task().name() + "> in routine " + routine.id() + ".");
 
         step.start(time);
         resetStepLinkStatus(step, time);
@@ -356,7 +352,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity completeStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Completing step " + step.task().name() + " in routine " + step.routine().id() + ".");
+        log.debug("Completing step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
 
         switch (getStepStatusBasedOnChildrenStatus(step)) {
             case COMPLETED -> markStepAsCompleted(step, time);
@@ -378,7 +374,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity suspendStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Suspending step " + step.task().name() + " in routine " + step.routine().id());
+        log.debug("Suspending step <" + step.task().name() + "> in routine " + step.routine().id());
 
         step.suspend(time);
         resetStepLinkStatus(step, time);
@@ -395,7 +391,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity skipStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Skipping step " + step.task().name() + " in routine " + step.routine().id() + ".");
+        log.debug("Skipping step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
 
         markStepAsSkipped(step, time);
         resetStepLinkStatus(step, time);
@@ -418,7 +414,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity postponeStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Postponing step " + step.task().name() + " in routine " + step.routine().id() + ".");
+        log.debug("Postponing step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
 
         TimeableStatus postponedStatus = TimeableStatus.POSTPONED;
 
@@ -438,7 +434,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity previousStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Going to previous step of " + step.task().name() + " in routine " + step.routine().id());
+        log.debug("Going to previous step of <" + step.task().name() + "> in routine " + step.routine().id());
 
         RoutineEntity routine = step.routine();
 
@@ -655,7 +651,7 @@ public class RoutineServiceImpl implements RoutineService {
     // ================================
 
     private void markStepAsCompleted(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step " + step.task().name() + " as completed.");
+        log.debug("Marking step <" + step.task().name() + "> as completed.");
 
         step.complete(time);
 
@@ -678,7 +674,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsPostponed(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step " + step.task().name() + " as postponed.");
+        log.debug("Marking step <" + step.task().name() + "> as postponed.");
 
         step.postpone(time);
 
@@ -689,13 +685,13 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsSkipped(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step " + step.task().name() + " as skipped.");
+        log.debug("Marking step <" + step.task().name() + "> as skipped.");
 
         step.skip(time);
     }
 
     private void markStepAsExcluded(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step " + step.task().name() + " as excluded.");
+        log.debug("Marking step <" + step.task().name() + "> as excluded.");
 
         step.exclude(time);
     }
@@ -724,7 +720,7 @@ public class RoutineServiceImpl implements RoutineService {
         int count = 1;
         // If the step has children
         if (!step.children().isEmpty()) {
-            log.trace("Step " + step.task().name() + " has children. Marking all children as postponed.");
+            log.trace("Step <" + step.task().name() + "> has children. Marking all children as postponed.");
             count = markAllChildrenAs(status, step, time, count);
         }
 

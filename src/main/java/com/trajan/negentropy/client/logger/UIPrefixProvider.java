@@ -19,7 +19,7 @@ public class UIPrefixProvider implements PrefixProvider {
     @PostConstruct
     public void init() {
         UI ui = UI.getCurrent();
-        prefix = "[" + ui.getUIId() + " : " + sessionPrefixProvider.sessionHash() + "]: ";
+        prefix = "[" + ui.getUIId() + " : " + sessionPrefixProvider.body() + "]: ";
         log.info("Setting UI prefix '" + prefix);
     }
 }

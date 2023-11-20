@@ -30,6 +30,7 @@ import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.UIDetachedException;
 import com.vaadin.flow.server.Command;
+import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
@@ -80,6 +81,7 @@ public class UIController {
     @PostConstruct
     public void init() {
         executor = this.createExecutor();
+        routineCardBroadcaster.label = "Routine Card Broadcaster: ";
 
         UI currentUI = UI.getCurrent();
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
@@ -272,7 +274,7 @@ public class UIController {
                                                     Consumer<RoutineResponse> onFailure,
                                                     int retries) {
         try {
-            RoutineResponse response = serviceCall.get();
+            RoutineResponse response = executor.submit(serviceCall::get).get();
 
             executor.execute(() -> accessUI("Routine service call", () -> {
                 if (!response.success()) {
@@ -458,7 +460,7 @@ public class UIController {
     @Getter (AccessLevel.NONE)
     private final Set<RoutineID> trackedRoutines = new HashSet<>();
 
-    public void registerRoutineCard(RoutineID routineId, Consumer<Routine> listener) {
+    public Registration registerRoutineCard(RoutineID routineId, Consumer<Routine> listener) {
         log.debug("Registering routine card");
         if (!trackedRoutines.contains(routineId)) {
             services.routine().register(routineId, r -> routineCardBroadcaster.broadcast(routineId, r));
@@ -467,7 +469,7 @@ public class UIController {
             log.warn("Routine already tracked: " + routineId);
         }
 
-        routineCardBroadcaster.register(routineId, r -> {
+        return routineCardBroadcaster.register(routineId, r -> {
             accessUI("Routine broadcaster", () -> listener.accept(r));
         });
     }

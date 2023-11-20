@@ -28,6 +28,7 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ReadOnlyHasValue;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.Getter;
 import lombok.Setter;
@@ -81,10 +82,12 @@ public class RoutineCard extends VerticalLayout {
 
         layout();
 
-        controller.registerRoutineCard(routine.id(), r -> {
+        Registration registration = controller.registerRoutineCard(routine.id(), r -> {
             log.debug("Updated routine: " + r);
             updateRoutine(r);
         });
+
+        this.addDetachListener(event -> registration.remove());
     }
 
     public void processStep(TriConsumer<StepID, Consumer<RoutineResponse>, Consumer<RoutineResponse>> stepFunction) {

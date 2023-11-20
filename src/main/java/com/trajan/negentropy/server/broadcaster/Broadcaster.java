@@ -12,6 +12,8 @@ import java.util.function.Consumer;
 @Component
 @Scope("prototype")
 public class Broadcaster<T> {
+    public String label = "";
+
     protected final LinkedList<Consumer<T>> listeners = new LinkedList<>();
 
     public synchronized Registration register(Consumer<T> listener) {
@@ -25,12 +27,12 @@ public class Broadcaster<T> {
     }
 
     public synchronized void broadcast(T content) {
-        log.debug("Broadcasting " + content.getClass().getSimpleName() + " to " + listeners.size() + " listeners");
+        log.debug(label + "Broadcasting " + content.getClass().getSimpleName() + " to " + listeners.size() + " listeners");
         for (Consumer<T> listener : listeners) {
             try {
                 this.notify(listener, content);
             } catch (Exception e) {
-                log.error("Exception while notifying listener", e);
+                log.error(label + "Exception while notifying listener", e);
                 listeners.remove(listener);
             }
         }
