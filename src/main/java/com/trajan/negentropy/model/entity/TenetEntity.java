@@ -18,6 +18,7 @@ public class TenetEntity {
     @SequenceGenerator(name = "tenet_seq", sequenceName = "tenet_seq")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tenet_seq")
     private Long id;
+
     private String body;
 
     @Override

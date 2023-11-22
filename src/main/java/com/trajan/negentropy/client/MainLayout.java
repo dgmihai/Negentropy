@@ -3,8 +3,11 @@ package com.trajan.negentropy.client;
 import com.trajan.negentropy.client.components.appnav.AppNav;
 import com.trajan.negentropy.client.components.appnav.AppNavItem;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormDialog;
+import com.trajan.negentropy.client.components.wellness.MoodInput;
+import com.trajan.negentropy.client.components.wellness.StressorInput;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -12,10 +15,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.Footer;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Header;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.PageTitle;
@@ -56,9 +56,33 @@ public class MainLayout extends AppLayout {
             newTaskDialog.open();
         });
 
-        addTask.addClassNames(Left.AUTO, Right.SMALL);
+        Button wellnessCheck = new Button(VaadinIcon.HEART.create());
+        wellnessCheck.addClassName(LumoUtility.FontSize.LARGE);
+        wellnessCheck.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+        wellnessCheck.addClickListener(event -> {
+            Dialog wellnessDialog = new Dialog();
+            String title = "How are you doing?";
 
-        addToNavbar(false, toggle, viewTitle, addTask);
+            try {
+                SessionServices services = SpringContext.getBean(SessionServices.class);
+                title = services.tenet().getRandom().toString();
+            } catch (Exception e) {
+                log.error("Failed to get random tenet for wellness dialog", e);
+            }
+
+            wellnessDialog.setHeaderTitle(title);
+            wellnessDialog.add(
+                    SpringContext.getBean(StressorInput.class),
+                    SpringContext.getBean(MoodInput.class));
+            wellnessDialog.setWidth("25rem");
+            wellnessDialog.open();
+        });
+
+        Span buttonSpan = new Span();
+        buttonSpan.add(wellnessCheck, addTask);
+        buttonSpan.addClassNames(Left.AUTO, Right.SMALL);
+
+        addToNavbar(false, toggle, viewTitle, buttonSpan);
     }
 
     private void addDrawerContent() {

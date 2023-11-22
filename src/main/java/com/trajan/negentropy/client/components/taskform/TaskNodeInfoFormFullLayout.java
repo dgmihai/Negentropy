@@ -82,6 +82,6 @@ public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
         });
 
         this.add(nameFieldLayout, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
-                projectDurationLimit, projectStepCountLimit, projectEtaLimit, projectComboBox, buttonLayout);
+                projectComboBox, projectDurationLimit, projectStepCountLimit, projectEtaLimit, buttonLayout);
     }
 }

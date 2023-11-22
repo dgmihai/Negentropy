@@ -509,7 +509,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     private class TaskTreeContextMenu extends GridContextMenu<TaskEntry> {
         private final TreeGrid<TaskEntry> grid;
-        private final CustomRoutineLimitDialog CustomRoutineLimitDialog;
 
         private void addInsertItem(GridSubMenu<TaskEntry> activeTaskSubMenu, String label, InsertLocation location) {
             activeTaskSubMenu.addItem(label, e -> e.getItem().ifPresent(
@@ -562,17 +561,17 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         public TaskTreeContextMenu(TreeGrid<TaskEntry> grid) {
             super(grid);
             this.grid = grid;
-            this.CustomRoutineLimitDialog = SpringContext.getBean(CustomRoutineLimitDialog.class);
 
             GridMenuItem<TaskEntry> activeTask = addItem("");
             Hr activeTaskHr = new Hr();
             GridSubMenu<TaskEntry> activeTaskSubMenu = activeTask.getSubMenu();
 
             GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine",
-                    e -> e.getItem().ifPresent(entry -> CustomRoutineLimitDialog.open(List.of(entry.task()))));
+                    e -> e.getItem().ifPresent(entry -> SpringContext.getBean(CustomRoutineLimitDialog.class)
+                            .open(List.of(entry.task()))));
 
             GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
-                    e -> CustomRoutineLimitDialog.open(
+                    e -> SpringContext.getBean(CustomRoutineLimitDialog.class).open(
                             treeGrid.getSelectedItems().stream()
                                     .map(entry -> (PersistedDataDO) entry.node())
                                     .toList()));
@@ -741,7 +740,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     // ================================================================================================================
-    // CustomRoutineLimitDialog
+    // customRoutineLimitDialog
     // ================================================================================================================
 
 

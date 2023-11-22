@@ -63,8 +63,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .difficult(true);
 
         Set<TagEntity> tagEntities = Set.of(
-                dataContext.mergeTag(new TagEntity().name("Tag1")),
-                dataContext.mergeTag(new TagEntity().name("Tag2"))
+                dataContext.merge(new TagEntity().name("Tag1")),
+                dataContext.merge(new TagEntity().name("Tag2"))
         );
 
         taskEntity.tags(tagEntities);
@@ -87,7 +87,7 @@ public class DataContextTest extends TaskTestTemplate {
 
     @Test
     void testTagEntityToDO() {
-        TagEntity tagEntity = dataContext.mergeTag(new TagEntity().name("Tag Name"));
+        TagEntity tagEntity = dataContext.merge(new TagEntity().name("Tag Name"));
         Tag tag = dataContext.toDO(tagEntity);
 
         assertNotNull(tag);
@@ -253,8 +253,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .project(true));
 
         Set<TagEntity> originalTagEntities = Set.of(
-                dataContext.mergeTag(new TagEntity().name("Tag1")),
-                dataContext.mergeTag(new TagEntity().name("Tag2"))
+                dataContext.merge(new TagEntity().name("Tag1")),
+                dataContext.merge(new TagEntity().name("Tag2"))
         );
 
         taskEntity.tags(originalTagEntities);
@@ -268,17 +268,17 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));
 
-        TaskEntity mergedTaskEntity = dataContext.mergeTask(task);
+        TaskEntity mergedTaskEntity = dataContext.merge(task);
 
         assertTask(mergedTaskEntity, task);
     }
 
     @Test
     void testTagMerge() {
-        TagEntity tagEntity = dataContext.mergeTag(new TagEntity().name("Original Tag Name"));
+        TagEntity tagEntity = dataContext.merge(new TagEntity().name("Original Tag Name"));
         Tag tag = new Tag(ID.of(tagEntity), "Updated Tag Name");
 
-        TagEntity mergedTagEntity = dataContext.mergeTag(tag);
+        TagEntity mergedTagEntity = dataContext.merge(tag);
 
         assertEquals(tag.id(), ID.of(mergedTagEntity));
         assertEquals(tag.name(), mergedTagEntity.name());
@@ -332,7 +332,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         assertNode(taskLink, taskNode);
 
-        TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
+        TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
         assertNode(mergedTaskLink, taskNode);
     }
@@ -385,7 +385,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         assertNode(taskLink, taskNode);
 
-        TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
+        TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
         taskNode.projectDurationLimit(Duration.ZERO);
         assertNode(mergedTaskLink, taskNode);
@@ -408,7 +408,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .child(childTaskEntity)
                 .position(1));
 
-        assertThrows(Exception.class, () -> dataContext.mergeNode(
+        assertThrows(Exception.class, () -> dataContext.merge(
                 new TaskNodeDTO(
                         ID.of(parentTaskEntity),
                         ID.of(childTaskEntity),
@@ -467,7 +467,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         assertNode(taskLink, taskNode);
 
-        TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
+        TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
         assertNode(mergedTaskLink, taskNode);
     }
@@ -516,7 +516,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         assertNode(taskLink, taskNode);
 
-        TaskLink mergedTaskLink = dataContext.mergeNode(taskNode);
+        TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
         assertNode(mergedTaskLink, taskNode);
     }

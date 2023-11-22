@@ -18,6 +18,10 @@ public class K {
 
     public static final String BACKGROUND_COLOR_PRIMARY = "primary-color-10pct-background";
 
+    public static final String TOGGLEABLE_BUTTON_TRUE = "toggleable-button-true";
+    public static final String TOGGLEABLE_BUTTON_FALSE = "toggleable-button-false";
+    public static final String TOGGLEABLE_BUTTON_NULL = "toggleable-button-inactive";
+
     public static final String QUICK_CREATE = "Quick Create";
 
     public static final String GRID_PARTNAME_FUTURE = "future-task";

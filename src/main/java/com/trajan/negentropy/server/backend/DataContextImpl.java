@@ -41,6 +41,7 @@ public class DataContextImpl implements DataContext {
     @Autowired private TagRepository tagRepository;
     @Autowired private TenetRepository tenetRepository;
     @Autowired private MoodRepository moodRepository;
+    @Autowired private StressorRepository stressorRepository;
 
     @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository routineStepRepository;
@@ -51,7 +52,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskEntity mergeTask(Task task) {
+    public TaskEntity merge(Task task) {
         TaskEntity taskEntity;
 
         if (task.id() == null) {
@@ -82,7 +83,7 @@ public class DataContextImpl implements DataContext {
             Set<TagEntity> tagEntities = taskDTO.tags() == null ?
                     tagRepository.findByTasks(taskEntity).collect(Collectors.toSet()) :
                     taskDTO.tags().stream()
-                            .map(this::mergeTag)
+                            .map(this::merge)
                             .collect(Collectors.toSet());
             taskEntity.tags(tagEntities);
         }
@@ -108,7 +109,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskEntity mergeTaskTemplate(TaskID id, TaskDTO template) {
+    public TaskEntity merge(TaskID id, TaskDTO template) {
         TaskDTO task = new TaskDTO(
                 id,
                 null,
@@ -118,11 +119,11 @@ public class DataContextImpl implements DataContext {
                 template.project(),
                 template.difficult(),
                 template.tags());
-        return this.mergeTask(task);
+        return this.merge(task);
     }
 
     @Override
-    public TaskLink mergeNode(TaskNode node) {
+    public TaskLink merge(TaskNode node) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
         if (node.cron() != null) {
@@ -181,7 +182,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskLink mergeNode(TaskNodeDTO node) {
+    public TaskLink merge(TaskNodeDTO node) {
         if (node.childId() == null) {
             throw new IllegalArgumentException("Cannot provide a null child ID when merging a task node.");
         }
@@ -312,9 +313,9 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskLink mergeNodeTemplate(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate) {
+    public TaskLink merge(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate) {
         TaskLink link = entityQueryService.getLink(linkId);
-        return this.mergeNode(new TaskNode(
+        return this.merge(new TaskNode(
                 linkId,
                 link.parentId(),
                 this.toDO(link.child()),
@@ -333,22 +334,22 @@ public class DataContextImpl implements DataContext {
 
 
     @Override
-    public TagEntity mergeTag(TagEntity tagEntity) {
+    public TagEntity merge(TagEntity tagEntity) {
         return tagRepository.save(tagEntity);
     }
 
     @Override
-    public TagEntity mergeTag(Tag tag) {
+    public TagEntity merge(Tag tag) {
         TagEntity tagEntity = tag.id() != null
                 ? entityQueryService.getTag(tag.id())
                 : new TagEntity();
 
-        return this.mergeTag(tagEntity
+        return this.merge(tagEntity
                 .name(tag.name()));
     }
 
     @Override
-    public TenetEntity mergeTenet(Tenet tenet) {
+    public TenetEntity merge(Tenet tenet) {
         TenetEntity tenetEntity = tenet.id() != null
                 ? tenetRepository.getReferenceById(tenet.id())
                 : new TenetEntity();
@@ -357,7 +358,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public MoodEntity mergeMood(Mood mood) {
+    public MoodEntity merge(Mood mood) {
         MoodEntity moodEntity = mood.id() != null
                 ? moodRepository.getReferenceById(mood.id())
                 : new MoodEntity();
@@ -365,6 +366,16 @@ public class DataContextImpl implements DataContext {
         return moodRepository.save(moodEntity
                 .emotion(mood.emotion())
                 .timestamp(mood.timestamp()));
+    }
+
+    @Override
+    public StressorEntity merge(Stressor stressor) {
+        StressorEntity stressorEntity = stressor.id() != null
+                ? stressorRepository.getReferenceById(stressor.id())
+                : new StressorEntity();
+
+        return stressorRepository.save(stressorEntity
+                .name(Objects.requireNonNullElse(stressor.name(), stressorEntity.name())));
     }
 
     @Override
@@ -404,6 +415,11 @@ public class DataContextImpl implements DataContext {
     @Override
     public void deleteMood(Long id) {
         moodRepository.deleteById(id);
+    }
+
+    @Override
+    public void deleteStressor(Long id) {
+        stressorRepository.deleteById(id);
     }
 
     @Override
@@ -539,5 +555,12 @@ public class DataContextImpl implements DataContext {
                 moodEntity.id(),
                 moodEntity.emotion(),
                 moodEntity.timestamp());
+    }
+
+    @Override
+    public Stressor toDO(StressorEntity stressorEntity) {
+        return new Stressor(
+                stressorEntity.id(),
+                stressorEntity.name());
     }
 }

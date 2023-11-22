@@ -11,12 +11,12 @@ import java.util.stream.Stream;
 
 @Service
 @Slf4j
-public class TenetService {
+public class TenetService implements ServiceFacade<Tenet> {
     @Autowired private DataContext dataContext;
     @Autowired private TenetRepository tenetRepository;
 
     public Tenet persist(Tenet tenet) {
-        return dataContext.toDO(dataContext.mergeTenet(tenet));
+        return dataContext.toDO(dataContext.merge(tenet));
     }
 
     public void delete(Long id) {

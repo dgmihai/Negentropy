@@ -330,7 +330,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity activateStep(RoutineEntity routine, LocalDateTime time) {
-        RoutineStepEntity step = (RoutineStepEntity) routine.currentStep();
+        RoutineStepEntity step = routine.currentStep();
         log.debug("Activating step <" + step.task().name() + "> in routine " + routine.id() + ".");
 
         step.start(time);
@@ -592,36 +592,10 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private TimeableStatus getStepStatusBasedOnChildrenStatus(RoutineStepEntity step) {
-        int completedCount = 0;
-        int excludedCount = 0;
-        int postponedCount = 0;
-        int skippedCount = 0;
-        int activeCount = 0;
-        for (RoutineStepEntity child : step.children()) {
-            switch (child.status()) {
-                case COMPLETED -> completedCount++;
-                case EXCLUDED -> excludedCount++;
-                case POSTPONED -> postponedCount++;
-                case SKIPPED -> skippedCount++;
-                case ACTIVE -> activeCount++;
-            }
-        }
-
-        int size = step.children().size();
-        if (size > 0) {
-            if (postponedCount == size) {
-                return TimeableStatus.POSTPONED;
-            } else if (completedCount == size || completedCount + postponedCount == size) {
-                return TimeableStatus.COMPLETED;
-            } else if (excludedCount == size || completedCount + postponedCount + excludedCount == size) {
-                return TimeableStatus.EXCLUDED;
-            } else if (activeCount == 0 && skippedCount > 0) {
-                return TimeableStatus.SKIPPED;
-            } else {
-                return TimeableStatus.ACTIVE;
-            }
-        } else {
+        if (allChildrenFinalized(step)) {
             return TimeableStatus.COMPLETED;
+        } else {
+            return TimeableStatus.ACTIVE;
         }
     }
 
@@ -656,19 +630,19 @@ public class RoutineServiceImpl implements RoutineService {
         step.complete(time);
 
         if (step.link().isPresent()) {
-            step.link(dataContext.mergeNode(new TaskNode(ID.of(step.link().get()))
+            step.link(dataContext.merge(new TaskNode(ID.of(step.link().get()))
                     .completed(true)));
         }
     }
 
     private void resetStepLinkStatus(RoutineStepEntity step, LocalDateTime time) {
         if (step.link().isPresent() && step.link().get().completed()) {
-            step.link(dataContext.mergeNode(new TaskNode(ID.of(step.link().get()))
+            step.link(dataContext.merge(new TaskNode(ID.of(step.link().get()))
                     .completed(false)));
         }
 
         if (step.link().isPresent() && step.link().get().cron() != null && step.link().get().scheduledFor().isAfter(LocalDateTime.now())) {
-            step.link(dataContext.mergeNode(new TaskNode(ID.of(step.link().get()))
+            step.link(dataContext.merge(new TaskNode(ID.of(step.link().get()))
                     .scheduledFor(time)));
         }
     }
@@ -679,7 +653,7 @@ public class RoutineServiceImpl implements RoutineService {
         step.postpone(time);
 
         if (step.link().isPresent() && step.link().get().cron() != null) {
-            step.link(dataContext.mergeNode(new TaskNode(ID.of(step.link().get()))
+            step.link(dataContext.merge(new TaskNode(ID.of(step.link().get()))
                     .scheduledFor(step.link().get().cron().next(time))));
         }
     }

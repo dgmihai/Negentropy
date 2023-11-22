@@ -1,18 +1,18 @@
 package com.trajan.negentropy.client.components.routinelimit;
 
 import com.trajan.negentropy.client.components.fields.DurationTextField;
-import com.trajan.negentropy.client.components.routinelimit.RoutineSelect.SelectOptions;
-import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.session.UserSettings;
+import com.trajan.negentropy.client.util.IndeterminateToggleButton;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.filter.RoutineLimitFilter;
-import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.timepicker.TimePicker;
 import jakarta.annotation.PostConstruct;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,14 +35,15 @@ import static com.trajan.negentropy.model.filter.TaskTreeFilter.INNER_JOIN_INCLU
 @Getter
 public class RoutineLimitForm extends FormLayout {
     @Autowired private UIController controller;
+    @Autowired private UserSettings settings;
 
     private DurationTextField durationField = new DurationTextField();
     private IntegerField countField = new IntegerField();
     private TimePicker timePicker = new TimePicker();
-    private RoutineSelect routineSelect = SpringContext.getBean(RoutineSelect.class);
-    private TagComboBox tagsToExclude;
-    private TagComboBox tagsToInclude;
+    private Set<Tag> tagsToExclude = new HashSet<>();
+    private Set<Tag> tagsToInclude = new HashSet<>();
     private Checkbox innerJoinTags = new Checkbox();
+    private HorizontalLayout toggleableTags = new HorizontalLayout();
 
     @PostConstruct
     public void init() {
@@ -53,50 +55,44 @@ public class RoutineLimitForm extends FormLayout {
         timePicker.setPlaceholder("Time Limit");
         timePicker.setSizeFull();
 
-        tagsToInclude = new TagComboBox("Filter: Include Tags", controller);
-        tagsToInclude.setClearButtonVisible(true);
-        tagsToInclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
-
-        tagsToExclude = new TagComboBox("Filter: Exclude Tags", controller);
-        tagsToExclude.setClearButtonVisible(true);
-        tagsToExclude.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+        toggleableTags.setWidthFull();
+        toggleableTags.setJustifyContentMode(JustifyContentMode.CENTER);
+        toggleableTags.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 
         innerJoinTags.setLabel("Inner Join Tags");
 
-        Hr hr = new Hr();
+        this.add(durationField, countField, timePicker, toggleableTags);
+        this.setColspan(durationField, 2);
+        this.setColspan(toggleableTags, 2);
+    }
 
-        hr.setVisible(false);
-        tagsToInclude.setVisible(false);
-        tagsToExclude.setVisible(false);
-        innerJoinTags.setVisible(false);
-
-        routineSelect.addValueChangeListener(e -> {
-            if (routineSelect.getValue().equals(SelectOptions.WITH_CUSTOM_FILTER)) {
-                tagsToInclude.setVisible(true);
-                tagsToExclude.setVisible(true);
-                innerJoinTags.setVisible(true);
-                hr.setVisible(true);
+    public void setToggleableTags(Set<Tag> tags) {
+        toggleableTags.removeAll();
+        tags.forEach(tag -> {
+            IndeterminateToggleButton toggleButton = new IndeterminateToggleButton(
+                    tag.name(),
+                    state -> {
+                        if (state == null) {
+                            tagsToInclude.remove(tag);
+                            tagsToExclude.remove(tag);
+                        } else if (state) {
+                            tagsToInclude.add(tag);
+                            tagsToExclude.remove(tag);
+                        } else {
+                            tagsToInclude.remove(tag);
+                            tagsToExclude.add(tag);
+                        }
+                    });
+            toggleableTags.add(toggleButton);
+            if(settings.filter().includedTagIds().contains(tag.id())) {
+                toggleButton.setState(true);
+            } else if(settings.filter().excludedTagIds().contains(tag.id())) {
+                toggleButton.setState(false);
             } else {
-                tagsToInclude.setVisible(false);
-                tagsToExclude.setVisible(false);
-                innerJoinTags.setVisible(false);
-                hr.setVisible(false);
+                toggleButton.setState(null);
             }
         });
-
-        routineSelect.customFilterSupplier(() -> (RoutineLimitFilter) new RoutineLimitFilter()
-                .includedTagIds(tagsToInclude.getValue()
-                        .stream().map(Tag::id).collect(Collectors.toSet()))
-                .excludedTagIds(tagsToExclude.getValue()
-                        .stream().map(Tag::id).collect(Collectors.toSet()))
-                .options(Set.of(INNER_JOIN_INCLUDED_TAGS))
-                .completed(false));
-
-        this.add(routineSelect, durationField, countField, timePicker, hr, tagsToInclude, tagsToExclude, innerJoinTags);
-        this.setColspan(routineSelect, 2);
-        this.setColspan(durationField, 2);
-        this.setColspan(tagsToInclude, 2);
-        this.setColspan(tagsToExclude, 2);
+        toggleableTags.add(innerJoinTags);
     }
 
     public RoutineLimitFilter getFilter() {
@@ -126,9 +122,19 @@ public class RoutineLimitForm extends FormLayout {
             }
         }
 
-        return routineSelect.getFilter()
+        Set<String> options = (innerJoinTags.getValue())
+                ? Set.of(INNER_JOIN_INCLUDED_TAGS)
+                : Set.of();
+
+        return (RoutineLimitFilter) new RoutineLimitFilter()
                 .durationLimit(duration)
                 .stepCountLimit(count)
-                .etaLimit(eta);
+                .etaLimit(eta)
+                .completed(false)
+                .includedTagIds(tagsToInclude.stream()
+                        .map(Tag::id).collect(Collectors.toSet()))
+                .excludedTagIds(tagsToExclude.stream()
+                        .map(Tag::id).collect(Collectors.toSet()))
+                .options(options);
     }
 }

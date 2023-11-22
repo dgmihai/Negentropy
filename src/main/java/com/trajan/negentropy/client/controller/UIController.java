@@ -55,7 +55,7 @@ import java.util.function.Supplier;
 @Benchmark(millisFloor = 10)
 public class UIController {
     private final UILogger log = new UILogger();
-    private ExecutorService executor;
+    protected ExecutorService executor;
 
     @Autowired
     private UI ui;
@@ -97,7 +97,7 @@ public class UIController {
         executor.shutdown();
     }
 
-    private ExecutorService createExecutor() {
+    protected ExecutorService createExecutor() {
         return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 30L,
                 TimeUnit.SECONDS,
                 new SynchronousQueue<>());

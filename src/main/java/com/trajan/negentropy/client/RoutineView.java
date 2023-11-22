@@ -5,24 +5,25 @@ import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.components.routine.RoutineCard;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet;
 import com.trajan.negentropy.client.components.toolbar.ToolbarTabSheet.TabType;
+import com.trajan.negentropy.client.components.wellness.MoodInput;
+import com.trajan.negentropy.client.components.wellness.StressorInput;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.BannerProvider;
-import com.trajan.negentropy.model.Mood;
-import com.trajan.negentropy.model.entity.Emotion;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.server.facade.RoutineService;
+import com.trajan.negentropy.util.SpringContext;
 import com.trajan.negentropy.util.TimeableUtil;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.Uses;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.data.provider.Query;
@@ -34,9 +35,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -115,7 +114,16 @@ public class RoutineView extends VerticalLayout {
         );
         activeRoutineGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
-        this.add(new MoodInput(), activeRoutineGrid, toolbarTabSheet, routineStepTreeGrid);
+        FormLayout mentalStateLayout = new FormLayout();
+        mentalStateLayout.add(
+                SpringContext.getBean(StressorInput.class),
+                SpringContext.getBean(MoodInput.class));
+        mentalStateLayout.setResponsiveSteps(
+                new ResponsiveStep("0", 1),
+                new ResponsiveStep(K.SHORT_SCREEN_WIDTH, 2));
+        mentalStateLayout.setWidthFull();
+
+        this.add(mentalStateLayout, activeRoutineGrid, toolbarTabSheet, routineStepTreeGrid);
     }
 
     public Routine getActiveRoutine() {
@@ -132,35 +140,5 @@ public class RoutineView extends VerticalLayout {
                 activeRoutineGrid.setItems(routines);
             });
         });
-    }
-
-    public class MoodInput extends HorizontalLayout {
-        private final ComboBox<Emotion> emotionField = new ComboBox<>();
-
-        public MoodInput() {
-            this.addClassName("mood-input");
-            this.setWidthFull();
-
-            Mood lastMood = controller.services().mood().getLastMood();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
-
-            emotionField.addClassName("emotion-field");
-            emotionField.setLabel("What is your mood?");
-            emotionField.setPlaceholder(lastMood.emotion() + " at " +  lastMood.timestamp().format(formatter));
-            emotionField.setItemLabelGenerator(Emotion::toString);
-            emotionField.setItems(Emotion.values());
-
-            emotionField.addValueChangeListener(event -> {
-                if (event.isFromClient()) {
-                    controller.services().mood().persist(
-                            new Mood(event.getValue()));
-                    emotionField.setPlaceholder(event.getValue().toString());
-                    bannerProvider.showRandomTenet();
-                    emotionField.clear();
-                }
-            });
-
-            this.add(emotionField);
-        }
     }
 }

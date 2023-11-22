@@ -73,9 +73,8 @@
 }
 
 .routine-view .name-timer {
-  display: flex;
-  justify-content: flex-end;
-  width: 5.5em;
+  text-align: right;
+  width: 5em;
 }
 
 .routine-view .date {
@@ -111,6 +110,11 @@
 }
 
 .routine-view .mood-input {
+  display: flex;
+  justify-content: center;
+}
+
+.routine-view .stressor-input {
   display: flex;
   justify-content: center;
 }

@@ -97,8 +97,11 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         cronSpan = new CronSpan();
         cronSpan.cronField().setValueChangeMode(ValueChangeMode.EAGER);
 
-        projectCheckbox.addValueChangeListener(e ->
-                projectDurationLimit.setVisible(e.getValue()));
+        projectCheckbox.addValueChangeListener(e -> {
+            projectDurationLimit.setVisible(e.getValue());
+            projectStepCountLimit.setVisible(e.getValue());
+            projectEtaLimit.setVisible(e.getValue());
+        });
     }
 
     @Override
@@ -195,6 +198,6 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         this.setColspan(hr, 2);
 
         this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
-                projectDurationLimit, projectStepCountLimit, projectEtaLimit, projectComboBox, buttonLayout);
+                projectComboBox, projectDurationLimit, projectStepCountLimit, projectEtaLimit, buttonLayout);
     }
 }

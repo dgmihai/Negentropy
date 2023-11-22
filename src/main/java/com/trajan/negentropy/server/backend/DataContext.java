@@ -18,23 +18,24 @@ import java.time.LocalDateTime;
  * A service implementation of the DataContext interface, managing persistence of entities.
  */
 public interface DataContext {
-    TaskEntity mergeTask(Task task);
-    TaskEntity mergeTaskTemplate(TaskID id, TaskDTO template);
+    TaskEntity merge(Task task);
+    TaskEntity merge(TaskID id, TaskDTO template);
 
-    TaskLink mergeNode(TaskNode node);
-    TaskLink mergeNode(TaskNodeDTO node);
-    TaskLink mergeNodeTemplate(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate);
+    TaskLink merge(TaskNode node);
+    TaskLink merge(TaskNodeDTO node);
+    TaskLink merge(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate);
 
-    TagEntity mergeTag(TagEntity tagEntity);
-    TagEntity mergeTag(Tag tag);
+    TagEntity merge(TagEntity tagEntity);
+    TagEntity merge(Tag tag);
 
-    TenetEntity mergeTenet(Tenet tenet);
-
-    MoodEntity mergeMood(Mood mood);
+    TenetEntity merge(Tenet tenet);
+    MoodEntity merge(Mood mood);
+    StressorEntity merge(Stressor stressor);
 
     void deleteLink(TaskLink link);
     void deleteTenet(Long id);
     void deleteMood(Long id);
+    void deleteStressor(Long id);
 
     TaskLink TESTONLY_mergeLink(TaskLink link);
 
@@ -64,6 +65,6 @@ public interface DataContext {
     RoutineStep toDO(RoutineStepEntity routineStepEntity);
 
     Tenet toDO(TenetEntity tenetEntity);
-
     Mood toDO(MoodEntity moodEntity);
+    Stressor toDO(StressorEntity stressorEntity);
 }

@@ -236,6 +236,8 @@ public class RoutineCard extends VerticalLayout {
         toTaskTree = new RoutineCardButton(VaadinIcon.TREE_TABLE.create());
         toTaskTree.addClickListener(event -> RoutineCard.toTaskTree(
                 () -> binder.getBean().node(), controller));
+//                () -> routine.steps().get(binder.getBean().parentId()).node(),
+//                controller));
 
         currentTaskName = new Span(binder.getBean().task().name());
         ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(

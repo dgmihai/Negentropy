@@ -2,7 +2,11 @@ package com.trajan.negentropy.client.components.routinelimit;
 
 import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.model.Tag;
+import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -18,6 +22,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
@@ -55,6 +61,29 @@ public class CustomRoutineLimitDialog {
 
     public void open(List<PersistedDataDO> data) {
         this.data = data;
+
+        Set<Tag> tags = data.stream()
+                .map(d -> {
+                    if (d instanceof Task task) {
+                        return task.id();
+                    } else if (d instanceof TaskNode node) {
+                        return node.task().id();
+                    }
+                    return null;
+                })
+                .map(id -> controller.services().query().fetchDescendantNodes(id, new TaskNodeTreeFilter()
+                        .completed(false))
+                        .map(TaskNode::task)
+                        .map(Task::id)
+                        .toList())
+                .flatMap(List::stream)
+                .distinct()
+                .map(id -> controller.taskNetworkGraph().getTags(id))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+
+        limitForm.setToggleableTags(tags);
+
         dialog.open();
     }
 

@@ -679,7 +679,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepTwoTwo,
                 TWOTWO,
-                TimeableStatus.SKIPPED);
+                TimeableStatus.ACTIVE);
 
         position = routine.currentPosition();
         LocalDateTime time11 = LocalDateTime.now();
@@ -877,7 +877,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepThreeTwo,
                 THREETWO,
-                TimeableStatus.SKIPPED);
+                TimeableStatus.ACTIVE);
 
         position = routine.currentPosition();
         LocalDateTime time6 = LocalDateTime.now();
@@ -985,7 +985,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 routine,
                 0,
                 THREE_AND_FIVE,
-                TimeableStatus.EXCLUDED,
+                TimeableStatus.COMPLETED,
                 TimeableStatus.COMPLETED,
                 time0);
     }

@@ -35,6 +35,11 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-body-text-color);
 }
 
+.white-color {
+   color:
+      var(--lumo-base-color);
+}
+
 .primary-color-icon {
     fill:
       var(--lumo-primary-color);
@@ -45,6 +50,32 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-primary-color-10pct);
 }
 
+.toggleable-button-true {
+    background-color:
+      var(--lumo-primary-color-10pct);
+    color:
+      var(--lumo-primary-text-color);
+}
+
+.toggleable-button-false {
+    background-color:
+      var(--lumo-error-color-10pct);
+    color:
+      var(--lumo-error-text-color);
+}
+
+.toggleable-button-null {
+    background-color:
+      var(--lumo-contrast-color-10pct);
+    color:
+      var(--lumo-body-text-color);
+}
+
+.unselected-background {
+    background-color:
+      var(--lumo-secondary-text-color);
+}
+
 .unselected-color-icon {
     fill:
       var(--lumo-secondary-text-color);
@@ -52,7 +83,7 @@ vaadin-scroller[slot="drawer"] {
 
 .error-color-icon {
     fill:
-    var(--lumo-error-color);
+      var(--lumo-error-color);
 }
 
 .bright-color-icon {
@@ -71,7 +102,7 @@ vaadin-scroller[slot="drawer"] {
 }
 
 vaadin-multi-select-combo-box-chip {
-    background-color:
+  background-color:
     var(--lumo-primary-color-10pct);
   color:
     var(--lumo-contrast);

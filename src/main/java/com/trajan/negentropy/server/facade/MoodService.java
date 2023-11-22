@@ -13,12 +13,12 @@ import java.util.stream.Stream;
 
 @Service
 @Slf4j
-public class MoodService {
+public class MoodService implements ServiceFacade<Mood> {
     @Autowired private DataContext dataContext;
     @Autowired private MoodRepository moodRepository;
 
     public Mood persist(Mood mood) {
-        return dataContext.toDO(dataContext.mergeMood(mood));
+        return dataContext.toDO(dataContext.merge(mood));
     }
 
     public void delete(Long id) {
