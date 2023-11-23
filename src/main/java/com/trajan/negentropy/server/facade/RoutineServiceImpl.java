@@ -591,7 +591,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsExcluded(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as excluded.");
+        if (step.task() != null) log.debug("Marking step <" + step.task().name() + "> as excluded.");
 
         step.exclude(time);
     }
@@ -732,9 +732,12 @@ public class RoutineServiceImpl implements RoutineService {
                                     .toList()
                                     .indexOf(newNode.id());
                             if (position != -1) {
-                                RoutineStepEntity newStep = new RoutineStepEntity();
-                                newStep.link(entityQueryService.getLink(newNode.id()));
-                                newStep.parentStep(step);
+                                TaskLink link = entityQueryService.getLink(newNode.id());
+                                RoutineStepEntity newStep = new RoutineStepEntity()
+                                        .link(link)
+                                        .task(link.child())
+                                        .parentStep(step)
+                                        .routine(routine);
                                 step.children().add(position, newStep);
                                 for (int i = position; i < step.children().size(); i++) {
                                     step.children().get(i).position(i);
