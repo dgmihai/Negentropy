@@ -19,7 +19,6 @@ import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.RoutineTestTemplate;
 import com.trajan.negentropy.server.facade.response.Request;
-import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -1124,9 +1124,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         .parentId(tasks.get(TWOTWO).id())
                         .childId(tasks.get(THREEONE).id()))));
 
-        RoutineResponse response = routineService.recalculateRoutine(routine.id());
-        assertTrue(response.success());
-        routine = response.routine();
+        routine = routineService.fetchRoutine(routine.id());
 
         assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
         assertRoutine(List.of(
@@ -1159,9 +1157,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         .childId(tasks.get(THREEONE).id())
                         .position(0))));
 
-        RoutineResponse response = routineService.recalculateRoutine(routine.id());
-        assertTrue(response.success());
-        routine = response.routine();
+        routine = routineService.fetchRoutine(routine.id());
 
         assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
         assertRoutine(List.of(
@@ -1190,9 +1186,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         changeService.execute(Request.of(new DeleteChange<>(
                 ID.of(links.get(Triple.of(TWOTWO, TWOTWOONE, 0))))));
 
-        RoutineResponse response = routineService.recalculateRoutine(routine.id());
-        assertTrue(response.success());
-        routine = response.routine();
+        routine = routineService.fetchRoutine(routine.id());
 
         assertRoutine(List.of(
                         TWOTWO,
@@ -1223,9 +1217,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 new Task(twoTwoOne.id())
                         .duration(twoTwoOne.duration().plus(Duration.ofHours(1))))));
 
-        RoutineResponse response = routineService.recalculateRoutine(routine.id());
-        assertTrue(response.success());
-        routine = response.routine();
+        routine = routineService.fetchRoutine(routine.id());
 
         assertRoutine(List.of(
                         TWOTWO,

@@ -135,6 +135,7 @@ public class ChangeProcessor {
                     TaskLink target = entityQueryService.getLink(linkId);
                     updateDuration(durationUpdates, target);
                     messages.add(biMessageSupplier.apply(prefix, "task node \"" + target.child().name() + "\""));
+                    dataResults.add(change.id(), dataContext.toDO(target));
                     dataContext.deleteLink(target);
                 } else if (id instanceof TagID tagId) {
                     log.debug("Deleting tag: {}", tagId);
@@ -295,9 +296,9 @@ public class ChangeProcessor {
             message = joiner.toString();
         }
 
-        routineService.notifyChanges(durationUpdates);
         netDurationService.clearLinks(durationUpdates);
         updateSyncManagerDurations.accept(durationUpdates);
+        routineService.notifyChanges(request, dataResults);
         return Pair.of(message, dataResults);
     }
 

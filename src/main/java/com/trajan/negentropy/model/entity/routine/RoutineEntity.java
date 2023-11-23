@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.experimental.Accessors;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
@@ -20,9 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "routines")
+@Table(name = "routines", indexes = {
+        @Index(columnList = "autoSync", name = "idx_routine_auto_sync"),
+        @Index(columnList = "status", name = "idx_routine_status")
+})
 @NoArgsConstructor
-@Accessors(fluent = true)
 @Getter
 @Setter
 @ToString(callSuper = true)

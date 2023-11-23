@@ -1,18 +1,20 @@
 package com.trajan.negentropy.server.facade;
 
-import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.shared.Registration;
-import jakarta.validation.constraints.NotNull;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,9 +30,6 @@ public interface RoutineService {
 
     RoutineResponse createRoutine(TaskID rootId);
     RoutineResponse createRoutine(LinkID rootId);
-
-    RoutineResponse recalculateRoutine(@NotNull RoutineID routineId);
-
     RoutineResponse createRoutine(TaskID rootId, TaskNodeTreeFilter filter);
     RoutineResponse createRoutine(LinkID rootId, TaskNodeTreeFilter filter);
     RoutineResponse createRoutine(List<TaskOrLinkID> rootIds, TaskNodeTreeFilter filter);
@@ -58,6 +57,5 @@ public interface RoutineService {
 
     Registration register(RoutineID routineId, Consumer<Routine> listener);
 
-    void notifyChanges(Set<TaskLink> durationUpdates);
-
+    void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults);
 }

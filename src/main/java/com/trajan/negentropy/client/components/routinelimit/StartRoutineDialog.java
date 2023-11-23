@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Scope("prototype")
-public class CustomRoutineLimitDialog {
+public class StartRoutineDialog {
     @Autowired private UIController controller;
 
     @Getter private final Dialog dialog = new Dialog();

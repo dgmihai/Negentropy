@@ -4,7 +4,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
-import com.trajan.negentropy.client.components.routinelimit.CustomRoutineLimitDialog;
+import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.routinelimit.RoutineSelect;
 import com.trajan.negentropy.client.components.routinelimit.RoutineSelect.SelectOptions;
 import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearchAndFilterForm;
@@ -420,7 +420,7 @@ public class ToolbarTabSheet extends TabSheet {
 
         taskSetBox.addSelectionListener(e -> taskSetBox.getSelectedItems().stream().findFirst()
                 .ifPresent(task -> {
-                    CustomRoutineLimitDialog dialog = SpringContext.getBean(CustomRoutineLimitDialog.class);
+                    StartRoutineDialog dialog = SpringContext.getBean(StartRoutineDialog.class);
                     taskSetBox.deselectAll();
                     dialog.open(List.of(task));
         }));

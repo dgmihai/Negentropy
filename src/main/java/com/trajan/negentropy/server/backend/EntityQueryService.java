@@ -259,6 +259,8 @@ public interface EntityQueryService {
      */
     Stream<TaskEntity> findDescendantTasks(TaskID ancestorId, TaskNodeTreeFilter filter);
 
+    boolean matchesFilter(LinkID linkId, TaskNodeTreeFilter filter);
+
     Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference);
 
     int getLowestImportanceOfDescendants(TaskID ancestorId);

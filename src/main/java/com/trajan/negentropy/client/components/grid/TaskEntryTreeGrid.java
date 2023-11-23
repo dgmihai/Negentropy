@@ -6,7 +6,7 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
-import com.trajan.negentropy.client.components.routinelimit.CustomRoutineLimitDialog;
+import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeFormLayout;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
@@ -567,11 +567,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             GridSubMenu<TaskEntry> activeTaskSubMenu = activeTask.getSubMenu();
 
             GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine",
-                    e -> e.getItem().ifPresent(entry -> SpringContext.getBean(CustomRoutineLimitDialog.class)
+                    e -> e.getItem().ifPresent(entry -> SpringContext.getBean(StartRoutineDialog.class)
                             .open(List.of(entry.task()))));
 
             GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
-                    e -> SpringContext.getBean(CustomRoutineLimitDialog.class).open(
+                    e -> SpringContext.getBean(StartRoutineDialog.class).open(
                             treeGrid.getSelectedItems().stream()
                                     .map(entry -> (PersistedDataDO) entry.node())
                                     .toList()));

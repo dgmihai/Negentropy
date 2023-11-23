@@ -333,14 +333,6 @@ public class UIController {
                 onSuccess, onFailure);
     }
 
-    public void recalculateRoutine(RoutineID routineId,
-                                   Consumer<RoutineResponse> onSuccess,
-                                   Consumer<RoutineResponse> onFailure) {
-        log.debug("Recalculating routine: " + routineId);
-        tryRoutineServiceCall(() -> services.routine().recalculateRoutine(routineId),
-                onSuccess, onFailure);
-    }
-
     public void setAutoSync(RoutineID routineId, boolean autoSync,
                             Consumer<RoutineResponse> onSuccess,
                             Consumer<RoutineResponse> onFailure) {

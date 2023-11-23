@@ -10,9 +10,6 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.filter.RoutineLimitFilter;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.timepicker.TimePicker;
 import jakarta.annotation.PostConstruct;
@@ -43,7 +40,7 @@ public class RoutineLimitForm extends FormLayout {
     private Set<Tag> tagsToExclude = new HashSet<>();
     private Set<Tag> tagsToInclude = new HashSet<>();
     private Checkbox innerJoinTags = new Checkbox();
-    private HorizontalLayout toggleableTags = new HorizontalLayout();
+    private FormLayout toggleableTags = new FormLayout();
 
     @PostConstruct
     public void init() {
@@ -56,8 +53,21 @@ public class RoutineLimitForm extends FormLayout {
         timePicker.setSizeFull();
 
         toggleableTags.setWidthFull();
-        toggleableTags.setJustifyContentMode(JustifyContentMode.CENTER);
-        toggleableTags.setDefaultVerticalComponentAlignment(Alignment.CENTER);
+        toggleableTags.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("10em", 2),
+                new FormLayout.ResponsiveStep("20em", 3),
+                new FormLayout.ResponsiveStep("30em", 4),
+                new FormLayout.ResponsiveStep("40em", 5),
+                new FormLayout.ResponsiveStep("50em", 6),
+                new FormLayout.ResponsiveStep("60em", 7),
+                new FormLayout.ResponsiveStep("70em", 8),
+                new FormLayout.ResponsiveStep("80em", 9),
+                new FormLayout.ResponsiveStep("90em", 10),
+                new FormLayout.ResponsiveStep("100em", 11),
+                new FormLayout.ResponsiveStep("110em", 12));
+//        toggleableTags.setJustifyContentMode(JustifyContentMode.CENTER);
+//        toggleableTags.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 
         innerJoinTags.setLabel("Inner Join Tags");
 
