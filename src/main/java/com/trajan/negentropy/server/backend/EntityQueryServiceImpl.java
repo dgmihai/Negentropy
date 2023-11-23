@@ -406,9 +406,15 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
+    public boolean matchesFilter(TaskID taskId, TaskNodeTreeFilter filter) {
+        return linkRepository.exists(this.filterTaskPredicate(filter, Q_TASK)
+                .and(Q_LINK.child.id.eq(taskId.val())));
+    }
+
+    @Override
     public boolean matchesFilter(LinkID linkId, TaskNodeTreeFilter filter) {
         return linkRepository.exists(this.filterLinkPredicate(filter)
-                .and(Q_LINK.child.id.eq(linkId.val())));
+                .and(Q_LINK.id.eq(linkId.val())));
     }
 
 //    @Override

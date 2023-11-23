@@ -591,7 +591,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsExcluded(RoutineStepEntity step, LocalDateTime time) {
-        if (step.task() != null) log.debug("Marking step <" + step.task().name() + "> as excluded.");
+        log.debug("Marking step <" + step.task().name() + "> as excluded.");
 
         step.exclude(time);
     }
@@ -785,6 +785,27 @@ public class RoutineServiceImpl implements RoutineService {
             }
         }
 
+        private void mergeOrRemove(RoutineStepEntity step) {
+            boolean merge = true;
+            try {
+                TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(step.routine().serializedFilter());
+                if (step.link().isPresent()) {
+                    LinkID linkId = ID.of(step.link().get());
+                    merge = entityQueryService.matchesFilter(linkId, filter);
+                } else {
+                    TaskID taskId = ID.of(step.task());
+                    merge = entityQueryService.matchesFilter(taskId, filter);
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                log.error("Could not deserialize filter: " + step.routine().serializedFilter(), e);
+            } finally {
+                if (merge) {
+                    toBroadcast.put(ID.of(step.routine()), step.routine());
+                } else {
+                    removeStep(step);
+                }
+            }
+        }
 
         public void process(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults) {
             log.debug("Recalculating routines based on " + request.changes().size() + " changes.");
@@ -799,7 +820,7 @@ public class RoutineServiceImpl implements RoutineService {
                     } else {
                         throw new RuntimeException("Unexpected data type: " + change.data().getClass());
                     }
-                    results.forEach(step -> toBroadcast.put(ID.of(step.routine()), step.routine()));
+                    results.forEach(this::mergeOrRemove);
                 } else if (c instanceof PersistChange<?> change) {
                     if (change.data() instanceof TaskNodeDTO) {
                         dataResults.get(change.id()).stream()
@@ -833,14 +854,14 @@ public class RoutineServiceImpl implements RoutineService {
                                 .map(Task::id)
                                 .collect(Collectors.toSet());
                         onlyActiveRoutinesContainingTasks(taskIds).fetch()
-                                .forEach(step -> toBroadcast.put(ID.of(step.routine()), step.routine()));
+                                .forEach(this::mergeOrRemove);
                     } else if (change.template() instanceof TaskNodeDTO) {
                         Set<LinkID> linkIds = dataResults.get(change.id()).stream()
                                 .map(TaskNode.class::cast)
                                 .map(TaskNode::id)
                                 .collect(Collectors.toSet());
                         onlyActiveRoutinesContainingLinks(linkIds).fetch()
-                                .forEach(step -> toBroadcast.put(ID.of(step.routine()), step.routine()));
+                                .forEach(this::mergeOrRemove);
                     }
                 } else if (c instanceof CopyChange change) {
                     dataResults.get(change.id()).stream()
@@ -848,7 +869,7 @@ public class RoutineServiceImpl implements RoutineService {
                             .forEach(this::insertNewStep);
                 } else if (c instanceof OverrideScheduledForChange change) {
                     onlyActiveRoutinesContainingLink(change.linkId()).fetch()
-                            .forEach(step -> toBroadcast.put(ID.of(step.routine()), step.routine()));
+                            .forEach(this::mergeOrRemove);
                 } else if (c instanceof InsertRoutineStepChange change) {
                     // TODO: Not yet implemented
                 }
