@@ -80,12 +80,14 @@ public class DataContextImpl implements DataContext {
         }
 
         if (task instanceof TaskDTO taskDTO) {
-            Set<TagEntity> tagEntities = taskDTO.tags() == null ?
-                    tagRepository.findByTasks(taskEntity).collect(Collectors.toSet()) :
-                    taskDTO.tags().stream()
+            Set<TagEntity> tagEntities = taskDTO.tags() == null
+                    ? tagRepository.findByTasks(taskEntity).collect(Collectors.toSet())
+                    : taskDTO.tags().stream()
                             .map(this::merge)
                             .collect(Collectors.toSet());
             taskEntity.tags(tagEntities);
+        } else {
+            log.warn("Task <" + task.name() + "> doesn't contain tag data");
         }
 
         taskEntity

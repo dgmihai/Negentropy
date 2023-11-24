@@ -4,6 +4,7 @@ import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task.TaskDTO;
@@ -23,7 +24,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 
-public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
+public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
 
     @Getter
     private final FormTaskNodeProvider taskNodeProvider = new FormTaskNodeProvider(controller) {
@@ -44,7 +45,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     };
 
     @Getter
-    private Binder<T> binder;
+    protected Binder<T> binder;
     private Class<T> clazz;
 
     protected TextField projectDurationLimit;
@@ -52,7 +53,7 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
     protected TimePicker projectEtaLimit;
     protected Checkbox recurringCheckbox;
 
-    public GridInlineEditorTaskNodeFormLayout(UIController controller, T data, Class<T> clazz) {
+    public GridInlineEditorTaskNodeForm(UIController controller, T data, Class<T> clazz) {
         super(controller);
         this.clazz = clazz;
         binder = new BeanValidationBinder<>(clazz);
@@ -144,13 +145,6 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
                         node -> node.task().description(),
                         (node, description) -> node.task().description(description));
 
-        tagComboBox = new CustomValueTagComboBox(controller, tags::add);
-
-        binder.forField(tagComboBox)
-                .bind(
-                        node -> controller.taskNetworkGraph().getTags(node.task().id()),
-                        (node, tags) -> this.tags = tags);
-
         binder.forField(projectDurationLimit)
                 .withConverter(new DurationConverter())
                 .bind(
@@ -197,7 +191,34 @@ public class GridInlineEditorTaskNodeFormLayout<T extends HasTaskNodeData> exten
         Hr hr = new Hr();
         this.setColspan(hr, 2);
 
-        this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
+        this.add(nameField, taskInfoLayout, descriptionArea, hr, nodeInfoLayout,
                 projectComboBox, projectDurationLimit, projectStepCountLimit, projectEtaLimit, buttonLayout);
+    }
+
+    public static class GridInlineEditorTaskEntryForm extends GridInlineEditorTaskNodeForm<TaskEntry> {
+
+        public GridInlineEditorTaskEntryForm(UIController controller, TaskEntry data) {
+            super(controller, data, TaskEntry.class);
+        }
+
+        @Override
+        public void configureBindings() {
+            super.configureBindings();
+            tagComboBox = new CustomValueTagComboBox(controller, tags::add);
+
+            binder.forField(tagComboBox)
+                    .bind(
+                            TaskEntry::tags,
+                            TaskEntry::tags);
+        }
+
+        @Override
+        protected void initLayout() {
+            Hr hr = new Hr();
+            this.setColspan(hr, 2);
+
+            this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr, nodeInfoLayout,
+                    projectComboBox, projectDurationLimit, projectStepCountLimit, projectEtaLimit, buttonLayout);
+        }
     }
 }

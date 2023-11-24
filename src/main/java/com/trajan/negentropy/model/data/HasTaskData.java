@@ -1,6 +1,7 @@
 package com.trajan.negentropy.model.data;
 
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.interfaces.Named;
 
 import java.time.Duration;
@@ -38,5 +39,10 @@ public interface HasTaskData {
                     ? project() ? "Project" : "Task"
                     : "Task";
         }
+    }
+
+    interface HasTaskDTOData extends HasTaskData {
+        @Override
+        TaskDTO task();
     }
 }

@@ -37,6 +37,7 @@ import org.apache.logging.log4j.util.TriConsumer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -332,7 +333,9 @@ public class RoutineCard extends VerticalLayout {
 
             TaskNode currentNode = nodeSupplier.get();
             TaskEntry newRootEntry = controller.taskEntryDataProvider().linkTaskEntriesMap().getFirst(currentNode.id());
-            if (newRootEntry == null) newRootEntry = new TaskEntry(null, currentNode);
+            // TODO: Iterate through parents first
+            if (newRootEntry == null) newRootEntry = new TaskEntry(null, currentNode,
+                    Set.copyOf(controller.taskNetworkGraph().taskTagMap().get(currentNode.childId())));
             treeView.firstTaskTreeGrid().nestedTabs().onSelectNewRootEntry(newRootEntry);
         });
     }

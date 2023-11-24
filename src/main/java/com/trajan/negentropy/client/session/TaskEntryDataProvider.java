@@ -20,6 +20,7 @@ import org.springframework.util.MultiValueMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @SpringComponent
@@ -130,7 +131,10 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
         return taskNetworkGraph.getChildren(parentTaskID, this.filteredLinks, query.getOffset(), query.getLimit())
                 .map(node -> {
                     log.trace("Fetching child: " + node);
-                    TaskEntry entry = new TaskEntry(parent, taskNetworkGraph.nodeMap().get(node.id()));taskTaskEntriesMap.add(node.task().id(), entry);
+                    TaskEntry entry = new TaskEntry(parent,
+                            taskNetworkGraph.nodeMap().get(node.id()),
+                            Set.copyOf(taskNetworkGraph.taskTagMap().get(node.childId())));
+                    taskTaskEntriesMap.add(node.task().id(), entry);
                     linkTaskEntriesMap.add(node.id(), entry);
                     log.trace("Adding new entry: " + entry);
                     return entry;

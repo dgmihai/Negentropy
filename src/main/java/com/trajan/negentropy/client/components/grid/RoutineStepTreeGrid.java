@@ -156,7 +156,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
     @Override
     protected AbstractTaskFormLayout getTaskFormLayout(RoutineStep routineStep) {
         if (routineStep instanceof RoutineNodeStep routineNodeStep) {
-            return new GridInlineEditorTaskNodeFormLayout<>(controller, routineNodeStep, RoutineNodeStep.class);
+            return new GridInlineEditorTaskNodeForm<>(controller, routineNodeStep, RoutineNodeStep.class);
         } else if (routineStep instanceof RoutineTaskStep routineTaskStep) {
             return new RoutineStepFormLayout(controller, routineTaskStep);
         } else {
@@ -166,8 +166,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected Binder<RoutineStep> setEditorBinder(AbstractTaskFormLayout form) {
-        if (form instanceof GridInlineEditorTaskNodeFormLayout gridInlineEditorTaskNodeFormLayout) {
-            return gridInlineEditorTaskNodeFormLayout.binder();
+        if (form instanceof GridInlineEditorTaskNodeForm gridInlineEditorTaskNodeForm) {
+            return gridInlineEditorTaskNodeForm.binder();
         } else if (form instanceof RoutineStepFormLayout routineStepFormLayout) {
             return routineStepFormLayout.binder();
         } else {
