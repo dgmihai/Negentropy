@@ -122,7 +122,7 @@ public class DataContextImpl implements DataContext {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
         if (node.cron() != null) {
-            if (node.cron().toString().equals(K.NULL_CRON)) {
+            if (node.cron().equals(K.NULL_CRON_FULL)) {
                 linkEntity.cron((CronExpression) null);
                 node.cron(null);
             } else {
@@ -258,7 +258,7 @@ public class DataContextImpl implements DataContext {
 
         String cron = null;
         if (node.cron() != null) {
-            if (node.cron().toString().equals(K.NULL_CRON)) {
+            if (node.cron().equals(K.NULL_CRON_FULL)) {
                 node.cron(null);
             } else {
                 cron = node.cron().toString();
@@ -313,7 +313,7 @@ public class DataContextImpl implements DataContext {
         return this.merge(new TaskNode(
                 linkId,
                 link.parentId(),
-                this.toBaseDO(link.child()),
+                this.toLazyDO(link.child()),
                 link.position(),
                 link.positionFrozen(),
                 nodeTemplate.importance(),
@@ -453,7 +453,7 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public Task toBaseDO(TaskEntity taskEntity) {
+    public Task toLazyDO(TaskEntity taskEntity) {
         return new Task(ID.of(taskEntity),
                 taskEntity.name(),
                 taskEntity.description(),
@@ -465,8 +465,8 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public Task toFullDO(TaskEntity taskEntity) {
-        return toBaseDO(taskEntity)
+    public Task toEagerDO(TaskEntity taskEntity) {
+        return toLazyDO(taskEntity)
                 .tags(tagRepository.findByTasksId(taskEntity.id())
                         .map(this::toDO)
                         .collect(Collectors.toSet()));
@@ -491,15 +491,15 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskNode toBaseDO(TaskLink link) {
+    public TaskNode toLazyDO(TaskLink link) {
         return toAbstractDO(link)
-                .child(toBaseDO(link.child()));
+                .child(toLazyDO(link.child()));
     }
 
     @Override
-    public TaskNode toFullDO(TaskLink link) {
+    public TaskNode toEagerDO(TaskLink link) {
         return toAbstractDO(link)
-                .child(toFullDO(link.child()));
+                .child(toEagerDO(link.child()));
     }
 
     @Override
@@ -533,8 +533,8 @@ public class DataContextImpl implements DataContext {
     @Override
     public RoutineStep toDO(RoutineStepEntity routineStepEntity) {
         RoutineStep result = routineStepEntity.link().isPresent()
-                ? new RoutineNodeStep(toBaseDO(routineStepEntity.link().get()))
-                : new RoutineTaskStep(toBaseDO(routineStepEntity.task()));
+                ? new RoutineNodeStep(toLazyDO(routineStepEntity.link().get()))
+                : new RoutineTaskStep(toLazyDO(routineStepEntity.task()));
 
         return result
                 .id(ID.of(routineStepEntity))

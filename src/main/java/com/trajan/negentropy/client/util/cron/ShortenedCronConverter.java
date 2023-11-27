@@ -16,7 +16,7 @@ public class ShortenedCronConverter implements Converter<String, CronExpression>
                 return Result.ok(CronExpression.parse("@daily"));
             } else {
                 return (value.isBlank())
-                        ? Result.ok(CronExpression.parse(K.NULL_CRON))
+                        ? Result.ok(K.NULL_CRON_FULL)
                         : Result.ok(CronExpression.parse("0 0 " + value));
             }
         } catch (IllegalArgumentException e) {
@@ -30,7 +30,7 @@ public class ShortenedCronConverter implements Converter<String, CronExpression>
 
     @Override
     public String convertToPresentation(CronExpression value, ValueContext context) {
-        return (value == null)
+        return (value == null || value.equals(K.NULL_CRON_FULL))
                 ? ""
                 : value.toString().substring(4);
     }

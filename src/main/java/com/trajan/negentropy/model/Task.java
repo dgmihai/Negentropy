@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskData.TaskData;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.*;
+import org.springframework.lang.Nullable;
 
 import java.time.Duration;
 import java.util.Set;
@@ -23,6 +24,7 @@ public class Task implements TaskData<Task>, PersistedDataDO<TaskID> {
     protected Boolean required;
     protected Boolean project;
     protected Boolean difficult;
+    @Nullable
     protected Set<Tag> tags;
 
     public Task() {

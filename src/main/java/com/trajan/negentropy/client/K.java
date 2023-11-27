@@ -1,5 +1,7 @@
 package com.trajan.negentropy.client;
 
+import org.springframework.scheduling.support.CronExpression;
+
 public class K {
     public static final String INLINE_ICON_SIZE = "16px";
     public static final String OK = "OK";
@@ -44,5 +46,7 @@ public class K {
     public static final String COLUMN_ID_DRAG_HANDLE = "drag-handle-column";
     public static final String SHORT_SCREEN_WIDTH = "600px";
     public static final String MEDIUM_SCREEN_WIDTH = "1000px";
-    public static final String NULL_CRON = "0 0 0 30 2 ?";
+    public static final CronExpression NULL_CRON_FULL = CronExpression.parse("0 0 0 30 2 ?");
+    public static final String NULL_CRON_SHORT = "0 30 2 ?";
+
 }

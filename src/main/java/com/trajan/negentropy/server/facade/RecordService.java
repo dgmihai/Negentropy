@@ -51,7 +51,7 @@ public class RecordService {
         BooleanBuilder predicate = recordDatePredicate(startDate, endDate);
         Map<Task, Map<TimeableStatus, List<Record>>> recordMap = StreamSupport.stream(routineStepRepository.findAll(predicate).spliterator(), true)
                 .collect(Collectors.groupingBy(
-                        step -> dataContext.toBaseDO(step.task()),
+                        step -> dataContext.toLazyDO(step.task()),
                         Collectors.groupingBy(
                                 RoutineStepEntity::status,
                                 Collectors.mapping(

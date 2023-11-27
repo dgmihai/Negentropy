@@ -203,8 +203,10 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             switch (columnKey) {
                 case DRAG_HANDLE -> {
                     SerializableConsumer<T> onDown = t -> {
-                        treeGrid.setRowsDraggable(true);
-                        draggedItem = t;
+                        if (!editor.isOpen()) {
+                            treeGrid.setRowsDraggable(true);
+                            draggedItem = t;
+                        }
                     };
 
                     treeGrid.addColumn(LitRenderer.<T>of(

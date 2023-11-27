@@ -53,11 +53,11 @@ public interface DataContext {
 
     Tag toDO(TagEntity tagEntity);
 
-    Task toBaseDO(TaskEntity taskEntity);
-    Task toFullDO(TaskEntity taskEntity);
+    Task toLazyDO(TaskEntity taskEntity);
+    Task toEagerDO(TaskEntity taskEntity);
 
-    TaskNode toBaseDO(TaskLink link);
-    TaskNode toFullDO(TaskLink link);
+    TaskNode toLazyDO(TaskLink link);
+    TaskNode toEagerDO(TaskLink link);
 
     Routine toDO(RoutineEntity routineEntity);
 
