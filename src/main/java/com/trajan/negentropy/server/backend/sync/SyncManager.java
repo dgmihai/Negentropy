@@ -194,8 +194,8 @@ public class SyncManager {
 
     private PersistedDataDO<?> convertData(ChangeRecordDataType dataType, Long id) {
         return switch (dataType) {
-            case TASK -> dataContext.toDO(entityQueryService.getTask(new TaskID(id)));
-            case LINK -> dataContext.toDO(entityQueryService.getLink(new LinkID(id)));
+            case TASK -> dataContext.toFullDO(entityQueryService.getTask(new TaskID(id)));
+            case LINK -> dataContext.toFullDO(entityQueryService.getLink(new LinkID(id)));
             case TAG -> dataContext.toDO(entityQueryService.getTag(new TagID(id)));
         };
     }

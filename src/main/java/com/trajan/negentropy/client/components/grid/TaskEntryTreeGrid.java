@@ -8,7 +8,7 @@ import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
-import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeForm.GridInlineEditorTaskEntryForm;
+import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeForm;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -314,13 +314,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    protected GridInlineEditorTaskEntryForm getTaskFormLayout(TaskEntry entry) {
-        return new GridInlineEditorTaskEntryForm(controller, entry);
+    protected GridInlineEditorTaskNodeForm<TaskEntry> getTaskFormLayout(TaskEntry entry) {
+        return new GridInlineEditorTaskNodeForm<>(controller, entry, TaskEntry.class);
     }
 
     @Override
     protected Binder<TaskEntry> setEditorBinder(AbstractTaskFormLayout form) {
-        GridInlineEditorTaskEntryForm teForm = (GridInlineEditorTaskEntryForm) form;
+        GridInlineEditorTaskNodeForm<TaskEntry> teForm = (GridInlineEditorTaskNodeForm<TaskEntry>) form;
         return teForm.binder();
     }
 

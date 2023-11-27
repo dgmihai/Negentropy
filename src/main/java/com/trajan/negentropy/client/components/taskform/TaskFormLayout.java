@@ -7,7 +7,6 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
@@ -35,8 +34,8 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
     protected void initTaskNodeDataProvider() {
         taskNodeProvider = new FormTaskNodeProvider(controller) {
             @Override
-            public TaskDTO getTask() {
-                return new TaskDTO(taskBinder.getBean(), tags);
+            public Task getTask() {
+                return taskBinder.getBean();
             }
 
             @Override
@@ -57,7 +56,6 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                         case PERSIST -> {
                             TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
                             taskBinder.setBean(result.task());
-                            tags = controller.taskNetworkGraph().getTags(result.task().id());
                         }
                         case KEEP_TEMPLATE -> nameField.clear();
                         case CLOSE -> {
@@ -124,16 +122,15 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(Task::description, Task::description);
 
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
-                tags.add(tag));
+                taskBinder.getBean().tags().add(tag));
 
         taskBinder.forField(projectCheckbox)
                 .bind(Task::project, Task::project);
         taskBinder.forField(requiredCheckbox)
                 .bind(Task::required, Task::required);
 
-        taskBinder.forField(tagComboBox).bind(
-                task -> controller.taskNetworkGraph().getTags(task.id()),
-                (task, tags) -> this.tags = tags);
+        taskBinder.forField(tagComboBox)
+                .bind(Task::tags, Task::tags);
 
         onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
         onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(

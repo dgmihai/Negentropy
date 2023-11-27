@@ -1,9 +1,8 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.Task.TaskDTO;
+import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.vaadin.flow.component.html.Hr;
@@ -17,9 +16,9 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
 
     private final FormTaskNodeProvider taskNodeProvider = new FormTaskNodeProvider(controller) {
         @Override
-        public TaskDTO getTask() {
+        public Task getTask() {
             return isValid()
-                    ? new TaskDTO(binder().getBean().task(), tags)
+                    ? binder.getBean().task()
                     : null;
         }
 
@@ -86,14 +85,6 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
                         node -> node.task().description(),
                         (node, description) -> node.task().description(description));
 
-        tagComboBox = new CustomValueTagComboBox(controller, tag ->
-                tags.add(tag));
-
-        binder.forField(tagComboBox)
-                .bind(
-                        node -> controller.taskNetworkGraph().getTags(node.task().id()),
-                        (node, tags) -> this.tags = tags);
-
         onSaveSelect.setVisible(false);
         saveAsLastCheckbox.setVisible(false);
 
@@ -108,7 +99,7 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
         Hr hr = new Hr();
         this.setColspan(hr, 2);
 
-        this.add(nameField, taskInfoLayout, tagComboBox, descriptionArea, hr,
+        this.add(nameField, taskInfoLayout, descriptionArea, hr,
                 projectComboBox, buttonLayout);
     }
 }

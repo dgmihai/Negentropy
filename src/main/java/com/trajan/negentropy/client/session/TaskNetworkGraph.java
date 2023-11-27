@@ -91,11 +91,6 @@ public class TaskNetworkGraph {
         log.info("Initial sync id: {}", this.syncId.val());
         services.query().fetchDescendantNodes(null, null)
                 .forEach(this::addTaskNode);
-        services.query().fetchAllTags().forEach(tag -> {
-            tagMap.put(tag.id(), tag);
-            services.query().fetchTaskIdsByTagId(tag.id())
-                    .forEach(task -> taskTagMap.put(task, tagMap.get(tag.id())));
-        });
 
         if (settings != null) {
             this.syncNetDurations(this.syncId, settings.filter());
@@ -152,12 +147,27 @@ public class TaskNetworkGraph {
         network.addNode(parentId);
         network.addNode(node.child().id());
         network.addEdge(parentId, node.child().id(), node.linkId());
+
+        if (node.task().tags() == null) {
+            node.task().tags(Set.copyOf(taskTagMap.get(node.task().id())));
+        } else {
+            node.task().tags().forEach(tag -> tagMap.put(tag.id(), tag));
+            taskTagMap.replaceValues(node.task().id(), node.task().tags());
+        }
+
         nodeMap.put(node.linkId(), node);
         nodesByTaskMap.add(node.child().id(), node.linkId());
         addTask(node.child());
     }
 
     public void addTask(Task task) {
+        if (task.tags() == null) {
+            task.tags(Set.copyOf(taskTagMap.get(task.id())));
+        } else {
+            task.tags().forEach(tag -> tagMap.put(tag.id(), tag));
+            taskTagMap.replaceValues(task.id(), task.tags());
+        }
+
         taskMap.put(task.id(), task);
         nodesByTaskMap.getOrDefault(task.id(), List.of()).forEach(
                 linkId -> {
@@ -263,6 +273,8 @@ public class TaskNetworkGraph {
                     if (mergeData instanceof Task task) {
                         log.debug("Got merged task {}", task);
                         taskMap.put(task.id(), task);
+                        task.tags().forEach(tag -> tagMap.put(tag.id(), tag));
+                        taskTagMap.replaceValues(task.id(), task.tags());
                         for (LinkID linkId : this.nodesByTaskMap().getOrDefault(task.id(), List.of())) {
                             pendingNodeRefresh.put(linkId, false);
                         }

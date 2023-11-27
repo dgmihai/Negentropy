@@ -4,7 +4,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.LinkedListMultimap;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.*;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
@@ -79,17 +78,6 @@ public class DataContextImpl implements DataContext {
 //            }
         }
 
-        if (task instanceof TaskDTO taskDTO) {
-            Set<TagEntity> tagEntities = taskDTO.tags() == null
-                    ? tagRepository.findByTasks(taskEntity).collect(Collectors.toSet())
-                    : taskDTO.tags().stream()
-                            .map(this::merge)
-                            .collect(Collectors.toSet());
-            taskEntity.tags(tagEntities);
-        } else {
-            log.warn("Task <" + task.name() + "> doesn't contain tag data");
-        }
-
         taskEntity
                 .name(Objects.requireNonNullElse(
                         task.name(), taskEntity.name()))
@@ -103,6 +91,11 @@ public class DataContextImpl implements DataContext {
                         task.required(), taskEntity.required()))
                 .difficult(Objects.requireNonNullElse(
                         task.difficult(), taskEntity.difficult()))
+                .tags((task.tags() != null)
+                    ? task.tags().stream()
+                        .map(this::merge)
+                        .collect(Collectors.toSet())
+                    : taskEntity.tags())
                 .childLinks(taskEntity.childLinks())
                 .parentLinks(taskEntity.parentLinks());
 
@@ -111,8 +104,8 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public TaskEntity merge(TaskID id, TaskDTO template) {
-        TaskDTO task = new TaskDTO(
+    public TaskEntity merge(TaskID id, Task template) {
+        Task task = new Task(
                 id,
                 null,
                 template.description(),
@@ -320,7 +313,7 @@ public class DataContextImpl implements DataContext {
         return this.merge(new TaskNode(
                 linkId,
                 link.parentId(),
-                this.toDO(link.child()),
+                this.toBaseDO(link.child()),
                 link.position(),
                 link.positionFrozen(),
                 nodeTemplate.importance(),
@@ -460,29 +453,30 @@ public class DataContextImpl implements DataContext {
     }
 
     @Override
-    public Task toDO(TaskEntity taskEntity) {
+    public Task toBaseDO(TaskEntity taskEntity) {
         return new Task(ID.of(taskEntity),
                 taskEntity.name(),
                 taskEntity.description(),
                 taskEntity.duration(),
                 taskEntity.required(),
                 taskEntity.project(),
-                taskEntity.difficult());
+                taskEntity.difficult(),
+                null);
     }
 
     @Override
-    public TaskDTO toDTO(TaskEntity taskEntity) {
-        return new TaskDTO(toDO(taskEntity), tagRepository.findByTasksId(taskEntity.id())
-                .map(this::toDO)
-                .collect(Collectors.toSet()));
+    public Task toFullDO(TaskEntity taskEntity) {
+        return toBaseDO(taskEntity)
+                .tags(tagRepository.findByTasksId(taskEntity.id())
+                        .map(this::toDO)
+                        .collect(Collectors.toSet()));
     }
 
-    @Override
-    public TaskNode toDO(TaskLink link) {
+    private TaskNode toAbstractDO(TaskLink link) {
         return new TaskNode(
                 ID.of(link),
                 ID.of(link.parent()),
-                toDO(link.child()),
+                null,
                 link.position(),
                 link.positionFrozen(),
                 link.importance(),
@@ -494,6 +488,18 @@ public class DataContextImpl implements DataContext {
                 link.projectDurationLimit(),
                 link.projectStepCountLimit(),
                 link.projectEtaLimit());
+    }
+
+    @Override
+    public TaskNode toBaseDO(TaskLink link) {
+        return toAbstractDO(link)
+                .child(toBaseDO(link.child()));
+    }
+
+    @Override
+    public TaskNode toFullDO(TaskLink link) {
+        return toAbstractDO(link)
+                .child(toFullDO(link.child()));
     }
 
     @Override
@@ -527,8 +533,8 @@ public class DataContextImpl implements DataContext {
     @Override
     public RoutineStep toDO(RoutineStepEntity routineStepEntity) {
         RoutineStep result = routineStepEntity.link().isPresent()
-                ? new RoutineNodeStep(toDO(routineStepEntity.link().get()))
-                : new RoutineTaskStep(toDO(routineStepEntity.task()));
+                ? new RoutineNodeStep(toBaseDO(routineStepEntity.link().get()))
+                : new RoutineTaskStep(toBaseDO(routineStepEntity.task()));
 
         return result
                 .id(ID.of(routineStepEntity))

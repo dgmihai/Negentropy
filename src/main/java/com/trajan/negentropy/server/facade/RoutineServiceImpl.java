@@ -6,7 +6,6 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
@@ -848,7 +847,7 @@ public class RoutineServiceImpl implements RoutineService {
                             .filter(n -> n.parentId() != null)
                             .forEach(this::insertNewStep);
                 } else if (c instanceof MultiMergeChange<?, ?> change) {
-                    if (change.template() instanceof TaskDTO) {
+                    if (change.template() instanceof Task) {
                         Set<TaskID> taskIds = dataResults.get(change.id()).stream()
                                 .map(Task.class::cast)
                                 .map(Task::id)

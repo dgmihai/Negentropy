@@ -2,7 +2,6 @@ package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.model.*;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.routine.Routine;
@@ -19,7 +18,7 @@ import java.time.LocalDateTime;
  */
 public interface DataContext {
     TaskEntity merge(Task task);
-    TaskEntity merge(TaskID id, TaskDTO template);
+    TaskEntity merge(TaskID id, Task template);
 
     TaskLink merge(TaskNode node);
     TaskLink merge(TaskNodeDTO node);
@@ -54,11 +53,11 @@ public interface DataContext {
 
     Tag toDO(TagEntity tagEntity);
 
-    Task toDO(TaskEntity taskEntity);
+    Task toBaseDO(TaskEntity taskEntity);
+    Task toFullDO(TaskEntity taskEntity);
 
-    TaskDTO toDTO(TaskEntity taskEntity);
-
-    TaskNode toDO(TaskLink link);
+    TaskNode toBaseDO(TaskLink link);
+    TaskNode toFullDO(TaskLink link);
 
     Routine toDO(RoutineEntity routineEntity);
 

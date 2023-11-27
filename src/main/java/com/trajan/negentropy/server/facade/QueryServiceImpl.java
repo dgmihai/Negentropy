@@ -44,30 +44,30 @@ public class QueryServiceImpl implements QueryService {
 
     @Override
     public Task fetchTask(TaskID taskId) {
-        return dataContext.toDO(entityQueryService.getTask(taskId));
+        return dataContext.toFullDO(entityQueryService.getTask(taskId));
     }
 
     @Override
     public Stream<Task> fetchTasks(Collection<TaskID> taskIds) {
         return entityQueryService.getTasks(taskIds)
-                .map(dataContext::toDO);
+                .map(dataContext::toFullDO);
     }
 
     @Override
     public TaskNode fetchNode(LinkID linkId) {
-        return dataContext.toDO(entityQueryService.getLink(linkId));
+        return dataContext.toFullDO(entityQueryService.getLink(linkId));
     }
 
     @Override
     public Stream<TaskNode> fetchNodes(Collection<LinkID> linkIds) {
         return entityQueryService.getLinks(linkIds)
-                .map(dataContext::toDO);
+                .map(dataContext::toFullDO);
     }
 
     @Override
     public Stream<TaskNode> fetchAllNodes(TaskNodeTreeFilter filter) {
         return entityQueryService.findLinks(filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchAllNodesNested(TaskNodeTreeFilter filter) {
         return entityQueryService.findLinksNested(filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
@@ -91,7 +91,7 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<Task> fetchAllTasks(TaskTreeFilter filter) {
         return entityQueryService.findTasks(filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
@@ -127,13 +127,13 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskNodeTreeFilter filter) {
         return entityQueryService.findChildLinks(parentTaskId, filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
     public Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskNodeTreeFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(parentTaskId, filter, offset, limit)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
@@ -144,19 +144,19 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskNodeTreeFilter filter) {
         return entityQueryService.findChildLinks(null, filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
     public Stream<TaskNode> fetchRootNodes(TaskNodeTreeFilter filter, int offset, int limit) {
         return entityQueryService.findChildLinks(null, filter, offset, limit)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override
     public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskNodeTreeFilter filter) {
         return entityQueryService.findDescendantLinks(ancestorId, filter)
-                .map(dataContext::toDO);
+                .map(dataContext::toBaseDO);
     }
 
     @Override

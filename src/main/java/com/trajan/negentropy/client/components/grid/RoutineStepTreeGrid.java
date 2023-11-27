@@ -166,8 +166,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected Binder<RoutineStep> setEditorBinder(AbstractTaskFormLayout form) {
-        if (form instanceof GridInlineEditorTaskNodeForm gridInlineEditorTaskNodeForm) {
-            return gridInlineEditorTaskNodeForm.binder();
+        if (form instanceof GridInlineEditorTaskNodeForm gridInlineEditorTaskNodeFormLayout) {
+            return gridInlineEditorTaskNodeFormLayout.binder();
         } else if (form instanceof RoutineStepFormLayout routineStepFormLayout) {
             return routineStepFormLayout.binder();
         } else {

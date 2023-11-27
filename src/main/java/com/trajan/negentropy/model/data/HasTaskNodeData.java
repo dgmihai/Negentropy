@@ -1,8 +1,6 @@
 package com.trajan.negentropy.model.data;
 
-import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.id.TaskID;
@@ -11,7 +9,6 @@ import org.springframework.scheduling.support.CronExpression;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.Optional;
-import java.util.Set;
 
 public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
     TaskNode node();
@@ -60,12 +57,5 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
 
     interface HasTaskNodeDTOData<T extends TaskNodeDTOData<T>> {
         TaskNodeDTOData<T> node();
-    }
-
-    interface HasTaggedTaskNodeData extends HasTaskNodeData {
-        @Override
-        TaskDTO task();
-
-        Set<Tag> tags();
     }
 }

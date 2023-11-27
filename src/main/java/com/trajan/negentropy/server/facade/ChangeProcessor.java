@@ -3,7 +3,6 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
@@ -76,14 +75,14 @@ public class ChangeProcessor {
                         throw new IllegalArgumentException("Cannot persist task with ID: " + task.id());
                     // Currently, we never persist a task without a task node as well
                     // log.debug("Persisting task: {}", task);
-                    Task result = dataContext.toDO(dataContext.merge(task));
+                    Task result = dataContext.toFullDO(dataContext.merge(task));
                     dataResults.add(change.id(), result);
                     messages.add(messageSupplier.apply(prefix, task));
                 } else if (data instanceof TaskNodeDTO taskNodeDTO) {
                     log.debug("Persisting task node: {}", taskNodeDTO);
                     TaskLink resultLink = dataContext.merge(taskNodeDTO);
                     updateDuration(durationUpdates, resultLink);
-                    TaskNode result = dataContext.toDO(resultLink);
+                    TaskNode result = dataContext.toFullDO(resultLink);
                     dataResults.add(change.id(), result);
                     messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof Tag tag) {
@@ -104,13 +103,13 @@ public class ChangeProcessor {
                     log.debug("Merging task: {}", task);
                     TaskEntity resultEntity = dataContext.merge(task);
                     updateDuration(durationUpdates, resultEntity);
-                    Task result = dataContext.toDO(resultEntity);
+                    Task result = dataContext.toFullDO(resultEntity);
                     dataResults.add(change.id(), result);
                     messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof TaskNode taskNode) {
                     log.debug("Merging node: {}", taskNode);
                     TaskLink resultLink = dataContext.merge(taskNode);
-                    TaskNode result = dataContext.toDO(resultLink);
+                    TaskNode result = dataContext.toFullDO(resultLink);
                     updateDuration(durationUpdates, resultLink);
                     dataResults.add(change.id(), result);
                     messages.add(messageSupplier.apply(prefix, result));
@@ -135,7 +134,7 @@ public class ChangeProcessor {
                     TaskLink target = entityQueryService.getLink(linkId);
                     updateDuration(durationUpdates, target);
                     messages.add(biMessageSupplier.apply(prefix, "task node \"" + target.child().name() + "\""));
-                    dataResults.add(change.id(), dataContext.toDO(target));
+                    dataResults.add(change.id(), dataContext.toFullDO(target));
                     dataContext.deleteLink(target);
                 } else if (id instanceof TagID tagId) {
                     log.debug("Deleting tag: {}", tagId);
@@ -164,7 +163,7 @@ public class ChangeProcessor {
                             setPositionBasedOnLocation(taskNodeDTO, reference, location);
                             TaskLink resultLink = dataContext.merge(insertIntoChange.nodeDTO());
                             updateDuration(durationUpdates, resultLink);
-                            TaskNode result = dataContext.toDO(resultLink);
+                            TaskNode result = dataContext.toFullDO(resultLink);
                             dataResults.add(insertIntoChange.id(), result);
                             messages.add(messageSupplier.apply(prefix, result));
                         }
@@ -180,7 +179,7 @@ public class ChangeProcessor {
                             setPositionBasedOnLocation(taskNodeDTO, reference, location);
                             TaskLink resultLink = dataContext.merge(insertAtChange.nodeDTO());
                             updateDuration(durationUpdates, resultLink);
-                            TaskNode result = dataContext.toDO(resultLink);
+                            TaskNode result = dataContext.toFullDO(resultLink);
                             dataResults.add(insertAtChange.id(), result);
                             messages.add(messageSupplier.apply(prefix, result));
                         }
@@ -203,7 +202,7 @@ public class ChangeProcessor {
                         TaskLink resultLink = dataContext.merge(dto);
                         resultLink.scheduledFor(original.scheduledFor());
                         updateDuration(durationUpdates, resultLink);
-                        TaskNode result = dataContext.toDO(resultLink);
+                        TaskNode result = dataContext.toFullDO(resultLink);
                         dataResults.add(moveChange.id(), result);
                         messages.add(messageSupplier.apply(prefix, result));
                         updateDuration(durationUpdates, resultLink);
@@ -213,14 +212,14 @@ public class ChangeProcessor {
             } else if (change instanceof MultiMergeChange<?, ?> multiMerge) {
                 Data template = multiMerge.template();
 
-                if (template instanceof TaskDTO taskTemplate) {
+                if (template instanceof Task taskTemplate) {
                     log.debug("Merging task template: {}", taskTemplate);
                     for (ID taskId : multiMerge.ids()) {
                         TaskEntity resultEntity = dataContext.merge(
                                 (TaskID) taskId,
                                 taskTemplate);
                         updateDuration(durationUpdates, resultEntity);
-                        dataResults.add(multiMerge.id(), dataContext.toDO(resultEntity));
+                        dataResults.add(multiMerge.id(), dataContext.toFullDO(resultEntity));
                     }
                     messages.add("Merged " + multiMerge.ids().size() + " task changes.");
                 } else if (template instanceof TaskNodeTemplateData<?> nodeTemplate) {
@@ -230,7 +229,7 @@ public class ChangeProcessor {
                                 (LinkID) linkId,
                                 nodeTemplate);
                         updateDuration(durationUpdates, resultLink);
-                        dataResults.add(multiMerge.id(), dataContext.toDO(resultLink));
+                        dataResults.add(multiMerge.id(), dataContext.toFullDO(resultLink));
                     }
                     messages.add("Merged " + multiMerge.ids().size() + " task node changes.");
                 } else {
@@ -254,7 +253,7 @@ public class ChangeProcessor {
 
                                 TaskLink newRootLink = this.tryDeepCopy(originalDTO, copyChange.taskFilter(), copyChange.suffix());
                                 updateDuration(durationUpdates, newRootLink);
-                                dataResults.add(copyChange.id(), dataContext.toDO(newRootLink));
+                                dataResults.add(copyChange.id(), dataContext.toFullDO(newRootLink));
                             });
                         });
                         messages.add(biMessageSupplier.apply(prefix, original.typeName() + " \"" + original.child().name() + "\""));
@@ -264,7 +263,7 @@ public class ChangeProcessor {
                 TaskLink link = entityQueryService.getLink(overrideScheduledForChange.linkId());
                 updateDuration(durationUpdates, link);
                 link.scheduledFor(overrideScheduledForChange.manualScheduledFor());
-                TaskNode result = dataContext.toDO(link);
+                TaskNode result = dataContext.toFullDO(link);
                 dataResults.add(overrideScheduledForChange.id(), result);
                 messages.add(messageSupplier.apply("Set scheduled time for", result));
             } else if (change instanceof InsertRoutineStepChange insertStepChange) {
@@ -377,7 +376,7 @@ public class ChangeProcessor {
         suffix = suffix.isBlank()
                 ? " (copy)"
                 : suffix;
-        Task copy = dataContext.toDO(task).copyWithoutID();
+        Task copy = dataContext.toFullDO(task).copyWithoutID();
         return copy.name(copy.name() + suffix);
     }
 
@@ -405,7 +404,7 @@ public class ChangeProcessor {
             TaskID copiedTaskId = ID.of(dataContext.merge(task));
             TaskID copiedParentId = copiedTasks.get(ID.of(link.parent()));
 
-            dataContext.merge(dataContext.toDO(link).toDTO()
+            dataContext.merge(dataContext.toFullDO(link).toDTO()
                     .parentId(copiedParentId)
                     .childId(copiedTaskId));
 

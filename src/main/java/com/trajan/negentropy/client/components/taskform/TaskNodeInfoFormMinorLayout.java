@@ -6,7 +6,6 @@ import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
@@ -46,8 +45,8 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
     protected void initTaskNodeDataProvider() {
         taskNodeProvider = new FormTaskNodeProvider(controller) {
             @Override
-            public TaskDTO getTask() {
-                return new TaskDTO(taskBinder.getBean(), tags);
+            public Task getTask() {
+                return taskBinder.getBean();
             }
 
             @Override
@@ -69,7 +68,6 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
                             TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
                             nodeInfoBinder.setBean(result.toDTO());
                             taskBinder.setBean(result.task());
-                            tags = controller.taskNetworkGraph().getTags(result.task().id());
                         }
                         case KEEP_TEMPLATE -> {
                             nameField.clear();

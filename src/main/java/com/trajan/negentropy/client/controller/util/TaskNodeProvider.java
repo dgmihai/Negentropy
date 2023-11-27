@@ -2,7 +2,6 @@ package com.trajan.negentropy.client.controller.util;
 
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
@@ -24,7 +23,7 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
     protected UIController controller;
     protected ChangeID changeId;
 
-    public abstract TaskDTO getTask();
+    public abstract Task getTask();
     public abstract TaskNodeInfoData<?> getNodeInfo();
 
     public TaskNodeProvider(UIController controller) {
@@ -39,7 +38,7 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
 
     public void modifyNode(LinkID nodeId) {
         if (isValid()) {
-            TaskDTO task = getTask();
+            Task task = getTask();
             List<Change> changes = new ArrayList<>();
             if (task.id() == null) {
                 changes.add(new PersistChange<>(task));

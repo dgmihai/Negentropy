@@ -53,7 +53,8 @@ public class UserSettings {
         });
 
         RoutineStepTreeGrid.possibleColumns.forEach(columnKey -> {
-            routineViewColumnVisibility.put(columnKey, true);
+            routineViewColumnVisibility.put(columnKey, (!(
+                        columnKey.equals(ColumnKey.TAGS_COMBO))));
         });
 
         // TODO: Implement focus for both grids

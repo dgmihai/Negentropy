@@ -19,7 +19,6 @@ import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider.DurationType;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.id.ID;
@@ -305,7 +304,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             tagComboBox.setValue(taskNetworkGraph.taskTagMap().get(t.task().id()));
                             tagComboBox.addValueChangeListener(event ->
                                     controller.requestChangeAsync(new MergeChange<>(
-                                            new TaskDTO(t.task().id())
+                                            new Task(t.task().id())
                                                     .tags(event.getValue())),
                                             this));
                             return tagComboBox;

@@ -10,7 +10,6 @@ import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.SaveEventListener;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
-import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
@@ -36,7 +35,9 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
@@ -80,8 +81,6 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     @Getter
     @Setter
     protected Runnable onClose = () -> {};
-
-    protected Set<Tag> tags = new HashSet<>();
 
     public AbstractTaskFormLayout(UIController controller) {
         this.controller = controller;
@@ -157,7 +156,6 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
     public void clear() {
         this.clearEventListener().clear();
-        this.tags.clear();
     }
 
     protected void configureInteractions() {
