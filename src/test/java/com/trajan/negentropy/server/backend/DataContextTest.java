@@ -2,7 +2,6 @@ package com.trajan.negentropy.server.backend;
 
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TagEntity;
@@ -69,7 +68,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         taskEntity.tags(tagEntities);
 
-        Task task = dataContext.toDO(taskEntity);
+        Task task = dataContext.toEagerDO(taskEntity);
 
         assertTask(taskEntity, task);
         assertEquals(tagEntities.size(), tagRepository.findByTasksId(task.id().val()).count());
@@ -170,7 +169,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
 
-        TaskNode taskNode = dataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toEagerDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -214,7 +213,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(taskLink, nextLink));
 
-        TaskNode taskNode = dataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toEagerDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -238,7 +237,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink));
 
-        TaskNode taskNode = dataContext.toDO(taskLink);
+        TaskNode taskNode = dataContext.toEagerDO(taskLink);
 
         assertNode(taskLink, taskNode);
     }
@@ -259,7 +258,7 @@ public class DataContextTest extends TaskTestTemplate {
 
         taskEntity.tags(originalTagEntities);
 
-        TaskDTO task = new TaskDTO(ID.of(taskEntity),
+        Task task = new Task(ID.of(taskEntity),
                 "Updated Task Name",
                 "Updated Task Description",
                 Duration.ofMinutes(180),
@@ -317,7 +316,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                dataContext.toDO(childTaskEntity),
+                dataContext.toEagerDO(childTaskEntity),
                 1,
                 false,
                 2,
@@ -370,7 +369,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                dataContext.toDO(childTaskEntity),
+                dataContext.toEagerDO(childTaskEntity),
                 1,
                 false,
                 2,
@@ -452,7 +451,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                dataContext.toDO(childTaskEntity),
+                dataContext.toEagerDO(childTaskEntity),
                 1,
                 false,
                 2,
@@ -501,7 +500,7 @@ public class DataContextTest extends TaskTestTemplate {
         TaskNode taskNode = new TaskNode(
                 ID.of(taskLink),
                 ID.of(parentTaskEntity),
-                dataContext.toDO(childTaskEntity),
+                dataContext.toEagerDO(childTaskEntity),
                 0,
                 false,
                 2,

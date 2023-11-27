@@ -11,6 +11,7 @@ public class TaskNodeInfoFormDialog extends TaskNodeInfoFormFullLayout {
     public TaskNodeInfoFormDialog(Dialog dialog, UIController controller) {
         super(controller);
         this.dialog = dialog;
+        dialog.getStyle().setMargin("auto auto 100% auto");
 
         clearButton.addClickListener(e -> dialog.close());
 

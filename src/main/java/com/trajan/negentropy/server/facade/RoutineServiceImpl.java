@@ -78,7 +78,7 @@ public class RoutineServiceImpl implements RoutineService {
     private final AsyncMapBroadcaster<RoutineID, Routine> routineBroadcaster = new AsyncMapBroadcaster<>();
 
     @PostConstruct
-    public void onStart() {
+    public void init() {
         for (RoutineEntity routine : routineRepository.findAll()) {
             if (routine.status().equals(TimeableStatus.COMPLETED) ||
                 routine.status().equals(TimeableStatus.SKIPPED)) {
@@ -294,6 +294,13 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         return routine;
+    }
+
+    @Override
+    public boolean completeStepWouldFinishRoutine(StepID stepId) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        return (step.children().get(step.children().size() - 1).equals(step.routine().currentStep())
+                && getStepStatusBasedOnChildrenStatus(step).equals(TimeableStatus.COMPLETED));
     }
 
     @Override
@@ -882,5 +889,17 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public synchronized void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults) {
         new RoutineSynchronizer().process(request, dataResults);
+    }
+
+    @Override
+    public boolean hasFilteredOutSteps(RoutineID routineId) {
+        try {
+            TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(routineRepository.getReferenceById(routineId.val())
+                    .serializedFilter());
+            return (filter.excludedTagIds().size() > 0 || filter.includedTagIds().size() > 0);
+        } catch (IOException | ClassNotFoundException e) {
+            log.error("Failed to deserialize filter", e);
+        }
+        return false;
     }
 }

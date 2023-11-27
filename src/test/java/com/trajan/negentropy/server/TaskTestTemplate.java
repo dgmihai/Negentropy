@@ -6,7 +6,6 @@ import com.google.common.collect.Multimap;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
@@ -42,10 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -295,8 +291,9 @@ public class TaskTestTemplate {
         }
         tags.put(tagName, tag);
         for (String taskToTag : tasksToTag) {
-            taskTags.put(tasks.get(taskToTag).id(), tag);
-            TaskDTO task = new TaskDTO(tasks.get(taskToTag), taskTags.get(tasks.get(taskToTag).id()));
+            Task task = (tasks.get(taskToTag));
+            taskTags.put(task.id(), tag);
+            task.tags(Set.copyOf(taskTags.get(tasks.get(taskToTag).id())));
             changeService.execute(Request.of(new MergeChange<>(task)));
         }
     }

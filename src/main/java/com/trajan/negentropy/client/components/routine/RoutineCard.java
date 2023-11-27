@@ -17,6 +17,9 @@ import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -36,6 +39,7 @@ import org.apache.logging.log4j.util.TriConsumer;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -197,8 +201,43 @@ public class RoutineCard extends VerticalLayout {
         this.setNestedTaskInfoBars();
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
-        next.addClickListener(event -> this.processStep(
-                controller::completeRoutineStep));
+        next.addClickListener(event -> {
+            if (controller.services().routine().completeStepWouldFinishRoutine(binder.getBean().id())
+                    && (routine.hasExcludedSteps() || controller.services().routine().hasFilteredOutSteps(routine.id()))) {
+                Span text = new Span("Complete routine? Routine still has excluded tasks or tasks filtered steps.");
+                Dialog confirmComplete = new Dialog(text);
+
+                LinkedList<Button> buttonList = new LinkedList<>();
+                Button complete = new Button("Complete");
+                complete.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                complete.addClickListener(e -> {
+                    this.processStep(controller::completeRoutineStep);
+                    confirmComplete.close();
+                });
+                buttonList.add(complete);
+
+                Button exclude = new Button("Exclude");
+                exclude.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                exclude.addClickListener(e -> {
+                    this.processStep(controller::excludeRoutineStep);
+                    confirmComplete.close();
+                });
+                buttonList.add(exclude);
+
+                Button cancel = new Button("Cancel");
+                cancel.addClickListener(e -> confirmComplete.close());
+                buttonList.add(cancel);
+
+                HorizontalLayout buttons = new HorizontalLayout();
+                buttons.setJustifyContentMode(JustifyContentMode.EVENLY);
+
+                buttonList.forEach(buttons::add);
+                confirmComplete.getFooter().add(buttons);
+                confirmComplete.open();
+            } else {
+                this.processStep(controller::completeRoutineStep);
+            }
+        });
 
         prev = new RoutineCardToggleableButton(VaadinIcon.CHEVRON_LEFT.create());
         prev.addClickListener(event -> this.processStep(
@@ -231,7 +270,7 @@ public class RoutineCard extends VerticalLayout {
 
         close = new RoutineCardButton(VaadinIcon.CLOSE.create());
         close.addClickListener(event -> this.processStep(
-                controller::excludeStep));
+                controller::excludeRoutineStep));
 
         toTaskTree = new RoutineCardButton(VaadinIcon.TREE_TABLE.create());
         toTaskTree.addClickListener(event -> RoutineCard.toTaskTree(

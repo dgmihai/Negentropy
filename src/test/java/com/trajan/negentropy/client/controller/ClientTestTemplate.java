@@ -4,7 +4,6 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeInfoData;
@@ -60,10 +59,8 @@ public class ClientTestTemplate extends TaskTestTemplate {
         }
 
         @Override
-        public TaskDTO getTask() {
-            TaskDTO task = new TaskDTO();
-            task.tags(Set.of(TEST_TAG)).name(TEST_TASK_NAME);
-            return task;
+        public Task getTask() {
+            return new Task().tags(Set.of(TEST_TAG)).name(TEST_TASK_NAME);
         }
 
         @Override

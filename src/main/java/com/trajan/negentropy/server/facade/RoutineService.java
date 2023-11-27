@@ -40,6 +40,7 @@ public interface RoutineService {
     RoutineResponse startStep(StepID stepId, LocalDateTime time);
     RoutineResponse suspendStep(StepID stepId, LocalDateTime time);
     RoutineResponse jumpToStep(StepID stepId, LocalDateTime time);
+    boolean completeStepWouldFinishRoutine(StepID stepId);
     RoutineResponse completeStep(StepID stepId, LocalDateTime time);
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);
     RoutineResponse postponeStep(StepID stepId, LocalDateTime time);
@@ -58,4 +59,6 @@ public interface RoutineService {
     Registration register(RoutineID routineId, Consumer<Routine> listener);
 
     void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults);
+
+    boolean hasFilteredOutSteps(RoutineID routineId);
 }

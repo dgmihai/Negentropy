@@ -397,9 +397,9 @@ public class UIController {
                 onSuccess, onFailure);
     }
 
-    public void excludeStep(StepID stepID,
-                            Consumer<RoutineResponse> onSuccess,
-                            Consumer<RoutineResponse> onFailure) {
+    public void excludeRoutineStep(StepID stepID,
+                                   Consumer<RoutineResponse> onSuccess,
+                                   Consumer<RoutineResponse> onFailure) {
         log.debug("Postponing routine step: " + stepID);
         tryRoutineServiceCall(() -> services.routine().excludeStep(stepID, LocalDateTime.now()),
                 onSuccess, onFailure);

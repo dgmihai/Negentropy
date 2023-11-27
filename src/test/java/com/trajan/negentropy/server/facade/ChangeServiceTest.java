@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.scheduling.support.CronExpression;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -747,7 +746,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
         assertNotNull(two.cron());
 
         Change change = new MergeChange<>(two
-                .cron(CronExpression.parse(K.NULL_CRON)));
+                .cron(K.NULL_CRON_FULL));
 
         DataMapResponse response = changeService.execute(Request.of(change));
 

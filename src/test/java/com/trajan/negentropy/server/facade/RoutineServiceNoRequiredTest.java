@@ -2,7 +2,6 @@ package com.trajan.negentropy.server.facade;
 
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.Task.TaskDTO;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.TimeableStatus;
@@ -340,7 +339,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 .map(Task::id)
                 .toList();
 
-        Change multiTagChange = new MultiMergeChange<>(new TaskDTO()
+        Change multiTagChange = new MultiMergeChange<>(new Task()
                 .tags(Set.of(newTag)),
                 targetTasks);
 
