@@ -4,6 +4,7 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.id.TaskID;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
@@ -29,6 +30,8 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
         Boolean recurring();
         T cron(CronExpression cron);
         CronExpression cron();
+        T cycleToEnd(Boolean cycleToEnd);
+        Boolean cycleToEnd();
 
         default String typeName() {
             return "Task Node";
@@ -40,12 +43,15 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
         Integer position();
         T positionFrozen(Boolean positionFrozen);
         Boolean positionFrozen();
-        T projectDurationLimit(Duration projectDurationLimit);
-        Duration projectDurationLimit();
-        T projectStepCountLimit(Integer projectStepCountLimit);
-        Integer projectStepCountLimit();
-        T projectEtaLimit(LocalTime projectEtaLimit);
-        LocalTime projectEtaLimit();
+        T projectDurationLimit(Optional<Duration> projectDurationLimit);
+        @Nullable
+        Optional<Duration> projectDurationLimit();
+        T projectStepCountLimit(Optional<Integer> projectStepCountLimit);
+        @Nullable
+        Optional<Integer> projectStepCountLimit();
+        T projectEtaLimit(Optional<LocalTime> projectEtaLimit);
+        @Nullable
+        Optional<LocalTime> projectEtaLimit();
     }
 
     interface TaskNodeDTOData<T extends TaskNodeDTOData<T>> extends TaskNodeInfoData<T> {

@@ -82,7 +82,7 @@ public class NetDurationHelperManager {
         for (TaskEntity task : entityQueryService.findTasks(null).toList()) {
             List<Duration> durations = entityQueryService.findDescendantLinks(ID.of(task), null)
                     .map(link -> link.child().project()
-                            ? link.projectDurationLimit()
+                            ? link.projectDurationLimit().orElse(null)
                             : link.child().duration())
                     .toList();
 

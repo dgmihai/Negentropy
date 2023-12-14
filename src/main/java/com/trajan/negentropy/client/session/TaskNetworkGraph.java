@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 @SpringComponent
 @VaadinSessionScope
 @Getter
-@Benchmark
+@Benchmark(millisFloor = 10)
 public class TaskNetworkGraph {
     private final SessionLogger log = new SessionLogger();
 
@@ -226,18 +226,27 @@ public class TaskNetworkGraph {
     }
 
     private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
-        if (syncId != this.syncId || this.netDurationInfo == null) {
+        if ((settings == null || settings.areNetDurationsVisible())
+                && (syncId != this.syncId || this.netDurationInfo == null)) {
             log.debug("Syncing net durations with filter " + filter);
             filterMap.clear();
             this.netDurationInfo = filterMap.compute(NonSpecificTaskNodeTreeFilter.parse(filter), (f, x) ->
                     services.query().fetchNetDurationInfo(f));
+        } else {
+            this.netDurationInfo = null;
+            log.debug("Not syncing net durations with filter " + filter);
         }
     }
 
     public void getNetDurations(TaskNodeTreeFilter filter) {
-        log.debug("Getting net durations with filter " + filter);
-        this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
-                services.query().fetchNetDurationInfo(f));
+        if (settings.areNetDurationsVisible()) {
+            log.debug("Getting net durations with filter " + filter);
+            this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
+                    services.query().fetchNetDurationInfo(f));
+        } else {
+            this.netDurationInfo = null;
+            log.debug("Not setting net durations with filter " + filter);
+        }
     }
 
     public Set<Tag> getTags(TaskID task) {

@@ -1,6 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.model.entity.QTaskEntity;
 import com.trajan.negentropy.model.entity.TagEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
@@ -16,6 +17,7 @@ import com.trajan.negentropy.server.backend.repository.TaskRepository;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -270,4 +272,10 @@ public interface EntityQueryService {
     Stream<TaskEntity> findOrphanedTasks();
 
     Stream<TagEntity> findOrphanedTags();
+
+    JPAQuery<RoutineStepEntity> findRoutinesContainingLink(LinkID linkId);
+    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLink(LinkID linkId);
+    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLinks(Set<LinkID> linkIds);
+    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTask(TaskID taskId);
+    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTasks(Set<TaskID> taskIds);
 }

@@ -36,6 +36,7 @@ public class UserSettings {
     @Setter private boolean routineStepsGridVisible = false;
     @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
     @Setter private TaskEntry currentRootEntry = null;
+    @Setter private boolean areNetDurationsVisible = false;
     private final String DEFAULT_PROJECT = "Still To Plan";
 
     @Setter
@@ -48,7 +49,10 @@ public class UserSettings {
         TaskEntryTreeGrid.possibleColumns.forEach(columnKey -> {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
                 gridColumnVisibility.put(columnKey, (!(
-                        columnKey.equals(ColumnKey.TAGS_COMBO) || columnKey.equals(ColumnKey.FROZEN))));
+                        columnKey.equals(ColumnKey.TAGS_COMBO)
+                                || columnKey.equals(ColumnKey.FROZEN)
+                                || columnKey.equals(ColumnKey.NET_DURATION))));
+                if (columnKey.equals(ColumnKey.NET_DURATION)) areNetDurationsVisible(true);
             }
         });
 

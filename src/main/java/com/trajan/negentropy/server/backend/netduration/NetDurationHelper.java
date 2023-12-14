@@ -15,9 +15,11 @@ import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
+import com.trajan.negentropy.server.facade.RoutineServiceImpl.LimitedDataWrapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -28,7 +30,6 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,12 +68,18 @@ public class NetDurationHelper {
     }
 
     @RequiredArgsConstructor
+    @ToString(onlyExplicitlyIncluded = true)
     public static class RoutineLimiter {
+
+        @ToString.Include
         private final Duration durationLimit;
         private Duration durationSum = Duration.ZERO;
+        @ToString.Include
         private final Integer countLimit;
         private Integer count = 0;
+        @ToString.Include
         private final LocalDateTime etaLimit;
+        @ToString.Include
         private final boolean customLimit;
         private boolean exceeded;
 
@@ -88,36 +95,48 @@ public class NetDurationHelper {
             log.trace("Potential duration sum: " + potential);
             log.trace("Duration limit: " + durationLimit);
 
-            if ((durationLimit != null && !durationLimit.equals(TaskLink.DEFAULT_PROJECT_DURATION_LIMIT) && durationLimit.compareTo(potential) < 0)
-                    || (countLimit != null && !countLimit.equals(TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT) && countLimit <= count + 1)) {
+            if (durationLimit != null && durationLimit.compareTo(potential) < 0) {
+                log.debug("Would exceeded duration limit of " + durationLimit + " with " + potential);
                 return true;
             }
 
-            boolean wouldExceed = etaExceedsLimit(duration);
-            log.trace("Would exceed: " + wouldExceed);
-            return wouldExceed;
+            if (countLimit != null && count + 1 > countLimit) {
+                log.debug("Would exceed count limit");
+                return true;
+            }
+
+            boolean wouldExceedEta = etaExceedsLimit(duration);
+            if (wouldExceedEta) log.debug("Would exceed eta limit");
+            return wouldExceedEta;
         }
 
-        public void include (Duration duration) {
-            include(List.of(duration));
+        public void include (Duration duration, boolean required) {
+            include(List.of(duration), required);
         }
 
-        public void include (Collection<Duration> durations) {
-            Duration shift = durations.stream().reduce(Duration.ZERO, Duration::plus);
+        public void include (List<Duration> durations, boolean required) {
+            Duration shift = durations.stream()
+                    .reduce(Duration.ZERO, Duration::plus);
             log.trace("Shift: " + shift);
             durationSum = durationSum.plus(shift);
             log.trace("Duration sum: " + durationSum);
             log.trace("Duration limit: " + durationLimit);
-            count += durations.size();
+            count += required ? 0 : durations.size();
 
-            if ((durationLimit != null && !durationLimit.equals(TaskLink.DEFAULT_PROJECT_DURATION_LIMIT) && durationLimit.compareTo(durationSum) < 0)
-                    || (countLimit != null && !countLimit.equals(TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT) && countLimit <= count)) {
+            if (durationLimit != null && durationLimit.compareTo(durationSum) < 0) {
+                log.debug("Exceeded duration limit of " + durationLimit + " with " + durationSum);
                 exceeded = true;
-            } else {
-                exceeded = etaExceedsLimit();
+                return;
             }
 
-            log.trace("Exceeded: " + exceeded);
+            if (countLimit != null && count > countLimit) {
+                log.debug("Exceeded count limit");
+                exceeded = true;
+                return;
+            }
+
+            exceeded = etaExceedsLimit();
+            if (exceeded) log.debug("Exceeded eta limit");
         }
 
         private boolean etaExceedsLimit() {
@@ -126,9 +145,9 @@ public class NetDurationHelper {
 
         private boolean etaExceedsLimit(Duration duration) {
             log.trace("Checking eta limit: " + etaLimit);
-            if (etaLimit != null && !etaLimit.toLocalTime().equals(TaskLink.DEFAULT_PROJECT_ETA_LIMIT)) {
+            if (etaLimit != null) {
                 LocalDateTime potentialEta = LocalDateTime.now().plus(durationSum).plus(duration);
-                return potentialEta.toLocalTime().isAfter(etaLimit.toLocalTime());
+                return potentialEta.isAfter(etaLimit);
             } else {
                 return false;
             }
@@ -154,6 +173,7 @@ public class NetDurationHelper {
         } else {
             throw new RuntimeException("Unknown type of TaskOrTaskLinkEntity");
         }
+        log.debug("Limit of <" + currentTask.name() + ">: " + limit);
 
         if (!limit.customLimit) projectChildrenOutsideDurationLimitMap.remove(currentLinkId);
 
@@ -166,7 +186,11 @@ public class NetDurationHelper {
         }
 
         limit.durationSum = currentTask.duration();
-        limit.include(requiredDurations.values());
+        limit.include(childLinks.stream()
+                .filter(l -> l.child().required())
+                .map(this::getNetDuration)
+                .toList(),
+                true);
 
         RoutineStepEntityHierarchy childHierarchy = parent != null
                 ? new RoutineStepEntityHierarchy(currentTask, parent.routine())
@@ -177,13 +201,14 @@ public class NetDurationHelper {
                     ? requiredDurations.get(childLink)
                     : getNetDuration(childLink);
 
+            log.trace("Processing " + childLink.child().name() + " with duration " + childDuration);
             if (!limit.exceeded && !limit.wouldExceed(childDuration) && !childLink.child().required()) {
-                limit.include(childDuration);
+                limit.include(childDuration, false);
                 if (parent != null) getNetDuration(childLink, childHierarchy, null);
             } else if (childLink.child().required() && (parent != null)) {
                 getNetDuration(childLink, childHierarchy, null);
             } else if (!childLink.child().required()) {
-                log.trace("Omitting " + childLink.child().name() + " from hierarchy");
+                log.debug("Omitting " + childLink.child().name() + " from hierarchy");
                 if (currentLinkId != null && !limit.customLimit) {
                     projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(childLink));
                 }
@@ -219,15 +244,16 @@ public class NetDurationHelper {
             limit = new RoutineLimiter(null, null, null, false);
         }
 
-        if (!limit.customLimit && current.child().project() && !current.projectDurationLimit().isZero()) {
-            limit = new RoutineLimiter(current.projectDurationLimit(), limit.countLimit, limit.etaLimit, limit.customLimit);
+        if (current.child().project() && !limit.customLimit) {
+            limit = new RoutineLimiter(
+                    current.projectDurationLimit().orElse(null),
+                    current.projectStepCountLimit().orElse(null),
+                    limit.etaLimit, false);
         }
 
-        if (!limit.isEmpty() && current.child().project()) {
-            return getNetDurationWithLimit(current, parent, limit);
-        } else {
-            return process(current, parent);
-        }
+        return (!limit.isEmpty())
+                ? getNetDurationWithLimit(current, parent, limit)
+                : process(current, parent);
     }
 
     public Duration getNetDuration(TaskEntity current, RoutineStepHierarchy parent, RoutineLimiter limit) {
@@ -235,6 +261,23 @@ public class NetDurationHelper {
             return getNetDurationWithLimit(current, parent, limit);
         } else {
             return process(current, parent);
+        }
+    }
+
+    public Duration getNetDuration(LimitedDataWrapper current, RoutineStepHierarchy parent, RoutineLimiter limit) {
+        Integer stepCountLimit = current.stepCountLimit();
+        if (limit != null) {
+            limit = new RoutineLimiter(limit.durationLimit, stepCountLimit, limit.etaLimit, true);
+        } else {
+            limit = new RoutineLimiter(null, stepCountLimit, null, true);
+        }
+
+        if (current.data() instanceof TaskEntity task) {
+            return getNetDuration(task, parent, limit);
+        } else if (current.data() instanceof TaskLink link) {
+            return getNetDuration(link, parent, limit);
+        } else {
+            throw new RuntimeException("Unknown type of LimitedData");
         }
     }
 

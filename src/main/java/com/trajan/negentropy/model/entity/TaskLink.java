@@ -16,11 +16,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
+import org.springframework.lang.NonNull;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Optional;
 
 @Entity
 @EntityListeners(SyncManagerListener.class)
@@ -62,17 +64,14 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     private Boolean completed = false;
 
     private Boolean recurring = false;
+    private Boolean cycleToEnd = false;
     private String cron;
     @Column(name = "scheduled_for")
     private LocalDateTime scheduledFor = null;
 
-    public static Duration DEFAULT_PROJECT_DURATION_LIMIT = Duration.ZERO;
-    public static Integer DEFAULT_PROJECT_STEP_COUNT_LIMIT = -1;
-    public static LocalTime DEFAULT_PROJECT_ETA_LIMIT = LocalTime.MAX;
-
-    private Duration projectDurationLimit = DEFAULT_PROJECT_DURATION_LIMIT;
-    private Integer projectStepCountLimit = DEFAULT_PROJECT_STEP_COUNT_LIMIT;
-    private String projectEtaLimit = DEFAULT_PROJECT_ETA_LIMIT.toString();
+    private Duration projectDurationLimit;
+    private Integer projectStepCountLimit;
+    private String projectEtaLimit;
 
     public String toString() {
         return "LinkEntity[" + super.toString() + ", parent=" + parent + ", position=" + position + ", child=" + child + "]";
@@ -123,11 +122,11 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     public Duration duration() {
         Duration duration = child.duration();
         if (child.project()) {
-            if (projectDurationLimit != null && !projectDurationLimit.equals(DEFAULT_PROJECT_DURATION_LIMIT) && duration.compareTo(projectDurationLimit) > 0) {
+            if (projectDurationLimit != null && duration.compareTo(projectDurationLimit) > 0) {
                 duration = projectDurationLimit;
             }
-            if (projectEtaLimit != null && !projectEtaLimit().equals(DEFAULT_PROJECT_ETA_LIMIT)) {
-                Duration difference = Duration.between(LocalTime.now(), projectEtaLimit());
+            if (projectEtaLimit != null && !projectEtaLimit.isBlank()) {
+                Duration difference = Duration.between(LocalTime.now(), LocalTime.parse(projectEtaLimit));
                 if (difference.isNegative()) {
                     difference = Duration.ZERO;
                 }
@@ -140,21 +139,45 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
         return duration;
     }
 
-    @Override
     public TaskLink projectEtaLimit(LocalTime projectEtaLimit) {
-        this.projectEtaLimit = (projectEtaLimit != null && !projectEtaLimit.equals(DEFAULT_PROJECT_ETA_LIMIT))
+        this.projectEtaLimit = (projectEtaLimit != null)
                 ? projectEtaLimit.toString()
                 : null;
         return this;
     }
 
     @Override
-    public LocalTime projectEtaLimit() {
-        if (projectEtaLimit != null) {
-            return LocalTime.parse(projectEtaLimit);
-        } else {
-            return null;
-        }
+    public TaskLink projectDurationLimit(Optional<Duration> projectDurationLimit) {
+        this.projectDurationLimit = projectDurationLimit.orElse(null);
+        return this;
     }
 
+    @Override
+    public TaskLink projectStepCountLimit(Optional<Integer> projectStepCountLimit) {
+        this.projectStepCountLimit = projectStepCountLimit.orElse(null);
+        return this;
+    }
+
+    @Override
+    public TaskLink projectEtaLimit(Optional<LocalTime> projectEtaLimit) {
+        this.projectEtaLimit(projectEtaLimit.orElse(null));
+        return this;
+    }
+
+    @NonNull
+    public Optional<Duration> projectDurationLimit() {
+        return Optional.ofNullable(projectDurationLimit);
+    }
+
+    @NonNull
+    public Optional<Integer> projectStepCountLimit() {
+        return Optional.ofNullable(projectStepCountLimit);
+    }
+
+    @NonNull
+    public Optional<LocalTime> projectEtaLimit() {
+        return Optional.ofNullable(projectEtaLimit != null
+                ? LocalTime.parse(projectEtaLimit)
+                : null);
+    }
 }

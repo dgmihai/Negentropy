@@ -1,10 +1,13 @@
 package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.netduration.QNetDuration;
+import com.trajan.negentropy.model.entity.routine.QRoutineEntity;
+import com.trajan.negentropy.model.entity.routine.QRoutineStepEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
@@ -12,6 +15,7 @@ import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.server.backend.repository.*;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
+import jakarta.persistence.EntityManager;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.querydsl.QSort;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -41,9 +44,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
     private static final com.trajan.negentropy.model.entity.QTaskLink Q_LINK = com.trajan.negentropy.model.entity.QTaskLink.taskLink;
     private static final QTaskEntity Q_TASK = QTaskEntity.taskEntity;
-
-    private Map<TaskID, Duration> cachedTotalDurations = new HashMap<>();
-    private TaskTreeFilter activeFilter = new TaskTreeFilter();
 
     @Override
     public TaskEntity getTask(@NotNull TaskID taskId) {
@@ -417,21 +417,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 .and(Q_LINK.id.eq(linkId.val())));
     }
 
-//    @Override
-//    public NetDuration getNetDuration(TaskID taskId) {
-//        return
-//    }
-//
-//    @Override
-//    public NetDuration getNetDuration(TaskID taskId, int importance) {
-//        TaskEntity task = this.getTask(taskId);
-//        return task.netDurations().stream()
-//                .filter(
-//                netDuration -> importance == netDuration.importance())
-//                .findFirst()
-//                .orElseThrow();
-//    }
-
     @Override
     public Stream<NetDuration> getTotalDurationWithImportanceThreshold(TaskID taskId, int importanceDifference) {
         TaskEntity task = this.getTask(taskId);
@@ -442,71 +427,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                     return netDuration.importance() <= difference;
                 });
     }
-
-//    @Override
-//    public Duration calculateNetDuration(TaskID taskId, TaskNodeTreeFilter filter) {
-//        boolean save = false;
-//
-//        if (filter == null) {
-//            try {
-//                return netDurationService.getNetDuration(taskId).val();
-//            } catch (NoSuchElementException e) {
-//                logger.warn("No net duration found for task " + taskId.val() + ", calculating new.");
-//                save = true;
-//            }
-//        } else {
-//            if ((filter.name() == null || filter.name().isBlank())
-//                    && filter.includedTagIds().isEmpty()
-//                    && filter.excludedTagIds().isEmpty()
-//                    && filter.importanceThreshold() != null) {
-//                return netDurationService.getNetDuration(taskId, filter.importanceThreshold()).val();
-//            }
-//        }
-//
-//        boolean filterCached = activeFilter.equals(filter);
-//
-//        if (!filterCached) {
-//            cachedTotalDurations.clear();
-//        }
-//
-//        Predicate<TaskID> hasCachedNetDuration =
-//                id -> filterCached && cachedTotalDurations.containsKey(id);
-//
-//        if (hasCachedNetDuration.test(taskId)) {
-//            return cachedTotalDurations.get(taskId);
-//        }
-//
-//        Stream<TaskLink> descendants = this.findDescendantLinks(taskId, filter);
-//        LinkedList<TaskLink> descendantStack = new LinkedList<>();
-//        descendants.takeWhile(t -> hasCachedNetDuration.test(ID.of(t.child())))
-//                .forEachOrdered(descendantStack::push);
-//
-//        TaskEntity task = this.getTask(taskId);
-//        if (descendantStack.isEmpty()) {
-//            return this.getTask(taskId).duration();
-//        }
-//
-//        Duration durationSum = cachedTotalDurations.get(ID.of(descendantStack.poll().child()));
-//        TaskLink next = descendantStack.poll();
-//        while (next != null) {
-//            durationSum = task.project()
-//                    ? durationSum.plus(next.projectDurationLimit())
-//                    : durationSum.plus(next.child().duration());
-//            cachedTotalDurations.put(ID.of(next.child()), durationSum);
-//            next = descendantStack.poll();
-//        }
-//
-//        cachedTotalDurations.put(taskId, durationSum.plus(task.duration()));
-//
-//        if (save) {
-//            netDurationRepository.save(new NetDuration(
-//                    task,
-//                    0,
-//                    durationSum)
-//            );
-//        }
-//        return durationSum;
-//    }
 
     @Override
     public int getLowestImportanceOfDescendants(TaskID ancestorId) {
@@ -530,5 +450,69 @@ public class EntityQueryServiceImpl implements EntityQueryService {
         return StreamSupport.stream(tagRepository.findAll(
                         qTag.tasks.isEmpty())
                 .spliterator(), false);
+    }
+
+    @Autowired private EntityManager entityManager;
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findRoutinesContainingLink(LinkID linkId) {
+        return fromRoutines()
+                .where(QRoutineStepEntity.routineStepEntity.link.id.eq(linkId.val()));
+    }
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLink(LinkID linkId) {
+        return onlyReadyRoutines()
+                .where(QRoutineStepEntity.routineStepEntity.link.id.eq(linkId.val()));
+    }
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLinks(Set<LinkID> linkIds) {
+        return onlyReadyRoutines()
+                .where(QRoutineStepEntity.routineStepEntity.link.id.in(linkIds.stream()
+                        .map(ID::val)
+                        .toList()));
+    }
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTask(TaskID taskId) {
+        return onlyReadyRoutines()
+                .where(QRoutineStepEntity.routineStepEntity.task.id.eq(taskId.val()));
+    }
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTasks(Set<TaskID> taskIds) {
+        return onlyReadyRoutines()
+                .where(QRoutineStepEntity.routineStepEntity.task.id.in(taskIds.stream()
+                        .map(ID::val)
+                        .toList()));
+    }
+
+    private BooleanBuilder fromReadyRoutines(boolean onlyReady) {
+        QRoutineEntity routine = QRoutineEntity.routineEntity;
+        BooleanBuilder conditions = new BooleanBuilder()
+                .and(routine.autoSync.isTrue());
+
+        if (onlyReady) {
+            conditions.andAnyOf(routine.status.eq(TimeableStatus.ACTIVE), routine.status.eq(TimeableStatus.NOT_STARTED));
+        }
+
+        return conditions;
+    }
+
+    private JPAQuery<RoutineStepEntity> onlyReadyRoutines() {
+        return fromRoutines()
+                .where(fromReadyRoutines(true));
+    }
+
+    private JPAQuery<RoutineStepEntity> fromRoutines() {
+        JPAQuery<RoutineStepEntity> query = new JPAQuery<>(entityManager);
+        QRoutineStepEntity routineStep = QRoutineStepEntity.routineStepEntity;
+        QRoutineEntity routine = QRoutineEntity.routineEntity;
+
+        return query.select(routineStep)
+                .from(routineStep)
+                .join(routineStep.routine, routine)
+                .where(fromReadyRoutines(true));
     }
 }

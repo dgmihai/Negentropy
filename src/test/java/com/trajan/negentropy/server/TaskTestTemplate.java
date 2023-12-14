@@ -224,8 +224,15 @@ public class TaskTestTemplate {
             TaskID parentId = parent == null ?
                     null : tasks.get(parent).id();
 
-            LocalTime etaLimit = Objects.requireNonNullElse(nodeDTO.projectEtaLimit(), TaskLink.DEFAULT_PROJECT_ETA_LIMIT);
-            log.debug("Persisting task node {} with eta limit {}", name, etaLimit);
+            Optional<Duration> durationLimit = (nodeDTO.projectDurationLimit() != null)
+                    ? nodeDTO.projectDurationLimit()
+                    : Optional.empty();
+            Optional<Integer> stepCountLimit = (nodeDTO.projectStepCountLimit() != null)
+                    ? nodeDTO.projectStepCountLimit()
+                    : Optional.empty();
+            Optional<LocalTime> etaLimit = (nodeDTO.projectEtaLimit() != null)
+                    ? nodeDTO.projectEtaLimit()
+                    : Optional.empty();
 
             TaskNodeDTO freshNode = new TaskNodeDTO(
                     parentId,
@@ -237,9 +244,10 @@ public class TaskTestTemplate {
                     0,
                     nodeDTO.completed(),
                     false,
+                    false,
                     nodeDTO.cron(),
-                    Objects.requireNonNullElse(nodeDTO.projectDurationLimit(), TaskLink.DEFAULT_PROJECT_DURATION_LIMIT),
-                    Objects.requireNonNullElse(nodeDTO.projectStepCountLimit(), TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT),
+                    durationLimit,
+                    stepCountLimit,
                     etaLimit);
 
             Change insertInto = new InsertIntoChange(freshNode, parentId, InsertLocation.LAST);
@@ -248,7 +256,7 @@ public class TaskTestTemplate {
             DataMapResponse response = changeService.execute(Request.of(insertInto));
             TaskNode node = (TaskNode) response.changeRelevantDataMap().getFirst(id);
 
-            assertEquals(LocalTime.MAX, node.projectEtaLimit());
+            assertEquals(Optional.empty(), node.projectEtaLimit());
 
             Triple<String, String, Integer> linkKey = Triple.of(
                     Objects.requireNonNullElse(parent, NULL),
@@ -372,7 +380,7 @@ public class TaskTestTemplate {
                                         .project(true),
                                 new TaskNodeDTO()
                                         .cron(daily)
-                                        .projectDurationLimit(Duration.ofMinutes(1))
+                                        .projectDurationLimit(Optional.of(Duration.ofMinutes(1)))
                         ), Pair.of(
                                 new Task()
                                         .name(THREE_AND_FIVE)
@@ -380,21 +388,21 @@ public class TaskTestTemplate {
                                         .project(true),
                                 new TaskNodeDTO()
                                         .cron(weekly)
-                                        .projectDurationLimit(Duration.ofMinutes(1))
+                                        .projectDurationLimit(Optional.of(Duration.ofMinutes(1)))
                         ), Pair.of(
                                 new Task()
                                         .name(FOUR)
                                         .required(false)
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofSeconds(1))
+                                        .projectDurationLimit(Optional.of(Duration.ofSeconds(1)))
                         ),Pair.of(
                                 new Task()
                                         .name(THREE_AND_FIVE)
                                         .required(false)
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofMinutes(5))
+                                        .projectDurationLimit(Optional.of(Duration.ofMinutes(5)))
                                         .completed(true)
                         ), Pair.of(
                                 new Task()
@@ -420,7 +428,7 @@ public class TaskTestTemplate {
                                         .project(false),
                                 new TaskNodeDTO()
                                         .cron(afterTheTenth)
-                                        .projectDurationLimit(Duration.ofMinutes(5))
+                                        .projectDurationLimit(Optional.of(Duration.ofMinutes(5)))
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTHREE)

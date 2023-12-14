@@ -341,7 +341,7 @@ public class ChangeProcessor {
         durationUpdates.addAll(entityQueryService.findAncestorLinks(
                 ID.of(link.child()), null)
                 .collect(Collectors.toSet()));
-        if (link.child().project() && !link.projectDurationLimit().isZero()) {
+        if (link.child().project() && link.projectDurationLimit().isPresent()) {
             durationUpdates.addAll(entityQueryService.findChildLinks(
                     ID.of(link.child()), null)
                     .collect(Collectors.toSet()));

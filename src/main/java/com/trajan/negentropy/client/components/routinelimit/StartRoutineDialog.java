@@ -61,12 +61,16 @@ public class StartRoutineDialog {
 
     public void open(List<PersistedDataDO> data) {
         this.data = data;
+        boolean single = data.size() == 1;
+        if (!single) dialog.setHeaderTitle("Start Routine from " + data.size() + " tasks");
 
         Set<Tag> tags = data.stream()
                 .map(d -> {
                     if (d instanceof Task task) {
+                        if (single) dialog.setHeaderTitle("Start Routine: " + task.name());
                         return task.id();
                     } else if (d instanceof TaskNode node) {
+                        if (single) dialog.setHeaderTitle("Start Routine: " + node.name());
                         return node.task().id();
                     }
                     return null;

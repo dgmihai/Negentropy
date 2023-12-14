@@ -20,7 +20,7 @@ public class DurationConverter implements Converter<String, Duration> {
     }
 
     public static Result<Duration> toModel(String value) {
-        if (value == null || value.isBlank()) return Result.ok(Duration.ZERO);
+        if (value == null || value.isBlank()) return Result.ok(null);
 
         Matcher matcher = COMPILED_DURATION_PATTERN.matcher(value);
         if (!matcher.find()) {
@@ -44,9 +44,7 @@ public class DurationConverter implements Converter<String, Duration> {
     }
 
     public static String toPresentation(Duration value) {
-        if (value == null) {
-            return "";
-        }
+        if (value == null) return "";
 
         List<String> parts = new ArrayList<>();
 

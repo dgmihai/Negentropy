@@ -171,13 +171,41 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         t -> t.node().id());
             }
 
-            case CRON -> treeGrid.addColumn(entry ->
-                                cronValueProvider.apply(entry.node().cron()))
-                        .setKey(ColumnKey.CRON.toString())
-                        .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
-                        .setWidth(GridUtil.CRON_COL_WIDTH)
+            case CYCLE_TO_END -> {
+                Grid.Column<TaskEntry> cycleToEndColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                                        GridUtil.inlineVaadinIconLitExpression("arrow-forward",
+                                                "?active=\"${item.cycleToEnd}\" " +
+                                                        "?hidden=\"${item.hidden}\""))
+                                .withFunction("onClick", entry -> controller.requestChangeAsync(
+                                        new MergeChange<>(
+                                                new TaskNode(entry.node().linkId())
+                                                        .cycleToEnd(!entry.node().cycleToEnd()))))
+                                .withProperty("cycleToEnd", entry ->
+                                        entry.node().cycleToEnd())
+                                .withProperty("hidden", entry ->
+                                        !entry.node().recurring()
+                                                || entry.node().positionFrozen()
+                                                || entry.node().parentId() == null))
+                        .setKey(ColumnKey.CYCLE_TO_END.toString())
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.ARROW_FORWARD))
+                        .setAutoWidth(true)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
+
+                setMultiEditCheckboxHeader(cycleToEndColumn,
+                        t -> t.node().cycleToEnd(),
+                        (toggle) ->
+                                new TaskNodeDTO().cycleToEnd(toggle),
+                        t -> t.node().id());
+            }
+
+            case CRON -> treeGrid.addColumn(entry ->
+                            cronValueProvider.apply(entry.node().cron()))
+                    .setKey(ColumnKey.CRON.toString())
+                    .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
+                    .setWidth(GridUtil.CRON_COL_WIDTH)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
 
             case SCHEDULED_FOR -> treeGrid.addColumn(entry -> {
                         if (entry.node().cron() != null) {
@@ -253,8 +281,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withProperty("positionFrozen", entry ->
                                         entry.node().positionFrozen())
                                 .withProperty("visible", entry ->
-                                        (entry.task().required() && entry.node().position() == 0)
-                                                || entry.node().positionFrozen()))
+                                        (entry.task().required() || entry.node().positionFrozen())))
                         .setKey(ColumnKey.FROZEN.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.LOCK))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
@@ -568,7 +595,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             GridMenuItem<TaskEntry> startRoutine = addItem("Start Routine",
                     e -> e.getItem().ifPresent(entry -> SpringContext.getBean(StartRoutineDialog.class)
-                            .open(List.of(entry.task()))));
+                            .open(List.of(entry.node()))));
 
             GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
                     e -> SpringContext.getBean(StartRoutineDialog.class).open(
@@ -696,7 +723,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         activeTaskHr.setVisible(false);
                     }
 
-                    Set<TaskEntry> selected = grid.getSelectedItems();
+                    List<TaskEntry> selected = List.copyOf(grid.getSelectedItems());
                     int selectedSize = selected.size();
                     multiEdit.setVisible(selectedSize > 1);
                     if (selectedSize == 0) {
@@ -708,12 +735,15 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     } else {
                         moveTarget.setVisible(false);
                         moveSelected.setVisible(true);
-                        moveSelected.setText("Move " + selectedSize + " tasks");
+                        String multiSelectText = selectedSize == 1
+                                ? selected.get(0).task().name()
+                                : selected.get(0).task().name() + " (+" + (selectedSize - 1) + " more)";
+                        moveSelected.setText("Move " + multiSelectText);
                         copySelected.setVisible(true);
-                        copySelected.setText("Copy " + selectedSize + " tasks");
+                        copySelected.setText("Copy " + multiSelectText);
                         startRoutineSelected.setVisible(true);
-                        startRoutineSelected.setText("Start Routine from " + selectedSize + " tasks");
-                        multiEdit.setText("Edit " + selectedSize + " tasks");
+                        startRoutineSelected.setText("Start Routine from " + multiSelectText);
+                        multiEdit.setText("Edit " + multiSelectText);
                     }
 
                     activeTaskSubMenu.getItems().forEach(menuItem -> menuItem.setEnabled(hasActiveTaskProvider));
@@ -738,11 +768,5 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             return super.onBeforeOpenMenu(eventDetail);
         }
     }
-
-    // ================================================================================================================
-    // customRoutineLimitDialog
-    // ================================================================================================================
-
-
 
 }

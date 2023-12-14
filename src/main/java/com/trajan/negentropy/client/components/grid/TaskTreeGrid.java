@@ -13,6 +13,7 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.DescriptionViewDefaultSetting;
+import com.trajan.negentropy.client.session.TaskEntryDataProvider;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.duration.DurationEstimateValueProvider;
@@ -21,9 +22,11 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskData;
+import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
+import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -99,6 +102,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     protected abstract MultiSelectTreeGrid<T> createGrid();
 
     public void init(LinkedHashMap<ColumnKey, Boolean> visibleColumns, SelectionMode selectionMode) {
+        log.debug("Init task tree grid");
         treeGrid = createGrid();
         this.visibleColumns = visibleColumns;
 
@@ -458,6 +462,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);
+            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
             controller.requestChangeAsync(new MergeChange<>(
                     new Task(t.task().id())
@@ -466,10 +471,18 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
         Runnable cancelEditingDescription = () -> {
             toggleEditing.accept(false);
+            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
             descriptionArea.setValue(t.task().description());
         };
 
+        descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+        descriptionArea.addValueChangeListener(e -> {
+            if (e.isFromClient()) {
+                toggleEditing.accept(true);
+                descriptionArea.setValueChangeMode(ValueChangeMode.LAZY);
+            }
+        });
         descriptionArea.getElement().addEventListener("mouseup", e -> toggleEditing.accept(true));
         descriptionArea.getElement().addEventListener("touchend", e -> toggleEditing.accept(true));
 
@@ -611,8 +624,19 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
                     toggleVisibility.accept(columnKey, menuItem, this.getColumnVisibility(columnKey));
 
-                    menuItem.addClickListener(e -> toggleVisibility.accept(
-                            columnKey, menuItem, menuItem.isChecked()));
+                    menuItem.addClickListener(e -> {
+                        toggleVisibility.accept(
+                                columnKey, menuItem, menuItem.isChecked());
+                        if (columnKey.equals(ColumnKey.NET_DURATION)) {
+                            boolean areNetDurationsVisible = menuItem.isChecked();
+                            settings.areNetDurationsVisible(areNetDurationsVisible);
+                            if (areNetDurationsVisible) {
+                                NestableTaskNodeTreeFilter filter = SpringContext.getBean(TaskEntryDataProvider.class)
+                                        .filter();
+                                taskNetworkGraph.getNetDurations(filter);
+                            }
+                        }
+                    });
                     // TODO: Use visibleColumns
 
                     RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);

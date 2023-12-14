@@ -23,6 +23,8 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 
+import java.util.Optional;
+
 public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
 
     @Getter
@@ -86,6 +88,7 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
 
         projectDurationLimit = new DurationTextField("Project ");
         projectDurationLimit.setValueChangeMode(ValueChangeMode.EAGER);
+        projectDurationLimit.setClearButtonVisible(true);
 
         projectStepCountLimit = new IntegerField();
         projectStepCountLimit.setPlaceholder("Step Count Limit");
@@ -155,18 +158,21 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
         binder.forField(projectDurationLimit)
                 .withConverter(new DurationConverter())
                 .bind(
-                        node -> node.node().projectDurationLimit(),
-                        (node, projectDuration) -> node.node().projectDurationLimit(projectDuration));
+                        node -> node.node().projectDurationLimit().orElse(null),
+                        (node, projectDuration) -> node.node().projectDurationLimit(
+                                Optional.ofNullable(projectDuration)));
 
         binder.forField(projectStepCountLimit)
                 .bind(
-                        node -> node.node().projectStepCountLimit(),
-                        (node, projectStepCountLimit) -> node.node().projectStepCountLimit(projectStepCountLimit));
+                        node -> node.node().projectStepCountLimit().orElse(null),
+                        (node, projectStepCount) -> node.node().projectStepCountLimit(
+                                Optional.ofNullable(projectStepCount)));
 
         binder.forField(projectEtaLimit)
                 .bind(
-                        node -> node.node().projectEtaLimit(),
-                        (node, projectStepEtaLimit) -> node.node().projectEtaLimit(projectStepEtaLimit));
+                        node -> node.node().projectEtaLimit().orElse(null),
+                        (node, projectEta) -> node.node().projectEtaLimit(
+                                Optional.ofNullable(projectEta)));
 
         onSaveSelect.setVisible(false);
         saveAsLastCheckbox.setVisible(false);

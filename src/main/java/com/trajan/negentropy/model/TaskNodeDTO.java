@@ -7,10 +7,12 @@ import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.support.CronExpression;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.Optional;
 
 @NoArgsConstructor
 @Getter
@@ -25,15 +27,20 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
 
     private Boolean completed;
     private Boolean recurring;
+    private Boolean cycleToEnd;
     private CronExpression cron;
 
-    private Duration projectDurationLimit;
-    private Integer projectStepCountLimit;
-    private LocalTime projectEtaLimit;
+    @Nullable
+    private Optional<Duration> projectDurationLimit;
+    @Nullable
+    private Optional<Integer> projectStepCountLimit;
+    @Nullable
+    private Optional<LocalTime> projectEtaLimit;
 
     public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Boolean positionFrozen, Integer importance,
-                       Boolean completed, Boolean recurring, CronExpression cron, Duration projectDurationLimit,
-                       Integer projectStepCountLimit, LocalTime projectEtaLimit) {
+                       Boolean completed, Boolean recurring, Boolean cycleToEnd, CronExpression cron,
+                       Optional<Duration> projectDurationLimit, Optional<Integer> projectStepCountLimit,
+                       Optional<LocalTime> projectEtaLimit) {
         this.parentId = parentId;
         this.childId = childId;
         this.position = position;
@@ -41,6 +48,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         this.importance = importance;
         this.completed = completed;
         this.recurring = recurring;
+        this.cycleToEnd = cycleToEnd;
         this.cron = cron;
         this.projectDurationLimit = projectDurationLimit;
         this.projectStepCountLimit = projectStepCountLimit;
@@ -55,6 +63,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         this.importance = node.importance();
         this.completed = node.completed();
         this.recurring = node.recurring();
+        this.cycleToEnd = node.cycleToEnd();
         this.cron = node.cron();
         this.projectDurationLimit = node.projectDurationLimit();
         this.projectStepCountLimit = node.projectStepCountLimit();
@@ -66,6 +75,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         this.importance = node.importance();
         this.completed = node.completed();
         this.recurring = node.recurring();
+        this.cycleToEnd = node.cycleToEnd();
         this.cron = node.cron();
         this.projectDurationLimit = node.projectDurationLimit();
         this.projectStepCountLimit = node.projectStepCountLimit();
@@ -88,6 +98,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
                 null,
                 completed,
                 recurring,
+                cycleToEnd,
                 cron,
                 null,
                 projectDurationLimit,
@@ -110,6 +121,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         if (importance != null) result.append(", importance=").append(importance);
         if (completed != null) result.append(", completed=").append(completed);
         if (recurring != null) result.append(", recurring=").append(recurring);
+        if (cycleToEnd != null) result.append(", cycleToEnd=").append(cycleToEnd);
         if (cron != null) result.append(", cron=").append(cron);
         if (projectDurationLimit != null) result.append(", projectDurationLimit=").append(projectDurationLimit);
         if (projectStepCountLimit != null) result.append(", projectStepCountLimit=").append(projectStepCountLimit);

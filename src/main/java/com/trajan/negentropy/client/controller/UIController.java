@@ -98,7 +98,7 @@ public class UIController {
     }
 
     protected ExecutorService createExecutor() {
-        return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 30L,
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 10L,
                 TimeUnit.SECONDS,
                 new SynchronousQueue<>());
     }
@@ -237,6 +237,7 @@ public class UIController {
     private OrphanTaskCleaner orphanCleaner;
 
     public void deleteAllOrphanedTasks() {
+        // TODO: Go over steps and delete orphaned steps
         log.debug("Deleting orphan tasks");
         try {
             orphanCleaner.deleteAllOrphanedTasks();
@@ -248,6 +249,7 @@ public class UIController {
     }
 
     public void deleteAllCompletedTaskNodes() {
+        // TODO: Go over steps and delete orphaned steps
         log.debug("Deleting completed tasks");
         TaskNodeTreeFilter filter = new TaskNodeTreeFilter()
                 .hasChildren(false)

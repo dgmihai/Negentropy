@@ -230,7 +230,7 @@ public class ToolbarTabSheet extends TabSheet {
             NestableTaskNodeTreeFilter filter = filterForm.binder().getBean();
             if (filter.options().equals(Set.of()) &&
                     filter.name().isBlank() &&
-                    !filter.completed() &&
+                    (filter.completed() != null && !filter.completed()) &&
                     filter.includedTagIds().equals(Set.of()) &&
                     filter.excludedTagIds().equals(Set.of())) {
                 searchAndFilterTab.removeClassName(K.BACKGROUND_COLOR_PRIMARY);
@@ -469,12 +469,12 @@ public class ToolbarTabSheet extends TabSheet {
         addStepComboBox.setItems(controller.taskNetworkGraph().taskMap().values());
         addStepComboBox.setItemLabelGenerator(Task::name);
 
-        addStepComboBox.setAllowCustomValue(true);
-        addStepComboBox.addCustomValueSetListener(event -> {
-            Task task = new Task();
-            task.name(event.getDetail());
-            addStepComboBox.setValue(task);
-        });
+//        addStepComboBox.setAllowCustomValue(true);
+//        addStepComboBox.addCustomValueSetListener(event -> {
+//            Task task = new Task();
+//            task.name(event.getDetail());
+//            addStepComboBox.setValue(task);
+//        });
 
         Button addStepButton = new Button("Add Step");
         addStepButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);

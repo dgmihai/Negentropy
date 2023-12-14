@@ -10,6 +10,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.filter.RoutineLimitFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -18,6 +19,7 @@ import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.RoutineTestTemplate;
 import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,11 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -99,7 +101,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(2);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(routineDuration))));
+                node.projectDurationLimit(Optional.of(routineDuration)))));
 
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, TWO, 1),
@@ -118,7 +120,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(3);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(Duration.ofHours(3)))));
+                node.projectDurationLimit(Optional.of(Duration.ofHours(3))))));
 
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, TWO, 1),
@@ -137,7 +139,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(5);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(Duration.ofHours(5)))));
+                node.projectDurationLimit(Optional.of(Duration.ofHours(5))))));
 
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, TWO, 1),
@@ -158,7 +160,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(6);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(routineDuration))));
+                node.projectDurationLimit(Optional.of(routineDuration)))));
 
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, TWO, 1),
@@ -179,7 +181,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(5);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(routineDuration))));
+                node.projectDurationLimit(Optional.of(routineDuration)))));
 
         RoutineLimitFilter filter = new RoutineLimitFilter();
         filter.durationLimit(routineDuration);
@@ -202,7 +204,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(5);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(routineDuration))));
+                node.projectDurationLimit(Optional.of(routineDuration)))));
 
         RoutineLimitFilter filter = new RoutineLimitFilter();
         filter.durationLimit(routineDuration);
@@ -226,7 +228,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration routineDuration = Duration.ofHours(6);
 
         changeService.execute(Request.of(new MergeChange<>(
-                node.projectDurationLimit(routineDuration))));
+                node.projectDurationLimit(Optional.of(routineDuration)))));
 
         linkRoutineCreationTestWithExpectedDuration(
                 Triple.of(NULL, TWO, 1),
@@ -989,6 +991,239 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 time0);
     }
 
+    private Routine startRoutineTwoTwo() {
+        TaskID rootId = tasks.get(TWOTWO).id();
+
+        Routine routine = routineService.createRoutine(rootId).routine();
+
+        RoutineStep rootStep = routine.children().get(0);
+
+        assertEquals(rootId, rootStep.task().id());
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+
+        RoutineStep twoTwoTwo = routine.currentStep().children().get(1);
+
+        assertEquals(twoTwoTwo.task().id(), tasks.get(TWOTWOTWO).id());
+
+        return routine;
+    }
+
+    @Test
+    void executeRoutineParentAllChildrenCompleted() {
+        Routine routine = startRoutineTwoTwo();
+
+        StepID previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        RoutineStep previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOONE,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOTWO,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED);
+    }
+
+    @Test
+    void executeRoutineParentNoChildren() {
+        TaskID rootId = tasks.get(TWOTWOONE).id();
+
+        Routine routine = routineService.createRoutine(rootId).routine();
+
+        RoutineStep rootStep = routine.children().get(0);
+
+        assertEquals(rootId, rootStep.task().id());
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWOONE,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+
+        StepID previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        RoutineStep previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWOONE,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.COMPLETED);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOONE,
+                TimeableStatus.COMPLETED);
+    }
+
+    @Test
+    void executeRoutineParentAtLeastOneTaskSkipped() {
+        Routine routine = startRoutineTwoTwo();
+
+        StepID previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        RoutineStep previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::skipStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOONE,
+                TimeableStatus.SKIPPED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOTWO,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+    }
+
     public Routine iterateCompleteStep(Routine routine, int expectedNextPosition,
                                     String expectedNextName, TimeableStatus expectedNextStatus,
                                     String expectedPreviousName, TimeableStatus expectedPreviousStatus) {
@@ -1108,7 +1343,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testRoutineRecalculateWithPersistAtBack() {
         Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1126,7 +1361,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = routineService.fetchRoutine(routine.id());
 
         assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1140,7 +1375,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testRoutineRecalculateWithPersistAtFront() {
         Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1159,7 +1394,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = routineService.fetchRoutine(routine.id());
 
         assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         THREEONE,
                         TWOTWOONE,
@@ -1171,9 +1406,10 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     @Transactional
     void testRoutineRecalculateWithDelete() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+        Task root = tasks.get(TWOTWO);
+        Routine routine = routineService.createRoutine(root.id()).routine();
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1185,9 +1421,11 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         changeService.execute(Request.of(new DeleteChange<>(
                 ID.of(links.get(Triple.of(TWOTWO, TWOTWOONE, 0))))));
 
+//        assertEquals(2, queryService.fetchChildCount(root.id()));
+
         routine = routineService.fetchRoutine(routine.id());
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
@@ -1201,7 +1439,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testRoutineRecalculateWithMerge() {
         Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1218,7 +1456,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         routine = routineService.fetchRoutine(routine.id());
 
-        assertRoutine(List.of(
+        assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
@@ -1226,5 +1464,229 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 routine);
 
         assertEquals(Duration.ofHours(4), routine.estimatedDuration());
+    }
+
+    @Test
+    void testCreateRoutineFromProjectLinkWithLimitingStepCountViaFilter() {
+        TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
+        Duration routineDuration = Duration.ofHours(6);
+
+        Change resetDurationLimitChange = new MergeChange<>(
+                node.projectDurationLimit(Optional.empty()));
+
+        node = (TaskNode) changeService.execute(Request.of(resetDurationLimitChange))
+                .changeRelevantDataMap().get(resetDurationLimitChange.id()).get(0);
+        assertTrue(node.projectDurationLimit().isEmpty());
+
+        RoutineLimitFilter filter = new RoutineLimitFilter()
+                .stepCountLimit(3);
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> routineDuration,
+                filter,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE),
+                List.of());
+
+        filter = new RoutineLimitFilter()
+                .stepCountLimit(1);
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(3),
+                filter,
+                List.of(
+                        TWO,
+                        TWOONE),
+                List.of());
+
+        filter = new RoutineLimitFilter()
+                .stepCountLimit(2);
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(5),
+                filter,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO),
+                List.of());
+
+        filter = new RoutineLimitFilter()
+                .stepCountLimit(99);
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(6),
+                filter,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE),
+                List.of());
+    }
+
+    @Test
+    void testCreateRoutineFromProjectLinkWithLimitingStepCountViaLink() {
+        TaskNode node = nodes.get(Triple.of(NULL, TWO, 1));
+        Duration routineDuration = Duration.ofHours(6);
+
+        Change resetDurationLimitChange = new MergeChange<>(
+                node.projectDurationLimit(Optional.empty())
+                        .projectStepCountLimit(Optional.of(3)));
+
+        node = (TaskNode) changeService.execute(Request.of(resetDurationLimitChange))
+                .changeRelevantDataMap().get(resetDurationLimitChange.id()).get(0);
+        assertTrue(node.projectDurationLimit().isEmpty());
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> routineDuration,
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE),
+                List.of());
+
+        changeService.execute(Request.of(new MergeChange<>(
+                node.projectStepCountLimit(Optional.of(1)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(3),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE),
+                List.of(
+                        TWOTWO,
+                        TWOTHREE));
+
+        changeService.execute(Request.of(new MergeChange<>(
+                node.projectStepCountLimit(Optional.of(2)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(5),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO),
+                List.of(TWOTHREE));
+
+        changeService.execute(Request.of(new MergeChange<>(
+                node.projectStepCountLimit(Optional.of(99)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(6),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE),
+                List.of());
+    }
+
+    @Test
+    void testCreateRoutineFromProjectLinkWithNestedLimitingStepCount() {
+        TaskNode two = nodes.get(Triple.of(NULL, TWO, 1));
+        TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
+
+        Change resetDurationLimitChange = new MergeChange<>(
+                twoTwo.projectDurationLimit(Optional.empty())
+                        .projectStepCountLimit(Optional.of(3)));
+
+        DataMapResponse response = changeService.execute(Request.of(resetDurationLimitChange,
+                        new MergeChange<>(
+                                two.projectDurationLimit(Optional.empty()))));
+
+        twoTwo = (TaskNode) response.changeRelevantDataMap().get(resetDurationLimitChange.id()).get(0);
+        assertTrue(twoTwo.projectDurationLimit().isEmpty());
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(7),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                List.of());
+
+        changeService.execute(Request.of(new MergeChange<>(
+                twoTwo.projectStepCountLimit(Optional.of(1)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(5).plus(
+                        Duration.ofMinutes(30)),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTHREE),
+                List.of());
+
+        changeService.execute(Request.of(new MergeChange<>(
+                twoTwo.projectStepCountLimit(Optional.of(2)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(6),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE),
+                List.of());
+
+        changeService.execute(Request.of(new MergeChange<>(
+                twoTwo.projectStepCountLimit(Optional.of(99)))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(7),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                List.of());
     }
 }

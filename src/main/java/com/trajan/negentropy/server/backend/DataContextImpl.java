@@ -14,13 +14,19 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.sync.Change;
+import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.server.backend.repository.*;
+import com.trajan.negentropy.server.facade.RoutineService;
+import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.util.SpringContext;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -133,22 +139,25 @@ public class DataContextImpl implements DataContext {
         boolean cronChanged = (node.cron() != null && !(Objects.equals(linkEntity.cron(), node.cron())));
         boolean isBeingCompleted = (node.completed() != null && !linkEntity.completed() && node.completed());
 
+        if (node.projectEtaLimit() != null) {
+            linkEntity.projectEtaLimit(node.projectEtaLimit());
+        }
+        if (node.projectStepCountLimit() != null) {
+            linkEntity.projectStepCountLimit(node.projectStepCountLimit());
+        }
+        if (node.projectDurationLimit() != null) {
+            linkEntity.projectDurationLimit(node.projectDurationLimit());
+        }
+
         linkEntity
                 .importance(Objects.requireNonNullElse(
                         node.importance(), linkEntity.importance()))
                 .recurring(Objects.requireNonNullElse(
                         node.recurring(), linkEntity.recurring()))
+                .cycleToEnd(Objects.requireNonNullElse(
+                        node.cycleToEnd(), linkEntity.cycleToEnd()))
                 .completed(Objects.requireNonNullElse(
                         node.completed(), linkEntity.completed()))
-                .projectDurationLimit(Optional.ofNullable(
-                        node.projectDurationLimit())
-                        .orElse(linkEntity.projectDurationLimit()))
-                .projectStepCountLimit(Optional.ofNullable(
-                        node.projectStepCountLimit())
-                        .orElse(linkEntity.projectStepCountLimit()))
-                .projectEtaLimit(Optional.ofNullable(
-                        node.projectEtaLimit())
-                        .orElse(linkEntity.projectEtaLimit()))
                 .positionFrozen(Objects.requireNonNullElse(
                         node.positionFrozen(), linkEntity.positionFrozen()));
 
@@ -165,8 +174,33 @@ public class DataContextImpl implements DataContext {
                     linkEntity.scheduledFor(linkEntity.cron().next(DataContext.now()));
                 }
                 linkEntity.completed(false);
+
+                if (linkEntity.cycleToEnd() && !linkEntity.positionFrozen()) {
+                    if (linkEntity.parent() != null) {
+                        log.debug("Cycling to end");
+                        int position = linkEntity.position();
+                        List<TaskLink> childLinks = linkEntity.parent().childLinks();
+                        childLinks.remove(linkEntity);
+
+                        for (int i = childLinks.size() - 1; i > 0; i--) {
+                            TaskLink current = childLinks.get(i);
+                            if (!current.positionFrozen()) {
+                                childLinks.add(i, linkEntity);
+                                break;
+                            }
+                        }
+
+                        for (int i = position; i < childLinks.size(); i++) {
+                            TaskLink current = childLinks.get(i);
+                            current.position(i - 1);
+                        }
+                        linkEntity.position(position);
+                        linkEntity.parent().childLinks(childLinks);
+                    }
+                }
             }
 
+            log.debug("Saving routine step for tracking");
             routineStepRepository.save(new RoutineStepEntity(linkEntity)
                     .finishTime(DataContext.now())
                     .status(TimeableStatus.COMPLETED));
@@ -249,11 +283,11 @@ public class DataContextImpl implements DataContext {
             }
         }
 
-
         int importance = node.importance() == null ?
                 0 :
                 node.importance();
         boolean recurring = node.recurring() != null && node.recurring();
+        boolean cycleToEnd = node.cycleToEnd() != null && node.cycleToEnd();
         boolean completed = node.completed() != null && (node.completed() && !recurring);
 
         String cron = null;
@@ -273,9 +307,18 @@ public class DataContextImpl implements DataContext {
                     : node.cron().next(now);
         }
 
-        Duration projectDurationLimit = Objects.requireNonNullElse(node.projectDurationLimit(), TaskLink.DEFAULT_PROJECT_DURATION_LIMIT);
-        Integer projectStepCountLimit = Objects.requireNonNullElse(node.projectStepCountLimit(), TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT);
-        LocalTime projectEtaLimit = Objects.requireNonNullElse(node.projectEtaLimit(), TaskLink.DEFAULT_PROJECT_ETA_LIMIT);
+        Duration projectDurationLimit = (node.projectDurationLimit() != null)
+                ? node.projectDurationLimit().orElse(null)
+                : null;
+        Integer projectStepCountLimit = (node.projectStepCountLimit() != null)
+                ? node.projectStepCountLimit().orElse(null)
+                : null;
+        LocalTime projectEtaLimit = (node.projectEtaLimit() != null)
+                ? node.projectEtaLimit().orElse(null)
+                : null;
+        String projectEtaLimitString = (projectEtaLimit != null)
+                ? projectEtaLimit.toString()
+                : null;
 
         TaskLink link = linkRepository.save(new TaskLink(
                 null,
@@ -287,11 +330,12 @@ public class DataContextImpl implements DataContext {
                 now,
                 completed,
                 recurring,
+                cycleToEnd,
                 cron,
                 scheduledFor,
                 projectDurationLimit,
                 projectStepCountLimit,
-                projectEtaLimit.toString()));
+                projectEtaLimitString));
 
         if (parent != null) {
             try {
@@ -320,6 +364,7 @@ public class DataContextImpl implements DataContext {
                 link.createdAt(),
                 nodeTemplate.completed(),
                 nodeTemplate.recurring(),
+                nodeTemplate.cycleToEnd(),
                 nodeTemplate.cron(),
                 link.scheduledFor(),
                 link.projectDurationLimit(),
@@ -395,6 +440,15 @@ public class DataContextImpl implements DataContext {
 
         routineStepRepository.findAll(QRoutineStepEntity.routineStepEntity.link.eq(link))
                 .forEach(step -> {
+                    if (step.routine() != null
+                            && (step.routine().status().equals(TimeableStatus.ACTIVE)
+                            || step.routine().status().equals(TimeableStatus.NOT_STARTED))) {
+                        RoutineService routineService = SpringContext.getBean(RoutineService.class);
+                        Change deleteChange = new DeleteChange<>(ID.of(step));
+                        routineService.notifyChanges(Request.of(deleteChange),
+                                new LinkedMultiValueMap<>());
+                    }
+
                     step.link(null);
                     step.deletedLink(true);
                 });
@@ -483,6 +537,7 @@ public class DataContextImpl implements DataContext {
                 link.createdAt(),
                 link.completed(),
                 link.recurring(),
+                link.cycleToEnd(),
                 link.cron(),
                 link.scheduledFor(),
                 link.projectDurationLimit(),

@@ -59,5 +59,6 @@ public class NestedTaskTabs extends Tabs {
             this.add(tab);
         }
         setSelectedTab(tab);
+        taskEntryTreeGrid.treeGrid().scrollToStart();
     }
 }

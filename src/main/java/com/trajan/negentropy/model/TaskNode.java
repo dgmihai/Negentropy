@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
@@ -36,13 +37,14 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
     private Boolean completed;
 
     private Boolean recurring;
+    private Boolean cycleToEnd;
     @JsonSerialize(using = CronExpressionSerializer.class)
     private CronExpression cron;
     private LocalDateTime scheduledFor;
 
-    private Duration projectDurationLimit;
-    private Integer projectStepCountLimit;
-    private LocalTime projectEtaLimit;
+    private Optional<Duration> projectDurationLimit;
+    private Optional<Integer> projectStepCountLimit;
+    private Optional<LocalTime> projectEtaLimit;
 
     public TaskNode(TaskNodeInfoData<?> taskNodeInfoData) {
         this.linkId = null;
@@ -55,6 +57,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.projectStepCountLimit = taskNodeInfoData.projectStepCountLimit();
         this.projectEtaLimit = taskNodeInfoData.projectEtaLimit();
         this.recurring = taskNodeInfoData.recurring();
+        this.cycleToEnd = taskNodeInfoData.cycleToEnd();
     }
 
     public TaskNode(LinkID linkId, TaskNodeInfoData<?> taskNodeInfoData) {
@@ -65,7 +68,10 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.position = taskNodeInfoData.position();
         this.positionFrozen = taskNodeInfoData.positionFrozen();
         this.projectDurationLimit = taskNodeInfoData.projectDurationLimit();
+        this.projectStepCountLimit = taskNodeInfoData.projectStepCountLimit();
+        this.projectEtaLimit = taskNodeInfoData.projectEtaLimit();
         this.recurring = taskNodeInfoData.recurring();
+        this.cycleToEnd = taskNodeInfoData.cycleToEnd();
     }
 
     @Override
@@ -101,25 +107,58 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         return new TaskNodeDTO(this);
     }
 
+    private static class DecoratedStringBuilder {
+        private final StringBuilder stringBuilder = new StringBuilder();
+        private boolean first = true;
+
+        public DecoratedStringBuilder appendIfNotNull(String prefix, Object value) {
+            if (value != null) {
+                if (first) {
+                    first = false;
+                } else {
+                    stringBuilder.append(", ");
+                }
+                stringBuilder.append(prefix).append(value);
+            }
+            return this;
+        }
+
+        public DecoratedStringBuilder append(String string) {
+            if (first) {
+                first = false;
+            } else {
+                stringBuilder.append(", ");
+            }
+            stringBuilder.append(string);
+            return this;
+        }
+
+        public String toString() {
+            return stringBuilder.toString();
+        }
+
+    }
+
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder("TaskNode(");
-        result.append("linkId=").append(linkId);
-
-        if (parentId != null) result.append(", parentId=").append(parentId);
-        if (child != null) result.append(", child=").append(child);
-        if (position != null) result.append(", position=").append(position);
-        if (positionFrozen != null) result.append(", positionFrozen=").append(positionFrozen);
-        if (importance != null) result.append(", importance=").append(importance);
-        if (createdAt != null) result.append(", createdAt=").append(createdAt);
-        if (completed != null) result.append(", completed=").append(completed);
-        if (recurring != null) result.append(", recurring=").append(recurring);
-        if (cron != null) result.append(", cron=").append(cron);
-        if (scheduledFor != null) result.append(", scheduledFor=").append(scheduledFor);
-        if (projectDurationLimit != null) result.append(", projectDurationLimit=").append(projectDurationLimit);
-
-        result.append(")");
-        return result.toString();
+        return new DecoratedStringBuilder().append("TaskNode(")
+                .appendIfNotNull("linkId=", linkId)
+                .appendIfNotNull("parentId=", parentId)
+                .appendIfNotNull("child=", child)
+                .appendIfNotNull("position=", position)
+                .appendIfNotNull("positionFrozen=", positionFrozen)
+                .appendIfNotNull("importance=", importance)
+                .appendIfNotNull("createdAt=", createdAt)
+                .appendIfNotNull("completed=", completed)
+                .appendIfNotNull("recurring=", recurring)
+                .appendIfNotNull("cycleToEnd=", cycleToEnd)
+                .appendIfNotNull("cron=", cron)
+                .appendIfNotNull("scheduledFor=", scheduledFor)
+                .appendIfNotNull("projectDurationLimit=", projectDurationLimit)
+                .appendIfNotNull("projectStepCountLimit=", projectStepCountLimit)
+                .appendIfNotNull("projectEtaLimit=", projectEtaLimit)
+                .append(")")
+                .toString();
     }
 
     @Override

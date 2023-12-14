@@ -77,8 +77,8 @@ public class RoutineView extends VerticalLayout {
         toolbarTabSheet.init(this, () -> routineStepTreeGrid.clearRoutine(),
                 TabType.HIDE_ROUTINE_STEPS_TAB,
                 TabType.SHOW_ROUTINE_STEPS_TAB,
-                TabType.CREATE_NEW_TASK_TAB_FULL,
-                TabType.INSERT_TASK_TAB,
+//                TabType.CREATE_NEW_TASK_TAB_FULL,
+//                TabType.INSERT_TASK_TAB,
                 TabType.START_ROUTINE_TAB,
                 TabType.OPTIONS_TAB);
 

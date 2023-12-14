@@ -1,4 +1,4 @@
-package com.trajan.negentropy.server;
+package com.trajan.negentropy.server.rest;
 
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TimeableStatus;

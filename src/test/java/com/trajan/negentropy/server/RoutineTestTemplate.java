@@ -24,6 +24,7 @@ import org.springframework.data.util.Pair;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -54,14 +55,14 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                         .duration(Duration.ofHours(2))
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofHours(2))
+                                        .projectDurationLimit(Optional.of(Duration.ofHours(2)))
                         ), Pair.of(
                                 new Task()
                                         .name(THREE_AND_FIVE)
                                         .duration(Duration.ofHours(3))
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofMinutes(13*60+30))
+                                        .projectDurationLimit(Optional.of(Duration.ofMinutes(13*60+30)))
                         ), Pair.of(
                                 new Task()
                                         .name(FOUR)
@@ -72,7 +73,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                         .name(THREE_AND_FIVE)
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofHours(5))
+                                        .projectDurationLimit(Optional.of(Duration.ofHours(5)))
                         ), Pair.of(
                                 new Task()
                                         .name(SIX_AND_THREETWOFOUR)
@@ -95,7 +96,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                         .duration(Duration.ofHours(1))
                                         .project(true),
                                 new TaskNodeDTO()
-                                        .projectDurationLimit(Duration.ofHours(2))
+                                        .projectDurationLimit(Optional.of(Duration.ofHours(2)))
                         ), Pair.of(
                                 new Task()
                                         .name(TWOTHREE)
@@ -183,12 +184,6 @@ public class RoutineTestTemplate extends TaskTestTemplate {
 //        }
     }
 
-    protected void assertRoutine(List<String> expectedSteps, RoutineResponse response) {
-        assertTrue(response.success());
-
-        assertRoutine(expectedSteps, response.routine());
-    }
-
     protected void assertRoutine(List<String> expectedSteps, Routine routine) {
         List<String> actual = routine.getDescendants().stream()
                 .map(RoutineStep::name)
@@ -196,6 +191,16 @@ public class RoutineTestTemplate extends TaskTestTemplate {
 
         assertEquals(expectedSteps, actual);
         assertTrue(Iterables.elementsEqual(expectedSteps, actual));
+    }
+
+    protected void assertFreshRoutine(List<String> expectedSteps, RoutineResponse response) {
+        assertTrue(response.success());
+
+        assertFreshRoutine(expectedSteps, response.routine());
+    }
+
+    protected void assertFreshRoutine(List<String> expectedSteps, Routine routine) {
+        assertRoutine(expectedSteps, routine);
 
         for (RoutineStep step : routine.children()) {
             assertEquals(TimeableStatus.NOT_STARTED, step.status());
@@ -209,14 +214,14 @@ public class RoutineTestTemplate extends TaskTestTemplate {
         linkRoutineCreationTestWithExpectedDuration(rootLink, null, expectedDuration, expectedSteps, excludedTasks);
     }
 
-    protected void linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
+    protected RoutineResponse linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
                                                              TaskNodeTreeFilter filter,
                                                              Function<TaskID, Duration> expectedDuration,
                                                              List<String> expectedSteps,
                                                              List<String> excludedTasks) throws Exception {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter);
-        assertRoutine(expectedSteps, response);
+        assertFreshRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(node.child().id()),
                 timeableUtil.getRemainingNetDuration(response.routine().children().get(0), response.routine().startTime()));
@@ -230,6 +235,8 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                 .getOrDefault(node.id(), List.of());
 
         assertExcludedTasks(excludedTasks, actualExcludedNodeIds);
+
+        return response;
     }
 
     protected void assertExcludedTasks(List<String> expectedExcludedTasks, List<LinkID> actualExcludedNodeIds) {
@@ -254,7 +261,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                              List<String> expectedSteps) {
         TaskID rootId = tasks.get(rootTask).id();
         RoutineResponse response = routineService.createRoutine(rootId);
-        assertRoutine(expectedSteps, response);
+        assertFreshRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(rootId),
                 response.routine().estimatedDuration());
@@ -266,7 +273,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                                       List<String> expectedSteps) {
         TaskID rootId = tasks.get(rootTask).id();
         RoutineResponse response = routineService.createRoutine(rootId, filter);
-        assertRoutine(expectedSteps, response);
+        assertFreshRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(rootId),
                 response.routine().estimatedDuration());
@@ -279,7 +286,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                                       List<String> excludedTasks) {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter);
-        assertRoutine(expectedSteps, response);
+        assertFreshRoutine(expectedSteps, response);
         assertEquals(
                 expectedDuration.apply(node.child().id()),
                 response.routine().estimatedDuration());

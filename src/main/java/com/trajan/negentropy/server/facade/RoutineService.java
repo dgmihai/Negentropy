@@ -13,6 +13,7 @@ import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.trajan.negentropy.util.CurrentTimeSettable;
 import com.vaadin.flow.shared.Registration;
 import org.springframework.util.MultiValueMap;
 
@@ -22,7 +23,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public interface RoutineService {
+public interface RoutineService extends CurrentTimeSettable {
     RoutineID activeRoutineId();
 
     Routine fetchRoutine(RoutineID routineID);

@@ -1,17 +1,35 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.controller.UIController;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.page.Page;
 
 public class TaskNodeInfoFormDialog extends TaskNodeInfoFormFullLayout {
     private final Dialog dialog;
 
+    private void setMargins(int width) {
+        if (width <= K.BREAKPOINT_PX) {
+            dialog.addClassName("dialog-margins");
+        } else {
+            dialog.removeClassName("dialog-margins");
+        }
+    }
+
     public TaskNodeInfoFormDialog(Dialog dialog, UIController controller) {
         super(controller);
         this.dialog = dialog;
-        dialog.getStyle().setMargin("auto auto 100% auto");
+
+        Page page = UI.getCurrent().getPage();
+
+        page.retrieveExtendedClientDetails(e ->
+                this.setMargins(e.getWindowInnerWidth()));
+
+        page.addBrowserWindowResizeListener(e ->
+                this.setMargins(e.getWidth()));
 
         clearButton.addClickListener(e -> dialog.close());
 

@@ -55,7 +55,8 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton pause;
     private RoutineCardButton play;
     private RoutineCardButton skip;
-    private RoutineCardBooleanButton recalculate;
+    // TODO: Temporarily removed until strategy for disabled auto-calc determined
+//    private RoutineCardBooleanButton recalculate;
     private RoutineCardButton postpone;
     private RoutineCardButton close;
     private RoutineCardButton toTaskTree;
@@ -131,7 +132,8 @@ public class RoutineCard extends VerticalLayout {
             pause.setVisible(isActive());
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
-            recalculate.setBoolean(routine.autoSync());
+//            recalculate.setBoolean(routine.autoSync());
+            toTaskTree.setEnabled(binder.getBean().node() != null);
 
             this.setNestedTaskInfoBars();
             taskInfoBarLayout.removeAll();
@@ -202,10 +204,11 @@ public class RoutineCard extends VerticalLayout {
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> {
+            // Confirm Routine Completion
             if (controller.services().routine().completeStepWouldFinishRoutine(binder.getBean().id())
                     && (routine.hasExcludedSteps() || controller.services().routine().hasFilteredOutSteps(routine.id()))) {
-                Span text = new Span("Complete routine? Routine still has excluded tasks or tasks filtered steps.");
-                Dialog confirmComplete = new Dialog(text);
+                Dialog confirmComplete = new Dialog();
+                confirmComplete.setHeaderTitle("Complete routine? Routine still has excluded tasks or tasks filtered steps.");
 
                 LinkedList<Button> buttonList = new LinkedList<>();
                 Button complete = new Button("Complete");
@@ -224,15 +227,27 @@ public class RoutineCard extends VerticalLayout {
                 });
                 buttonList.add(exclude);
 
+                Button suspend = new Button("Suspend");
+                suspend.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                suspend.addClickListener(e -> {
+                    this.processStep(controller::pauseRoutineStep);
+                    confirmComplete.close();
+                });
+                buttonList.add(suspend);
+
                 Button cancel = new Button("Cancel");
                 cancel.addClickListener(e -> confirmComplete.close());
-                buttonList.add(cancel);
 
                 HorizontalLayout buttons = new HorizontalLayout();
-                buttons.setJustifyContentMode(JustifyContentMode.EVENLY);
-
+                buttons.setJustifyContentMode(JustifyContentMode.START);
+                buttons.setWidthFull();
                 buttonList.forEach(buttons::add);
-                confirmComplete.getFooter().add(buttons);
+
+                HorizontalLayout footer = new HorizontalLayout(buttons, cancel);
+                footer.setJustifyContentMode(JustifyContentMode.END);
+                footer.setWidthFull();
+
+                confirmComplete.getFooter().add(footer);
                 confirmComplete.open();
             } else {
                 this.processStep(controller::completeRoutineStep);
@@ -251,14 +266,14 @@ public class RoutineCard extends VerticalLayout {
         pause.addClickListener(event -> this.processStep(
                 controller::pauseRoutineStep));
 
-        recalculate = new RoutineCardBooleanButton(VaadinIcon.REFRESH.create());
-        recalculate.setBoolean(routine.autoSync());
-        recalculate.addClickListener(event -> {
-            boolean autoSync = routine.autoSync();
-            controller.setAutoSync(routine.id(), !autoSync,
-                    r -> recalculate.setEnabled(!autoSync),
-                    null);
-        });
+//        recalculate = new RoutineCardBooleanButton(VaadinIcon.REFRESH.create());
+//        recalculate.setBoolean(routine.autoSync());
+//        recalculate.addClickListener(event -> {
+//            boolean autoSync = routine.autoSync();
+//            controller.setAutoSync(routine.id(), !autoSync,
+//                    r -> recalculate.setEnabled(!autoSync),
+//                    null);
+//        });
 
         skip = new RoutineCardButton(VaadinIcon.STEP_FORWARD.create());
         skip.addClickListener(event -> this.processStep(
@@ -273,10 +288,9 @@ public class RoutineCard extends VerticalLayout {
                 controller::excludeRoutineStep));
 
         toTaskTree = new RoutineCardButton(VaadinIcon.TREE_TABLE.create());
+        toTaskTree.setEnabled(binder.getBean().node() != null);
         toTaskTree.addClickListener(event -> RoutineCard.toTaskTree(
                 () -> binder.getBean().node(), controller));
-//                () -> routine.steps().get(binder.getBean().parentId()).node(),
-//                controller));
 
         currentTaskName = new Span(binder.getBean().task().name());
         ReadOnlyHasValue<String> taskName = new ReadOnlyHasValue<>(
@@ -334,7 +348,8 @@ public class RoutineCard extends VerticalLayout {
         HorizontalLayout auxActions = new HorizontalLayout();
         auxActions.addClassName("footer");
         auxActions.setWidthFull();
-        auxActions.add(close, toTaskTree, recalculate, play, pause, skip, postpone);
+//        auxActions.add(close, toTaskTree, recalculate, play, pause, skip, postpone);
+        auxActions.add(close, toTaskTree, play, pause, skip, postpone);
 
         VerticalLayout middle = new VerticalLayout();
         middle.addClassName("middle");

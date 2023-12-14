@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -94,7 +95,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(tagEntity.name(), tag.name());
     }
 
-    private void assertNode(TaskLink taskLink, TaskNode taskNode) {
+    private void assertNodeWithoutLimits(TaskLink taskLink, TaskNode taskNode) {
         assertNotNull(taskNode);
         assertEquals(ID.of(taskLink), taskNode.linkId());
         assertEquals(taskLink.importance(), taskNode.importance());
@@ -102,16 +103,19 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.positionFrozen(), taskNode.positionFrozen());
         assertEquals(taskLink.completed(), taskNode.completed());
         assertEquals(taskLink.recurring(), taskNode.recurring());
+        assertEquals(taskLink.cycleToEnd(), taskNode.cycleToEnd());
         assertEquals(taskLink.cron(), taskNode.cron());
         assertEquals(taskLink.createdAt(), taskNode.createdAt());
         assertEquals(taskLink.scheduledFor(), taskNode.scheduledFor());
-        if (taskNode.projectDurationLimit() != null) {
-            assertEquals(taskLink.projectDurationLimit(), taskNode.projectDurationLimit());
-        } else {
-            assertTrue(taskLink.projectDurationLimit().isZero());
-        }
         assertEquals(ID.of(taskLink.parent()), taskNode.parentId());
         assertEquals(ID.of(taskLink.child()), taskNode.child().id());
+    }
+
+    private void assertNode(TaskLink taskLink, TaskNode taskNode) {
+        assertNodeWithoutLimits(taskLink, taskNode);
+        assertEquals(taskLink.projectDurationLimit().orElse(null), taskNode.projectDurationLimit().orElse(null));
+        assertEquals(taskLink.projectStepCountLimit().orElse(null), taskNode.projectStepCountLimit().orElse(null));
+        assertEquals(taskLink.projectEtaLimit().orElse(null), taskNode.projectEtaLimit().orElse(null));
     }
 
     @Test
@@ -129,11 +133,12 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 false,
                 false,
+                false,
                 DAILY_STRING,
                 LocalDateTime.MIN,
                 Duration.ofMinutes(1),
                 7,
-                TaskLink.DEFAULT_PROJECT_ETA_LIMIT.toString()));
+                null));
 
         TaskLink taskLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 null,
@@ -145,11 +150,12 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 false,
                 false,
+                false,
                 DAILY_STRING,
                 LocalDateTime.MIN,
                 Duration.ofMinutes(1),
                 7,
-                TaskLink.DEFAULT_PROJECT_ETA_LIMIT.toString()));
+                null));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink(
                 null,
@@ -161,11 +167,12 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 false,
                 false,
+                false,
                 DAILY_STRING,
                 LocalDateTime.MIN,
                 Duration.ofMinutes(1),
                 7,
-                TaskLink.DEFAULT_PROJECT_ETA_LIMIT.toString()));
+                null));
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink, nextLink));
 
@@ -189,6 +196,7 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 true,
                 false,
+                true,
                 DAILY_STRING,
                 LocalDateTime.MIN,
                 Duration.ofMinutes(1),
@@ -205,6 +213,7 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 true,
                 false,
+                true,
                 DAILY_STRING,
                 LocalDateTime.MIN,
                 Duration.ofMinutes(1),
@@ -302,9 +311,9 @@ public class DataContextTest extends TaskTestTemplate {
                 .position(1)
                 .cron(DAILY_STRING)
                 .scheduledFor(LocalDateTime.MIN)
-                .projectDurationLimit(Duration.ofMinutes(1))
-                .projectStepCountLimit(3)
-                .projectEtaLimit(LocalTime.of(12, 0)));
+                .projectDurationLimit(Optional.of(Duration.ofMinutes(1)))
+                .projectStepCountLimit(Optional.of(3))
+                .projectEtaLimit(Optional.of(LocalTime.of(12, 0))));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
@@ -323,13 +332,14 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 false,
                 false,
+                false,
                 DAILY_CRON,
                 LocalDateTime.MIN,
-                Duration.ofMinutes(1),
-                4,
-                LocalTime.of(13, 0));
+                Optional.of(Duration.ofMinutes(1)),
+                Optional.of(4),
+                Optional.of(LocalTime.of(13, 0)));
 
-        assertNode(taskLink, taskNode);
+        assertNodeWithoutLimits(taskLink, taskNode);
 
         TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
@@ -355,9 +365,9 @@ public class DataContextTest extends TaskTestTemplate {
                 .position(1)
                 .cron(DAILY_STRING)
                 .scheduledFor(LocalDateTime.MIN)
-                .projectDurationLimit(TaskLink.DEFAULT_PROJECT_DURATION_LIMIT)
-                .projectStepCountLimit(TaskLink.DEFAULT_PROJECT_STEP_COUNT_LIMIT)
-                .projectEtaLimit(TaskLink.DEFAULT_PROJECT_ETA_LIMIT));
+                .projectDurationLimit(Optional.empty())
+                .projectStepCountLimit(Optional.empty())
+                .projectEtaLimit(Optional.empty()));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
                 .parent(parentTaskEntity)
@@ -376,17 +386,17 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 false,
                 false,
+                false,
                 DAILY_CRON,
                 LocalDateTime.MIN,
-                null,
-                null,
-                null);
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
 
         assertNode(taskLink, taskNode);
 
         TaskLink mergedTaskLink = dataContext.merge(taskNode);
 
-        taskNode.projectDurationLimit(Duration.ZERO);
         assertNode(mergedTaskLink, taskNode);
     }
 
@@ -416,8 +426,9 @@ public class DataContextTest extends TaskTestTemplate {
                         2,
                         false,
                         false,
+                        false,
                         DAILY_CRON,
-                        Duration.ofMinutes(1),
+                        Optional.of(Duration.ofMinutes(1)),
                         null,
                         null)));
     }
@@ -440,10 +451,11 @@ public class DataContextTest extends TaskTestTemplate {
                 .createdAt(MARK)
                 .completed(true)
                 .recurring(false)
+                .cycleToEnd(true)
                 .cron(DAILY_CRON)
                 .scheduledFor(LocalDateTime.MIN)
-                .projectDurationLimit(Duration.ofMinutes(1))
-                .projectStepCountLimit(5)
+                .projectDurationLimit(Optional.of(Duration.ofMinutes(1)))
+                .projectStepCountLimit(Optional.of(5))
                 .projectEtaLimit(LocalTime.of(11, 0)));
 
         parentTaskEntity.childLinks(List.of(prevLink, taskLink));
@@ -458,16 +470,17 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 true,
                 false,
+                true,
                 DAILY_CRON,
                 LocalDateTime.MIN,
-                Duration.ofMinutes(1),
-                6,
-                LocalTime.NOON);
+                Optional.empty(),
+                Optional.of(6),
+                Optional.of(LocalTime.NOON));
 
-        assertNode(taskLink, taskNode);
+        assertNodeWithoutLimits(taskLink, taskNode);
 
         TaskLink mergedTaskLink = dataContext.merge(taskNode);
-
+        assertTrue(mergedTaskLink.projectDurationLimit().isEmpty());
         assertNode(mergedTaskLink, taskNode);
     }
 
@@ -484,10 +497,11 @@ public class DataContextTest extends TaskTestTemplate {
                 .createdAt(MARK)
                 .completed(true)
                 .recurring(false)
+                .cycleToEnd(true)
                 .cron(DAILY_CRON)
                 .scheduledFor(LocalDateTime.MIN)
-                .projectDurationLimit(Duration.ofMinutes(1))
-                .projectStepCountLimit(5)
+                .projectDurationLimit(Optional.of(Duration.ofMinutes(1)))
+                .projectStepCountLimit(Optional.of(5))
                 .projectEtaLimit(LocalTime.of(11, 0)));
 
         TaskLink nextLink = dataContext.TESTONLY_mergeLink(new TaskLink()
@@ -507,13 +521,14 @@ public class DataContextTest extends TaskTestTemplate {
                 MARK,
                 true,
                 false,
+                true,
                 DAILY_CRON,
                 LocalDateTime.MIN,
-                Duration.ofMinutes(1),
-                6,
-                LocalTime.NOON);
+                Optional.of(Duration.ofMinutes(1)),
+                Optional.of(6),
+                Optional.of(LocalTime.NOON));
 
-        assertNode(taskLink, taskNode);
+        assertNodeWithoutLimits(taskLink, taskNode);
 
         TaskLink mergedTaskLink = dataContext.merge(taskNode);
 

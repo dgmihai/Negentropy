@@ -3,7 +3,6 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
-import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -12,6 +11,9 @@ import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.component.timepicker.TimePickerVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
+
+import java.time.Duration;
+import java.util.Optional;
 
 @Getter
 public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
@@ -32,12 +34,14 @@ public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
 
         projectDurationLimit = new DurationTextField("Project ");
         projectDurationLimit.setValueChangeMode(ValueChangeMode.EAGER);
+        projectDurationLimit.setClearButtonVisible(true);
 
         projectStepCountLimit = new IntegerField();
         projectStepCountLimit.setPlaceholder("Step Count Limit");
         projectStepCountLimit.setValueChangeMode(ValueChangeMode.EAGER);
 
         projectEtaLimit = new TimePicker();
+        projectEtaLimit.setStep(Duration.ofMinutes(15));
         projectEtaLimit.setPlaceholder("Step ETA Limit");
     }
 
@@ -53,13 +57,28 @@ public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
 
         nodeInfoBinder.forField(projectDurationLimit)
                 .withConverter(new DurationConverter())
-                .bind(TaskNodeDTOData::projectDurationLimit, TaskNodeDTOData::projectDurationLimit);
+                .bind(
+                        node -> node.node().projectDurationLimit() != null
+                                ? node.node().projectDurationLimit().orElse(null)
+                                : null,
+                        (node, projectDuration) -> node.node().projectDurationLimit(
+                                Optional.ofNullable(projectDuration)));
 
         nodeInfoBinder.forField(projectStepCountLimit)
-                .bind(TaskNodeDTOData::projectStepCountLimit, TaskNodeDTOData::projectStepCountLimit);
+                .bind(
+                        node -> node.node().projectStepCountLimit() != null
+                                ? node.node().projectStepCountLimit().orElse(null)
+                                : null,
+                        (node, projectStepCount) -> node.node().projectStepCountLimit(
+                                Optional.ofNullable(projectStepCount)));
 
         nodeInfoBinder.forField(projectEtaLimit)
-                .bind(TaskNodeDTOData::projectEtaLimit, TaskNodeDTOData::projectEtaLimit);
+                .bind(
+                        node -> node.node().projectEtaLimit() != null
+                                ? node.node().projectEtaLimit().orElse(null)
+                                : null,
+                        (node, projectEta) -> node.node().projectEtaLimit(
+                                Optional.ofNullable(projectEta)));
     }
 
     @Override

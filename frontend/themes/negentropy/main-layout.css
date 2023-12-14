@@ -143,3 +143,7 @@ vaadin-context-menu-item {
     font-size: 16px;
   }
 }
+
+.dialog-margins {
+  margin: auto auto 70% auto;
+}
