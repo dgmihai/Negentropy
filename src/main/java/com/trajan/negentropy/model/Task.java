@@ -24,6 +24,7 @@ public class Task implements TaskData<Task>, PersistedDataDO<TaskID> {
     protected Boolean required;
     protected Boolean project;
     protected Boolean difficult;
+    protected Boolean starred;
     @Nullable
     protected Set<Tag> tags;
 
@@ -32,7 +33,7 @@ public class Task implements TaskData<Task>, PersistedDataDO<TaskID> {
     }
 
     public Task copyWithoutID() {
-        return new Task(null, name, description, duration, required, project, difficult, tags);
+        return new Task(null, name, description, duration, required, project, difficult, starred, tags);
     }
 
     @Override
@@ -46,6 +47,7 @@ public class Task implements TaskData<Task>, PersistedDataDO<TaskID> {
         if (required != null) result.append(", required=").append(required);
         if (project != null) result.append(", project=").append(project);
         if (difficult != null) result.append(", difficult=").append(difficult);
+        if (starred != null) result.append(", starred=").append(starred);
         if (tags != null) result.append(", tags=").append(tags);
 
         result.append(")");

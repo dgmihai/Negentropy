@@ -10,7 +10,6 @@ import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
-import com.trajan.negentropy.model.data.RoutineStepData;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineEntityHierarchy;
 import com.trajan.negentropy.model.data.RoutineStepHierarchy.RoutineStepEntityHierarchy;
@@ -24,6 +23,7 @@ import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
+import com.trajan.negentropy.model.interfaces.Ancestor;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
@@ -143,8 +143,7 @@ public class RoutineServiceImpl implements RoutineService {
         if (limit.isEmpty() && link.child().project()) {
             LocalDateTime eta = null;
             if (link.projectEtaLimit().isPresent()) {
-                eta = link.projectEtaLimit().get().atDate(now().toLocalDate());
-                if (eta.isBefore(now())) eta = eta.plusDays(1);
+                eta = ensureAfterTime(now(), link.projectEtaLimit().get());
             }
 
             limit = new RoutineLimiter(
@@ -189,7 +188,7 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         Duration durationLimit = filter.durationLimit();
-        LocalDateTime etaLimit = filter.etaLimit();
+        LocalDateTime etaLimit = ensureAfterTime(now(), filter.etaLimit());
 
         RoutineLimiter limit = new RoutineLimiter(durationLimit, stepCountLimit, etaLimit,
                 filter.isLimiting());
@@ -344,6 +343,10 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public boolean completeStepWouldFinishRoutine(StepID stepId) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        return completeStepWouldFinishRoutine(step);
+    }
+
+    private boolean completeStepWouldFinishRoutine(RoutineStepEntity step) {
         RoutineEntity routine = step.routine();
         ArrayList<RoutineStepEntity> children = new ArrayList<>(routine.children());
         children.addAll(step.children());
@@ -356,11 +359,20 @@ public class RoutineServiceImpl implements RoutineService {
                     .allMatch(TimeableStatus::isFinished);
     }
 
-    private LocalDateTime adjustedTime(LocalDateTime startTime, LocalTime time) {
-        LocalDateTime result = LocalDateTime.from(time);
+    private LocalDateTime ensureAfterTime(LocalDateTime startTime, LocalTime time) {
+        if (time == null) return null;
+
+        LocalDateTime result = time.atDate(now().toLocalDate());
         return (result.isBefore(startTime))
                 ? result.plusDays(1)
                 : result;
+    }
+
+    private LocalDateTime ensureAfterTime(LocalDateTime startTime, LocalDateTime time) {
+        if (time == null) return null;
+        return (time.isBefore(startTime))
+                ? time.plusDays(1)
+                : time;
     }
 
     @Override
@@ -409,9 +421,7 @@ public class RoutineServiceImpl implements RoutineService {
             }
 
             if (timeLimit != null) {
-                timeLimit = (step.routine().startTime() != null && timeLimit.isBefore(step.routine().startTime()))
-                        ? timeLimit.plusDays(1)
-                        : timeLimit;
+                timeLimit = ensureAfterTime(step.routine().startTime(), timeLimit);
 
                 Duration remainingTime = Duration.between(now(), timeLimit);
                 if (isLastChild(step) && parent != null && step.link().isPresent()) {
@@ -676,21 +686,23 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private TimeableStatus getAggregateChildStatus(RoutineStepEntity step) {
-        Set<TimeableStatus> statusSet = step.children().stream()
-                .map(RoutineStepEntity::status)
-                .collect(Collectors.toSet());
+        if (!completeStepWouldFinishRoutine(step)) {
+            Set<TimeableStatus> statusSet = step.children().stream()
+                    .map(RoutineStepEntity::status)
+                    .collect(Collectors.toSet());
 
-        List<TimeableStatus> statusPriority = List.of(
-                TimeableStatus.ACTIVE,
-                TimeableStatus.SUSPENDED,
-                TimeableStatus.SKIPPED,
-                TimeableStatus.NOT_STARTED,
-                TimeableStatus.EXCLUDED,
-                TimeableStatus.COMPLETED,
-                TimeableStatus.POSTPONED);
+            List<TimeableStatus> statusPriority = List.of(
+                    TimeableStatus.ACTIVE,
+                    TimeableStatus.SUSPENDED,
+                    TimeableStatus.SKIPPED,
+                    TimeableStatus.NOT_STARTED,
+                    TimeableStatus.EXCLUDED,
+                    TimeableStatus.COMPLETED,
+                    TimeableStatus.POSTPONED);
 
-        for (TimeableStatus status : statusPriority) {
-            if (statusSet.contains(status)) return status;
+            for (TimeableStatus status : statusPriority) {
+                if (statusSet.contains(status)) return status;
+            }
         }
 
         return TimeableStatus.COMPLETED;
@@ -729,7 +741,7 @@ public class RoutineServiceImpl implements RoutineService {
 
         if (!alreadyCompleted && step.link().isPresent()) {
             step.link(dataContext.merge(new TaskNode(ID.of(step.link().get()))
-                    .completed(true)));
+                    .completed(true), true));
         }
     }
 
@@ -934,9 +946,12 @@ public class RoutineServiceImpl implements RoutineService {
             log.debug("Removing step <" + step.task().name() + "> from routine " + step.routine().id() + ".");
             RoutineEntity routine = step.routine();
             if (routine.getDescendants().indexOf(step) <= routine.currentPosition()) {
-                routine.currentPosition(routine.currentPosition() - 1);
+                routine.currentPosition(routine.currentPosition() -
+                        (1 + step.children().size()));
             }
-            RoutineStepData<RoutineStepEntity> parent = step.parentStep();
+            Ancestor<RoutineStepEntity>parent = step.parentStep() != null
+                    ? step.parentStep()
+                    : step.routine();
             parent.children().remove(step);
             for (int i = step.position(); i < parent.children().size(); i++) {
                 parent.children().get(i).position(i);

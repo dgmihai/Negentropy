@@ -274,6 +274,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 true,
                 false,
+                false,
                 originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));
 
         TaskEntity mergedTaskEntity = dataContext.merge(task);

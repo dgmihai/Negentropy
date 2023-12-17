@@ -15,7 +15,9 @@ import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
+import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.RoutineServiceImpl.LimitedDataWrapper;
+import com.trajan.negentropy.util.SpringContext;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -41,7 +43,7 @@ import java.util.stream.Stream;
 @Getter
 @Setter
 @Slf4j
-@Benchmark(trace = true)
+@Benchmark(millisFloor = 10)
 @Component
 @Scope("prototype")
 public class NetDurationHelper {
@@ -96,7 +98,7 @@ public class NetDurationHelper {
             log.trace("Duration limit: " + durationLimit);
 
             if (durationLimit != null && durationLimit.compareTo(potential) < 0) {
-                log.debug("Would exceeded duration limit of " + durationLimit + " with " + potential);
+                log.debug("Would exceed duration limit of " + durationLimit + " with " + potential);
                 return true;
             }
 
@@ -146,7 +148,9 @@ public class NetDurationHelper {
         private boolean etaExceedsLimit(Duration duration) {
             log.trace("Checking eta limit: " + etaLimit);
             if (etaLimit != null) {
-                LocalDateTime potentialEta = LocalDateTime.now().plus(durationSum).plus(duration);
+                // Needed for testing
+                RoutineService routineService = SpringContext.getBean(RoutineService.class);
+                LocalDateTime potentialEta = routineService.now().plus(durationSum).plus(duration);
                 return potentialEta.isAfter(etaLimit);
             } else {
                 return false;
@@ -192,9 +196,12 @@ public class NetDurationHelper {
                 .toList(),
                 true);
 
-        RoutineStepEntityHierarchy childHierarchy = parent != null
-                ? new RoutineStepEntityHierarchy(currentTask, parent.routine())
-                : null;
+        RoutineStepEntityHierarchy childHierarchy = null;
+        if (parent != null) {
+            childHierarchy = (current instanceof TaskLink link)
+                    ? new RoutineStepEntityHierarchy(link, parent.routine())
+                    : new RoutineStepEntityHierarchy((TaskEntity) current, parent.routine());
+        }
 
         for (TaskLink childLink : childLinks) {
             Duration childDuration = requiredDurations.containsKey(childLink)

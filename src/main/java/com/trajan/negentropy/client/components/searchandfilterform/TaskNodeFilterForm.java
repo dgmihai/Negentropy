@@ -19,6 +19,7 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
     private Checkbox completed;
     private Checkbox recurring;
     private Checkbox ignoreScheduling;
+    private Checkbox onlyStarred;
     private Checkbox nested;
 
     public TaskNodeFilterForm(UIController controller) {
@@ -67,6 +68,11 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
                 filter -> filter.ignoreScheduling() != null ? filter.ignoreScheduling() : false,
                 TaskTreeFilter::ignoreScheduling);
 
+        onlyStarred = new Checkbox("Only Starred");
+        binder.bind(onlyStarred,
+                filter -> filter.onlyStarred() != null ? filter.onlyStarred() : false,
+                TaskTreeFilter::onlyStarred);
+
 //        HorizontalLayout additionalCheckboxes = new HorizontalLayout(completed, recurring, hasChildren, ignoreScheduling);
 //        additionalCheckboxes.setWidthFull();
 //        additionalCheckboxes.setJustifyContentMode(JustifyContentMode.START);
@@ -74,7 +80,8 @@ public class TaskNodeFilterForm extends AbstractSearchAndFilterForm {
 //        additionalCheckboxes.setMargin(false);
 
         VerticalLayout checkboxLayout = new VerticalLayout(
-                filterOptions, new Span(completed, nested, recurring, hasChildren, ignoreScheduling));
+                filterOptions, new Span(completed, nested, recurring, hasChildren,
+                ignoreScheduling, onlyStarred));
         checkboxLayout.setWidthFull();
         checkboxLayout.setSpacing(false);
         checkboxLayout.setPadding(false);

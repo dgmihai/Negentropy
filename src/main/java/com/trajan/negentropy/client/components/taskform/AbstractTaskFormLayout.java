@@ -120,15 +120,15 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         setSaveButtonText(null);
 
         projectComboBox = new ComboBox<>();
-        TaskTreeFilter filter = new TaskTreeFilter();
-        filter.options().add(TaskTreeFilter.ONLY_PROJECTS);
+        TaskTreeFilter filter = new TaskTreeFilter()
+                .onlyStarred(true);
         List<Task> projects = controller.services().query().fetchAllTasks(filter)
                 .sorted((a, b) -> a.name().compareToIgnoreCase(b.name()))
                 .collect(Collectors.toCollection(ArrayList::new));
         projectComboBox.setItems(projects);
         projectComboBox.setClearButtonVisible(true);
         projectComboBox.setItemLabelGenerator(Task::name);
-        projectComboBox.setPlaceholder("Add directly to project");
+        projectComboBox.setPlaceholder("Add directly to starred task");
         projectComboBox.setVisible(false);
         projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
 

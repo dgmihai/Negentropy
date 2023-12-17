@@ -22,6 +22,7 @@ public class TaskTreeFilter implements Serializable {
     protected Set<String> options = new HashSet<>();
     protected Boolean ignoreScheduling;
     protected Boolean hasChildren;
+    protected Boolean onlyStarred;
 
     public static final String ONLY_REQUIRED = "Only Required";
     public static final String ONLY_PROJECTS = "Only Projects";

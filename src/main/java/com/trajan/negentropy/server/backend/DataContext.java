@@ -21,6 +21,9 @@ public interface DataContext {
     TaskEntity merge(TaskID id, Task template);
 
     TaskLink merge(TaskNode node);
+
+    TaskLink merge(TaskNode node, boolean createTrackingStep);
+
     TaskLink merge(TaskNodeDTO node);
     TaskLink merge(LinkID linkId, TaskNodeTemplateData<?> nodeTemplate);
 

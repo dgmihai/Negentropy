@@ -42,7 +42,7 @@ public class TaskNodeInfoFormDialog extends TaskNodeInfoFormFullLayout {
                 .findFirst()
                 .ifPresent(project -> projectComboBox.setValue(project));
 
-        nodeInfoBinder.withValidator(node -> !projectComboBox.isEmpty(), "Valid project is required");
+        nodeInfoBinder.withValidator(node -> !projectComboBox.isEmpty(), "Valid parent is required");
 
         preexistingTaskSearchButton.setIcon(VaadinIcon.EXCLAMATION.create());
         preexistingTaskSearchButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);

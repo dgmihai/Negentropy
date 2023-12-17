@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -333,7 +334,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
-                root.projectEtaLimit(Optional.of(LocalTime.MAX)))));
+                root.projectEtaLimit(Optional.of(LocalTime.now().minusSeconds(1))))));
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -951,18 +952,139 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
         Duration originalDuration = routine.estimatedDuration();
 
+        StepID previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        RoutineStep previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+
         changeService.execute(Request.of(new DeleteChange<>(
                 ID.of(links.get(Triple.of(TWOTWO, TWOTWOONE, 0))))));
 
         routine = routineService.fetchRoutine(routine.id());
 
-        assertFreshRoutine(List.of(
+        assertRoutine(List.of(
                         TWOTWO,
                         TWOTWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
 
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
         assertEquals(originalDuration.minus(Duration.ofMinutes(30)), routine.estimatedDuration());
+    }
+
+    @Test
+    void testRoutineRecalculateWithDeleteWithChildren() {
+        Routine routine = routineService.createRoutine(tasks.get(TWO).id()).routine();
+
+        assertFreshRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                routine);
+
+        assertNotNull(routine.currentStep().children().get(1).node());
+
+        Duration originalDuration = routine.estimatedDuration();
+        Duration removedDuration = Duration.ZERO;
+
+        StepID previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        RoutineStep previous = routine.steps().get(previousId);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWO,
+                TimeableStatus.ACTIVE);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+        removedDuration = removedDuration.plus(previous.duration());
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOONE,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+        removedDuration = removedDuration.plus(previous.duration());
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+        removedDuration = removedDuration.plus(routine.currentStep().duration());
+        changeService.execute(Request.of(new DeleteChange<>(
+                ID.of(links.get(Triple.of(TWO, TWOTWO, 1))))));
+
+        routine = routineService.fetchRoutine(routine.id());
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTHREE),
+                routine);
+
+        assertRoutineStepExecution(
+                routine,
+                1,
+                TWOONE,
+                TimeableStatus.COMPLETED,
+                TimeableStatus.ACTIVE);
+
+        assertEquals(originalDuration.minus(removedDuration), routine.estimatedDuration());
     }
 
     @Test

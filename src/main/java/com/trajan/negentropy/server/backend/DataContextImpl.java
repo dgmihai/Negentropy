@@ -76,12 +76,6 @@ public class DataContextImpl implements DataContext {
                             task.duration(), Duration.ZERO)));
         } else {
             taskEntity = entityQueryService.getTask(task.id());
-//            log.debug("Merging to existing task: " + taskEntity.name());
-//
-//            if (task.duration() != null && !taskEntity.duration().equals(task.duration())) {
-//                Duration change = task.duration().minus(taskEntity.duration());
-//                this.addToNetDurationOfAllAncestors(change, task.id());
-//            }
         }
 
         taskEntity
@@ -97,6 +91,8 @@ public class DataContextImpl implements DataContext {
                         task.required(), taskEntity.required()))
                 .difficult(Objects.requireNonNullElse(
                         task.difficult(), taskEntity.difficult()))
+                .starred(Objects.requireNonNullElse(
+                        task.starred(), taskEntity.starred()))
                 .tags((task.tags() != null)
                     ? task.tags().stream()
                         .map(this::merge)
@@ -119,12 +115,18 @@ public class DataContextImpl implements DataContext {
                 template.required(),
                 template.project(),
                 template.difficult(),
+                template.starred(),
                 template.tags());
         return this.merge(task);
     }
 
     @Override
     public TaskLink merge(TaskNode node) {
+        return this.merge(node, false);
+    }
+
+    @Override
+    public TaskLink merge(TaskNode node, boolean createTrackingStep) {
         TaskLink linkEntity = entityQueryService.getLink(node.linkId());
 
         if (node.cron() != null) {
@@ -200,10 +202,12 @@ public class DataContextImpl implements DataContext {
                 }
             }
 
-            log.debug("Saving routine step for tracking");
-            routineStepRepository.save(new RoutineStepEntity(linkEntity)
-                    .finishTime(DataContext.now())
-                    .status(TimeableStatus.COMPLETED));
+            if (createTrackingStep) {
+                log.debug("Saving routine step for tracking");
+                routineStepRepository.save(new RoutineStepEntity(linkEntity)
+                        .finishTime(DataContext.now())
+                        .status(TimeableStatus.COMPLETED));
+            }
         }
 
         log.debug("Merged task link from node: " + linkEntity);
@@ -443,6 +447,7 @@ public class DataContextImpl implements DataContext {
                     if (step.routine() != null
                             && (step.routine().status().equals(TimeableStatus.ACTIVE)
                             || step.routine().status().equals(TimeableStatus.NOT_STARTED))) {
+                        log.debug("Deleting routine step <" + step.name() + ">");
                         RoutineService routineService = SpringContext.getBean(RoutineService.class);
                         Change deleteChange = new DeleteChange<>(ID.of(step));
                         routineService.notifyChanges(Request.of(deleteChange),
@@ -515,6 +520,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.required(),
                 taskEntity.project(),
                 taskEntity.difficult(),
+                taskEntity.starred(),
                 null);
     }
 

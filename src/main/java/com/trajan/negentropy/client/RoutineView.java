@@ -135,10 +135,12 @@ public class RoutineView extends VerticalLayout {
         executor.execute(() -> {
             List<Routine> routines = routineDataProvider.fetch(new Query<>(
                     visibleRoutineStatuses)).toList();
-            controller.accessUI(this.getClass().getSimpleName(),
-                    () -> {
-                activeRoutineGrid.setItems(routines);
-            });
+            try {
+                controller.accessUI(this.getClass().getSimpleName(),
+                        () -> activeRoutineGrid.setItems(routines));
+            } catch (Exception e) {
+                log.error("Error refreshing routines", e);
+            }
         });
     }
 }

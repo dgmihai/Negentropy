@@ -234,6 +234,24 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setFrozen(true)
                         .setFlexGrow(1);
 
+                case STARRED -> {
+                    Grid.Column<T> starredColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            GridUtil.inlineVaadinIconLitExpression("star",
+                                                    ("?active=\"${item.starred}\" ")))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChangeAsync(new MergeChange<>(
+                                                            new Task(t.task().id())
+                                                                    .starred(!t.task().starred())),
+                                                    this))
+                                    .withProperty("starred", t ->
+                                            t.task().starred()))
+                            .setKey(ColumnKey.STARRED.toString())
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.STAR))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
+
                 case DIFFICULT -> {
                     Grid.Column<T> difficultColumn = treeGrid.addColumn(LitRenderer.<T>of(
                                             GridUtil.inlineVaadinIconLitExpression("bolt",

@@ -22,6 +22,7 @@ import java.util.Set;
 @EntityListeners(SyncManagerListener.class)
 @Table(name = "tasks", indexes = {
         @Index(columnList = "name", name = "idx_task_name"),
+        @Index(columnList = "starred", name = "idx_task_starred"),
         @Index(columnList = "project", name = "idx_task_project")
 })
 @NoArgsConstructor
@@ -57,6 +58,9 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
 
     @ToString.Include
     private Boolean difficult = false;
+
+    @ToString.Include
+    private Boolean starred = false;
 
     @OneToMany(
             mappedBy = "task",

@@ -194,6 +194,10 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                     builder.and(qTask.childLinks.isEmpty());
                 }
             }
+
+            if (filter.onlyStarred() != null && filter.onlyStarred()) {
+                builder.and(qTask.starred.isTrue());
+            }
         }
 
         return builder;
