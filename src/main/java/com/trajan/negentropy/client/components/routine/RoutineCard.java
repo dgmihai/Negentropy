@@ -15,6 +15,7 @@ import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.trajan.negentropy.util.TimeableUtil;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -59,6 +60,8 @@ public class RoutineCard extends VerticalLayout {
 //    private RoutineCardBooleanButton recalculate;
     private RoutineCardButton postpone;
     private RoutineCardButton close;
+    private RoutineCardButton kickUp;
+    private RoutineCardButton pushForward;
     private RoutineCardButton toTaskTree;
     private Span currentTaskName;
     private CountdownTimer timer;
@@ -132,7 +135,8 @@ public class RoutineCard extends VerticalLayout {
             pause.setVisible(isActive());
             prev.setEnabled(routine.currentPosition() > 0);
             timer.setTimeable(binder.getBean());
-//            recalculate.setBoolean(routine.autoSync());
+            kickUp.setEnabled(binder.getBean().parentId() != null);
+            pushForward.setEnabled(binder.getBean().parentId() != null);
             toTaskTree.setEnabled(binder.getBean().node() != null);
 
             this.setNestedTaskInfoBars();
@@ -156,9 +160,11 @@ public class RoutineCard extends VerticalLayout {
                 log.debug("Routine start time: " + routine.startTime());
                 log.debug("Routine finish time: " + routine.finishTime());
                 finalStatus = new Span(routine.status().toString() + " '" + routine.name() + "' in " +
-                        DurationConverter.toPresentation(Duration.between(
-                                routine.startTime(),
-                                routine.finishTime()))
+                        DurationConverter.toPresentation(routine.children().stream()
+                                .reduce(Duration.ZERO,
+                                        (duration, step) -> duration.plus(TimeableUtil.get()
+                                                .getElapsedActiveDuration(step, step.finishTime())),
+                                        Duration::plus))
                         + "!");
             } else {
                 finalStatus = new Span(routine.status().toString() + " '" + routine.name() + "'");
@@ -199,58 +205,84 @@ public class RoutineCard extends VerticalLayout {
         }
     }
 
+    private void confirmRoutineCompletion() {
+        if (controller.services().routine().completeStepWouldFinishRoutine(binder.getBean().id())
+                && (routine.hasExcludedSteps() || controller.services().routine().hasFilteredOutSteps(routine.id()))) {
+            Dialog confirmComplete = new Dialog();
+            confirmComplete.setHeaderTitle("Complete routine? Routine still has excluded tasks or tasks filtered steps.");
+
+            LinkedList<Button> buttonList = new LinkedList<>();
+            Button complete = new Button("Complete");
+            complete.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            complete.addClickListener(e -> {
+                this.processStep(controller::completeRoutineStep);
+                confirmComplete.close();
+            });
+            buttonList.add(complete);
+
+            Button exclude = new Button("Exclude");
+            exclude.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            exclude.addClickListener(e -> {
+                this.processStep(controller::excludeRoutineStep);
+                confirmComplete.close();
+            });
+            buttonList.add(exclude);
+
+            Button suspend = new Button("Suspend");
+            suspend.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            suspend.addClickListener(e -> {
+                this.processStep(controller::pauseRoutineStep);
+                confirmComplete.close();
+            });
+            buttonList.add(suspend);
+
+            Button cancel = new Button("Cancel");
+            cancel.addClickListener(e -> confirmComplete.close());
+
+            HorizontalLayout buttons = new HorizontalLayout();
+            buttons.setJustifyContentMode(JustifyContentMode.START);
+            buttons.setWidthFull();
+            buttonList.forEach(buttons::add);
+
+            HorizontalLayout footer = new HorizontalLayout(buttons, cancel);
+            footer.setJustifyContentMode(JustifyContentMode.END);
+            footer.setWidthFull();
+
+            confirmComplete.getFooter().add(footer);
+            confirmComplete.open();
+        } else {
+            this.processStep(controller::completeRoutineStep);
+        }
+    }
+
     private void initComponents() {
         this.setNestedTaskInfoBars();
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> {
-            // Confirm Routine Completion
-            if (controller.services().routine().completeStepWouldFinishRoutine(binder.getBean().id())
-                    && (routine.hasExcludedSteps() || controller.services().routine().hasFilteredOutSteps(routine.id()))) {
-                Dialog confirmComplete = new Dialog();
-                confirmComplete.setHeaderTitle("Complete routine? Routine still has excluded tasks or tasks filtered steps.");
+            if (binder.getBean().task().cleanup()) {
+                Dialog cleanupDialog = new Dialog();
+                cleanupDialog.setHeaderTitle("Has everything needed been cleaned up?");
 
-                LinkedList<Button> buttonList = new LinkedList<>();
-                Button complete = new Button("Complete");
-                complete.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-                complete.addClickListener(e -> {
-                    this.processStep(controller::completeRoutineStep);
-                    confirmComplete.close();
+                Button yes = new Button("Yes");
+                yes.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                yes.addClickListener(e -> {
+                    cleanupDialog.close();
+                    this.confirmRoutineCompletion();
                 });
-                buttonList.add(complete);
 
-                Button exclude = new Button("Exclude");
-                exclude.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-                exclude.addClickListener(e -> {
-                    this.processStep(controller::excludeRoutineStep);
-                    confirmComplete.close();
-                });
-                buttonList.add(exclude);
-
-                Button suspend = new Button("Suspend");
-                suspend.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-                suspend.addClickListener(e -> {
-                    this.processStep(controller::pauseRoutineStep);
-                    confirmComplete.close();
-                });
-                buttonList.add(suspend);
-
-                Button cancel = new Button("Cancel");
-                cancel.addClickListener(e -> confirmComplete.close());
+                Button no = new Button("No");
+                no.addClickListener(e -> cleanupDialog.close());
 
                 HorizontalLayout buttons = new HorizontalLayout();
-                buttons.setJustifyContentMode(JustifyContentMode.START);
+                buttons.setJustifyContentMode(JustifyContentMode.BETWEEN);
                 buttons.setWidthFull();
-                buttonList.forEach(buttons::add);
+                buttons.add(yes, no);
 
-                HorizontalLayout footer = new HorizontalLayout(buttons, cancel);
-                footer.setJustifyContentMode(JustifyContentMode.END);
-                footer.setWidthFull();
-
-                confirmComplete.getFooter().add(footer);
-                confirmComplete.open();
+                cleanupDialog.getFooter().add(buttons);
+                cleanupDialog.open();
             } else {
-                this.processStep(controller::completeRoutineStep);
+                this.confirmRoutineCompletion();
             }
         });
 
@@ -286,6 +318,16 @@ public class RoutineCard extends VerticalLayout {
         close = new RoutineCardButton(VaadinIcon.CLOSE.create());
         close.addClickListener(event -> this.processStep(
                 controller::excludeRoutineStep));
+
+        kickUp = new RoutineCardButton(VaadinIcon.LEVEL_UP.create());
+        kickUp.setEnabled(binder.getBean().parentId() != null);
+        kickUp.addClickListener(event -> this.processStep(
+                controller::kickUpStep));
+
+        pushForward = new RoutineCardButton(VaadinIcon.LEVEL_RIGHT.create());
+        pushForward.setEnabled(binder.getBean().parentId() != null);
+        pushForward.addClickListener(event -> this.processStep(
+                controller::pushStepForward));
 
         toTaskTree = new RoutineCardButton(VaadinIcon.TREE_TABLE.create());
         toTaskTree.setEnabled(binder.getBean().node() != null);
@@ -349,7 +391,7 @@ public class RoutineCard extends VerticalLayout {
         auxActions.addClassName("footer");
         auxActions.setWidthFull();
 //        auxActions.add(close, toTaskTree, recalculate, play, pause, skip, postpone);
-        auxActions.add(close, toTaskTree, play, pause, skip, postpone);
+        auxActions.add(close, postpone, toTaskTree, play, pause, kickUp, pushForward, skip);
 
         VerticalLayout middle = new VerticalLayout();
         middle.addClassName("middle");
@@ -387,7 +429,7 @@ public class RoutineCard extends VerticalLayout {
             TaskNode currentNode = nodeSupplier.get();
             TaskEntry newRootEntry = controller.taskEntryDataProvider().linkTaskEntriesMap().getFirst(currentNode.id());
             if (newRootEntry == null) newRootEntry = new TaskEntry(null, currentNode);
-            treeView.firstTaskTreeGrid().nestedTabs().onSelectNewRootEntry(newRootEntry);
+            treeView.firstTaskTreeGrid().nestedTabs().selectNewRootEntry(newRootEntry);
         });
     }
 

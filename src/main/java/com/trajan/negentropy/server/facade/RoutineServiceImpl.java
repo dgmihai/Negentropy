@@ -5,6 +5,7 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
@@ -35,7 +36,9 @@ import com.trajan.negentropy.server.backend.repository.RoutineStepRepository;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import com.trajan.negentropy.server.broadcaster.AsyncMapBroadcaster;
 import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
+import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.shared.Registration;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
@@ -143,7 +146,7 @@ public class RoutineServiceImpl implements RoutineService {
         if (limit.isEmpty() && link.child().project()) {
             LocalDateTime eta = null;
             if (link.projectEtaLimit().isPresent()) {
-                eta = ensureAfterTime(now(), link.projectEtaLimit().get());
+                eta = getNextFutureTimeOf(now(), link.projectEtaLimit().get());
             }
 
             limit = new RoutineLimiter(
@@ -188,7 +191,7 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         Duration durationLimit = filter.durationLimit();
-        LocalDateTime etaLimit = ensureAfterTime(now(), filter.etaLimit());
+        LocalDateTime etaLimit = getNextFutureTimeOf(now(), filter.etaLimit());
 
         RoutineLimiter limit = new RoutineLimiter(durationLimit, stepCountLimit, etaLimit,
                 filter.isLimiting());
@@ -359,20 +362,20 @@ public class RoutineServiceImpl implements RoutineService {
                     .allMatch(TimeableStatus::isFinished);
     }
 
-    private LocalDateTime ensureAfterTime(LocalDateTime startTime, LocalTime time) {
-        if (time == null) return null;
+    private LocalDateTime getNextFutureTimeOf(LocalDateTime notBefore, LocalTime localTime) {
+        if (localTime == null) return null;
 
-        LocalDateTime result = time.atDate(now().toLocalDate());
-        return (result.isBefore(startTime))
+        LocalDateTime result = localTime.atDate(now().toLocalDate());
+        return (result.isBefore(notBefore))
                 ? result.plusDays(1)
                 : result;
     }
 
-    private LocalDateTime ensureAfterTime(LocalDateTime startTime, LocalDateTime time) {
-        if (time == null) return null;
-        return (time.isBefore(startTime))
-                ? time.plusDays(1)
-                : time;
+    private LocalDateTime getNextFutureTimeOf(LocalDateTime notBefore, LocalDateTime localTime) {
+        if (localTime == null) return null;
+        return (localTime.isBefore(notBefore))
+                ? localTime.plusDays(1)
+                : localTime;
     }
 
     @Override
@@ -409,10 +412,9 @@ public class RoutineServiceImpl implements RoutineService {
 
             if (parent != null && parent.link().isPresent()) {
                 TaskLink link = parent.link().get();
-                // TODO: May cause issues around midnight!
                 timeLimit = (link.projectEtaLimit().isEmpty())
                         ? null
-                        : LocalDateTime.from(link.projectEtaLimit().get());
+                        : getNextFutureTimeOf(now(), link.projectEtaLimit().get());
             }
 
             if ((parent == null && filter.etaLimit() != null)
@@ -421,7 +423,7 @@ public class RoutineServiceImpl implements RoutineService {
             }
 
             if (timeLimit != null) {
-                timeLimit = ensureAfterTime(step.routine().startTime(), timeLimit);
+                timeLimit = getNextFutureTimeOf(step.routine().startTime(), timeLimit);
 
                 Duration remainingTime = Duration.between(now(), timeLimit);
                 if (isLastChild(step) && parent != null && step.link().isPresent()) {
@@ -655,6 +657,136 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         return step.routine();
+    }
+    
+    private Request getRequestForMovingStep(TaskLink link, 
+                                                         LinkID referenceId, 
+                                                         InsertLocation location) {
+        return Request.of(new InsertAtChange(
+                link.toDTO()
+                        .cron(null)
+                        .recurring(false)
+                        .cycleToEnd(false)
+                        .positionFrozen(false),
+                referenceId,
+                location));
+    }
+
+    @Override
+    public RoutineResponse kickStepUp(StepID stepId, LocalDateTime time) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        RoutineEntity routine = step.routine();
+        log.debug("Kicking step" + step + " in routine " + routine.id() + " up.");
+
+        return process(() -> {
+            Optional<RoutineStepEntity> parent = Optional.ofNullable(step.parentStep());
+            Optional<RoutineStepEntity> grandparent = parent.map(RoutineStepEntity::parentStep);
+
+            this.setStepExcluded(step, time, true);
+            if (step.link().isPresent()
+                    && parent.isPresent() && parent.get().link().isPresent()
+                    && grandparent.isPresent()) {
+                TaskLink link = step.link().get();
+                ChangeService changeService = SpringContext.getBean(ChangeService.class);
+                DataMapResponse response = changeService.execute(getRequestForMovingStep(
+                        step.link().get(),
+                        ID.of(parent.get().link().get()),
+                        InsertLocation.AFTER));
+
+                if (!response.success()) {
+                    throw new RuntimeException("Failed to insert link: " + response.message());
+                } else {
+                    if (!link.recurring()) {
+                        changeService.execute(Request.of(new DeleteChange<>(ID.of(link))));
+                    }
+                }
+            } else {
+                RoutineStepEntity newStep = new RoutineStepEntity();
+                if (step.link().isPresent()) {
+                    newStep.link(step.link().get());
+                }
+                
+                int newPosition;
+                if (parent.isEmpty()) {
+                    routine.children().add(newStep);
+                    newPosition = routine.children().indexOf(step);
+                } else {
+                    parent.get().children().add(newStep);
+                    newPosition = parent.get().children().indexOf(step);
+                }
+                newStep.task(step.task())
+                        .routine(routine)
+                        .children(step.children())
+                        .position(newPosition);
+                routineStepRepository.save(newStep);
+            }
+            return routineRepository.getReferenceById(routine.id());
+        });
+    }
+    
+    @Override
+    public RoutineResponse pushStepForward(StepID stepId, LocalDateTime time) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+        RoutineEntity routine = step.routine();
+        log.debug("Pushing step" + step + " in routine " + routine.id() + " up.");
+        
+        return process(() -> {
+            Optional<RoutineStepEntity> parent = Optional.ofNullable(step.parentStep());
+
+            this.setStepExcluded(step, time, true);
+
+            RoutineStepEntity nextStep;
+            if (parent.isPresent()) {
+                if (parent.get().children().size() > step.position() + 1) {
+                    nextStep = parent.get().children().get(step.position() + 1);
+                } else {
+                    throw new UnsupportedOperationException("Task is the last item in its parent's children already.");
+                }
+            } else {
+                if (routine.children().size() > step.position() + 1) {
+                    nextStep = routine.children().get(step.position() + 1);
+                } else {
+                    throw new UnsupportedOperationException("Task is at the end of the routine.");
+                }
+            }
+
+            if (step.link().isPresent()) {
+                if (nextStep.link().isPresent()) {
+                    TaskLink link = step.link().get();
+                    ChangeService changeService = SpringContext.getBean(ChangeService.class);
+                    DataMapResponse response = changeService.execute(getRequestForMovingStep(
+                            step.link().get(),
+                            ID.of(nextStep.link().get()),
+                            InsertLocation.AFTER));
+                    if (!response.success()) {
+                        throw new RuntimeException("Failed to insert link: " + response.message());
+                    } else {
+                        if (!link.recurring()) {
+                            changeService.execute(Request.of(new DeleteChange<>(ID.of(link))));
+                        }
+                    }
+                }
+            } else {
+                RoutineStepEntity newStep = new RoutineStepEntity();
+                int newPosition = nextStep.position() + 1;
+                if (step.link().isPresent()) {
+                    newStep.link(step.link().get());
+                }
+
+                if (parent.isEmpty()) {
+                    routine.children().add(newPosition, newStep);
+                } else {
+                    parent.get().children().add(newPosition, newStep);
+                }
+
+                newStep.task(step.task())
+                        .routine(routine)
+                        .children(step.children())
+                        .position(newPosition);
+                routineStepRepository.save(newStep);
+            }
+            return routineRepository.getReferenceById(routine.id());
+        });
     }
 
     @Override

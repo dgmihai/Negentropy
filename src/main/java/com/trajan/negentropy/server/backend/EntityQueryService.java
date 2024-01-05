@@ -2,10 +2,7 @@ package com.trajan.negentropy.server.backend;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
-import com.trajan.negentropy.model.entity.QTaskEntity;
-import com.trajan.negentropy.model.entity.TagEntity;
-import com.trajan.negentropy.model.entity.TaskEntity;
-import com.trajan.negentropy.model.entity.TaskLink;
+import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
@@ -224,6 +221,8 @@ public interface EntityQueryService {
      * @see TaskLink
      */
     Stream<TaskEntity> findAncestorTasks(TaskID descendantId, TaskNodeTreeFilter filter);
+
+    Stream<TaskLink> findLinksGroupedHierarchically(TaskNodeTreeFilter filter);
 
     /**
      * Retrieves all descendant task links of a given task via depth-first search.

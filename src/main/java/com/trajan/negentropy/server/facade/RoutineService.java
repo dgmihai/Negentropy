@@ -46,7 +46,6 @@ public interface RoutineService extends CurrentTimeSettable {
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);
     RoutineResponse postponeStep(StepID stepId, LocalDateTime time);
     RoutineResponse excludeStep(StepID stepID, LocalDateTime time);
-
     RoutineResponse previousStep(StepID stepId, LocalDateTime time);
 
     RoutineResponse skipRoutine(RoutineID routineId, LocalDateTime now);
@@ -54,6 +53,9 @@ public interface RoutineService extends CurrentTimeSettable {
     RoutineResponse moveStep(StepID childId, StepID parentId, int position);
 
     RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude);
+
+    RoutineResponse kickStepUp(StepID stepId, LocalDateTime time);
+    RoutineResponse pushStepForward(StepID stepId, LocalDateTime time);
 
     RoutineResponse setAutoSync(RoutineID routineId, boolean autoSync);
 

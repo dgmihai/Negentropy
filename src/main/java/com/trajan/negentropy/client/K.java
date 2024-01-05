@@ -2,6 +2,8 @@ package com.trajan.negentropy.client;
 
 import org.springframework.scheduling.support.CronExpression;
 
+import java.time.LocalDateTime;
+
 public class K {
     public static final String INLINE_ICON_SIZE = "16px";
     public static final String OK = "OK";
@@ -49,4 +51,5 @@ public class K {
     public static final CronExpression NULL_CRON_FULL = CronExpression.parse("0 0 0 30 2 ?");
     public static final String NULL_CRON_SHORT = "0 30 2 ?";
 
+    public static final LocalDateTime EPOCH_DATE = LocalDateTime.of(1970, 1, 1, 0, 0, 0);
 }

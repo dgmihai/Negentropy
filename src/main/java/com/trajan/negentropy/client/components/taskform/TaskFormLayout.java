@@ -128,6 +128,8 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(Task::project, Task::project);
         taskBinder.forField(requiredCheckbox)
                 .bind(Task::required, Task::required);
+        taskBinder.forField(cleanupCheckbox)
+                .bind(Task::cleanup, Task::cleanup);
 
         taskBinder.forField(tagComboBox)
                 .bind(Task::tags, Task::tags);

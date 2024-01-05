@@ -23,7 +23,9 @@ import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.data.provider.Query;
@@ -47,9 +49,10 @@ import java.util.concurrent.Executors;
 @UIScope
 @Getter
 @Benchmark(millisFloor = 10)
-public class RoutineView extends VerticalLayout {
+public class RoutineView extends Div {
     private final UILogger log = new UILogger();
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final VerticalLayout content = new VerticalLayout();
 
     @Autowired private BannerProvider bannerProvider;
     @Autowired private UIController controller;
@@ -70,9 +73,11 @@ public class RoutineView extends VerticalLayout {
     @PostConstruct
     public void init() {
         log.info("Initializing RoutineView");
-        this.addClassName("routine-view");
         this.setSizeFull();
-        this.setJustifyContentMode(JustifyContentMode.START);
+        this.add(content);
+        content.addClassName("routine-view");
+        content.setSizeFull();
+        content.setJustifyContentMode(JustifyContentMode.START);
 
         toolbarTabSheet.init(this, () -> routineStepTreeGrid.clearRoutine(),
                 TabType.HIDE_ROUTINE_STEPS_TAB,
@@ -123,7 +128,7 @@ public class RoutineView extends VerticalLayout {
                 new ResponsiveStep(K.SHORT_SCREEN_WIDTH, 2));
         mentalStateLayout.setWidthFull();
 
-        this.add(mentalStateLayout, activeRoutineGrid, toolbarTabSheet, routineStepTreeGrid);
+        content.add(mentalStateLayout, activeRoutineGrid, toolbarTabSheet, routineStepTreeGrid);
     }
 
     public Routine getActiveRoutine() {

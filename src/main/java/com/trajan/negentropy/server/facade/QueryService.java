@@ -139,16 +139,6 @@ public interface QueryService {
     Stream<TaskNode> fetchChildNodes(TaskID parentTaskId, TaskNodeTreeFilter filter, int offset, int limit);
 
     /**
-     * Retrieves the total duration of a task by ID, including all descendants.
-     *
-     * @param taskId The ID of the task to find the duration for.
-     * @param filter The filter criteria to be applied.
-     * @return The total duration of a Task.
-     */
-    // TODO: Not yet implemented
-//    Map<TaskID, Duration> fetchNetDurations(TaskID taskId, TaskFilter filter);
-
-    /**
      * Returns the task nodes associated with the root parent.
      *
      * @return An ordered stream of root nodes
@@ -172,6 +162,8 @@ public interface QueryService {
      * @return An ordered stream of root nodes
      */
     Stream<TaskNode> fetchRootNodes(TaskNodeTreeFilter filter, int offset, int limit);
+
+    Stream<TaskNode> fetchNodesGroupedHierarchically(TaskNodeTreeFilter filter);
 
     Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskNodeTreeFilter filter);
 

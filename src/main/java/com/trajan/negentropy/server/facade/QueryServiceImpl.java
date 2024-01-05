@@ -154,6 +154,12 @@ public class QueryServiceImpl implements QueryService {
     }
 
     @Override
+    public Stream<TaskNode> fetchNodesGroupedHierarchically(TaskNodeTreeFilter filter) {
+        return entityQueryService.findLinksGroupedHierarchically(filter)
+                .map(dataContext::toLazyDO);
+    }
+
+    @Override
     public Stream<TaskNode> fetchDescendantNodes(TaskID ancestorId, TaskNodeTreeFilter filter) {
         return entityQueryService.findDescendantLinks(ancestorId, filter)
                 .map(dataContext::toLazyDO);

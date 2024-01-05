@@ -76,7 +76,7 @@ public class UIController {
     protected UserSettings settings;
 
     @Autowired
-    private RoutineDataProvider routineDataProvider;
+    protected RoutineDataProvider routineDataProvider;
 
     @PostConstruct
     public void init() {
@@ -297,7 +297,7 @@ public class UIController {
             } else {
                 accessUI("Routine service call rejected", () -> NotificationMessage.error(e));
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             log.error("Error executing routine service call", t);
             accessUI("Routine service call error", () -> NotificationMessage.error(t));
         }
@@ -435,12 +435,27 @@ public class UIController {
 //        return response;
     }
 
-    //@Override
     public void setRoutineStepExcluded(StepID stepId, boolean exclude,
                                        Consumer<RoutineResponse> onSuccess,
                                        Consumer<RoutineResponse> onFailure) {
         log.debug("Setting routine step excluded: " + stepId + " as " + exclude);
         tryRoutineServiceCall(() -> services.routine().setStepExcluded(stepId, LocalDateTime.now(), exclude),
+                onSuccess, onFailure);
+    }
+
+    public void kickUpStep(StepID stepId,
+                           Consumer<RoutineResponse> onSuccess,
+                           Consumer<RoutineResponse> onFailure) {
+        log.debug("Kicking routine step up one level: " + stepId);
+        tryRoutineServiceCall(() -> services.routine().kickStepUp(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
+    }
+
+    public void pushStepForward(StepID stepId,
+                           Consumer<RoutineResponse> onSuccess,
+                           Consumer<RoutineResponse> onFailure) {
+        log.debug("Pushing routine step forward by one level: " + stepId);
+        tryRoutineServiceCall(() -> services.routine().pushStepForward(stepId, LocalDateTime.now()),
                 onSuccess, onFailure);
     }
 

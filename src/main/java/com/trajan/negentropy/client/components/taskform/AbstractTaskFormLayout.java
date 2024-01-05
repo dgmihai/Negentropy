@@ -47,6 +47,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox requiredCheckbox;
     protected Checkbox projectCheckbox;
+    protected Checkbox cleanupCheckbox;
     protected TextArea descriptionArea;
     @Getter protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
@@ -110,6 +111,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
         requiredCheckbox = new Checkbox("Required");
         projectCheckbox = new Checkbox("Project");
+        cleanupCheckbox = new Checkbox("Cleanup");
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -206,7 +208,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         taskInfoLayout = new HorizontalLayout(
                 durationField,
                 requiredCheckbox,
-                projectCheckbox);
+                projectCheckbox,
+                cleanupCheckbox);
         taskInfoLayout.setSpacing(false);
         taskInfoLayout.setAlignItems(Alignment.CENTER);
         taskInfoLayout.setWidthFull();

@@ -2117,6 +2117,32 @@ public class EntityQueryServiceTest extends TaskTestTemplate {
         assertTaskQueryResults(expected, entityQueryService.findTasks(filter), false);
     }
 
+    @Test
+    void testFindLinksGroupedHierarchically() {
+        Collection<Triple<String, String, Integer>> expectedLinks = List.of(
+                Triple.of(NULL, ONE, 0),
+                Triple.of(NULL, TWO, 1),
+                Triple.of(NULL, THREE_AND_FIVE, 2),
+                Triple.of(NULL, FOUR, 3),
+                Triple.of(NULL, THREE_AND_FIVE, 4),
+                Triple.of(NULL, SIX_AND_THREETWOFOUR, 5),
+                Triple.of(TWO, TWOONE, 0),
+                Triple.of(TWO, TWOTWO, 1),
+                Triple.of(TWO, TWOTHREE, 2),
+                Triple.of(THREE_AND_FIVE, THREEONE, 0),
+                Triple.of(THREE_AND_FIVE, THREETWO, 1),
+                Triple.of(THREE_AND_FIVE, THREETHREE, 2),
+                Triple.of(TWOTWO, TWOTWOONE, 0),
+                Triple.of(TWOTWO, TWOTWOTWO, 1),
+                Triple.of(TWOTWO, TWOTWOTHREE_AND_THREETWOTWO, 2),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 0),
+                Triple.of(THREETWO, TWOTWOTHREE_AND_THREETWOTWO, 1),
+                Triple.of(THREETWO, THREETWOONE_AND_THREETWOTHREE, 2),
+                Triple.of(THREETWO, SIX_AND_THREETWOFOUR, 3));
+
+        assertLinkQueryResults(expectedLinks, entityQueryService.findLinksGroupedHierarchically(null), true);
+    }
+
     // TODO: Priority
 //    @Test
 //    public void testFindDescendantsFilteredByPriority() {

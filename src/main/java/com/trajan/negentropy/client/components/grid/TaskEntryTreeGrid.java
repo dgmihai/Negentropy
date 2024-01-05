@@ -112,7 +112,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                     GridUtil.inlineVaadinIconLitExpression("expand-full",
                             "expand "))
                                     .withFunction("onClick", t ->
-                                            nestedTabs.onSelectNewRootEntry(t)))
+                                            nestedTabs.selectNewRootEntry(t)))
                     .setKey(ColumnKey.FOCUS.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.EXPAND_SQUARE))
                     .setAutoWidth(true)
@@ -463,7 +463,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             this.nestedTabs = new NestedTaskTabs(this);
 
             DoubleClickListenerUtil.add(treeGrid, entry ->
-                    nestedTabs.onSelectNewRootEntry(entry));
+                    nestedTabs.selectNewRootEntry(entry));
 
             components.add(nestedTabs);
         }

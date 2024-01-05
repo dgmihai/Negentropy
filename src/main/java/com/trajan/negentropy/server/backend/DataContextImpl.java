@@ -93,6 +93,8 @@ public class DataContextImpl implements DataContext {
                         task.difficult(), taskEntity.difficult()))
                 .starred(Objects.requireNonNullElse(
                         task.starred(), taskEntity.starred()))
+                .cleanup(Objects.requireNonNullElse(
+                        task.cleanup(), taskEntity.cleanup()))
                 .tags((task.tags() != null)
                     ? task.tags().stream()
                         .map(this::merge)
@@ -116,6 +118,7 @@ public class DataContextImpl implements DataContext {
                 template.project(),
                 template.difficult(),
                 template.starred(),
+                template.cleanup(),
                 template.tags());
         return this.merge(task);
     }
@@ -251,39 +254,41 @@ public class DataContextImpl implements DataContext {
             log.trace("Position: " + position);
         }
 
-        if (position == 0) {
-            // Check for required tasks from the beginning of the list
-            for (TaskLink childLink : childLinks) {
-                if (childLink.positionFrozen()) {
-                    position++;
-                } else {
-                    break;
+        if (!positionFrozen) {
+            if (position == 0) {
+                // Check for required tasks from the beginning of the list
+                for (TaskLink childLink : childLinks) {
+                    if (childLink.positionFrozen()) {
+                        position++;
+                    } else {
+                        break;
+                    }
                 }
-            }
 
-            for (int i = position; i < childLinks.size(); i++) {
-                TaskLink current = childLinks.get(i);
-                current.position(current.position() + 1);
-            }
-        } else if (position >= childLinks.size()) {
-            // Check for required tasks from the end of the list
-            for (int i = childLinks.size() - 1; i >= 0; i--) {
-                TaskLink current = childLinks.get(i);
-                if (current.positionFrozen()) {
-                    position--;
+                for (int i = position; i < childLinks.size(); i++) {
+                    TaskLink current = childLinks.get(i);
                     current.position(current.position() + 1);
-                } else {
-                    break;
                 }
-            }
+            } else if (position >= childLinks.size()) {
+                // Check for required tasks from the end of the list
+                for (int i = childLinks.size() - 1; i >= 0; i--) {
+                    TaskLink current = childLinks.get(i);
+                    if (current.positionFrozen()) {
+                        position--;
+                        current.position(current.position() + 1);
+                    } else {
+                        break;
+                    }
+                }
 
-            if (position < 0) {
-                position = childLinks.size();
-            }
-        } else {
-            for (int i = position; i < childLinks.size(); i++) {
-                TaskLink current = childLinks.get(i);
-                current.position(current.position() + 1);
+                if (position < 0) {
+                    position = childLinks.size();
+                }
+            } else {
+                for (int i = position; i < childLinks.size(); i++) {
+                    TaskLink current = childLinks.get(i);
+                    current.position(current.position() + 1);
+                }
             }
         }
 
@@ -332,6 +337,7 @@ public class DataContextImpl implements DataContext {
                 positionFrozen,
                 importance,
                 now,
+                completed ? DataContext.now() : null,
                 completed,
                 recurring,
                 cycleToEnd,
@@ -344,6 +350,15 @@ public class DataContextImpl implements DataContext {
         if (parent != null) {
             try {
                 parent.childLinks().add(link.position(), link);
+                // Auto-set position to be frozen if required task added to start or end of node list
+                if (child.required() && node.positionFrozen() == null) {
+                    List<TaskLink> siblings = parent.childLinks().stream()
+                            .filter(l -> !l.positionFrozen() || l.equals(link))
+                            .toList();
+                    if (siblings.indexOf(link) == 0 || siblings.indexOf(link) == siblings.size()) {
+                        link.positionFrozen(true);
+                    }
+                }
             } catch (IndexOutOfBoundsException e) {
                 throw new IllegalArgumentException("Specified position for inserting task link is invalid", e);
             }
@@ -521,6 +536,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.project(),
                 taskEntity.difficult(),
                 taskEntity.starred(),
+                taskEntity.cleanup(),
                 null);
     }
 

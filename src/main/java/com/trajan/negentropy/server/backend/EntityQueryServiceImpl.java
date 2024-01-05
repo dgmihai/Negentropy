@@ -348,6 +348,16 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
+    public Stream<TaskLink> findLinksGroupedHierarchically(TaskNodeTreeFilter filter) {
+        JPAQuery<TaskLink> query = new JPAQuery<>(entityManager);
+        query.select(Q_LINK)
+                .from(Q_LINK)
+                .where(filter(filter, Q_LINK.child))
+                .orderBy(Q_LINK.parent.id.asc(), Q_LINK.position.asc());
+        return query.fetch().stream();
+    }
+
+    @Override
     public Stream<TaskLink> findDescendantLinks(TaskID ancestorId, TaskNodeTreeFilter filter) {
         return this.findDescendantLinks(ancestorId, filter, null);
     }

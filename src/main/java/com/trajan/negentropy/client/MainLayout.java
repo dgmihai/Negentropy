@@ -31,7 +31,9 @@ public class MainLayout extends AppLayout {
 
     public MainLayout() {
         setPrimarySection(Section.DRAWER);
-        UI.getCurrent().getPage().setTitle("Negentropy");
+        UI ui = UI.getCurrent();
+        ui.getPage().setTitle("Negentropy");
+        ui.getLoadingIndicatorConfiguration().setFirstDelay(100);
         addDrawerContent();
         addHeaderContent();
     }

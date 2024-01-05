@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.controller;
 
+import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.session.TaskEntryDataProvider;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
@@ -9,6 +10,7 @@ public class TestUIController extends UIController {
         this.services = services;
         this.taskNetworkGraph = new TestTaskNetworkGraph(services);
         this.executor = createExecutor();
+        this.routineDataProvider = new RoutineDataProvider();
     }
 
     public static class TestTaskNetworkGraph extends TaskNetworkGraph {

@@ -90,7 +90,7 @@ public class PositionFrozenTest extends TaskTestTemplate {
     @Transactional
     void testPersistNotAtStartOrEnd() {
         Task parent = tasks.get(TWO);
-        Task fresh = createTask("Fresh");
+        Task fresh = createRequiredTask("Fresh");
 
         TaskNode freshNode = persistTaskNode(new TaskNodeDTO()
                 .childId(fresh.id())
@@ -109,5 +109,8 @@ public class PositionFrozenTest extends TaskTestTemplate {
         validateNodes(
                 queryService.fetchChildNodes(parent.id()),
                 expectedTasks);
+
+        // Assert that the position is frozen, since that's implied when adding a new required link
+        assertTrue(freshNode.positionFrozen());
     }
 }

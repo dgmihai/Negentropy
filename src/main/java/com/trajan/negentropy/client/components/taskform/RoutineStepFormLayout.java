@@ -80,6 +80,11 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
                         node -> node.task().project(),
                         (node, project) -> node.task().project(project));
 
+        binder.forField(cleanupCheckbox)
+                .bind(
+                        node -> node.task().cleanup(),
+                        (node, cleanup) -> node.task().cleanup(cleanup));
+
         binder.forField(descriptionArea)
                 .bind(
                         node -> node.task().description(),

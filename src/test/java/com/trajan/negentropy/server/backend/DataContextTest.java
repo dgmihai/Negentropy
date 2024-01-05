@@ -50,6 +50,9 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.duration(), task.duration());
         assertEquals(taskEntity.required(), task.required());
         assertEquals(taskEntity.project(), task.project());
+        assertEquals(taskEntity.difficult(), task.difficult());
+        assertEquals(taskEntity.starred(), task.starred());
+        assertEquals(taskEntity.cleanup(), task.cleanup());
     }
 
     @Test
@@ -60,7 +63,8 @@ public class DataContextTest extends TaskTestTemplate {
                 .duration(Duration.ofMinutes(120)))
                 .required(true)
                 .project(true)
-                .difficult(true);
+                .difficult(true)
+                .cleanup(false);
 
         Set<TagEntity> tagEntities = Set.of(
                 dataContext.merge(new TagEntity().name("Tag1")),
@@ -106,6 +110,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.cycleToEnd(), taskNode.cycleToEnd());
         assertEquals(taskLink.cron(), taskNode.cron());
         assertEquals(taskLink.createdAt(), taskNode.createdAt());
+        // TODO: assertEquals(taskLink.completedAt(), taskNode.completedAt());
         assertEquals(taskLink.scheduledFor(), taskNode.scheduledFor());
         assertEquals(ID.of(taskLink.parent()), taskNode.parentId());
         assertEquals(ID.of(taskLink.child()), taskNode.child().id());
@@ -131,6 +136,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 0,
                 MARK,
+                null,
                 false,
                 false,
                 false,
@@ -148,6 +154,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 1,
                 MARK,
+                null,
                 false,
                 false,
                 false,
@@ -165,6 +172,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 0,
                 MARK,
+                null,
                 false,
                 false,
                 false,
@@ -194,6 +202,7 @@ public class DataContextTest extends TaskTestTemplate {
                 true,
                 0,
                 MARK,
+                MARK,
                 true,
                 false,
                 true,
@@ -210,6 +219,7 @@ public class DataContextTest extends TaskTestTemplate {
                 1,
                 true,
                 0,
+                MARK,
                 MARK,
                 true,
                 false,
@@ -273,6 +283,7 @@ public class DataContextTest extends TaskTestTemplate {
                 Duration.ofMinutes(180),
                 false,
                 true,
+                false,
                 false,
                 false,
                 originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));

@@ -1,5 +1,6 @@
 package com.trajan.negentropy.model.entity;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.ID;
@@ -10,12 +11,8 @@ import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.support.CronExpression;
 
@@ -61,6 +58,8 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     private Integer importance = 0;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+    @Setter(AccessLevel.PRIVATE)
+    private LocalDateTime completedAt;
     private Boolean completed = false;
 
     private Boolean recurring = false;
@@ -115,7 +114,21 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
 
     @Override
     public TaskNodeDTO toDTO() {
-        throw new NotImplementedException("TaskLink.toDTO() not implemented");
+        return new TaskNodeDTO()
+                .parentId(ID.of(parent))
+                .childId(ID.of(child))
+                .position(position)
+                .positionFrozen(positionFrozen)
+                .importance(importance)
+                .completed(completed)
+                .recurring(recurring)
+                .cycleToEnd(cycleToEnd)
+                .cron(cron != null ? CronExpression.parse(cron) : null)
+                .projectDurationLimit(Optional.ofNullable(projectDurationLimit))
+                .projectStepCountLimit(Optional.ofNullable(projectStepCountLimit))
+                .projectEtaLimit(projectEtaLimit != null
+                        ? Optional.of(LocalTime.parse(projectEtaLimit))
+                        : Optional.empty());
     }
 
     @Override
@@ -179,5 +192,22 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
         return Optional.ofNullable(projectEtaLimit != null
                 ? LocalTime.parse(projectEtaLimit)
                 : null);
+    }
+
+    @Override
+    public Boolean completed() {
+        if (completed && completedAt == null) {
+            completedAt = K.EPOCH_DATE;
+        }
+        return completed;
+    }
+
+    @Override
+    public TaskLink completed(Boolean completed) {
+        this.completed = completed;
+        if (completed != null) {
+            this.completedAt = completed ? LocalDateTime.now() : null;
+        }
+        return this;
     }
 }

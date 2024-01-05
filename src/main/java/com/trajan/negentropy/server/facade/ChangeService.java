@@ -4,11 +4,12 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.id.ID.ChangeID;
+import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordDataType;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordType;
-import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.sync.SyncManager;
+import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import jakarta.annotation.PostConstruct;
@@ -35,6 +36,10 @@ public class ChangeService {
             durationUpdates.forEach(link ->
                     syncManager.logChange(ChangeRecordType.MERGE, ChangeRecordDataType.LINK, link));
         });
+    }
+
+    public synchronized DataMapResponse execute(Change... changes) {
+        return execute(Request.of(changes));
     }
 
     public synchronized DataMapResponse execute(Request request) {

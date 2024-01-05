@@ -573,4 +573,136 @@ class UIControllerTest extends ClientTestTemplate {
                 queryService.fetchChildNodes(null),
                 expectedTasks);
     }
+//
+//    private void assertState(AtomicInteger state, int index, Object expected, Object actual) {
+//        int stateValue = state.getAcquire();
+//        if (stateValue == -1) {
+//            if (!actual.equals(expected)) {
+//                stateValue = index;
+//            }
+//        }
+//        state.setRelease(stateValue);
+//    }
+//
+//    @Test
+//    void testKickStepUp_Root() {
+//        AtomicInteger state = new AtomicInteger(-1);
+//        controller.createRoutine(
+//                tasks.get(TWOTWO),
+//                new NonSpecificTaskNodeTreeFilter(),
+//                response -> {
+//                    assertState(state, 0, response.success(), true);
+//
+//                    Routine routine = response.routine();
+//
+//                    assertState(state, 2, 1, routine.children().size());
+//
+//                    assertState(state, 3,
+//                            routine.getDescendants().stream()
+//                                    .map(RoutineStep::name)
+//                                    .toList(),
+//                            List.of(
+//                                    TWOTWO,
+//                                    TWOTWOONE,
+//                                    TWOTWOTWO,
+//                                    TWOTWOTHREE_AND_THREETWOTWO));
+//
+//                    RoutineStep twoTwoTwo = routine.getDescendants().get(2);
+//                    assertState(state, 4, TWOTWOTWO, twoTwoTwo.name());
+//
+//                    controller.kickUpStep(
+//                            twoTwoTwo.id(),
+//                            r -> {
+//                                    assertState(state, 5, r.success(), true);
+//                                    Routine updatedRoutine = r.routine();
+//
+//                                    assertState(state, 6, 2, updatedRoutine.children().size());
+//                                    assertState(state, 7,
+//                                            routine.getDescendants().stream()
+//                                                    .map(RoutineStep::name)
+//                                                    .toList(),
+//                                            List.of(
+//                                                    TWOTWO,
+//                                                    TWOTWOTWO,
+//                                                    TWOTWOONE,
+//                                                    TWOTWOTWO,
+//                                                    TWOTWOTHREE_AND_THREETWOTWO));
+//
+//                                    assertState(state, 8, TimeableStatus.EXCLUDED, updatedRoutine.getDescendants().get(3).status());
+//                                    state.set(0);
+//                                    System.out.println("HERE");
+//                            },
+//                            r -> {
+//                                System.out.println(r.message());
+//                                assertState(state, 9, false, true);
+//                            });
+//                    System.out.println("HERE2");
+//                },
+//                response -> {
+//                    System.out.println(response.message());
+//                    assertState(state, 10, false, true);
+//                });
+//
+//        while(state.get() == -1) {
+//            try {
+//                Thread.sleep(100);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
+//
+//    @Test
+//    void testKickStepUp_Nested() {
+//        controller.createRoutine(
+//                tasks.get(TWO),
+//                new NonSpecificTaskNodeTreeFilter(),
+//                response -> {
+//                    assertTrue(response.success());
+//                    Routine routine = response.routine();
+//                    assertEquals(1, routine.children().size());
+//
+//                    assertEquals(
+//                            routine.getDescendants().stream()
+//                                    .map(RoutineStep::name)
+//                                    .toList(),
+//                            List.of(
+//                                        TWO,
+//                                        TWOONE,
+//                                        TWOTWO,
+//                                        TWOTWOONE,
+//                                        TWOTWOTWO,
+//                                        TWOTWOTHREE_AND_THREETWOTWO,
+//                                        TWOTHREE));
+//
+//                    RoutineStep twoTwoTwo = routine.getDescendants().get(4);
+//                    assertEquals(TWOTWOTWO, twoTwoTwo.name());
+//
+//                    controller.kickUpStep(
+//                            twoTwoTwo.id(),
+//                            r -> {
+//                                assertTrue(r.success());
+//                                Routine updatedRoutine = r.routine();
+//                                assertEquals(2, updatedRoutine.children().size());
+//
+//                                assertEquals(
+//                                        routine.getDescendants().stream()
+//                                                .map(RoutineStep::name)
+//                                                .toList(),
+//                                        List.of(
+//                                                TWO,
+//                                                TWOONE,
+//                                                TWOTWO,
+//                                                TWOTWOONE,
+//                                                TWOTWOTWO,
+//                                                TWOTWOTHREE_AND_THREETWOTWO,
+//                                                TWOTHREE,
+//                                                TWOTWOTWO));
+//
+//                                assertEquals(TimeableStatus.EXCLUDED, updatedRoutine.getDescendants().get(5).status());
+//                            },
+//                            r -> fail(r.message()));
+//                },
+//                response -> fail(response.message()));
+//    }
 }

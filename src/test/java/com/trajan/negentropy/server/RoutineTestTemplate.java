@@ -177,11 +177,6 @@ public class RoutineTestTemplate extends TaskTestTemplate {
         );
 
         refreshMaps();
-
-//        for (TaskNode node : nodes.values()) {
-//            System.out.println(node.name() + ": " + node.projectDurationLimit() + ", " + node.projectStepCountLimit() + ", " + node.projectEtaLimit());
-//            assertEquals(LocalTime.MAX, node.projectEtaLimit());
-//        }
     }
 
     protected void assertRoutine(List<String> expectedSteps, Routine routine) {

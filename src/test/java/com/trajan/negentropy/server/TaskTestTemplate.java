@@ -155,12 +155,19 @@ public class TaskTestTemplate {
         ChangeID id = persist.id();
 
         DataMapResponse response = changeService.execute(Request.of(persist));
+        assertTrue(response.success());
         log.debug("Persisted task: " + response.changeRelevantDataMap().getFirst(id));
         return (Task) response.changeRelevantDataMap().getFirst(id);
     }
 
     protected Task createTask(String name) {
         return persistTask(new Task().name(name));
+    }
+
+    protected Task createRequiredTask(String name) {
+        return persistTask(new Task()
+                .name(name)
+                .required(true));
     }
 
     protected PersistedDataDO<?> execute(Change change) {

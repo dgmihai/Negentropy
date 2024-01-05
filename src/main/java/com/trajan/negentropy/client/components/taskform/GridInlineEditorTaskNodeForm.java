@@ -132,6 +132,11 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
                         node -> node.task().required(),
                         (node, required) -> node.task().required(required));
 
+        binder.forField(cleanupCheckbox)
+                .bind(
+                        node -> node.task().cleanup(),
+                        (node, cleanup) -> node.task().cleanup(cleanup));
+
         binder.forField(recurringCheckbox)
                 .bind(
                         node -> node.node().recurring(),

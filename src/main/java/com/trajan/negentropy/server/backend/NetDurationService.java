@@ -14,7 +14,6 @@ import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelper;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,23 +39,7 @@ public class NetDurationService {
     @Autowired private NetDurationRepository netDurationRepository;
     @Autowired private NetDurationHelperManager helperManager;
 
-    private static final List<TaskNodeTreeFilter> CACHED_FILTERS = List.of(
-            new NonSpecificTaskNodeTreeFilter(),
-            new NonSpecificTaskNodeTreeFilter()
-                    .availableAtTime(LocalDateTime.now()),
-            new NonSpecificTaskNodeTreeFilter()
-                    .completed(false),
-            new NonSpecificTaskNodeTreeFilter()
-                    .availableAtTime(LocalDateTime.now())
-                    .completed(false));
-
     private final Map<TaskTreeFilter, NetDurationHelper> helpers = new HashMap<>();
-
-    @PostConstruct
-    public void loadCachedFilters() {
-        log.debug("Loading cached filters");
-//        CACHED_FILTERS.forEach(this::getAllNetTaskDurations);
-    }
 
     public NetDurationHelper getHelper(TaskNodeTreeFilter filter) {
         return helperManager.getHelper(filter);
@@ -75,7 +56,6 @@ public class NetDurationService {
     public void clearLinks(Set<TaskLink> durationUpdates) {
         log.debug("Clearing " + durationUpdates.size() + " links");
         helperManager.clearLinks(durationUpdates);
-        new Thread(this::loadCachedFilters).start();
     }
 
     @Getter

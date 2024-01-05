@@ -9,6 +9,7 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.tabs.TabsVariant;
 
+import java.util.List;
 import java.util.Stack;
 
 public class NestedTaskTabs extends Tabs {
@@ -23,42 +24,68 @@ public class NestedTaskTabs extends Tabs {
 
         this.add(new Tab(new Icon(VaadinIcon.HOME)));
 
-        this.onSelectNewRootEntry(taskEntryTreeGrid.settings().currentRootEntry());
-        this.addSelectedChangeListener(e -> setRootEntry());
+        this.selectNewRootEntry(taskEntryTreeGrid.settings().currentRootEntry());
+        this.addSelectedChangeListener(e -> {
+            if (e.isFromClient()) onSelectTab();
+        });
 
         this.addThemeVariants(TabsVariant.LUMO_SMALL);
     }
 
-    private void setRootEntry() {
-        int tabIndex = getSelectedIndex();
-        if (getSelectedTab() instanceof TaskTab tab) {
-            currentEntry = tab.entry();
-        } else {
-            currentEntry = null;
+    private synchronized void onSelectTab() {
+        this.currentEntry = (getSelectedTab() instanceof TaskTab tab)
+            ? tab.entry() : null;
+
+        int selectedIndex = getSelectedIndex();
+        while (getComponentCount() > selectedIndex + 1) {
+            remove(getTabAt(selectedIndex + 1));
         }
-        taskEntryTreeGrid.taskEntryDataProvider().rootEntry(currentEntry);
-        taskEntryTreeGrid.settings().currentRootEntry(currentEntry);
-        while (getComponentCount() > tabIndex + 1) {
-            remove(getTabAt(tabIndex + 1));
-        }
+        updateGrid();
     }
 
-    public void onSelectNewRootEntry(TaskEntry entry) {
-        log.debug("onSelectNewRootEntry: " + entry);
-        Stack<TaskEntry> stack = new Stack<>();
-        TaskEntry current = entry;
-
-        while (current != null && !current.equals(currentEntry)) {
-            stack.push(current);
-            current = current.parent();
-        }
-
-        TaskTab tab = null;
-        while (!stack.empty()) {
-            tab = new TaskTab(stack.pop());
-            this.add(tab);
-        }
-        setSelectedTab(tab);
+    private void updateGrid() {
+        taskEntryTreeGrid.taskEntryDataProvider().rootEntry(currentEntry);
+        taskEntryTreeGrid.settings().currentRootEntry(currentEntry);
         taskEntryTreeGrid.treeGrid().scrollToStart();
+    }
+
+    public synchronized void selectNewRootEntry(TaskEntry entry) {
+        List<TaskTab> tabs = this.getChildren()
+                .filter(tab -> tab instanceof TaskTab)
+                .map(tab -> (TaskTab) tab)
+                .toList();
+        if (entry == null) {
+            log.debug("Selected null root entry.");
+            this.setSelectedIndex(0);
+        } else if (tabs.stream().
+                anyMatch(tab -> tab.entry().equals(entry))) {
+            log.debug("Selected root entry already in tab list.");
+            this.setSelectedTab(tabs.stream()
+                    .filter(tab -> tab.entry().equals(entry))
+                    .findFirst()
+                    .get());
+        } else {
+            log.debug("Selected root entry not in tab list.");
+            this.getChildren()
+                    .filter(tab -> tab instanceof TaskTab)
+                    .map(tab -> (TaskTab) tab)
+                    .forEach(this::remove);
+
+            TaskEntry current = entry;
+            Stack<TaskEntry> stack = new Stack<>();
+            while (current != null) {
+                log.debug("Adding tab for <" + current.task().name() + ">");
+                stack.push(current);
+                current = current.parent();
+            }
+            int count = 0;
+            while (!stack.empty()) {
+                count++;
+                this.add(new TaskTab(stack.pop()));
+            }
+
+            this.setSelectedIndex(count);
+        }
+        this.onSelectTab();
     }
 }

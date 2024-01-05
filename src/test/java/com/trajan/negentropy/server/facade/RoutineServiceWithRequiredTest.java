@@ -1119,6 +1119,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
     }
 
     @Test
+    @Transactional
     void testCycleToEnd() {
         Task root = tasks.get(TWOTWO);
         TaskNode target = nodes.get(Triple.of(TWOTWO, TWOTWOONE, 0));

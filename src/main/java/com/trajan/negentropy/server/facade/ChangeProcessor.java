@@ -87,7 +87,7 @@ public class ChangeProcessor {
                     messages.add(messageSupplier.apply(prefix, result));
                 } else if (data instanceof Tag tag) {
                     if (tag.id() != null)
-                        throw new IllegalArgumentException("Cannot persist task with ID: " + tag.id());
+                        throw new IllegalArgumentException("New tag must not have ID: " + tag.id());
                     log.debug("Persisting tag: {}", tag);
                     Tag result = dataContext.toDO(dataContext.merge(tag));
                     dataResults.add(change.id(), result);

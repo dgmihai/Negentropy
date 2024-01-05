@@ -89,7 +89,7 @@ public class TaskNetworkGraph {
         refreshTags();
         syncId(services.query().currentSyncId());
         log.info("Initial sync id: {}", this.syncId.val());
-        services.query().fetchDescendantNodes(null, null)
+        services.query().fetchNodesGroupedHierarchically(null)
                 .forEach(this::addTaskNode);
 
         if (settings != null) {

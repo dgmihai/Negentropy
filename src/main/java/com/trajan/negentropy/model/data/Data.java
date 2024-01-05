@@ -6,7 +6,9 @@ import com.trajan.negentropy.model.interfaces.Named;
 import java.io.Serializable;
 
 public interface Data extends Serializable {
-    String typeName();
+    default String typeName() {
+        return this.getClass().getSimpleName();
+    }
 
     interface PersistedDataDO<I extends ID> extends Data, Named {
         I id();

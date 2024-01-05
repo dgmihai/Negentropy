@@ -22,10 +22,7 @@ import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.Response.SyncResponse;
 import org.apache.commons.lang3.tuple.Triple;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +46,12 @@ public class ChangeServiceTest extends TaskTestTemplate {
         init();
         TaskID twotwotwoId = tasks.get(TWOTWOTWO).id();
         assertEquals(Duration.ofMinutes(1), queryService.fetchNetDuration(twotwotwoId, null));
+    }
+
+    @AfterEach
+    void reset() {
+        mergeTask(tasks.get(TWOTWOTWO).duration(Duration.ofMinutes(1)));
+
     }
 
     @Test
@@ -464,6 +467,7 @@ public class ChangeServiceTest extends TaskTestTemplate {
     }
 
     @Test
+    @Transactional
     void testPartialUpdate() {
         TaskID oneId = tasks.get(ONE).id();
         String desc = "Partial Update";

@@ -1,6 +1,5 @@
 package com.trajan.negentropy.server.backend.netduration;
 
-import com.trajan.negentropy.util.SpringContext;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
@@ -13,6 +12,7 @@ import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
+import com.trajan.negentropy.util.SpringContext;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.LazyInitializationException;

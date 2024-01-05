@@ -215,7 +215,7 @@ public class NetDurationHelper {
             } else if (childLink.child().required() && (parent != null)) {
                 getNetDuration(childLink, childHierarchy, null);
             } else if (!childLink.child().required()) {
-                log.debug("Omitting " + childLink.child().name() + " from hierarchy");
+                log.trace("Omitting " + childLink.child().name() + " from hierarchy");
                 if (currentLinkId != null && !limit.customLimit) {
                     projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(childLink));
                 }

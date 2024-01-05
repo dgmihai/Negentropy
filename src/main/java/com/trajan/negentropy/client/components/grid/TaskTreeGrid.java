@@ -252,6 +252,24 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setTextAlign(ColumnTextAlign.CENTER);
                 }
 
+                case CLEANUP -> {
+                    Grid.Column<T> cleanupColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            GridUtil.inlineVaadinIconLitExpression("recycle",
+                                                    ("?active=\"${item.cleanup}\" ")))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChangeAsync(new MergeChange<>(
+                                                            new Task(t.task().id())
+                                                                    .cleanup(!t.task().cleanup())),
+                                                    this))
+                                    .withProperty("cleanup", t ->
+                                            t.task().cleanup()))
+                            .setKey(ColumnKey.CLEANUP.toString())
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.RECYCLE))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
+
                 case DIFFICULT -> {
                     Grid.Column<T> difficultColumn = treeGrid.addColumn(LitRenderer.<T>of(
                                             GridUtil.inlineVaadinIconLitExpression("bolt",
