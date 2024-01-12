@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.server.RoutineTestTemplateWithRequiredTasks;
 import com.trajan.negentropy.server.facade.response.Request;
@@ -39,7 +40,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
 
     @Test
     @Transactional
-    void testKickUpStep() {
+    void testKickUpStep() { // Not recurring
         TaskNode root = nodes.get(Triple.of(NULL, TWO, 1));
         RoutineResponse response = routineService.createRoutine(root.id(), null);
 
@@ -75,6 +76,12 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTWOTWO,
                         TWOTHREE),
                 routine);
+
+        assertEquals(TimeableStatus.NOT_STARTED, routine.getDescendants().stream()
+                .filter(step -> step.name().equals(TWOTWOTWO))
+                .findFirst()
+                .get()
+                .status());
 
         assertEquals(2, routine.getDescendants().stream()
                 .filter(step -> step.name().equals(TWOTWO))
@@ -131,11 +138,12 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.getDescendants().stream()
+        List<RoutineStep> twoTwoTwoList = routine.getDescendants().stream()
                 .filter(step -> step.name().equals(TWOTWOTWO))
-                .findFirst()
-                .get()
-                .status());
+                .toList();
+
+        assertEquals(TimeableStatus.EXCLUDED, twoTwoTwoList.get(0).status());
+        assertEquals(TimeableStatus.NOT_STARTED, twoTwoTwoList.get(1).status());
 
         TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
         assertEquals(3, queryService.fetchChildCount(twoTwo.childId(), null));
@@ -193,11 +201,12 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.getDescendants().stream()
+        List<RoutineStep> twoTwoList = routine.getDescendants().stream()
                 .filter(step -> step.name().equals(TWOTWO))
-                .findFirst()
-                .get()
-                .status());
+                .toList();
+
+        assertEquals(TimeableStatus.EXCLUDED, twoTwoList.get(0).status());
+        assertEquals(TimeableStatus.NOT_STARTED, twoTwoList.get(1).status());
 
         assertEquals(TimeableStatus.EXCLUDED, routine.getDescendants().stream()
                 .filter(step -> step.name().equals(TWOTWOONE))
@@ -242,7 +251,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
 
     @Test
     @Transactional
-    void testPushStep() {
+    void testPushStep() { // Not recurring
         assertRoutine(List.of(
                         TWO,
                         TWOONE,
@@ -278,11 +287,12 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.getDescendants().stream()
+        List<RoutineStep> twoTwoTwoList = routine.getDescendants().stream()
                 .filter(step -> step.name().equals(TWOTWOTWO))
-                .findFirst()
-                .get()
-                .status());
+                .toList();
+
+        assertEquals(TimeableStatus.EXCLUDED, twoTwoTwoList.get(0).status());
+        assertEquals(TimeableStatus.NOT_STARTED, twoTwoTwoList.get(1).status());
 
         TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
         assertEquals(4, queryService.fetchChildCount(twoTwo.childId(), null));

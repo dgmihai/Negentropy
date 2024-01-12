@@ -8,6 +8,9 @@ import com.trajan.negentropy.client.components.wellness.StressorInput;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.SessionServices;
+import com.trajan.negentropy.client.util.NotificationMessage;
+import com.trajan.negentropy.model.filter.TaskTreeFilter;
+import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -15,6 +18,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
@@ -23,6 +27,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Left;
 import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Right;
 import org.vaadin.lineawesome.LineAwesomeIcon;
+
+import java.util.function.Consumer;
 
 public class MainLayout extends AppLayout {
     private final UILogger log = new UILogger();
@@ -44,6 +50,46 @@ public class MainLayout extends AppLayout {
 
         viewTitle = new H2();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
+
+        Button pinnedTasks = new Button(VaadinIcon.PIN.create());
+        pinnedTasks.addClassName(LumoUtility.FontSize.LARGE);
+        pinnedTasks.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+        pinnedTasks.addClickListener(event -> {
+            Dialog pinnedTasksDialog = new Dialog();
+
+            SessionServices services = SpringContext.getBean(SessionServices.class);
+
+            pinnedTasksDialog.setHeaderTitle("Start Routine from Pinned Task");
+            FormLayout taskButtonLayout = new FormLayout();
+            taskButtonLayout.setResponsiveSteps(
+                    new FormLayout.ResponsiveStep("0", 1),
+                    new FormLayout.ResponsiveStep("25em", 2),
+                    new FormLayout.ResponsiveStep("40em", 3));
+
+            services.query().fetchAllTasks(new TaskTreeFilter()
+                            .onlyPinned(true))
+                    .forEach(task -> {
+                        Button button = new Button(task.name());
+                        button.addClickListener(e -> {
+                            pinnedTasksDialog.close();
+
+                            Consumer<RoutineResponse> onSuccess = response -> {
+                                pinnedTasksDialog.close();
+                                UI.getCurrent().navigate(RoutineView.class);
+                            };
+                            Consumer<RoutineResponse> onFailure = response -> {
+                                NotificationMessage.error(response.message());
+                            };
+
+                            UIController controller = SpringContext.getBean(UIController.class);
+                            controller.createRoutine(task, null, onSuccess, onFailure);
+                        });
+
+                        taskButtonLayout.add(button);
+                    });
+            pinnedTasksDialog.add(taskButtonLayout);
+            pinnedTasksDialog.open();
+        });
 
         Button addTask = new Button(VaadinIcon.PLUS.create());
         addTask.addClassName(LumoUtility.FontSize.LARGE);
@@ -81,7 +127,7 @@ public class MainLayout extends AppLayout {
         });
 
         Span buttonSpan = new Span();
-        buttonSpan.add(wellnessCheck, addTask);
+        buttonSpan.add(pinnedTasks, wellnessCheck, addTask);
         buttonSpan.addClassNames(Left.AUTO, Right.SMALL);
 
         addToNavbar(false, toggle, viewTitle, buttonSpan);

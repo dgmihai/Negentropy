@@ -23,6 +23,7 @@ import java.util.Set;
 @Table(name = "tasks", indexes = {
         @Index(columnList = "name", name = "idx_task_name"),
         @Index(columnList = "starred", name = "idx_task_starred"),
+        @Index(columnList = "pinned", name = "idx_task_pinned"),
         @Index(columnList = "project", name = "idx_task_project")
 })
 @NoArgsConstructor
@@ -61,6 +62,9 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
 
     @ToString.Include
     private Boolean starred = false;
+
+    @ToString.Include
+    private Boolean pinned = false;
 
     @ToString.Include
     private Boolean cleanup = false;

@@ -39,6 +39,9 @@ public interface RoutineService extends CurrentTimeSettable {
     Stream<Routine> fetchRoutines(Set<TimeableStatus> statusSet);
 
     RoutineResponse startStep(StepID stepId, LocalDateTime time);
+
+    boolean stepCanBeCompleted(StepID stepId);
+
     RoutineResponse suspendStep(StepID stepId, LocalDateTime time);
     RoutineResponse jumpToStep(StepID stepId, LocalDateTime time);
     boolean completeStepWouldFinishRoutine(StepID stepId);

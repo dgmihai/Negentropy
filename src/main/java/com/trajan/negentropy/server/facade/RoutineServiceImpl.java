@@ -485,6 +485,18 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
+    public boolean stepCanBeCompleted(StepID stepId) {
+        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
+
+        TimeableStatus expectedStatus = getAggregateChildStatus(step);
+        if (step.task().project()) {
+            return (expectedStatus.equals(TimeableStatus.COMPLETED) || expectedStatus.equals(TimeableStatus.EXCLUDED));
+        } else {
+            return expectedStatus.equals(TimeableStatus.COMPLETED);
+        }
+    }
+
+    @Override
     public RoutineResponse suspendStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
@@ -672,24 +684,38 @@ public class RoutineServiceImpl implements RoutineService {
                 location));
     }
 
+    private RoutineEntity setOriginalStepStatusAfterShift(RoutineStepEntity step, LocalDateTime time) {
+        RoutineEntity routine;
+        if (step.link().isPresent() && step.link().get().recurring() && step.link().get().cron() != null) {
+            routine = this.postponeStep(step, time);
+        } else {
+            routine = this.setStepExcluded(step, time, true);
+        }
+        return routine;
+    }
+
     @Override
     public RoutineResponse kickStepUp(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
-        RoutineEntity routine = step.routine();
-        log.debug("Kicking step" + step + " in routine " + routine.id() + " up.");
+        RoutineStepEntity initialStep = entityQueryService.getRoutineStep(stepId);
+        log.debug("Kicking step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
 
         return process(() -> {
-            Optional<RoutineStepEntity> parent = Optional.ofNullable(step.parentStep());
+            Optional<RoutineStepEntity> parent = Optional.ofNullable(initialStep.parentStep());
             Optional<RoutineStepEntity> grandparent = parent.map(RoutineStepEntity::parentStep);
 
-            this.setStepExcluded(step, time, true);
-            if (step.link().isPresent()
+            RoutineEntity routine = setOriginalStepStatusAfterShift(initialStep, time);
+            RoutineStepEntity updatedStep = routine.getDescendants().stream()
+                    .filter(step -> step.id().equals(initialStep.id()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Could not find step " + initialStep + " in routine " + routine.id()));
+
+            if (updatedStep.link().isPresent()
                     && parent.isPresent() && parent.get().link().isPresent()
                     && grandparent.isPresent()) {
-                TaskLink link = step.link().get();
+                TaskLink link = updatedStep.link().get();
                 ChangeService changeService = SpringContext.getBean(ChangeService.class);
                 DataMapResponse response = changeService.execute(getRequestForMovingStep(
-                        step.link().get(),
+                        updatedStep.link().get(),
                         ID.of(parent.get().link().get()),
                         InsertLocation.AFTER));
 
@@ -702,60 +728,63 @@ public class RoutineServiceImpl implements RoutineService {
                 }
             } else {
                 RoutineStepEntity newStep = new RoutineStepEntity();
-                if (step.link().isPresent()) {
-                    newStep.link(step.link().get());
+                if (updatedStep.link().isPresent()) {
+                    newStep.link(updatedStep.link().get());
                 }
                 
                 int newPosition;
                 if (parent.isEmpty()) {
                     routine.children().add(newStep);
-                    newPosition = routine.children().indexOf(step);
+                    newPosition = routine.children().indexOf(updatedStep);
                 } else {
                     parent.get().children().add(newStep);
-                    newPosition = parent.get().children().indexOf(step);
+                    newPosition = parent.get().children().indexOf(updatedStep);
                 }
-                newStep.task(step.task())
+                newStep.task(updatedStep.task())
                         .routine(routine)
-                        .children(step.children())
+                        .children(updatedStep.children())
                         .position(newPosition);
                 routineStepRepository.save(newStep);
             }
             return routineRepository.getReferenceById(routine.id());
         });
     }
-    
+
     @Override
     public RoutineResponse pushStepForward(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
-        RoutineEntity routine = step.routine();
-        log.debug("Pushing step" + step + " in routine " + routine.id() + " up.");
+        RoutineStepEntity initialStep = entityQueryService.getRoutineStep(stepId);
+        log.debug("Pushing step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
         
         return process(() -> {
-            Optional<RoutineStepEntity> parent = Optional.ofNullable(step.parentStep());
+            Optional<RoutineStepEntity> parent = Optional.ofNullable(initialStep.parentStep());
 
-            this.setStepExcluded(step, time, true);
+            RoutineEntity routine = setOriginalStepStatusAfterShift(initialStep, time);
+            RoutineStepEntity updatedStep = routine.getDescendants().stream()
+                    .filter(step -> step.id().equals(initialStep.id()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Could not find step " + initialStep + " in routine " + routine.id()));
 
             RoutineStepEntity nextStep;
             if (parent.isPresent()) {
-                if (parent.get().children().size() > step.position() + 1) {
-                    nextStep = parent.get().children().get(step.position() + 1);
+                if (parent.get().children().size() > updatedStep.position() + 1) {
+                    nextStep = parent.get().children().get(updatedStep.position() + 1);
                 } else {
                     throw new UnsupportedOperationException("Task is the last item in its parent's children already.");
                 }
             } else {
-                if (routine.children().size() > step.position() + 1) {
-                    nextStep = routine.children().get(step.position() + 1);
+                if (routine.children().size() > updatedStep.position() + 1) {
+                    nextStep = routine.children().get(updatedStep.position() + 1);
                 } else {
                     throw new UnsupportedOperationException("Task is at the end of the routine.");
                 }
             }
 
-            if (step.link().isPresent()) {
+            if (updatedStep.link().isPresent()) {
                 if (nextStep.link().isPresent()) {
-                    TaskLink link = step.link().get();
+                    TaskLink link = updatedStep.link().get();
                     ChangeService changeService = SpringContext.getBean(ChangeService.class);
                     DataMapResponse response = changeService.execute(getRequestForMovingStep(
-                            step.link().get(),
+                            updatedStep.link().get(),
                             ID.of(nextStep.link().get()),
                             InsertLocation.AFTER));
                     if (!response.success()) {
@@ -769,8 +798,8 @@ public class RoutineServiceImpl implements RoutineService {
             } else {
                 RoutineStepEntity newStep = new RoutineStepEntity();
                 int newPosition = nextStep.position() + 1;
-                if (step.link().isPresent()) {
-                    newStep.link(step.link().get());
+                if (updatedStep.link().isPresent()) {
+                    newStep.link(updatedStep.link().get());
                 }
 
                 if (parent.isEmpty()) {
@@ -779,9 +808,9 @@ public class RoutineServiceImpl implements RoutineService {
                     parent.get().children().add(newPosition, newStep);
                 }
 
-                newStep.task(step.task())
+                newStep.task(updatedStep.task())
                         .routine(routine)
-                        .children(step.children())
+                        .children(updatedStep.children())
                         .position(newPosition);
                 routineStepRepository.save(newStep);
             }

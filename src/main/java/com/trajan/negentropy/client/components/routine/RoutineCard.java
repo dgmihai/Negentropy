@@ -260,9 +260,11 @@ public class RoutineCard extends VerticalLayout {
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
         next.addClickListener(event -> {
-            if (binder.getBean().task().cleanup()) {
+            if (controller.services().routine().stepCanBeCompleted(binder.getBean().id())
+                    && binder.getBean().task().cleanup()) {
                 Dialog cleanupDialog = new Dialog();
-                cleanupDialog.setHeaderTitle("Has everything needed been cleaned up?");
+                cleanupDialog.setHeaderTitle("Has everything involved been cleaned up?");
+                cleanupDialog.add("Including whatever you were holding/your drink?");
 
                 Button yes = new Button("Yes");
                 yes.addThemeVariants(ButtonVariant.LUMO_PRIMARY);

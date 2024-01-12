@@ -50,8 +50,7 @@ public class UserSettings {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
                 gridColumnVisibility.put(columnKey, (!(
                         columnKey.equals(ColumnKey.TAGS_COMBO)
-                                || columnKey.equals(ColumnKey.FROZEN)
-                                || columnKey.equals(ColumnKey.NET_DURATION))));
+                                || columnKey.equals(ColumnKey.FROZEN))));
                 if (columnKey.equals(ColumnKey.NET_DURATION)) areNetDurationsVisible(true);
             }
         });

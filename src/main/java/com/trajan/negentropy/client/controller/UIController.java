@@ -103,8 +103,28 @@ public class UIController {
                 new SynchronousQueue<>());
     }
 
+    private void execute(Runnable runnable) {
+        this.execute(runnable, 3);
+    }
+
+    private void execute(Runnable runnable, int retries) {
+        try {
+            executor.execute(runnable);
+        } catch (RejectedExecutionException e) {
+            log.warn("Rejected execution, retry " + (4 - retries), e);
+            executor.shutdown();
+            executor = createExecutor();
+            if (retries > 0) {
+                retries--;
+                execute(runnable, retries);
+            } else {
+                accessUI("Rejected execution", () -> NotificationMessage.error(e));
+            }
+        }
+    }
+
     private <T extends SyncResponse> void handleResponse(T response) {
-        executor.execute(() -> accessUI("Handle response", () -> {
+        this.execute(() -> accessUI("Handle response", () -> {
             if (!response.success()) {
                 NotificationMessage.error(response.message());
             } else {
@@ -201,7 +221,7 @@ public class UIController {
     }
 
     public void requestChangesAsync(List<Change> changes, TaskTreeGrid<?> gridRequiringFilterRefresh, Consumer<DataMapResponse> callback) {
-        executor.execute(() -> {
+        this.execute(() -> {
             DataMapResponse response = this.tryDataRequest(() -> services.change().execute(
                     Request.of(taskNetworkGraph.syncId(), changes)), false);
             if (callback != null) {
@@ -268,17 +288,10 @@ public class UIController {
     private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
                                                     Consumer<RoutineResponse> onSuccess,
                                                     Consumer<RoutineResponse> onFailure) {
-        tryRoutineServiceCall(serviceCall, onSuccess, onFailure, 2);
-    }
-
-    private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
-                                                    Consumer<RoutineResponse> onSuccess,
-                                                    Consumer<RoutineResponse> onFailure,
-                                                    int retries) {
         try {
             RoutineResponse response = executor.submit(serviceCall::get).get();
 
-            executor.execute(() -> accessUI("Routine service call", () -> {
+            this.execute(() -> accessUI("Routine service call", () -> {
                 if (!response.success()) {
                     NotificationMessage.error(response.message());
                     if (onFailure != null) onFailure.accept(response);
@@ -288,15 +301,6 @@ public class UIController {
                     if (onSuccess != null) onSuccess.accept(response);
                 }
             }));
-        } catch (RejectedExecutionException e) {
-            log.warn("Routine service call rejected", e);
-            executor = createExecutor();
-            if (retries > 0) {
-                retries--;
-                tryRoutineServiceCall(serviceCall, onSuccess, onFailure, retries);
-            } else {
-                accessUI("Routine service call rejected", () -> NotificationMessage.error(e));
-            }
         } catch (Throwable t) {
             log.error("Error executing routine service call", t);
             accessUI("Routine service call error", () -> NotificationMessage.error(t));

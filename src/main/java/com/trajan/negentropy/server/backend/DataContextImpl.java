@@ -93,6 +93,8 @@ public class DataContextImpl implements DataContext {
                         task.difficult(), taskEntity.difficult()))
                 .starred(Objects.requireNonNullElse(
                         task.starred(), taskEntity.starred()))
+                .pinned(Objects.requireNonNullElse(
+                        task.pinned(), taskEntity.pinned()))
                 .cleanup(Objects.requireNonNullElse(
                         task.cleanup(), taskEntity.cleanup()))
                 .tags((task.tags() != null)
@@ -118,6 +120,7 @@ public class DataContextImpl implements DataContext {
                 template.project(),
                 template.difficult(),
                 template.starred(),
+                template.pinned(),
                 template.cleanup(),
                 template.tags());
         return this.merge(task);
@@ -203,6 +206,8 @@ public class DataContextImpl implements DataContext {
                         linkEntity.parent().childLinks(childLinks);
                     }
                 }
+            } else {
+                linkEntity.cron((CronExpression) null);
             }
 
             if (createTrackingStep) {
@@ -536,6 +541,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.project(),
                 taskEntity.difficult(),
                 taskEntity.starred(),
+                taskEntity.pinned(),
                 taskEntity.cleanup(),
                 null);
     }

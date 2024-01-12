@@ -252,6 +252,24 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setTextAlign(ColumnTextAlign.CENTER);
                 }
 
+                case PINNED -> {
+                    Grid.Column<T> pinnedColumn = treeGrid.addColumn(LitRenderer.<T>of(
+                                            GridUtil.inlineVaadinIconLitExpression("pin",
+                                                    ("?active=\"${item.pinned}\" ")))
+                                    .withFunction("onClick", t ->
+                                            controller.requestChangeAsync(new MergeChange<>(
+                                                            new Task(t.task().id())
+                                                                    .pinned(!t.task().pinned())),
+                                                    this))
+                                    .withProperty("pinned", t ->
+                                            t.task().pinned()))
+                            .setKey(ColumnKey.PINNED.toString())
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.PIN))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER);
+                }
+
                 case CLEANUP -> {
                     Grid.Column<T> cleanupColumn = treeGrid.addColumn(LitRenderer.<T>of(
                                             GridUtil.inlineVaadinIconLitExpression("recycle",

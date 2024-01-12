@@ -51,7 +51,7 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
     private String apply(Task task) {
         Duration duration = switch (durationType) {
             // TODO: Account for settings?
-            case NET_DURATION -> taskNetworkGraph.netDurationInfo().netTaskDurations().get(task.id());
+            case NET_DURATION -> taskNetworkGraph.netDurationInfo().get().netTaskDurations().get(task.id());
             case TASK_DURATION -> task.duration();
 //            case PROJECT_DURATION -> throw new IllegalArgumentException("Project duration not supported for tasks.");
         };
@@ -65,7 +65,7 @@ public class DurationEstimateValueProvider<T extends HasTaskData> implements Val
     private String apply(TaskNode node) {
         Duration duration = switch (durationType) {
             // TODO: Account for settings?
-            case NET_DURATION -> taskNetworkGraph.netDurationInfo().netNodeDurations().get(node.id());
+            case NET_DURATION -> taskNetworkGraph.netDurationInfo().get().netNodeDurations().get(node.id());
             case TASK_DURATION -> node.task().duration();
 //            case PROJECT_DURATION -> node.projectDurationLimit();
         };

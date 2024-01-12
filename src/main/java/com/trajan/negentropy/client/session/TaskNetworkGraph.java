@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @SpringComponent
@@ -70,7 +71,7 @@ public class TaskNetworkGraph {
     private Multimap<TaskID, Tag> taskTagMap = HashMultimap.create();
     private MultiValueMap<TaskID, LinkID> nodesByTaskMap = new LinkedMultiValueMap<>();
 
-    private NetDurationInfo netDurationInfo;
+    private AtomicReference<NetDurationInfo> netDurationInfo = new AtomicReference<>(null);
 
     public TaskNetworkGraph syncId(SyncID syncId) {
         log.trace("Previous syncId: " + this.syncId + ", new syncId: " + syncId);
@@ -225,26 +226,26 @@ public class TaskNetworkGraph {
                 : services.query().fetchAllNodesAsIds(filter).toList();
     }
 
-    private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
+    private synchronized void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
         if ((settings == null || settings.areNetDurationsVisible())
-                && (syncId != this.syncId || this.netDurationInfo == null)) {
+                && (syncId != this.syncId || this.netDurationInfo.get() == null)) {
             log.debug("Syncing net durations with filter " + filter);
             filterMap.clear();
-            this.netDurationInfo = filterMap.compute(NonSpecificTaskNodeTreeFilter.parse(filter), (f, x) ->
-                    services.query().fetchNetDurationInfo(f));
+            this.netDurationInfo.set(filterMap.compute(NonSpecificTaskNodeTreeFilter.parse(filter), (f, x) ->
+                    services.query().fetchNetDurationInfo(f)));
         } else {
-            this.netDurationInfo = null;
+            this.netDurationInfo.set(null);
             log.debug("Not syncing net durations with filter " + filter);
         }
     }
 
-    public void getNetDurations(TaskNodeTreeFilter filter) {
+    public synchronized void getNetDurations(TaskNodeTreeFilter filter) {
         if (settings.areNetDurationsVisible()) {
             log.debug("Getting net durations with filter " + filter);
-            this.netDurationInfo = filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
-                    services.query().fetchNetDurationInfo(f));
+            this.netDurationInfo.set(filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
+                    services.query().fetchNetDurationInfo(f)));
         } else {
-            this.netDurationInfo = null;
+            this.netDurationInfo.set(null);
             log.debug("Not setting net durations with filter " + filter);
         }
     }

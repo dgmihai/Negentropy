@@ -330,7 +330,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 partNames.add(K.GRID_PARTNAME_DIFFICULT);
             }
             if (entry.node().parentId() != null && settings.areNetDurationsVisible()) {
-                List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
+                List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().get().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
                 if (childrenExceedingDurationLimit != null && childrenExceedingDurationLimit.contains(entry.node().linkId())) {
                     partNames.add(K.GRID_PARTNAME_DURATION_LIMIT_EXCEEDED);
                 }

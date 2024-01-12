@@ -10,6 +10,7 @@ public enum ColumnKey {
     COMPLETE("Complete"),
     DESCRIPTION("Description"),
     STARRED("Starred"),
+    PINNED("Pinned"),
     CLEANUP("Cleanup"),
     DIFFICULT("Difficult"),
     TAGS("Tags"),
