@@ -11,6 +11,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.NonSpecificTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.backend.DataContext;
+import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.RoutineRepository;
 import com.trajan.negentropy.server.backend.repository.RoutineStepRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,23 +35,44 @@ import java.util.stream.StreamSupport;
 @Slf4j
 @Benchmark
 public class RecordService {
-    @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository routineStepRepository;
     @Autowired private QueryService queryService;
+    @Autowired private EntityQueryService entityQueryService;
     @Autowired private DataContext dataContext;
 
     private static final QRoutineStepEntity Q_STEP = QRoutineStepEntity.routineStepEntity;
 
-    public Stream<Record> fetchRecordsOnDay(LocalDate date) {
+    private Stream<RoutineStepEntity> fetchStepsDuringTimespan(LocalDate startDate, LocalDate endDate) {
+        BooleanBuilder predicate = recordDatePredicate(startDate, endDate);
         Sort sort = Sort.by(Sort.Direction.ASC, "startTime");
-        BooleanBuilder predicate = recordDatePredicate(date, date);
-        return StreamSupport.stream(routineStepRepository.findAll(predicate, sort).spliterator(), true)
+        return StreamSupport.stream(routineStepRepository.findAll(predicate, sort).spliterator(), true);
+    }
+
+    private Stream<RoutineStepEntity> fetchStepsDuringTimespanFromTasks(LocalDate startDate, LocalDate endDate, Collection<TaskID> tasks) {
+        BooleanBuilder predicate = recordDatePredicate(startDate, endDate);
+        predicate.and(Q_STEP.link.child.id.in(tasks
+                .stream()
+                .map(TaskID::val)
+                .collect(Collectors.toSet())));
+        return StreamSupport.stream(routineStepRepository.findAll(predicate).spliterator(), true);
+    }
+
+    public Stream<Record> fetchRecordsOnDay(LocalDate date) {
+        return StreamSupport.stream(fetchStepsDuringTimespan(date, date).spliterator(), true)
                 .map(Record::new);
     }
 
-    public Map<TaskID, RecordSpan> fetchRecordsDuringTimespan(LocalDate startDate, LocalDate endDate) {
-        BooleanBuilder predicate = recordDatePredicate(startDate, endDate);
-        Map<Task, Map<TimeableStatus, List<Record>>> recordMap = StreamSupport.stream(routineStepRepository.findAll(predicate).spliterator(), true)
+    public Stream<Record> fetchRecordsDuringTimespanByTime(LocalDate startDate, LocalDate endDate) {
+        return fetchStepsDuringTimespan(startDate, endDate)
+                .map(Record::new);
+    }
+
+    public Map<TaskID, RecordSpan> fetchRecordsDuringTimespanByRecordFromTasks(LocalDate startDate, LocalDate endDate, Collection<TaskID> tasks) {
+        Stream<RoutineStepEntity> steps = tasks != null
+                ? fetchStepsDuringTimespanFromTasks(startDate, endDate, tasks)
+                : fetchStepsDuringTimespan(startDate, endDate);
+
+        Map<Task, Map<TimeableStatus, List<Record>>> recordMap = steps
                 .collect(Collectors.groupingBy(
                         step -> dataContext.toLazyDO(step.task()),
                         Collectors.groupingBy(
@@ -72,6 +95,10 @@ public class RecordService {
             resultMap.put(entry.getKey().id(), recordSpan);
         }
         return resultMap;
+    }
+
+    public Map<TaskID, RecordSpan> fetchRecordsDuringTimespanByRecord(LocalDate startDate, LocalDate endDate) {
+        return fetchRecordsDuringTimespanByRecordFromTasks(startDate, endDate, null);
     }
 
     private BooleanBuilder recordDatePredicate(LocalDate startDate, LocalDate endDate) {

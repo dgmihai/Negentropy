@@ -202,11 +202,11 @@ public class RoutineTestTemplate extends TaskTestTemplate {
         }
     }
 
-    protected void linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
+    protected RoutineResponse linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
                                                              Function<TaskID, Duration> expectedDuration,
                                                              List<String> expectedSteps,
                                                              List<String> excludedTasks) throws Exception {
-        linkRoutineCreationTestWithExpectedDuration(rootLink, null, expectedDuration, expectedSteps, excludedTasks);
+        return linkRoutineCreationTestWithExpectedDuration(rootLink, null, expectedDuration, expectedSteps, excludedTasks);
     }
 
     protected RoutineResponse linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
@@ -297,9 +297,9 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                 expectedSteps);
     }
 
-    protected void linkRoutineCreationTest(Triple<String, String, Integer> rootLink, List<String> expectedSteps, List<String> excludedTasks)
+    protected RoutineResponse linkRoutineCreationTest(Triple<String, String, Integer> rootLink, List<String> expectedSteps, List<String> excludedTasks)
             throws Exception {
-        linkRoutineCreationTestWithExpectedDuration(
+        return linkRoutineCreationTestWithExpectedDuration(
                 rootLink,
                 rootTaskId -> queryService.fetchNetDuration(rootTaskId, null),
                 expectedSteps,

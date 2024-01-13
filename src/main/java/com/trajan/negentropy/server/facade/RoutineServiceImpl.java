@@ -121,11 +121,18 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineResponse process(Supplier<RoutineEntity> routineSupplier) {
+        return this.process(routineSupplier, null);
+    }
+
+    private RoutineResponse process(Supplier<RoutineEntity> routineSupplier, StepID focusedStepId) {
         try {
             RoutineEntity routine = routineSupplier.get();
             Routine routineDO = dataContext.toDO(routine);
+            String message = (focusedStepId != null)
+                    ? routineDO.steps().get(focusedStepId).status().toString()
+                    : K.OK;
             routineBroadcaster.broadcast(ID.of(routine), routineDO);
-            return new RoutineResponse(true, routineDO, K.OK);
+            return new RoutineResponse(true, routineDO, message);
         } catch (Exception e) {
             e.printStackTrace();
             return new RoutineResponse(false, null, e.getMessage());
@@ -312,6 +319,13 @@ public class RoutineServiceImpl implements RoutineService {
             if(!currentStep.status().isFinished()) {
                 markStepAsSkipped(currentStep, time);
                 resetStepLinkStatus(currentStep, time);
+                if (currentStep.parentStep() == null) {
+                    routine.children().remove(currentStep.position().intValue());
+                    routine.children().add(currentStep.position(), currentStep);
+                } else {
+                    currentStep.parentStep().children().remove(currentStep.position().intValue());
+                    currentStep.parentStep().children().add(currentStep.position(), currentStep);
+                }
             }
 
             List<RoutineStepEntity> steps = routine.getDescendants();
@@ -383,7 +397,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
 
-        return process(() -> completeStep(step, time));
+        return process(() -> completeStep(step, time), stepId);
     }
 
     private RoutineEntity completeStep(RoutineStepEntity step, LocalDateTime time) {
@@ -501,7 +515,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
 
-        return process(() -> suspendStep(step, time));
+        return process(() -> suspendStep(step, time), stepId);
     }
 
     private RoutineEntity suspendStep(RoutineStepEntity step, LocalDateTime time) {
@@ -522,7 +536,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
 
-        return process(() -> skipStep(step, time));
+        return process(() -> skipStep(step, time), stepId);
     }
 
     private RoutineEntity skipStep(RoutineStepEntity step, LocalDateTime time) {
@@ -540,7 +554,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
 
-        return process(() -> postponeStep(step, time));
+        return process(() -> postponeStep(step, time), stepId);
     }
 
     @Override
@@ -565,7 +579,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = entityQueryService.getRoutineStep(stepId);
         activeRoutineId = ID.of(step.routine());
 
-        return process(() -> previousStep(step, time));
+        return process(() -> previousStep(step, time), stepId);
     }
 
     private RoutineEntity previousStep(RoutineStepEntity step, LocalDateTime time) {
@@ -653,7 +667,7 @@ public class RoutineServiceImpl implements RoutineService {
         activeRoutineId = ID.of(routine);
         log.debug("Setting step " + step + " in routine " + routine.id() + " as excluded: " + exclude);
 
-        return process(() -> setStepExcluded(step, time, exclude));
+        return process(() -> setStepExcluded(step, time, exclude), stepId);
     }
 
     private RoutineEntity setStepExcluded(RoutineStepEntity step, LocalDateTime time, boolean exclude) {

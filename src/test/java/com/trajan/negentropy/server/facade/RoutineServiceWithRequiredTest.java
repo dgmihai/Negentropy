@@ -19,6 +19,7 @@ import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.RoutineTestTemplateWithRequiredTasks;
 import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,8 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -78,6 +78,48 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 List.of(
                         TWOTWO,
                         TWOTHREE));
+    }
+
+    @Test
+    void testJumpToStepInRoutine() throws Exception {
+        RoutineResponse response = linkRoutineCreationTest(
+                Triple.of(NULL, TWO, 1),
+                List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                List.of());
+
+        Routine routine = response.routine();
+        routine = routineService.startStep(routine.currentStep().id(), LocalDateTime.now()).routine();
+
+        RoutineStep twoTwo = routine.steps().values()
+                .stream()
+                .filter(step -> step.name().equals(TWOTWO))
+                .findFirst()
+                .orElseThrow();
+
+        response = routineService.jumpToStep(twoTwo.id(), LocalDateTime.now());
+        assertTrue(response.success());
+        routine = response.routine();
+
+        twoTwo = routine.steps().values()
+                .stream()
+                .filter(step -> step.name().equals(TWOTWO))
+                .findFirst()
+                .orElseThrow();
+
+        RoutineStep two = routine.steps().values()
+                .stream()
+                .filter(step -> step.name().equals(TWO))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(twoTwo, routine.currentStep());
+        assertEquals(TimeableStatus.NOT_STARTED, routine.currentStep().status());
+        assertEquals(TimeableStatus.SKIPPED, two.status());
     }
 
     @Test

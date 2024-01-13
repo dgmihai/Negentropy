@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Setter
 public class Record {
     private TaskID taskId;
+    private String name;
     private StepID stepId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -25,6 +26,7 @@ public class Record {
     public Record(RoutineStepEntity step) {
         this.taskId = ID.of(step.task());
         this.stepId = ID.of(step);
+        this.name = step.name();
         this.startTime = step.startTime();
         this.endTime = step.finishTime();
         this.inactiveTime = step.elapsedSuspendedDuration();

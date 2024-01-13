@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.components.routine;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.TreeView;
+import com.trajan.negentropy.client.components.YesNoDialog;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -262,26 +263,15 @@ public class RoutineCard extends VerticalLayout {
         next.addClickListener(event -> {
             if (controller.services().routine().stepCanBeCompleted(binder.getBean().id())
                     && binder.getBean().task().cleanup()) {
-                Dialog cleanupDialog = new Dialog();
+                YesNoDialog cleanupDialog = new YesNoDialog();
                 cleanupDialog.setHeaderTitle("Has everything involved been cleaned up?");
                 cleanupDialog.add("Including whatever you were holding/your drink?");
 
-                Button yes = new Button("Yes");
-                yes.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-                yes.addClickListener(e -> {
+                cleanupDialog.yes().addClickListener(e -> {
                     cleanupDialog.close();
                     this.confirmRoutineCompletion();
                 });
 
-                Button no = new Button("No");
-                no.addClickListener(e -> cleanupDialog.close());
-
-                HorizontalLayout buttons = new HorizontalLayout();
-                buttons.setJustifyContentMode(JustifyContentMode.BETWEEN);
-                buttons.setWidthFull();
-                buttons.add(yes, no);
-
-                cleanupDialog.getFooter().add(buttons);
                 cleanupDialog.open();
             } else {
                 this.confirmRoutineCompletion();
