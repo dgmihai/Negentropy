@@ -38,6 +38,10 @@ public class Task implements TaskData<Task>, PersistedDataDO<TaskID> {
         return new Task(null, name, description, duration, required, project, difficult, starred, pinned, cleanup, tags);
     }
 
+    public Task copyWithID(TaskID id) {
+        return new Task(id, name, description, duration, required, project, difficult, starred, pinned, cleanup, tags);
+    }
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("Task(");

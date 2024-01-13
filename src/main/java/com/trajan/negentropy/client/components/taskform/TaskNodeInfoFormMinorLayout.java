@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.components.YesNoDialog;
 import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
@@ -15,7 +16,9 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
@@ -24,6 +27,8 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
+
+import java.util.Optional;
 
 @Getter
 public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
@@ -99,25 +104,29 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
     protected void configureFields() {
         super.configureFields();
 
-        preexistingTaskSearchButton = new Button("", VaadinIcon.FILE_SEARCH.create());
-        preexistingTaskSearchButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        preexistingTaskSearchButton = new Button("", VaadinIcon.EXCLAMATION.create());
+        preexistingTaskSearchButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+        preexistingTaskSearchButton.setEnabled(false);
 
         nameFieldLayout = new HorizontalLayout(nameField, preexistingTaskSearchButton);
         nameField.addValueChangeListener(e -> {
             String current = nameField.getValue();
-            if (current.length() > 4) {
-                long count = controller.services().query().fetchAllTasks(new TaskTreeFilter()
-                        .name(nameField.getValue())).count();
-                if (count > 0) {
-                    preexistingTaskSearchButton.setEnabled(true);
-                    preexistingTaskSearchButton.setText(String.valueOf(count));
-                } else {
-                    preexistingTaskSearchButton.setEnabled(false);
-                    preexistingTaskSearchButton.setText("");
-                }
+            Optional<Task> matchingTask = controller.services().query().fetchAllTasks(new TaskTreeFilter()
+                    .exactName(current)).findFirst();
+            if (matchingTask.isPresent()) {
+                preexistingTaskSearchButton.setEnabled(true);
+
+                // TODO: Following does not work
+                nameField.setInvalid(true);
+                nameField.setErrorMessage("Task already exists");
+                saveButton.setEnabled(false);
             } else {
                 preexistingTaskSearchButton.setEnabled(false);
-                preexistingTaskSearchButton.setText("");
+
+                // TODO: Following does not work
+                nameField.setInvalid(false);
+                nameField.setErrorMessage("");
+                saveButton.setEnabled(true);
             }
         });
 
@@ -149,6 +158,51 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
         super.configureInteractions();
         initTaskNodeDataProvider();
         taskNodeProvider().afterSave(() -> nameField.focus());
+
+        preexistingTaskSearchButton().addClickListener(e -> {
+            Dialog existingTaskDialog = new Dialog();
+            existingTaskDialog.setHeaderTitle("Use Existing Task?");
+            existingTaskDialog.add(new Span("A task named \"" + nameField.getValue() + "\" already exists. Would you like to use the old task, or overwrite it?"));
+
+            Button useExistingTask = new Button("Use Existing");
+            Button overwriteExistingTask = new Button("Overwrite");
+            Button cancel = new Button("Cancel");
+
+            useExistingTask.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            overwriteExistingTask.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+            HorizontalLayout buttonLayout = new HorizontalLayout();
+            buttonLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
+            buttonLayout.setWidthFull();
+            buttonLayout.add(useExistingTask, overwriteExistingTask, cancel);
+            existingTaskDialog.getFooter().add(buttonLayout);
+
+            useExistingTask.addClickListener(e1 -> {
+                existingTaskDialog.close();
+                Optional<Task> matchingTaskOptional = controller.services().query().fetchAllTasks(new TaskTreeFilter()
+                        .exactName(nameField.getValue())).findFirst();
+                matchingTaskOptional.ifPresent(matchingTask -> taskBinder.setBean(matchingTask));
+            });
+
+            overwriteExistingTask.addClickListener(e2 -> {
+                YesNoDialog confirmation = new YesNoDialog();
+                confirmation.setHeaderTitle("Are you sure you want to overwrite the existing task?");
+                confirmation.add(new Span("This action cannot be undone. Only takes effect on save."));
+
+                confirmation.yes().addClickListener(e3 -> {
+                    existingTaskDialog.close();
+                    Optional<Task> matchingTaskOptional = controller.services().query().fetchAllTasks(new TaskTreeFilter()
+                            .exactName(nameField.getValue())).findFirst();
+                    matchingTaskOptional.ifPresent(matchingTask -> taskBinder.setBean(taskBinder.getBean()
+                            .copyWithID(matchingTask.id())));
+                });
+
+                confirmation.open();
+            });
+
+            cancel.addClickListener(e3 -> existingTaskDialog.close());
+            existingTaskDialog.open();
+        });
     }
 
     @Override

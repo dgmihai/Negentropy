@@ -17,6 +17,7 @@ public class TaskTreeFilter implements Serializable {
     private static final long serialVersionUID = 1L;
 
     protected String name;
+    protected String exactName;
     protected Set<TagID> includedTagIds = new HashSet<>();
     protected Set<TagID> excludedTagIds = new HashSet<>();
     protected Set<String> options = new HashSet<>();

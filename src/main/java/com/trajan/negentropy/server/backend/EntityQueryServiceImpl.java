@@ -139,6 +139,11 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 builder.and(qTask.name.lower().contains(filter.name().toLowerCase()));
             }
 
+            // Exact name match
+            if (filter.exactName() != null && !filter.exactName().isBlank()) {
+                builder.and(qTask.name.lower().eq(filter.exactName().toLowerCase()));
+            }
+
             // Filter out if task isn't required
             if (filter.options().contains(TaskTreeFilter.ONLY_REQUIRED)) {
                 builder.and(qTask.required.isTrue());

@@ -163,20 +163,6 @@ public class ToolbarTabSheet extends TabSheet {
                 ? new TaskNodeInfoFormFullLayout(controller)
                 : new TaskNodeInfoFormMinorLayout(controller);
 
-        createTaskForm.preexistingTaskSearchButton().addClickListener(e -> {
-            if (insertTaskTab != null) {
-                String current = createTaskForm.nameField().getValue();
-                this.setSelectedTab(insertTaskTab);
-                insertTaskTab.getChildren()
-                        .filter(component -> component instanceof AbstractSearchAndFilterForm)
-                        .findFirst()
-                        .ifPresent(f -> {
-                            AbstractSearchAndFilterForm form = (AbstractSearchAndFilterForm) f;
-                            form.name().setValue(current);
-                        });
-            }
-        });
-
         createTaskForm.taskBinder().setBean(new Task());
 
         createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
