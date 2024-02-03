@@ -104,6 +104,8 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
     protected void configureFields() {
         super.configureFields();
 
+        cancelButton.setText("Clear");
+
         preexistingTaskSearchButton = new Button("", VaadinIcon.EXCLAMATION.create());
         preexistingTaskSearchButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
         preexistingTaskSearchButton.setEnabled(false);

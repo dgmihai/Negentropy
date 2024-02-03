@@ -31,7 +31,8 @@ public class TaskNodeInfoFormDialog extends TaskNodeInfoFormFullLayout {
         page.addBrowserWindowResizeListener(e ->
                 this.setMargins(e.getWidth()));
 
-        clearButton.addClickListener(e -> dialog.close());
+        cancelButton.setText("Cancel");
+        cancelButton.addClickListener(e -> dialog.close());
 
         onClose = dialog::close;
 

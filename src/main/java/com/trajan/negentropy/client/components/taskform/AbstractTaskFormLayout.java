@@ -59,7 +59,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected Checkbox recurringCheckbox;
 
     @Getter protected Button saveButton;
-    protected Button clearButton;
+    protected Button cancelButton;
 
     protected SaveEventListener<DataMapResponse> saveEventListener;
 
@@ -134,7 +134,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setVisible(false);
         projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
 
-        clearButton = new Button("Cancel");
+        cancelButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
         onSaveSelect = new Select<>();
         onSaveSelect.setItems(Arrays.stream(OnSuccessfulSaveActions.values())
@@ -162,7 +162,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
     protected void configureInteractions() {
         saveButton.addClickListener(event -> this.save());
-        clearButton.addClickListener(event -> clearEventListener().clear());
+        cancelButton.addClickListener(event -> clearEventListener().clear());
 
         Shortcuts.addShortcutListener(this,
                 this::save,
@@ -181,7 +181,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
-        clearButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
 
