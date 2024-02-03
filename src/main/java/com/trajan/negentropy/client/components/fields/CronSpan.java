@@ -19,6 +19,7 @@ public class CronSpan extends HorizontalLayout {
         cronDailyButton.setWidth("1em");
 
         cronField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        cronField.setClearButtonVisible(true);
         cronField.setWidthFull();
         this.setWidthFull();
         this.add(cronField, cronDailyButton);
