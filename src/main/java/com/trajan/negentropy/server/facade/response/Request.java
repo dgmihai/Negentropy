@@ -34,4 +34,8 @@ public class Request {
     public static Request of(SyncID syncId, Collection<Change> changes) {
         return new Request(syncId, changes);
     }
+
+    public static Request of(Collection<Change> changes) {
+        return new Request(changes);
+    }
 }

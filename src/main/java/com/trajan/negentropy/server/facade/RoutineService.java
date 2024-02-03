@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.facade;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
@@ -29,11 +30,17 @@ public interface RoutineService extends CurrentTimeSettable {
     Routine fetchRoutine(RoutineID routineID);
     RoutineStep fetchRoutineStep(StepID stepID);
 
-    RoutineResponse createRoutine(TaskID rootId);
-    RoutineResponse createRoutine(LinkID rootId);
-    RoutineResponse createRoutine(TaskID rootId, TaskNodeTreeFilter filter);
-    RoutineResponse createRoutine(LinkID rootId, TaskNodeTreeFilter filter);
-    RoutineResponse createRoutine(List<TaskOrLinkID> rootIds, TaskNodeTreeFilter filter);
+    RoutineResponse createRoutine(TaskID rootId, LocalDateTime time);
+    RoutineResponse createRoutine(LinkID rootId, LocalDateTime time);
+    RoutineResponse createRoutine(TaskID rootId, TaskNodeTreeFilter filter, LocalDateTime time);
+    RoutineResponse createRoutine(LinkID rootId, TaskNodeTreeFilter filter, LocalDateTime time);
+    RoutineResponse createRoutine(List<TaskOrLinkID> rootIds, TaskNodeTreeFilter filter, LocalDateTime time);
+
+    @VisibleForTesting
+    Routine refreshRoutine(RoutineID routine);
+    void refreshActiveRoutines();
+    void refreshRoutines(boolean refreshRoutines);
+    boolean refreshRoutines();
 
     long countCurrentRoutines(Set<TimeableStatus> statusSet);
     Stream<Routine> fetchRoutines(Set<TimeableStatus> statusSet);
@@ -63,6 +70,7 @@ public interface RoutineService extends CurrentTimeSettable {
     RoutineResponse setAutoSync(RoutineID routineId, boolean autoSync);
 
     Registration register(RoutineID routineId, Consumer<Routine> listener);
+    Registration register(Consumer<Routine> listener);
 
     void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults);
 

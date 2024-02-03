@@ -1,10 +1,7 @@
 package com.trajan.negentropy.server.facade;
 
 import com.trajan.negentropy.client.controller.util.InsertLocation;
-import com.trajan.negentropy.model.Tag;
-import com.trajan.negentropy.model.Task;
-import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.TaskNodeDTO;
+import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
@@ -14,11 +11,8 @@ import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
-import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.id.ID.ChangeID;
-import com.trajan.negentropy.model.id.LinkID;
-import com.trajan.negentropy.model.id.TagID;
-import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.server.backend.DataContext;
@@ -140,7 +134,7 @@ public class ChangeProcessor {
                     log.debug("Deleting tag: {}", tagId);
                     throw new NotImplementedException();
                 } else {
-                    throw new IllegalArgumentException("Unexpected changeRelevantDataMap type: " + id);
+                    throw new IllegalArgumentException("Unexpected id type when attempting delete change: " + id);
                 }
             } else if (change instanceof InsertChange<?> insertChange) {
                 prefix = "Added ";
@@ -281,6 +275,19 @@ public class ChangeProcessor {
                 });
 
                 currentStep.parentStep().children().add(currentStepPosition, newStep);
+            } else if (change instanceof TagGroupChange tagGroupChange) {
+                TagGroupEntity tagGroup = entityQueryService.getTagGroup(tagGroupChange.groupId());
+                TagEntity tag = entityQueryService.getTag(tagGroupChange.tagId());
+                switch (tagGroupChange.changeType()) {
+                    case ADD -> {
+                        tagGroup.tags().add(tag);
+                        tag.groups().add(tagGroup);
+                    }
+                    case REMOVE -> {
+                        tagGroup.tags().remove(tag);
+                        tag.groups().remove(tagGroup);
+                    }
+                }
             } else {
                 throw new UnsupportedOperationException("Unexpected change type: " + change.getClass());
             }
@@ -336,6 +343,7 @@ public class ChangeProcessor {
         }
     }
 
+    // TODO: This takes a long while!
     private void updateDuration(Set<TaskLink> durationUpdates, TaskLink link) {
         durationUpdates.add(link);
         durationUpdates.addAll(entityQueryService.findAncestorLinks(

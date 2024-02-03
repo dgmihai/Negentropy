@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Tag("eta-timer")
 @JsModule("./simple-clock/eta-timer.js")
 public class ETATimer extends Component implements HasSize, HasStyle, Serializable {
-    private static final UILogger log = new UILogger();
+    private final UILogger log = new UILogger();
 
     private static final String DISPLAY = "display";
     private static final String INLINE = "inline";

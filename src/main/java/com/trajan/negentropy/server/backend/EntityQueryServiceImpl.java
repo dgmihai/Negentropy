@@ -484,31 +484,35 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     }
 
     @Override
-    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLink(LinkID linkId) {
+    public JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLink(LinkID linkId) {
         return onlyReadyRoutines()
-                .where(QRoutineStepEntity.routineStepEntity.link.id.eq(linkId.val()));
+                .where(QRoutineStepEntity.routineStepEntity.link.id.eq(linkId.val()))
+                .distinct();
     }
 
     @Override
-    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLinks(Set<LinkID> linkIds) {
+    public JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLinks(Set<LinkID> linkIds) {
         return onlyReadyRoutines()
                 .where(QRoutineStepEntity.routineStepEntity.link.id.in(linkIds.stream()
                         .map(ID::val)
-                        .toList()));
+                        .toList()))
+                .distinct();
     }
 
     @Override
-    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTask(TaskID taskId) {
+    public JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTask(TaskID taskId) {
         return onlyReadyRoutines()
-                .where(QRoutineStepEntity.routineStepEntity.task.id.eq(taskId.val()));
+                .where(QRoutineStepEntity.routineStepEntity.task.id.eq(taskId.val()))
+                .distinct();
     }
 
     @Override
-    public JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTasks(Set<TaskID> taskIds) {
+    public JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTasks(Set<TaskID> taskIds) {
         return onlyReadyRoutines()
                 .where(QRoutineStepEntity.routineStepEntity.task.id.in(taskIds.stream()
                         .map(ID::val)
-                        .toList()));
+                        .toList()))
+                .distinct();
     }
 
     private BooleanBuilder fromReadyRoutines(boolean onlyReady) {
@@ -537,5 +541,27 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 .from(routineStep)
                 .join(routineStep.routine, routine)
                 .where(fromReadyRoutines(true));
+    }
+
+    @Override
+    public Stream<TaskLink> findLinksThatHaveActiveRoutineSteps() {
+        JPAQuery<RoutineStepEntity> query = new JPAQuery<>(entityManager);
+        QRoutineStepEntity routineStep = QRoutineStepEntity.routineStepEntity;
+
+        return query.select(routineStep)
+                .from(routineStep)
+                .where(routineStep.routine.status.eq(TimeableStatus.ACTIVE).andAnyOf(
+                        routineStep.status.eq(TimeableStatus.ACTIVE),
+                        routineStep.status.eq(TimeableStatus.SUSPENDED)))
+                .fetch()
+                .stream()
+                .filter(step -> step.link().isPresent())
+                .map(step -> step.link().get());
+    }
+
+    @Override
+    public Iterable<RoutineEntity> findActiveRoutines() {
+        return routineRepository.findAll(
+                QRoutineEntity.routineEntity.status.eq(TimeableStatus.ACTIVE));
     }
 }

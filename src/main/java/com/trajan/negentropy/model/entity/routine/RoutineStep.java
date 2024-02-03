@@ -3,14 +3,12 @@ package com.trajan.negentropy.model.entity.routine;
 import com.fasterxml.jackson.annotation.*;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
-import com.trajan.negentropy.model.data.HasTaskData;
-import com.trajan.negentropy.model.data.HasTaskNodeData;
-import com.trajan.negentropy.model.data.MayHaveTaskNodeData;
-import com.trajan.negentropy.model.data.RoutineStepData;
+import com.trajan.negentropy.model.data.*;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.interfaces.Timeable;
+import com.trajan.negentropy.server.backend.util.DFSUtil;
 import lombok.*;
 
 import java.time.Duration;
@@ -68,6 +66,11 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
     abstract public TaskNode node();
     abstract public Optional<TaskNode> nodeOptional();
     abstract public RoutineStep node(TaskNode node);
+    
+    @Override
+    public List<RoutineStep> descendants() {
+        return DFSUtil.traverse(this);
+    }
 
     @JsonTypeName("RoutineTaskStep")
     @Getter(onMethod_={@JsonProperty})
@@ -125,6 +128,36 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
         public RoutineNodeStep node(TaskNode node) {
             this.node = node;
             return this;
+        }
+    }
+
+    @Getter
+    public static class  RoutineStepWrapper extends RoutineStep implements RoutineStepData<RoutineStep> {
+        private RoutineData routine;
+
+        @Override
+        public Task task() {
+            return null;
+        }
+
+        @Override
+        public RoutineStep task(Task task) {
+            return null;
+        }
+
+        @Override
+        public TaskNode node() {
+            return null;
+        }
+
+        @Override
+        public Optional<TaskNode> nodeOptional() {
+            return Optional.empty();
+        }
+
+        @Override
+        public RoutineStep node(TaskNode node) {
+            return null;
         }
     }
 }

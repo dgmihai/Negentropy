@@ -71,7 +71,7 @@ public class NetDurationService {
         return new NetDurationInfo(
                 getAllNetTaskDurations(filter),
                 getAllNetNodeDurations(filter),
-                getHelper(filter).projectChildrenOutsideDurationLimitMap(),
+                getHelper(filter).linkHierarchyIterator().projectChildrenOutsideDurationLimitMap(),
                 filter);
     }
 

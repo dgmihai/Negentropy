@@ -160,30 +160,30 @@ class TimeableUtilTest {
     @Test
     public void testGetRemainingNetDuration() {
         assertEquals(Duration.ofMinutes(25),
-                timeableUtil.getRemainingNetDuration(timeables.get("root"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("root"), NOW));
 
         assertEquals(Duration.ZERO,
-                timeableUtil.getRemainingNetDuration(timeables.get("A"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("A"), NOW));
 
         assertEquals(Duration.ofMinutes(10),
-                timeableUtil.getRemainingNetDuration(timeables.get("B"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("B"), NOW));
 
         assertEquals(Duration.ofMinutes(10),
-                timeableUtil.getRemainingNetDuration(timeables.get("W"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("W"), NOW));
 
         assertEquals(Duration.ZERO,
-                timeableUtil.getRemainingNetDuration(timeables.get("X"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("X"), NOW));
 
         assertEquals(Duration.ZERO,
-                timeableUtil.getRemainingNetDuration(timeables.get("Y"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("Y"), NOW));
 
         assertEquals(Duration.ZERO,
-                timeableUtil.getRemainingNetDuration(timeables.get("Z"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("Z"), NOW));
 
         assertEquals(Duration.ofMinutes(10),
-                timeableUtil.getRemainingNetDuration(timeables.get("C"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("C"), NOW));
 
         assertEquals(Duration.ofMinutes(5),
-                timeableUtil.getRemainingNetDuration(timeables.get("D"), NOW));
+                timeableUtil.getRemainingNestedDuration(timeables.get("D"), NOW));
     }
 }

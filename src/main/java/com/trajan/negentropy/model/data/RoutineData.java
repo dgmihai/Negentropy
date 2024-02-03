@@ -1,18 +1,19 @@
 package com.trajan.negentropy.model.data;
 
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.util.TimeableUtil.TimeableAncestor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface RoutineData <T extends RoutineStepData<T>> extends Data {
+public interface RoutineData <T extends RoutineStepData<T>> extends Data, TimeableAncestor<T> {
     Boolean autoSync();
     List<T> children();
-    List<T> getDescendants();
+    List<T> descendants();
     Integer currentPosition();
 
     default T currentStep() {
-        return getDescendants().get(currentPosition());
+        return descendants().get(currentPosition());
     }
 
     default LocalDateTime startTime() {
@@ -24,7 +25,7 @@ public interface RoutineData <T extends RoutineStepData<T>> extends Data {
     }
 
     default int countSteps() {
-        return getDescendants().size();
+        return descendants().size();
     }
 
     default String typeName() {
@@ -32,7 +33,7 @@ public interface RoutineData <T extends RoutineStepData<T>> extends Data {
     }
 
     default boolean hasExcludedSteps() {
-        return getDescendants().stream()
+        return descendants().stream()
                 .anyMatch(step -> step.status().equals(TimeableStatus.EXCLUDED));
     }
 }

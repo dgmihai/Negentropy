@@ -7,7 +7,8 @@ public enum TimeableStatus {
     COMPLETED("Completed"),
     SKIPPED("Skipped"),
     EXCLUDED("Excluded"),
-    POSTPONED("Postponed");
+    POSTPONED("Postponed"),
+    LIMIT_EXCEEDED("Exceeds Limit");
 
     private final String text;
 
@@ -18,6 +19,10 @@ public enum TimeableStatus {
     @Override
     public String toString() {
         return text;
+    }
+
+    public boolean isNotUnfinished() {
+        return this == COMPLETED || this == EXCLUDED || this == POSTPONED || this == LIMIT_EXCEEDED;
     }
 
     public boolean isFinished() {

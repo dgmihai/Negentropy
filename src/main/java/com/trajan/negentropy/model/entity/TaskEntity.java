@@ -29,7 +29,6 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @Setter
-@ToString(onlyExplicitlyIncluded = true)
 @Slf4j
 public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, HasDuration, TaskOrTaskLinkEntity {
 
@@ -41,32 +40,17 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
     
     @Column(nullable = false, unique = true)
     @NotEmpty(message = "Name is required")
-    @ToString.Include
     private String name;
 
     @Column(columnDefinition = "TEXT")
-    @ToString.Include
     private String description = "";
 
-    @ToString.Include
     private Duration duration = Duration.ZERO;
-
-    @ToString.Include
     private Boolean required = false;
-
-    @ToString.Include
     private Boolean project = false;
-
-    @ToString.Include
     private Boolean difficult = false;
-
-    @ToString.Include
     private Boolean starred = false;
-
-    @ToString.Include
     private Boolean pinned = false;
-
-    @ToString.Include
     private Boolean cleanup = false;
 
     @OneToMany(
@@ -97,4 +81,11 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Fetch(FetchMode.SUBSELECT)
     private Set<TagEntity> tags = new HashSet<>();
+
+    @Override
+    public String toString() {
+        return "TaskEntity(" + id + ")[name=" + name + ", description=" + description + ", duration=" + duration
+                + ", required=" + required + ", project=" + project + ", difficult=" + difficult + ", starred="
+                + starred + ", pinned=" + pinned + ", cleanup=" + cleanup + "]";
+    }
 }

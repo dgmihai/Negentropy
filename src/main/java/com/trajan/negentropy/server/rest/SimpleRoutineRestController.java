@@ -117,7 +117,7 @@ public class SimpleRoutineRestController {
     @PostMapping("/diaper")
     public ResponseEntity<RoutineStep> diaper() {
         log.debug("REST request to start diaper change");
-        RoutineStep step = makeCall(id -> routineService.createRoutine(DIAPER_CHANGE)).getBody();
+        RoutineStep step = makeCall(id -> routineService.createRoutine(DIAPER_CHANGE, LocalDateTime.now())).getBody();
         return makeCall(id -> routineService.startStep(step.id(), LocalDateTime.now()));
     }
 }

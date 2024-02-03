@@ -217,4 +217,9 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
         }
         return this;
     }
+
+    @Override
+    public String name() {
+        return child.name();
+    }
 }

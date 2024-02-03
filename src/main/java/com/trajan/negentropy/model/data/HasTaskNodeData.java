@@ -4,6 +4,7 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.id.TaskID;
+import com.trajan.negentropy.model.sync.TaskNodeLimits;
 import org.springframework.lang.Nullable;
 import org.springframework.scheduling.support.CronExpression;
 
@@ -54,6 +55,9 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
         T projectEtaLimit(Optional<LocalTime> projectEtaLimit);
         @Nullable
         Optional<LocalTime> projectEtaLimit();
+        default TaskNodeLimits limits() {
+            return new TaskNodeLimits(projectDurationLimit(), projectEtaLimit(), projectStepCountLimit());
+        }
     }
 
     interface TaskNodeDTOData<T extends TaskNodeDTOData<T>> extends TaskNodeInfoData<T> {

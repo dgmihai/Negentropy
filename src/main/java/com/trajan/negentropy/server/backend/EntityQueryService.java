@@ -273,8 +273,12 @@ public interface EntityQueryService {
     Stream<TagEntity> findOrphanedTags();
 
     JPAQuery<RoutineStepEntity> findRoutinesContainingLink(LinkID linkId);
-    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLink(LinkID linkId);
-    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingLinks(Set<LinkID> linkIds);
-    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTask(TaskID taskId);
-    JPAQuery<RoutineStepEntity> findOnlyReadyRoutinesContainingTasks(Set<TaskID> taskIds);
+    JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLink(LinkID linkId);
+    JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLinks(Set<LinkID> linkIds);
+    JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTask(TaskID taskId);
+    JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTasks(Set<TaskID> taskIds);
+
+    Stream<TaskLink> findLinksThatHaveActiveRoutineSteps();
+
+    Iterable<RoutineEntity> findActiveRoutines();
 }

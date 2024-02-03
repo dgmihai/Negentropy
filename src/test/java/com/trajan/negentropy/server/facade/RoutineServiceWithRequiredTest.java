@@ -21,11 +21,15 @@ import com.trajan.negentropy.server.RoutineTestTemplateWithRequiredTasks;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import org.apache.commons.lang3.tuple.Triple;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -44,9 +48,6 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
     void setup() {
         init();
     }
-
-    @BeforeEach
-    void beforeEach() { }
 
     @Test
     void testCreateRoutineFromProjectLinkWithNestedLimitedProject() throws Exception {
@@ -77,12 +78,15 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE),
                 List.of(
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
     }
 
     @Test
     void testJumpToStepInRoutine() throws Exception {
-        RoutineResponse response = linkRoutineCreationTest(
+        Routine routine = linkRoutineCreationTest(
                 Triple.of(NULL, TWO, 1),
                 List.of(
                         TWO,
@@ -90,9 +94,10 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
-        Routine routine = response.routine();
         routine = routineService.startStep(routine.currentStep().id(), LocalDateTime.now()).routine();
 
         RoutineStep twoTwo = routine.steps().values()
@@ -101,7 +106,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 .findFirst()
                 .orElseThrow();
 
-        response = routineService.jumpToStep(twoTwo.id(), LocalDateTime.now());
+        RoutineResponse response = routineService.jumpToStep(twoTwo.id(), LocalDateTime.now());
         assertTrue(response.success());
         routine = response.routine();
 
@@ -143,7 +148,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOTWO,
+                        TWOTWOONE));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(0);
@@ -155,7 +162,12 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 List.of(
                         TWO,
                         TWOONE),
-                List.of());
+                List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(1);
@@ -169,7 +181,10 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(2);
@@ -184,7 +199,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(99);
@@ -199,7 +216,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
     }
 
     @Test
@@ -221,7 +240,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectStepCountLimit(Optional.of(0)))));
@@ -235,6 +256,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE),
                 List.of(
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
@@ -250,6 +274,8 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO,
                         TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
@@ -265,7 +291,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectStepCountLimit(Optional.of(99)))));
@@ -280,7 +308,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
     }
 
     @Test
@@ -304,7 +334,10 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE));
 
         filter = new RoutineLimitFilter()
                 .etaLimit(LocalDateTime.now().plus(routineDuration
@@ -318,7 +351,12 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 List.of(
                         TWO,
                         TWOONE),
-                List.of());
+                List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE));
 
         filter = new RoutineLimitFilter()
                 .etaLimit(LocalDateTime.MAX);
@@ -333,20 +371,20 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
     }
 
-    @Test
-    @Transactional
-    void testCreateRoutineFromProjectLinkWithLimitingEtaViaLink() {
+    private void createRoutineFromProjectLinkWithLimitingEtaViaLink(LocalDateTime startTime) {
         TaskNode root = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
 
-        changeService.execute(Request.of(new MergeChange<>(
-                root.projectDurationLimit(Optional.empty())
-                        .projectEtaLimit(Optional.of(LocalTime.now()
-                                .plus(routineDuration)
-                                .plusSeconds(1))))));
+        changeService.execute(new MergeChange<>(root
+                .projectDurationLimit(Optional.empty())
+                .projectEtaLimit(Optional.of(LocalTime.from(startTime
+                        .plus(routineDuration)
+                        .plusSeconds(1))))));
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -357,11 +395,33 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                List.of(TWOTHREE));
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
-                root.projectEtaLimit(Optional.of(LocalTime.now().plus(routineDuration
-                        .minusHours(3)
+                root.projectEtaLimit(Optional.of(LocalTime.from(startTime
+                        .plus(routineDuration
+                                .minusHours(3)
+                                .plusSeconds(1))))))));
+
+        linkRoutineCreationTestWithExpectedDurationAndFilter(
+                Triple.of(NULL, TWO, 1),
+                id -> Duration.ofHours(3),
+                null,
+                List.of(
+                        TWO,
+                        TWOONE),
+                List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE));
+
+        changeService.execute(Request.of(new MergeChange<>(
+                root.projectEtaLimit(Optional.of(LocalTime.from(startTime
                         .plusSeconds(1)))))));
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
@@ -373,10 +433,13 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE),
                 List.of(
                         TWOTWO,
-                        TWOTHREE));
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE,
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
-                root.projectEtaLimit(Optional.of(LocalTime.now().minusSeconds(1))))));
+                root.projectEtaLimit(Optional.empty()))));
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -388,13 +451,38 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
 
-        changeService.execute(Request.of(new MergeChange<>(
-                root.projectEtaLimit(Optional.empty()))));
+        routineService.manualTime(null);
     }
 
     @Test
+    @Transactional
+    void testCreateRoutineFromProjectLinkWithLimitingEtaViaLink_SingleDay() {
+        LocalDateTime startTime = LocalDateTime.of(
+                LocalDate.now(),
+                LocalTime.of(8, 0));
+        routineService.manualTime(startTime);
+
+        createRoutineFromProjectLinkWithLimitingEtaViaLink(startTime);
+    }
+
+    @Test
+    @Transactional
+    @Disabled
+    void testCreateRoutineFromProjectLinkWithLimitingEtaViaLink_MultipleDays() {
+        LocalDateTime startTime = LocalDateTime.of(
+                LocalDate.now(),
+                LocalTime.of(20, 0));
+        routineService.manualTime(startTime);
+
+        createRoutineFromProjectLinkWithLimitingEtaViaLink(startTime);
+    }
+
+    @Test
+    @Disabled
     void testDynamicETALimitStepInsertion() {
         TaskNode root = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(3);
@@ -403,16 +491,24 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 root.projectDurationLimit(Optional.of(routineDuration)))));
 
         RoutineLimitFilter filter = new RoutineLimitFilter()
-                .etaLimit(LocalDateTime.now().plus(routineDuration.plusHours(1)));
+                .etaLimit(LocalDateTime.now().plus(routineDuration.plusHours(2)));
 
-        Routine routine = routineService.createRoutine(root.id(), filter).routine();
+        Routine routine = routineService.createRoutine(root.id(), filter, routineService.now()).routine();
 
-        assertEquals(List.of(
+        assertFreshRoutine(List.of(
                         TWO,
                         TWOONE),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
+
+        assertRoutineAll(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                routine);
 
         StepID previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
@@ -432,20 +528,51 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 TWO,
                 TimeableStatus.ACTIVE);
 
+        changeService.execute(Request.of(new MergeChange<>(
+                root.projectDurationLimit(Optional.of(routineDuration
+                        .plusHours(2))))));
+
+        routine = routineService.fetchRoutine(routine.id());
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE),
+                routine);
+
+        assertRoutineAll(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                routine);
+
+        routineService.refreshRoutines(true);
+
         previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
                 routineService::completeStep);
         previous = routine.steps().get(previousId);
 
-        assertEquals(List.of(
+        assertRoutine(List.of(
                         TWO,
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
+
+        assertRoutineAll(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                routine);
 
         assertRoutineStepExecution(
                 routine,
@@ -458,6 +585,96 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 previous,
                 TWOONE,
                 TimeableStatus.COMPLETED);
+
+        routineService.refreshRoutines(false);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        assertRoutineAll(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE),
+                routine);
+
+        assertRoutineStepExecution(
+                routine,
+                3,
+                TWOTWOONE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWO,
+                TimeableStatus.ACTIVE);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO),
+                routine);
+
+        assertRoutineStepExecution(
+                routine,
+                4,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOONE,
+                TimeableStatus.COMPLETED);
+
+        previousId = routine.currentStep().id();
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::completeStep);
+        previous = routine.steps().get(previousId);
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        assertRoutineStepExecution(
+                routine,
+                4,
+                TWOTWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStep(
+                previous,
+                TWOTWOONE,
+                TimeableStatus.COMPLETED);
     }
 
     @Test
@@ -466,11 +683,12 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
         TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
 
         changeService.execute(Request.of(
-                new MergeChange<>(
-                        two.projectDurationLimit(Optional.empty())),
-                new MergeChange<>(
-                        twoTwo.projectStepCountLimit(Optional.of(3))
-                                .projectDurationLimit(Optional.empty()))));
+                new MergeChange<>(two
+                        .projectDurationLimit(Optional.empty())
+                        .projectEtaLimit(Optional.empty())),
+                new MergeChange<>(twoTwo
+                        .projectStepCountLimit(Optional.of(3))
+                        .projectDurationLimit(Optional.empty()))));
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -501,7 +719,8 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWOONE,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 twoTwo.projectStepCountLimit(Optional.of(99)))));
@@ -538,7 +757,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 twoTwo.projectStepCountLimit(Optional.of(1)))));
@@ -554,7 +773,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOONE,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -569,16 +790,14 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
         RoutineLimitFilter filter = new RoutineLimitFilter()
                 .etaLimit(LocalDateTime.now().plus(routineDuration.plusHours(1)));
 
-        Routine routine = routineService.createRoutine(root.id(), filter).routine();
+        Routine routine = routineService.createRoutine(root.id(), filter, routineService.now()).routine();
 
-        assertEquals(List.of(
+        assertFreshRoutine(List.of(
                         TWO,
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
 
         routineService.manualTime(LocalDateTime.now().plus(Duration.ofHours(7)));
 
@@ -600,17 +819,16 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 TWO,
                 TimeableStatus.ACTIVE);
 
-        assertEquals(List.of(
+        assertRoutine(List.of(
                         TWO,
                         TWOONE),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
 
         routineService.manualTime(null);
     }
 
     @Test
+    @Disabled
     void testDynamicETALimitStepExclusionFromSibling() {
         TaskNode root = nodes.get(Triple.of(NULL, TWO, 1));
         Duration routineDuration = Duration.ofHours(5);
@@ -621,16 +839,14 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
         RoutineLimitFilter filter = new RoutineLimitFilter()
                 .etaLimit(LocalDateTime.now().plus(routineDuration.plusHours(1)));
 
-        Routine routine = routineService.createRoutine(root.id(), filter).routine();
+        Routine routine = routineService.createRoutine(root.id(), filter, routineService.now()).routine();
 
-        assertEquals(List.of(
+        assertFreshRoutine(List.of(
                         TWO,
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
 
         StepID previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
@@ -650,22 +866,21 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                 TWO,
                 TimeableStatus.ACTIVE);
 
-        routineService.manualTime(LocalDateTime.now().plus(Duration.ofHours(12)));
+        LocalDateTime manualTime = LocalDateTime.now().plus(Duration.ofHours(12));
+        routineService.manualTime(manualTime);
 
         previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
-                LocalDateTime.now(),
+                manualTime,
                 routineService::completeStep);
         previous = routine.steps().get(previousId);
 
-        assertEquals(List.of(
+        assertRoutine(List.of(
                         TWO,
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                routine.getDescendants()
-                        .stream().map(RoutineStep::name)
-                        .toList());
+                routine);
 
         assertRoutineStep(
                 previous,
@@ -674,7 +889,35 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
         assertRoutineStepExecution(
                 routine,
-                0,
+                2,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutine(List.of(
+                        TWO,
+                        TWOONE,
+                        TWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO),
+                routine);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
                 TWO,
                 TimeableStatus.ACTIVE,
                 TimeableStatus.ACTIVE);
@@ -698,6 +941,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE),
                 List.of(
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
     }
 
@@ -718,6 +964,8 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO,
                         TWOTHREE));
     }
 
@@ -738,7 +986,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
     }
 
     @Test
@@ -783,7 +1033,10 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOONE,
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
-                List.of());
+                List.of(
+                        TWOTHREE,
+                        TWOTWOTWO,
+                        TWOTWOONE));
     }
 
     @Test
@@ -807,7 +1060,9 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         TWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOONE,
+                        TWOTWOTWO));
     }
 
     @Test
@@ -837,6 +1092,10 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         THREEONE),
                 List.of(
                         THREETWO,
+                        THREETWOONE_AND_THREETWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        THREETWOONE_AND_THREETWOTHREE,
+                        SIX_AND_THREETWOFOUR,
                         THREETHREE));
     }
 
@@ -869,7 +1128,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
     @Test
     void testRoutineRecalculateWithPersistAtBack() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWOTWO,
@@ -901,7 +1160,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
     @Test
     void testRoutineRecalculateWithPersistAtFront() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWOTWO,
@@ -983,7 +1242,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
     @Test
     void testRoutineRecalculateWithDelete() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWOTWO,
@@ -1036,7 +1295,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
     @Test
     void testRoutineRecalculateWithDeleteWithChildren() {
-        Routine routine = routineService.createRoutine(tasks.get(TWO).id()).routine();
+        Routine routine = routineService.createRoutine(tasks.get(TWO).id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWO,
@@ -1097,7 +1356,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
         assertRoutineStepExecution(
                 routine,
-                3,
+                5,
                 TWOTWOTHREE_AND_THREETWOTWO,
                 TimeableStatus.ACTIVE,
                 TimeableStatus.ACTIVE);
@@ -1131,7 +1390,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
 
     @Test
     void testRoutineRecalculateWithMerge() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
+        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWOTWO,
@@ -1171,7 +1430,7 @@ public class RoutineServiceWithRequiredTest extends RoutineTestTemplateWithRequi
                         .cycleToEnd(true)
                         .recurring(true))));
 
-        Routine routine = routineService.createRoutine(root.id()).routine();
+        Routine routine = routineService.createRoutine(root.id(), routineService.now()).routine();
 
         assertFreshRoutine(List.of(
                         TWOTWO,

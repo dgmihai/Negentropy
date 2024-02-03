@@ -1,8 +1,6 @@
 package com.trajan.negentropy.model.filter;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -10,6 +8,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString(callSuper = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class RoutineLimitFilter extends TaskNodeTreeFilter {
     protected Duration durationLimit;
     protected Integer stepCountLimit;

@@ -6,15 +6,16 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
+import com.trajan.negentropy.util.TimeableUtil.TimeableAncestor;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +27,8 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
-@ToString(callSuper = true)
-public class RoutineEntity extends AbstractEntity implements RoutineData, Ancestor<RoutineStepEntity> {
+public class RoutineEntity extends AbstractEntity implements RoutineData<RoutineStepEntity>, Ancestor<RoutineStepEntity>,
+        TimeableAncestor<RoutineStepEntity> {
     
     @Id
     @Column(nullable = false, updatable = false)
@@ -55,21 +56,29 @@ public class RoutineEntity extends AbstractEntity implements RoutineData, Ancest
     private Boolean autoSync= true;
     private Long syncId;
 
+    private LocalDateTime creationTimestamp;
+
     public SyncID syncId() {
         return (syncId != null) ? new SyncID(syncId) : null;
     }
 
     @Override
     public RoutineStepEntity currentStep() {
-        return (RoutineStepEntity) RoutineData.super.currentStep();
+        return RoutineData.super.currentStep();
     }
 
     @Override
-    public List<RoutineStepEntity> getDescendants() {
+    public List<RoutineStepEntity> descendants() {
         List<RoutineStepEntity> descendants = new ArrayList<>();
         for (RoutineStepEntity child : children) {
             descendants.addAll(DFSUtil.traverse(child));
         }
         return descendants;
+    }
+
+    @Override
+    public String toString() {
+        return "RoutineEntity(" + id + ")[roots=" + children().stream().map(RoutineStepEntity::name).toList()
+                + ", status=" + status + ", currentPosition=" + currentPosition + "]";
     }
 }

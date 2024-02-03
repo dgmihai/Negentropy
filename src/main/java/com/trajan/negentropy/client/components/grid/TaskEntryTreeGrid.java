@@ -316,6 +316,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
+
+            case LIMIT -> configureLimitColumn(treeGrid.addColumn(
+                            entry -> (entry.nodeOptional().isPresent())
+                                    ? limitValueProvider.apply(entry.node().limits())
+                                    : ""));
         }
     }
 

@@ -17,7 +17,6 @@ public interface Timeable <T extends Timeable<T>> {
     Duration elapsedSuspendedDuration();
     T elapsedSuspendedDuration(Duration elapsedSuspendedDuration);
 
-
     String name();
     String description();
     Duration duration();

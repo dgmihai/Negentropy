@@ -7,7 +7,6 @@ import com.trajan.negentropy.model.id.ID.ChangeID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordDataType;
 import com.trajan.negentropy.model.sync.ChangeRecord.ChangeRecordType;
-import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.sync.SyncManager;
 import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.trajan.negentropy.server.facade.response.Request;
@@ -25,8 +24,6 @@ import org.springframework.util.MultiValueMap;
 public class ChangeService {
     @Autowired private ChangeProcessor processor;
     @Autowired private SyncManager syncManager;
-    @Autowired private QueryService queryService;
-    @Autowired private EntityQueryService entityQueryService;
 
     @Autowired private ServerBroadcaster broadcaster;
 

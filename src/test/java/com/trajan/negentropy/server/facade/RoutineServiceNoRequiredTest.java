@@ -111,6 +111,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 List.of(
                         TWOONE,
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
     }
 
@@ -130,6 +133,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOONE),
                 List.of(
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
     }
 
@@ -151,7 +157,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO),
                 List.of(
-                        TWOTHREE));
+                        TWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -172,7 +179,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -219,7 +226,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO),
-                List.of());
+                List.of(
+                        TWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -240,7 +249,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -328,6 +337,10 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         THREEONE),
                 List.of(
                         THREETWO,
+                        THREETWOONE_AND_THREETWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        THREETWOONE_AND_THREETWOTHREE,
+                        SIX_AND_THREETWOFOUR,
                         THREETHREE));
     }
 
@@ -360,7 +373,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineAndGoPreviousImmediately() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -382,7 +395,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteOnRoutineStepWhichIsNotCurrentOrParentOfCurrent() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -427,7 +440,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutine() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -470,7 +483,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time2);
 
-        RoutineStep stepTwoTwo = routine.getDescendants().get(position);
+        RoutineStep stepTwoTwo = routine.descendants().get(position);
         assertRoutineStepParent(
                 routine,
                 stepTwoTwo,
@@ -500,7 +513,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time3);
 
-        RoutineStep stepTwoTwoOne = routine.getDescendants().get(position);
+        RoutineStep stepTwoTwoOne = routine.descendants().get(position);
         assertRoutineStep(
                 stepTwoTwoOne,
                 TWOTWOONE,
@@ -575,7 +588,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time6);
 
-        RoutineStep stepTwoTwoTwo = routine.getDescendants().get(position);
+        RoutineStep stepTwoTwoTwo = routine.descendants().get(position);
         assertRoutineStep(
                 stepTwoTwoTwo,
                 TWOTWOTWO,
@@ -602,7 +615,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time3);
 
-        RoutineStep stepTwoTwoThree = routine.getDescendants().get(position);
+        RoutineStep stepTwoTwoThree = routine.descendants().get(position);
         assertRoutineStep(
                 stepTwoTwoThree,
                 TWOTWOTHREE_AND_THREETWOTWO,
@@ -626,7 +639,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time6);
 
-        stepTwoTwoTwo = routine.getDescendants().get(position);
+        stepTwoTwoTwo = routine.descendants().get(position);
         assertRoutineStep(
                 stepTwoTwoTwo,
                 TWOTWOTWO,
@@ -650,7 +663,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time1);
 
-        stepTwoTwoThree = routine.getDescendants().get(position);
+        stepTwoTwoThree = routine.descendants().get(position);
         assertEquals(time9, stepTwoTwoThree.finishTime());
         assertRoutineStep(
                 stepTwoTwoThree,
@@ -668,7 +681,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 time10,
                 routineService::completeStep);
 
-        stepTwoTwo = routine.getDescendants().get(position);
+        stepTwoTwo = routine.descendants().get(position);
         assertRoutineStepExecution(
                 routine,
                 2,
@@ -696,7 +709,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time1);
 
-        stepTwoTwoTwo = routine.getDescendants().get(position);
+        stepTwoTwoTwo = routine.descendants().get(position);
         assertRoutineStep(
                 stepTwoTwoTwo,
                 TWOTWOTWO,
@@ -723,7 +736,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineTwo() {
         TaskID rootId = tasks.get(THREE_AND_FIVE).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -752,7 +765,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time0);
 
-        RoutineStep stepThreeAndFive = routine.getDescendants().get(position);
+        RoutineStep stepThreeAndFive = routine.descendants().get(position);
         assertRoutineStep(
                 stepThreeAndFive,
                 THREE_AND_FIVE,
@@ -772,7 +785,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time1);
 
-        RoutineStep stepThreeOne = routine.getDescendants().get(position);
+        RoutineStep stepThreeOne = routine.descendants().get(position);
         assertRoutineStep(
                 stepThreeOne,
                 THREEONE,
@@ -792,7 +805,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time0);
 
-        RoutineStep stepThreeTwo = routine.getDescendants().get(position);
+        RoutineStep stepThreeTwo = routine.descendants().get(position);
         assertRoutineStep(
                 stepThreeTwo,
                 THREETWO,
@@ -812,7 +825,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time1);
 
-        stepThreeOne = routine.getDescendants().get(position);
+        stepThreeOne = routine.descendants().get(position);
         assertRoutineStep(
                 stepThreeOne,
                 THREEONE,
@@ -831,7 +844,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 time4);
 
-        stepThreeTwo = routine.getDescendants().get(position);
+        stepThreeTwo = routine.descendants().get(position);
         for (RoutineStep step : stepThreeTwo.children()) {
             assertEquals(TimeableStatus.SKIPPED, step.status());
         }
@@ -865,7 +878,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 time5,
                 routineService::completeStep);
-        stepThreeTwo = routine.getDescendants().get(position);
+        stepThreeTwo = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -885,7 +898,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 time6,
                 routineService::completeStep);
-        RoutineStep stepThreeTwoOne = routine.getDescendants().get(position);
+        RoutineStep stepThreeTwoOne = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -905,7 +918,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 time7,
                 routineService::completeStep);
-        RoutineStep stepThreeTwoTwo = routine.getDescendants().get(position);
+        RoutineStep stepThreeTwoTwo = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -925,7 +938,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 time8,
                 routineService::completeStep);
-        RoutineStep stepThreeTwoThree = routine.getDescendants().get(position);
+        RoutineStep stepThreeTwoThree = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -944,7 +957,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
                 routineService::postponeStep);
-        RoutineStep stepThreeTwoFour = routine.getDescendants().get(position);
+        RoutineStep stepThreeTwoFour = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -963,7 +976,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
                 routineService::excludeStep);
-        stepThreeTwo = routine.getDescendants().get(position);
+        stepThreeTwo = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -993,11 +1006,14 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
     private Routine startRoutineTwoTwo() {
         TaskID rootId = tasks.get(TWOTWO).id();
-
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = taskRoutineCreationTest(TWOTWO,
+                List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         RoutineStep rootStep = routine.children().get(0);
-
         assertEquals(rootId, rootStep.task().id());
 
         assertRoutineStepExecution(
@@ -1095,8 +1111,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     void executeRoutineParentNoChildren() {
         TaskID rootId = tasks.get(TWOTWOONE).id();
-
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = taskRoutineCreationTest(TWOTWOONE,
+                List.of(
+                        TWOTWOONE));
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1239,7 +1256,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.ACTIVE,
                 expectedNextStatus);
 
-        RoutineStep previousStep = routine.getDescendants().get(position);
+        RoutineStep previousStep = routine.descendants().get(position);
         assertRoutineStep(
                 previousStep,
                 expectedPreviousName,
@@ -1252,7 +1269,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineNestedActiveStep() {
         TaskID rootId = tasks.get(TWO).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1267,7 +1284,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 null);
         assertNull(routine.currentStep().parentId());
 
-        routine = doRoutine(routine.getDescendants().get(5).id(),
+        routine = doRoutine(routine.descendants().get(6).id(),
                 LocalDateTime.now(),
                 routineService::excludeStep);
 
@@ -1280,7 +1297,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 null);
         assertNull(routine.currentStep().parentId());
 
-        RoutineStep previousStep = routine.getDescendants().get(5);
+        RoutineStep previousStep = routine.descendants().get(6);
         assertRoutineStep(
                 previousStep,
                 TWOTHREE,
@@ -1313,10 +1330,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
     @Test
     void testExecuteRoutineSkipFirstStep() {
-
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId).routine();
+        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1341,14 +1357,12 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     @Transactional
     void testRoutineRecalculateWithPersistAtBack() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
-
-        assertFreshRoutine(List.of(
+        Routine routine = taskRoutineCreationTest(TWOTWO,
+                List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTWOTHREE_AND_THREETWOTWO),
-                routine);
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         Duration originalDuration = routine.estimatedDuration();
         assertEquals(Duration.ofHours(3), originalDuration);
@@ -1373,14 +1387,12 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     @Transactional
     void testRoutineRecalculateWithPersistAtFront() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
-
-        assertFreshRoutine(List.of(
+        Routine routine = taskRoutineCreationTest(TWOTWO,
+                List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTWOTHREE_AND_THREETWOTWO),
-                routine);
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         Duration originalDuration = routine.estimatedDuration();
         assertEquals(Duration.ofHours(3), originalDuration);
@@ -1406,15 +1418,12 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     @Transactional
     void testRoutineRecalculateWithDelete() {
-        Task root = tasks.get(TWOTWO);
-        Routine routine = routineService.createRoutine(root.id()).routine();
-
-        assertFreshRoutine(List.of(
+        Routine routine = taskRoutineCreationTest(TWOTWO,
+                List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTWOTHREE_AND_THREETWOTWO),
-                routine);
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         Duration originalDuration = routine.estimatedDuration();
 
@@ -1437,14 +1446,12 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     @Transactional
     void testRoutineRecalculateWithMerge() {
-        Routine routine = routineService.createRoutine(tasks.get(TWOTWO).id()).routine();
-
-        assertFreshRoutine(List.of(
+        Routine routine = taskRoutineCreationTest(TWOTWO,
+                List.of(
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO,
-                        TWOTWOTHREE_AND_THREETWOTWO),
-                routine);
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         Duration originalDuration = routine.estimatedDuration();
         assertEquals(Duration.ofHours(3), originalDuration);
@@ -1480,6 +1487,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         RoutineLimitFilter filter = new RoutineLimitFilter()
                 .stepCountLimit(3);
+        assertTrue(filter.isLimiting());
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -1492,10 +1500,11 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(1);
+        assertTrue(filter.isLimiting());
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -1504,10 +1513,16 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 List.of(
                         TWO,
                         TWOONE),
-                List.of());
+                List.of(
+                        TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(2);
+        assertTrue(filter.isLimiting());
 
         linkRoutineCreationTestWithExpectedDurationAndFilter(
                 Triple.of(NULL, TWO, 1),
@@ -1519,7 +1534,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO),
-                List.of());
+                List.of(
+                        TWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         filter = new RoutineLimitFilter()
                 .stepCountLimit(99);
@@ -1535,7 +1552,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -1562,7 +1579,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectStepCountLimit(Optional.of(1)))));
@@ -1576,6 +1593,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOONE),
                 List.of(
                         TWOTWO,
+                        TWOTWOONE,
+                        TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
@@ -1591,7 +1611,9 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWO,
                         TWOTWOONE,
                         TWOTWOTWO),
-                List.of(TWOTHREE));
+                List.of(
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        TWOTHREE));
 
         changeService.execute(Request.of(new MergeChange<>(
                 node.projectStepCountLimit(Optional.of(99)))));
@@ -1607,7 +1629,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(
+                        TWOTWOTHREE_AND_THREETWOTWO));
     }
 
     @Test
@@ -1654,7 +1677,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWO,
                         TWOTWOONE,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTWO,
+                        TWOTWOTHREE_AND_THREETWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 twoTwo.projectStepCountLimit(Optional.of(2)))));
@@ -1670,7 +1694,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOONE,
                         TWOTWOTWO,
                         TWOTHREE),
-                List.of());
+                List.of(TWOTWOTHREE_AND_THREETWOTWO));
 
         changeService.execute(Request.of(new MergeChange<>(
                 twoTwo.projectStepCountLimit(Optional.of(99)))));

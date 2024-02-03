@@ -57,7 +57,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        response = routineService.kickStepUp(routine.getDescendants().stream()
+        response = routineService.kickStepUp(routine.descendants().stream()
                         .filter(step -> step.name().equals(TWOTWOTWO))
                         .findFirst()
                         .get()
@@ -77,13 +77,13 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        assertEquals(TimeableStatus.NOT_STARTED, routine.getDescendants().stream()
+        assertEquals(TimeableStatus.NOT_STARTED, routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWOTWO))
                 .findFirst()
                 .get()
                 .status());
 
-        assertEquals(2, routine.getDescendants().stream()
+        assertEquals(2, routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWO))
                 .findFirst()
                 .get()
@@ -117,7 +117,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        response = routineService.kickStepUp(routine.getDescendants().stream()
+        response = routineService.kickStepUp(routine.descendants().stream()
                         .filter(step -> step.name().equals(TWOTWOTWO))
                         .findFirst()
                         .get()
@@ -138,7 +138,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        List<RoutineStep> twoTwoTwoList = routine.getDescendants().stream()
+        List<RoutineStep> twoTwoTwoList = routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWOTWO))
                 .toList();
 
@@ -177,7 +177,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        response = routineService.kickStepUp(routine.getDescendants().stream()
+        response = routineService.kickStepUp(routine.descendants().stream()
                         .filter(step -> step.name().equals(TWOTWO))
                         .findFirst()
                         .get()
@@ -187,7 +187,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
         assertTrue(response.success());
         routine = response.routine();
 
-        assertRoutine(List.of(
+        assertRoutineAll(List.of(
                         TWO,
                         TWOONE,
                         TWOTWO,
@@ -201,14 +201,14 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
 
-        List<RoutineStep> twoTwoList = routine.getDescendants().stream()
+        List<RoutineStep> twoTwoList = routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWO))
                 .toList();
 
         assertEquals(TimeableStatus.EXCLUDED, twoTwoList.get(0).status());
         assertEquals(TimeableStatus.NOT_STARTED, twoTwoList.get(1).status());
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.getDescendants().stream()
+        assertEquals(TimeableStatus.EXCLUDED, routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWOONE))
                 .findFirst()
                 .get()
@@ -236,7 +236,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        response = routineService.pushStepForward(routine.getDescendants().stream()
+        response = routineService.pushStepForward(routine.descendants().stream()
                         .filter(step -> step.name().equals(TWOTWOTWO))
                         .findFirst()
                         .get()
@@ -287,7 +287,7 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 routine);
 
-        List<RoutineStep> twoTwoTwoList = routine.getDescendants().stream()
+        List<RoutineStep> twoTwoTwoList = routine.descendants().stream()
                 .filter(step -> step.name().equals(TWOTWOTWO))
                 .toList();
 

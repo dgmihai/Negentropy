@@ -4,9 +4,9 @@ import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.quickcreate.QuickCreateField;
-import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.routinelimit.RoutineSelect;
 import com.trajan.negentropy.client.components.routinelimit.RoutineSelect.SelectOptions;
+import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.searchandfilterform.AbstractSearchAndFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TaskFilterForm;
 import com.trajan.negentropy.client.components.searchandfilterform.TaskNodeFilterForm;
@@ -18,6 +18,7 @@ import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.model.Task;
+import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
@@ -212,21 +213,24 @@ public class ToolbarTabSheet extends TabSheet {
                 ? new Tab("Search & Filter")
                 : new Tab(VaadinIcon.SEARCH.create());
 
-        filterForm.binder().addValueChangeListener(event -> {
-            NestableTaskNodeTreeFilter filter = filterForm.binder().getBean();
-            if (filter.options().equals(Set.of()) &&
-                    filter.name().isBlank() &&
-                    (filter.completed() != null && !filter.completed()) &&
-                    filter.includedTagIds().equals(Set.of()) &&
-                    filter.excludedTagIds().equals(Set.of())) {
-                searchAndFilterTab.removeClassName(K.BACKGROUND_COLOR_PRIMARY);
-            } else {
-                searchAndFilterTab.addClassName(K.BACKGROUND_COLOR_PRIMARY);
-            }
-        });
+        this.setSearchAndFilterTabBackgroundColor();
+        filterForm.binder().addValueChangeListener(event -> setSearchAndFilterTabBackgroundColor());
 
         add(searchAndFilterTab, filterForm);
         return this;
+    }
+
+    private void setSearchAndFilterTabBackgroundColor() {
+        NestableTaskNodeTreeFilter filter = filterForm.binder().getBean();
+        if (filter.options().equals(Set.of()) &&
+                filter.name().isBlank() &&
+                (filter.completed() != null && !filter.completed()) &&
+                filter.includedTagIds().equals(Set.of()) &&
+                filter.excludedTagIds().equals(Set.of())) {
+            searchAndFilterTab.removeClassName(K.BACKGROUND_COLOR_PRIMARY);
+        } else {
+            searchAndFilterTab.addClassName(K.BACKGROUND_COLOR_PRIMARY);
+        }
     }
 
     private ToolbarTabSheet initOptionsTab(boolean mobile) {
@@ -499,5 +503,11 @@ public class ToolbarTabSheet extends TabSheet {
                         null);
             }
         }
+    }
+
+    public void setCreateTaskFormData(Task task, TaskNodeDTO data) {
+        this.createTaskForm.taskBinder().setBean(task);
+        this.createTaskForm.nodeInfoBinder().setBean(data);
+        this.createTaskForm.onNameValueChange();
     }
 }

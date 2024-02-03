@@ -51,6 +51,32 @@ public class MainLayout extends AppLayout {
         viewTitle = new H2();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
 
+        // TODO: Broadcast state to all UIs
+        Icon refreshIcon = VaadinIcon.REFRESH.create();
+        Button autoRefresh = new Button(refreshIcon);
+        autoRefresh.addClassName(LumoUtility.FontSize.LARGE);
+        autoRefresh.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+        RoutineService routineService = SpringContext.getBean(RoutineService.class);
+
+        Runnable setAutoRefreshButtonColor = () -> {
+            if (routineService.refreshRoutines()) {
+                refreshIcon.addClassName(K.ICON_COLOR_PRIMARY);
+                refreshIcon.removeClassName(K.ICON_COLOR_UNSELECTED);
+            } else {
+                refreshIcon.removeClassName(K.ICON_COLOR_PRIMARY);
+                refreshIcon.addClassName(K.ICON_COLOR_UNSELECTED);
+            }
+        };
+
+        setAutoRefreshButtonColor.run();
+        autoRefresh.addClickListener(event -> {
+            log.debug("Toggling auto-refresh to " + !routineService.refreshRoutines());
+            routineService.refreshRoutines(!routineService.refreshRoutines());
+            NotificationMessage.result("Auto-refresh " + (!routineService.refreshRoutines() ? "disabled" : "enabled"));
+            if (routineService.refreshRoutines()) CompletableFuture.runAsync(routineService::refreshActiveRoutines);
+            setAutoRefreshButtonColor.run();
+        });
+
         Button pinnedTasks = new Button(VaadinIcon.PIN.create());
         pinnedTasks.addClassName(LumoUtility.FontSize.LARGE);
         pinnedTasks.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
@@ -127,7 +153,7 @@ public class MainLayout extends AppLayout {
         });
 
         Span buttonSpan = new Span();
-        buttonSpan.add(pinnedTasks, wellnessCheck, addTask);
+        buttonSpan.add(autoRefresh, pinnedTasks, wellnessCheck, addTask);
         buttonSpan.addClassNames(Left.AUTO, Right.SMALL);
 
         addToNavbar(false, toggle, viewTitle, buttonSpan);

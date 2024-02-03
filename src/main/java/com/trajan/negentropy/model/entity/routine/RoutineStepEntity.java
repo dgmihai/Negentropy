@@ -6,6 +6,7 @@ import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.interfaces.Timeable;
+import com.trajan.negentropy.server.backend.util.DFSUtil;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -32,7 +33,6 @@ import java.util.Optional;
 @NoArgsConstructor
 @Getter
 @Setter
-@ToString(callSuper = true)
 @Slf4j
 public class RoutineStepEntity extends AbstractEntity implements Timeable<RoutineStepEntity>, RoutineStepData<RoutineStepEntity> {
 
@@ -106,5 +106,16 @@ public class RoutineStepEntity extends AbstractEntity implements Timeable<Routin
 
     public Optional<TaskLink> link() {
         return Optional.ofNullable(link);
+    }
+
+    @Override
+    public List<RoutineStepEntity> descendants() {
+        return DFSUtil.traverse(this);
+    }
+
+    @Override
+    public String toString() {
+        return "RoutineStepEntity(" + id + ")[name=" + name() + ", link=" + link().isPresent() + ", status=" + status
+                + ", position=" + position + ", startTime=" + startTime + ", finishTime=" + finishTime + "]";
     }
 }

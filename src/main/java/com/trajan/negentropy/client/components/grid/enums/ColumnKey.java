@@ -25,10 +25,12 @@ public enum ColumnKey {
     RESCHEDULE_LATER("Reschedule for Later"),
     SCHEDULED_FOR("Scheduled For"),
     TAGS_COMBO("Tag Combo Box"),
+    LIMIT("Limit"),
     DURATION("Single Step Duration"),
     NET_DURATION("Total Nested Duration"),
     EDIT("Edit"),
-    DELETE("Delete");
+    DELETE("Delete"),
+    DESCENDANTS("Descendants");
 
     private final String text;
 

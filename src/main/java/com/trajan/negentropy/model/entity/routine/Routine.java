@@ -54,15 +54,13 @@ public class Routine implements RoutineData<RoutineStep> {
         TimeableUtil timeableUtil = SpringContext.getBean(TimeableUtil.class);
         Duration remainingDuration = Duration.ZERO;
         for (RoutineStep child : children) {
-            remainingDuration = remainingDuration.plus(child.status().equals(TimeableStatus.NOT_STARTED)
-                    ? getDescendants().stream().map(RoutineStep::duration).reduce(Duration.ZERO, Duration::plus)
-                    : timeableUtil.getRemainingNetDuration(child, child.startTime));
+            remainingDuration = remainingDuration.plus(timeableUtil.getRemainingNestedDuration(child, child.startTime));
         }
         return remainingDuration;
     }
 
     @Override
-    public List<RoutineStep> getDescendants() {
+    public List<RoutineStep> descendants() {
         return childAdjacencyMap.values().stream()
                 .map(steps::get)
                 .toList();

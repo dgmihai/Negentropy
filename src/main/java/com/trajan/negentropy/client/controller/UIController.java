@@ -2,7 +2,6 @@ package com.trajan.negentropy.client.controller;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
-import com.trajan.negentropy.client.components.grid.TaskTreeGrid;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
@@ -13,7 +12,6 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
-import com.trajan.negentropy.model.entity.sync.SyncRecord;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.RoutineID;
@@ -238,7 +236,7 @@ public class UIController {
         log.debug("Creating routine from task: " + rootData.get(0).name());
         tryRoutineServiceCall(() -> services.routine().createRoutine(rootData.stream()
                         .map(data -> (TaskOrLinkID) data.id())
-                        .toList(), filter),
+                        .toList(), filter, LocalDateTime.now()),
                 onSuccess, onFailure);
     }
 
@@ -247,7 +245,7 @@ public class UIController {
                               Consumer<RoutineResponse> onSuccess,
                               Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from task: " + rootTask.name());
-        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id()),
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), LocalDateTime.now()),
                 onSuccess, onFailure);
     }
 
@@ -256,7 +254,7 @@ public class UIController {
                               Consumer<RoutineResponse> onSuccess,
                               Consumer<RoutineResponse> onFailure) {
         log.debug("Creating routine from task: " + rootTask.name());
-        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter),
+        tryRoutineServiceCall(() -> services.routine().createRoutine(rootTask.id(), filter, LocalDateTime.now()),
                 onSuccess, onFailure);
     }
 

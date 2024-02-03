@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TagEntity;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @Service
 @Transactional
@@ -198,6 +200,19 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public Collection<TaskID> fetchTaskIdsByTagId(TagID tagId) {
         return tagService.getTaskIdByTagId(tagId);
+    }
+
+    @Override
+    public Stream<TaskNode> fetchNodesThatHaveActiveRoutineSteps() {
+        return entityQueryService.findLinksThatHaveActiveRoutineSteps()
+                .map(dataContext::toLazyDO);
+    }
+
+    @Override
+    public Stream<Routine> fetchActiveRoutines() {
+        return StreamSupport.stream(entityQueryService.findActiveRoutines()
+                        .spliterator(), false)
+                .map(dataContext::toDO);
     }
 
     @Override

@@ -468,22 +468,26 @@ public class DataContextImpl implements DataContext {
 
         child.parentLinks().remove(link);
 
+        List<Change> changesToNotify = new ArrayList<>();
+
         routineStepRepository.findAll(QRoutineStepEntity.routineStepEntity.link.eq(link))
                 .forEach(step -> {
                     if (step.routine() != null
                             && (step.routine().status().equals(TimeableStatus.ACTIVE)
                             || step.routine().status().equals(TimeableStatus.NOT_STARTED))) {
                         log.debug("Deleting routine step <" + step.name() + ">");
-                        RoutineService routineService = SpringContext.getBean(RoutineService.class);
                         Change deleteChange = new DeleteChange<>(ID.of(step));
-                        routineService.notifyChanges(Request.of(deleteChange),
-                                new LinkedMultiValueMap<>());
+                        changesToNotify.add(deleteChange);
                     }
 
                     step.link(null);
                     step.deletedLink(true);
                 });
 
+        if (!changesToNotify.isEmpty()) {
+            RoutineService routineService = SpringContext.getBean(RoutineService.class);
+            routineService.notifyChanges(Request.of(changesToNotify), new LinkedMultiValueMap<>());
+        }
         linkRepository.delete(link);
     }
 
@@ -602,7 +606,7 @@ public class DataContextImpl implements DataContext {
             children.add(this.toDO(child));
         });
 
-        routineEntity.getDescendants().stream()
+        routineEntity.descendants().stream()
                 .map(this::toDO)
                 .forEach(step -> {
                     stepMap.put(step.id(), step);

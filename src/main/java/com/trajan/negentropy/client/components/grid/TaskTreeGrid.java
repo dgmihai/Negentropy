@@ -39,12 +39,14 @@ import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.Grid.Column;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
@@ -445,6 +447,15 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
         treeGrid.setColumnReorderingAllowed(true);
         this.setColumnSortOrder();
         this.setPartNameGenerator();
+    }
+
+    public Column<T> configureLimitColumn(Column<T> limitColumn) {
+        return limitColumn.setKey(ColumnKey.LIMIT.toString())
+                .setHeader(GridUtil.headerIcon(VaadinIcon.STOPWATCH))
+                .setAutoWidth(false)
+                .setWidth(GridUtil.DURATION_COL_WIDTH)
+                .setFlexGrow(0)
+                .setTextAlign(ColumnTextAlign.CENTER);
     }
 
     protected abstract void initAdditionalReadColumns(ColumnKey columnKey);

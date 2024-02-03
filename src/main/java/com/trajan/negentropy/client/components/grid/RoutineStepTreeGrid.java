@@ -68,7 +68,8 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             Set<TimeableStatus> grayedOut = Set.of(
                     TimeableStatus.POSTPONED,
                     TimeableStatus.COMPLETED,
-                    TimeableStatus.EXCLUDED);
+                    TimeableStatus.EXCLUDED,
+                    TimeableStatus.LIMIT_EXCEEDED);
 
             if (step.status().equals(TimeableStatus.ACTIVE)) {
                 partNames.add(K.GRID_PARTNAME_PRIMARY);
@@ -147,6 +148,11 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
                     .setTextAlign(ColumnTextAlign.CENTER);
+
+            case LIMIT -> configureLimitColumn(treeGrid.addColumn(
+                            step -> (step.nodeOptional().isPresent())
+                                    ? limitValueProvider.apply(step.node().limits())
+                                    : ""));
         }
     }
 

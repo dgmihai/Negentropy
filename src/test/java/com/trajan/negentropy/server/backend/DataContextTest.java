@@ -52,6 +52,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.project(), task.project());
         assertEquals(taskEntity.difficult(), task.difficult());
         assertEquals(taskEntity.starred(), task.starred());
+        assertEquals(taskEntity.pinned(), task.pinned());
         assertEquals(taskEntity.cleanup(), task.cleanup());
     }
 
@@ -105,6 +106,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskLink.importance(), taskNode.importance());
         assertEquals(taskLink.position(), taskNode.position());
         assertEquals(taskLink.positionFrozen(), taskNode.positionFrozen());
+        assertEquals(taskLink.skipToChildren(), taskNode.skipToChildren());
         assertEquals(taskLink.completed(), taskNode.completed());
         assertEquals(taskLink.recurring(), taskNode.recurring());
         assertEquals(taskLink.cycleToEnd(), taskNode.cycleToEnd());
@@ -134,6 +136,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 0,
                 false,
+                false,
                 0,
                 MARK,
                 null,
@@ -152,6 +155,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 2,
                 false,
+                false,
                 1,
                 MARK,
                 null,
@@ -169,6 +173,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 2,
+                false,
                 false,
                 0,
                 MARK,
@@ -200,6 +205,7 @@ public class DataContextTest extends TaskTestTemplate {
                 childTaskEntity,
                 2,
                 true,
+                true,
                 0,
                 MARK,
                 MARK,
@@ -217,6 +223,7 @@ public class DataContextTest extends TaskTestTemplate {
                 parentTaskEntity,
                 childTaskEntity,
                 1,
+                true,
                 true,
                 0,
                 MARK,
@@ -286,6 +293,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 false,
                 false,
+                false,
                 originalTagEntities.stream().map(dataContext::toDO).collect(Collectors.toSet()));
 
         TaskEntity mergedTaskEntity = dataContext.merge(task);
@@ -339,6 +347,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toEagerDO(childTaskEntity),
                 1,
+                false,
                 false,
                 2,
                 MARK,
@@ -394,6 +403,7 @@ public class DataContextTest extends TaskTestTemplate {
                 dataContext.toEagerDO(childTaskEntity),
                 1,
                 false,
+                false,
                 2,
                 MARK,
                 false,
@@ -434,6 +444,7 @@ public class DataContextTest extends TaskTestTemplate {
                         ID.of(parentTaskEntity),
                         ID.of(childTaskEntity),
                         4,
+                        false,
                         false,
                         2,
                         false,
@@ -477,6 +488,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toEagerDO(childTaskEntity),
                 1,
+                false,
                 false,
                 2,
                 MARK,
@@ -528,6 +540,7 @@ public class DataContextTest extends TaskTestTemplate {
                 ID.of(parentTaskEntity),
                 dataContext.toEagerDO(childTaskEntity),
                 0,
+                false,
                 false,
                 2,
                 MARK,

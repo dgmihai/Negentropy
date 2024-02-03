@@ -33,7 +33,6 @@ import java.util.Set;
 public class NetDurationHelperManager {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationRepository netDurationRepository;
-    @Autowired private SpringContext springContext;
 
     private final Map<NonSpecificTaskNodeTreeFilter, NetDurationHelper> helpers = new HashMap<>();
 
@@ -69,8 +68,8 @@ public class NetDurationHelperManager {
         helpers.values().forEach(helper ->
                 durationUpdates.forEach(link -> {
                     log.debug("Removing link " + link.child().name() + " from helper " + helper.filter());
-                    helper.netDurations().remove(ID.of(link));
-                    helper.projectChildrenOutsideDurationLimitMap().remove(ID.of(link));
+                    helper.linkHierarchyIterator().netDurations().remove(ID.of(link));
+                    helper.linkHierarchyIterator().projectChildrenOutsideDurationLimitMap().remove(ID.of(link));
                 })
         );
     }

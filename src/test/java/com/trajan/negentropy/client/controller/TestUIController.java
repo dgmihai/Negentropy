@@ -9,7 +9,6 @@ public class TestUIController extends UIController {
     public TestUIController(SessionServices services) {
         this.services = services;
         this.taskNetworkGraph = new TestTaskNetworkGraph(services);
-        this.executor = createExecutor();
         this.routineDataProvider = new RoutineDataProvider();
     }
 

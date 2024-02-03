@@ -246,6 +246,7 @@ public class TaskTestTemplate {
                     childId,
                     i,
                     false,
+                    false,
 //                  TODO: implement importance
 //                    task.importance,
                     0,

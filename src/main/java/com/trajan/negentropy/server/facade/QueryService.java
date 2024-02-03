@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.facade;
 import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.id.ID.SyncID;
@@ -201,6 +202,10 @@ public interface QueryService {
     Stream<Tag> fetchTags(TaskID taskId);
 
     Collection<TaskID> fetchTaskIdsByTagId(TagID tagId);
+
+    Stream<TaskNode> fetchNodesThatHaveActiveRoutineSteps();
+
+    Stream<Routine> fetchActiveRoutines();
 
     Map<LinkID, Duration> fetchAllNetNodeDurations(TaskNodeTreeFilter filter);
     Map<TaskID, Duration> fetchAllNetTaskDurations(TaskNodeTreeFilter filter);
