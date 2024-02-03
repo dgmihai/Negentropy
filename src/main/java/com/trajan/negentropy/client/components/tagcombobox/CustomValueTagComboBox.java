@@ -38,7 +38,7 @@ public class CustomValueTagComboBox extends TagComboBox {
         setAllowCustomValue(true);
 
         addCustomValueSetListener(event -> {
-            String name = event.getDetail();
+            String name = event.getDetail().trim();
             Change persistTagChange = new PersistChange<>(
                     new Tag(null, name));
             DataMapResponse response = controller.requestChange(persistTagChange);
