@@ -1,8 +1,10 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.fields.CronSpan;
-import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.taskform.fields.DurationLimitField;
+import com.trajan.negentropy.client.components.taskform.fields.StepCountLimitField;
+import com.trajan.negentropy.client.components.taskform.fields.TimeLimitPickerField;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
@@ -86,16 +88,13 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
 
         recurringCheckbox = new Checkbox("Recurring");
 
-        projectDurationLimit = new DurationTextField("Project ");
+        projectDurationLimit = new DurationLimitField();
         projectDurationLimit.setValueChangeMode(ValueChangeMode.EAGER);
-        projectDurationLimit.setClearButtonVisible(true);
 
-        projectStepCountLimit = new IntegerField();
-        projectStepCountLimit.setPlaceholder("Step Count Limit");
+        projectStepCountLimit = new StepCountLimitField();
         projectStepCountLimit.setValueChangeMode(ValueChangeMode.EAGER);
 
-        projectEtaLimit = new TimePicker();
-        projectEtaLimit.setPlaceholder("Step ETA Limit");
+        projectEtaLimit = new TimeLimitPickerField();
 
         cronSpan = new CronSpan();
         cronSpan.cronField().setValueChangeMode(ValueChangeMode.EAGER);

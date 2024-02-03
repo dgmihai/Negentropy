@@ -22,6 +22,8 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.ComboBoxVariant;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -101,6 +103,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         nameField.setPlaceholder("Name *");
         nameField.setValueChangeMode(ValueChangeMode.LAZY);
         nameField.setRequired(true);
+        nameField.setMinLength(3);
         nameField.setClearButtonVisible(true);
         this.addAttachListener(e -> nameField.focus());
 
@@ -109,9 +112,23 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         durationField.setClearButtonVisible(true);
         durationField.setRequired(true);
 
-        requiredCheckbox = new Checkbox("Required");
-        projectCheckbox = new Checkbox("Project");
-        cleanupCheckbox = new Checkbox("Cleanup");
+        requiredCheckbox = new Checkbox();
+        requiredCheckbox.setTooltipText("Required");
+        Icon requiredIcon = VaadinIcon.EXCLAMATION_CIRCLE_O.create();
+        requiredIcon.addClassName(K.ICON_COLOR_PRIMARY);
+        requiredCheckbox.setLabelComponent(requiredIcon);
+
+        projectCheckbox = new Checkbox();
+        projectCheckbox.setTooltipText("Project");
+        Icon projectIcon = VaadinIcon.FILE_TREE_SUB.create();
+        projectIcon.addClassName(K.ICON_COLOR_PRIMARY);
+        projectCheckbox.setLabelComponent(projectIcon);
+
+        cleanupCheckbox = new Checkbox();
+        cleanupCheckbox.setTooltipText("Cleanup");
+        Icon recycleIcon = VaadinIcon.RECYCLE.create();
+        recycleIcon.addClassName(K.ICON_COLOR_PRIMARY);
+        cleanupCheckbox.setLabelComponent(recycleIcon);
 
         descriptionArea = new TextArea();
         descriptionArea.setPlaceholder("Description");
@@ -119,7 +136,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         descriptionArea.setClearButtonVisible(true);
 
         saveButton = new Button();
-        setSaveButtonText(null);
+        setSaveButtonTargetText(null);
 
         projectComboBox = new ComboBox<>();
         TaskTreeFilter filter = new TaskTreeFilter()
@@ -132,7 +149,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setItemLabelGenerator(Task::name);
         projectComboBox.setPlaceholder("Add directly to starred task");
         projectComboBox.setVisible(false);
-        projectComboBox.addValueChangeListener(e -> setSaveButtonText(e.getValue()));
+        projectComboBox.addValueChangeListener(e -> setSaveButtonTargetText(e.getValue()));
 
         cancelButton = new Button("Cancel");
         saveAsLastCheckbox = new Checkbox("Save as last task");
@@ -142,7 +159,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
                 .collect(Collectors.toSet()));
     }
 
-    private void setSaveButtonText(Task project) {
+    protected void setSaveButtonTargetText(Task project) {
         if (project != null) {
             saveButton.setText("Save to " + project.name());
         } else {
@@ -175,6 +192,17 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
     abstract void configureBindings();
 
+    protected HorizontalLayout getInnerButtonLayout() {
+        HorizontalLayout innerButtonLayout = new HorizontalLayout(saveButton, cancelButton);
+        innerButtonLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        saveButton.setWidth("48%");
+        cancelButton.setWidth("48%");
+        onSaveSelect.setWidthFull();
+        saveAsLastCheckbox.setMinWidth("8em");
+        innerButtonLayout.setWidthFull();
+        return innerButtonLayout;
+    }
+
     protected void configureLayout() {
         nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
@@ -185,22 +213,14 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         projectComboBox.addThemeVariants(ComboBoxVariant.LUMO_SMALL);
 
-
-        HorizontalLayout innerButtonLayout = new HorizontalLayout(saveButton, clearButton);
         HorizontalLayout innerButtonCheckboxes = new HorizontalLayout(onSaveSelect, saveAsLastCheckbox);
-        innerButtonLayout.setWidthFull();
+
         innerButtonCheckboxes.setWidthFull();
-        saveButton.setWidth("48%");
-        clearButton.setWidth("48%");
-        onSaveSelect.setWidthFull();
-        saveAsLastCheckbox.setMinWidth("8em");
-        innerButtonLayout.setWidthFull();
-        innerButtonLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
         innerButtonCheckboxes.setJustifyContentMode(JustifyContentMode.BETWEEN);
         innerButtonCheckboxes.setAlignItems(Alignment.START);
 
         buttonLayout = new FormLayout(
-                innerButtonLayout,
+                getInnerButtonLayout(),
                 innerButtonCheckboxes);
         buttonLayout.setWidthFull();
 

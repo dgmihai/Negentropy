@@ -1,6 +1,8 @@
 package com.trajan.negentropy.client.components.taskform;
 
-import com.trajan.negentropy.client.components.fields.DurationTextField;
+import com.trajan.negentropy.client.components.taskform.fields.DurationLimitField;
+import com.trajan.negentropy.client.components.taskform.fields.StepCountLimitField;
+import com.trajan.negentropy.client.components.taskform.fields.TimeLimitPickerField;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.vaadin.flow.component.html.Hr;
@@ -12,7 +14,6 @@ import com.vaadin.flow.component.timepicker.TimePickerVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 
-import java.time.Duration;
 import java.util.Optional;
 
 @Getter
@@ -32,17 +33,13 @@ public class TaskNodeInfoFormFullLayout extends TaskNodeInfoFormMinorLayout {
     protected void configureFields() {
         super.configureFields();
 
-        projectDurationLimit = new DurationTextField("Project ");
+        projectDurationLimit = new DurationLimitField();
         projectDurationLimit.setValueChangeMode(ValueChangeMode.EAGER);
-        projectDurationLimit.setClearButtonVisible(true);
 
-        projectStepCountLimit = new IntegerField();
-        projectStepCountLimit.setPlaceholder("Step Count Limit");
+        projectStepCountLimit = new StepCountLimitField();
         projectStepCountLimit.setValueChangeMode(ValueChangeMode.EAGER);
 
-        projectEtaLimit = new TimePicker();
-        projectEtaLimit.setStep(Duration.ofMinutes(15));
-        projectEtaLimit.setPlaceholder("Step ETA Limit");
+        projectEtaLimit = new TimeLimitPickerField();
     }
 
     protected void setProjectParameterVisibility(boolean visibility) {
