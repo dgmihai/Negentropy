@@ -241,8 +241,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                             new Task(t.task().id())
-                                                                    .starred(!t.task().starred())),
-                                                    this))
+                                                                    .starred(!t.task().starred()))))
                                     .withProperty("starred", t ->
                                             t.task().starred()))
                             .setKey(ColumnKey.STARRED.toString())
@@ -259,8 +258,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                             new Task(t.task().id())
-                                                                    .pinned(!t.task().pinned())),
-                                                    this))
+                                                                    .pinned(!t.task().pinned()))))
                                     .withProperty("pinned", t ->
                                             t.task().pinned()))
                             .setKey(ColumnKey.PINNED.toString())
@@ -277,8 +275,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                             new Task(t.task().id())
-                                                                    .cleanup(!t.task().cleanup())),
-                                                    this))
+                                                                    .cleanup(!t.task().cleanup()))))
                                     .withProperty("cleanup", t ->
                                             t.task().cleanup()))
                             .setKey(ColumnKey.CLEANUP.toString())
@@ -295,8 +292,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                             new Task(t.task().id())
-                                                                    .difficult(!t.task().difficult())),
-                                                    this))
+                                                                    .difficult(!t.task().difficult()))))
                                     .withProperty("difficult", t ->
                                             t.task().difficult()))
                             .setKey(ColumnKey.DIFFICULT.toString())
@@ -313,8 +309,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                     new Task(t.task().id())
-                                                            .required(!t.task().required())),
-                                                    this))
+                                                            .required(!t.task().required()))))
                                     .withProperty("required", t ->
                                             t.task().required()))
                             .setKey(ColumnKey.REQUIRED.toString())
@@ -337,8 +332,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                                     .withFunction("onClick", t ->
                                             controller.requestChangeAsync(new MergeChange<>(
                                                     new Task(t.task().id())
-                                                            .project(!t.task().project())),
-                                                    this))
+                                                            .project(!t.task().project()))))
                                     .withProperty("project", t ->
                                             t.task().project()))
                             .setKey(ColumnKey.PROJECT.toString())
@@ -365,8 +359,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             tagComboBox.addValueChangeListener(event ->
                                     controller.requestChangeAsync(new MergeChange<>(
                                             new Task(t.task().id())
-                                                    .tags(event.getValue())),
-                                            this));
+                                                    .tags(event.getValue()))));
                             return tagComboBox;
                         }))
                         .setKey(ColumnKey.TAGS_COMBO.toString())
@@ -634,7 +627,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
         return visibleColumns.getOrDefault(columnKey, false);
     }
 
-    protected Div gridOptionsMenu(List<ColumnKey> possibleColumns) {
+    protected abstract void onManualGridRefresh();
+
+    protected HorizontalLayout gridOptionsMenu(List<ColumnKey> possibleColumns) {
         MenuBar menuBar = new MenuBar();
         menuBar.setWidth(GridUtil.ICON_COL_WIDTH_S);
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
@@ -665,8 +660,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             if (column != null) {
                 column.setVisible(checked);
             } else if (checked) {
-                initColumn(columnKey);
-                setColumnSortOrder();
+                this.initColumn(columnKey);
+                this.setColumnSortOrder();
             }
         };
 
@@ -706,6 +701,16 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
         descriptionsView.getSubMenu().addItem("Hide All", event ->
                 settings.descriptionViewDefaultSetting(DescriptionViewDefaultSetting.NONE));
 
-        return new Div(menuBar);
+        Button refreshGrid = new Button();
+        refreshGrid.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        Icon refreshIcon = VaadinIcon.REFRESH.create();
+        refreshIcon.addClassName(K.ICON_COLOR_PRIMARY);
+        refreshGrid.setIcon(refreshIcon);
+        refreshGrid.addClickListener(e -> {
+            treeGrid.getDataProvider().refreshAll();
+            onManualGridRefresh();
+        });
+
+        return new HorizontalLayout(refreshGrid, menuBar);
     }
 }

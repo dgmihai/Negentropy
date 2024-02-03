@@ -43,13 +43,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @SpringComponent
 @VaadinSessionScope
 @Getter
-@Benchmark(millisFloor = 10)
+@Benchmark(millisFloor = 1)
 public class TaskNetworkGraph {
     private final SessionLogger log = new SessionLogger();
 
@@ -80,14 +81,14 @@ public class TaskNetworkGraph {
     }
 
     @PostConstruct
-    public void init() {
+    public synchronized void init() {
         network = NetworkBuilder.directed()
                 .allowsParallelEdges(true)
                 .edgeOrder(ElementOrder.unordered())
                 .build();
         taskMap = new HashMap<>();
         nodeMap = new HashMap<>();
-        refreshTags();
+        this.refreshTags();
         syncId(services.query().currentSyncId());
         log.info("Initial sync id: {}", this.syncId.val());
         services.query().fetchNodesGroupedHierarchically(null)
@@ -102,23 +103,26 @@ public class TaskNetworkGraph {
         String browser = session != null ? session.getBrowser().getBrowserApplication() : null;
 
         log.info("Session: " + address + " using " + browser);
-        if (this.serverBroadcaster != null) broadcastRegistration = serverBroadcaster.register(this::sync);
+        if (this.serverBroadcaster != null) {
+            log.info("Registering sync with server broadcaster");
+            broadcastRegistration = serverBroadcaster.register(this::sync);
+        }
         log.info("Initialized TaskNetworkGraph with {} nodes", network.nodes().size());
     }
 
     @PreDestroy
-    public void destroy() {
+    public synchronized void destroy() {
         broadcastRegistration.remove();
         broadcastRegistration = null;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         tagMap = new HashMap<>();
         nodesByTaskMap = new LinkedMultiValueMap<>();
         init();
     }
 
-    public void refreshTags() {
+    private void refreshTags() {
         services.query().fetchAllTags().forEach(tag -> {
             tagMap.put(tag.id(), tag);
             services.query().fetchTaskIdsByTagId(tag.id())
@@ -141,7 +145,7 @@ public class TaskNetworkGraph {
         return network.outDegree(parentId) > 0;
     }
 
-    public void addTaskNode(TaskNode node) {
+    public synchronized void addTaskNode(TaskNode node) {
         TaskID parentId = node.parentId() == null
                 ? TaskID.nil()
                 : node.parentId();
@@ -161,7 +165,7 @@ public class TaskNetworkGraph {
         addTask(node.child());
     }
 
-    public void addTask(Task task) {
+    public synchronized void addTask(Task task) {
         if (task.tags() == null) {
             task.tags(Set.copyOf(taskTagMap.get(task.id())));
         } else {
@@ -179,12 +183,12 @@ public class TaskNetworkGraph {
                 });
     }
 
-    public void removeTask(TaskID taskId) {
+    public synchronized void removeTask(TaskID taskId) {
         taskMap.remove(taskId);
         nodesByTaskMap.remove(taskId);
     }
 
-    public void removeTaskNode(LinkID linkId) {
+    public synchronized void removeTaskNode(LinkID linkId) {
         network.removeEdge(linkId);
         try {
             nodesByTaskMap.remove(nodeMap.get(linkId).task().id(), linkId);
@@ -194,7 +198,7 @@ public class TaskNetworkGraph {
         nodeMap.remove(linkId);
     }
 
-    public Stream<TaskNode> getChildren(TaskID parentId, List<LinkID> filteredLinks, Integer offset, Integer limit) {
+    public synchronized Stream<TaskNode> getChildren(TaskID parentId, List<LinkID> filteredLinks, Integer offset, Integer limit) {
         log.debug("Getting children for parent " + taskMap.get(parentId) + " where filtered tasks "
                 + (filteredLinks != null ? "count is " + filteredLinks.size() : "is null with offset " + offset +
                 " and limit " + limit));
@@ -219,14 +223,14 @@ public class TaskNetworkGraph {
         }
     }
 
-    public List<LinkID> getFilteredLinks(NestableTaskNodeTreeFilter filter) {
+    public synchronized List<LinkID> getFilteredLinks(NestableTaskNodeTreeFilter filter) {
         log.debug("Getting filtered links with filter " + filter);
         return (filter != null && filter.nested() && filter.name() != null && !filter.name().isBlank())
                 ? services.query().fetchAllNodesNestedAsIds(filter).toList()
                 : services.query().fetchAllNodesAsIds(filter).toList();
     }
 
-    private synchronized void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
+    private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
         if ((settings == null || settings.areNetDurationsVisible())
                 && (syncId != this.syncId || this.netDurationInfo.get() == null)) {
             log.debug("Syncing net durations with filter " + filter);
@@ -263,10 +267,17 @@ public class TaskNetworkGraph {
             log.info("Syncing with sync id {}, {} changes, current sync id: {}",
                     aggregateSyncRecord.id(), changes.size(), this.syncId);
 
+            CompletableFuture<Void> netDurationFuture;
             if (settings != null) {
-                this.syncNetDurations(aggregateSyncRecord.id(), settings.filter());
+                netDurationFuture = CompletableFuture.runAsync(() -> {
+                    this.syncNetDurations(aggregateSyncRecord.id(), settings.filter());
+                    this.refreshAll();
+                });
             } else {
-                this.syncNetDurations(aggregateSyncRecord.id(), null);
+                netDurationFuture = CompletableFuture.runAsync(() -> {
+                    this.syncNetDurations(aggregateSyncRecord.id(), null);
+                    this.refreshAll();
+                });
             }
 
             Map<TaskID, Task> taskMap = this.taskMap;
@@ -336,19 +347,38 @@ public class TaskNetworkGraph {
                 this.syncId(aggregateSyncRecord.id());
             }
 
+            CompletableFuture<Void> tagFuture = null;
             if (refreshTags) {
-                this.refreshTags();
+                tagFuture = CompletableFuture.runAsync(this::refreshTags);
             }
 
             if (refreshAll) {
                 taskEntryDataProvider.refreshAll();
+                if (!((tagFuture != null && tagFuture.isDone())
+                        && netDurationFuture.isDone())) {
+                    CompletableFuture.runAsync(this::refreshAll);
+                }
             } else {
                 taskEntryDataProvider.refreshNodes(pendingNodeRefresh);
+                if (!((tagFuture != null && tagFuture.isDone())
+                        && netDurationFuture.isDone())) {
+                    CompletableFuture.runAsync(() -> this.refreshNodes(pendingNodeRefresh));
+                }
             }
 
             stopWatch.stop();
         } else {
             log.debug("No sync required, sync ID's match");
         }
+    }
+
+    private synchronized void refreshAll() {
+        taskEntryDataProvider.refreshAll();
+        log.debug("Synchronized refresh");
+    }
+
+    private synchronized void refreshNodes(Map<LinkID, Boolean> pendingNodeRefresh) {
+        taskEntryDataProvider.refreshNodes(pendingNodeRefresh);
+        log.debug("Synchronized refresh");
     }
 }

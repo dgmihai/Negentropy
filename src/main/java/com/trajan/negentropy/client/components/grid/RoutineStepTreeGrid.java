@@ -7,6 +7,7 @@ import com.trajan.negentropy.client.components.taskform.*;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
+import com.trajan.negentropy.client.util.LimitValueProvider;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.TimeableStatusValueProvider;
 import com.trajan.negentropy.model.TaskNode;
@@ -52,6 +53,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
             .toList();
 
     @Autowired private TimeableStatusValueProvider timeableStatusValueProvider;
+    @Autowired private LimitValueProvider limitValueProvider;
 
     @Override
     protected MultiSelectTreeGrid<RoutineStep> createGrid() {
@@ -69,7 +71,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                     TimeableStatus.EXCLUDED);
 
             if (step.status().equals(TimeableStatus.ACTIVE)) {
-                partNames.add(K.GRID_PARTNAME_RECURRING); // TODO: Rename from recurring
+                partNames.add(K.GRID_PARTNAME_PRIMARY);
             }
             if (grayedOut.contains(step.status())) {
                 partNames.add(K.GRID_PARTNAME_COMPLETED);
@@ -222,6 +224,10 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
 
     @Override
     protected void configureAdditionalEvents() {
+    }
+
+    @Override
+    protected void onManualGridRefresh() {
     }
 
     public void setRoutine(Routine routine) {

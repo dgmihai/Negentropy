@@ -30,10 +30,11 @@ public class K {
 
     public static final String GRID_PARTNAME_FUTURE = "future-task";
     public static final String GRID_PARTNAME_COMPLETED = "completed-node";
-    public static final String GRID_PARTNAME_RECURRING = "recurring-node";
+    public static final String GRID_PARTNAME_PRIMARY = "primary-color";
     public static final String GRID_PARTNAME_PROJECT = "project-task";
     public static final String GRID_PARTNAME_DIFFICULT = "difficult-task";
     public static final String GRID_PARTNAME_DURATION_LIMIT_EXCEEDED = "exceeds-duration-limit";
+    public static final String GRID_PARTNAME_ACTIVE_ROUTINE_STEP = "active-routine-step-task";
 
     public static final int BREAKPOINT_PX = 600;
 

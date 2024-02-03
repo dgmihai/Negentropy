@@ -8,14 +8,6 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 public class TimeableStatusValueProvider implements ValueProvider<TimeableStatus, String> {
     @Override
     public String apply(TimeableStatus timeableStatus) {
-        return switch (timeableStatus) {
-            case NOT_STARTED -> "Not Started";
-            case ACTIVE -> "Active";
-            case SUSPENDED -> "Suspended";
-            case COMPLETED -> "Completed";
-            case SKIPPED -> "Skipped";
-            case EXCLUDED -> "Excluded";
-            case POSTPONED -> "Postponed";
-        };
+        return timeableStatus.toString();
     }
 }

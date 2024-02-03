@@ -141,8 +141,7 @@ public class RoutineView extends Div {
             List<Routine> routines = routineDataProvider.fetch(new Query<>(
                     visibleRoutineStatuses)).toList();
             try {
-                controller.accessUI(this.getClass().getSimpleName(),
-                        () -> activeRoutineGrid.setItems(routines));
+                controller.accessUI(() -> activeRoutineGrid.setItems(routines));
             } catch (Exception e) {
                 log.error("Error refreshing routines", e);
             }

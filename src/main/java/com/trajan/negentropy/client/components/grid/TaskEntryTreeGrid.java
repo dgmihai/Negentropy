@@ -13,9 +13,11 @@ import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.client.session.RoutineActiveTaskSessionStore;
 import com.trajan.negentropy.client.session.TaskEntryDataProvider;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.util.DoubleClickListenerUtil;
+import com.trajan.negentropy.client.util.LimitValueProvider;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.client.util.cron.ShortenedCronConverter;
 import com.trajan.negentropy.client.util.cron.ShortenedCronValueProvider;
@@ -73,6 +75,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Autowired private ShortenedCronValueProvider cronValueProvider;
     @Autowired private TaskNetworkGraph taskNetworkGraph;
+    @Autowired private LimitValueProvider limitValueProvider;
     @Autowired private TaskEntryDataProvider taskEntryDataProvider;
     @Autowired private ShortenedCronConverter cronConverter;
 
@@ -127,8 +130,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withFunction("onClick", entry ->
                                         controller.requestChangeAsync(new MergeChange<>(
                                                 new TaskNode(entry.node().linkId())
-                                                        .completed(!entry.node().completed())),
-                                        this))
+                                                        .completed(!entry.node().completed()))))
                                 .withProperty("completed", entry ->
                                         entry.node().completed())
                                 .withProperty("hidden", entry ->
@@ -173,7 +175,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             case CYCLE_TO_END -> {
                 Grid.Column<TaskEntry> cycleToEndColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
-                                        GridUtil.inlineVaadinIconLitExpression("arrow-forward",
+                                        GridUtil.inlineVaadinIconLitExpression("angle-double-down",
                                                 "?active=\"${item.cycleToEnd}\" " +
                                                         "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry -> controller.requestChangeAsync(
@@ -187,7 +189,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                                 || entry.node().positionFrozen()
                                                 || entry.node().parentId() == null))
                         .setKey(ColumnKey.CYCLE_TO_END.toString())
-                        .setHeader(GridUtil.headerIcon(VaadinIcon.ARROW_FORWARD))
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.ANGLE_DOUBLE_DOWN))
                         .setAutoWidth(true)
                         .setFlexGrow(0)
                         .setTextAlign(ColumnTextAlign.CENTER);
@@ -234,8 +236,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                                 "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry ->
                                         controller.requestChangeAsync(new OverrideScheduledForChange(
-                                                entry.node().linkId(), LocalDateTime.now()),
-                                                this))
+                                                entry.node().linkId(), LocalDateTime.now())))
                                 .withProperty("hidden", entry -> entry.node().cron() == null))
                         .setKey(ColumnKey.RESCHEDULE_NOW.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.BACKWARDS))
@@ -258,8 +259,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withFunction("onClick", entry ->
                                         controller.requestChangeAsync(new OverrideScheduledForChange(
                                                 entry.node().linkId(),
-                                                        entry.node().cron().next(LocalDateTime.now())),
-                                                this))
+                                                        entry.node().cron().next(LocalDateTime.now()))))
                                 .withProperty("hidden", entry -> entry.node().cron() == null))
                         .setKey(ColumnKey.RESCHEDULE_LATER.toString())
                         .setHeader(GridUtil.headerIcon(VaadinIcon.FORWARD))
@@ -276,8 +276,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 .withFunction("onClick", entry ->
                                         controller.requestChangeAsync(new MergeChange<>(
                                                         new TaskNode(entry.node().linkId())
-                                                                .positionFrozen(!entry.node().positionFrozen())),
-                                                this))
+                                                                .positionFrozen(!entry.node().positionFrozen()))))
                                 .withProperty("positionFrozen", entry ->
                                         entry.node().positionFrozen())
                                 .withProperty("visible", entry ->
@@ -294,8 +293,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                     " delete"))
                                     .withFunction("onClick", entry ->
                                             controller.requestChangeAsync(new DeleteChange<>(
-                                                    entry.node().linkId()),
-                                                    this)))
+                                                    entry.node().linkId()))))
                     .setKey(ColumnKey.DELETE.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.TRASH))
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
@@ -309,11 +307,18 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         return possibleColumns;
     }
 
+    @Autowired private RoutineActiveTaskSessionStore routineActiveTaskSessionStore;
+
     @Override
     protected void setPartNameGenerator() {
         treeGrid.setPartNameGenerator(entry -> {
             List<String> partNames = new ArrayList<>();
 
+            if (routineActiveTaskSessionStore.nodesThatHaveActiveSteps()
+                    .contains(entry.node())) {
+                partNames.add(K.GRID_PARTNAME_ACTIVE_ROUTINE_STEP);
+                log.debug("Active routine step: " + entry.node().name());
+            }
             if (entry.node().completed()) {
                 partNames.add(K.GRID_PARTNAME_COMPLETED);
             }
@@ -324,15 +329,16 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                 partNames.add(K.GRID_PARTNAME_PROJECT);
             }
             if (entry.node().recurring()) {
-                partNames.add(K.GRID_PARTNAME_RECURRING);
+                partNames.add(K.GRID_PARTNAME_PRIMARY);
             }
             if (entry.task().difficult()) {
                 partNames.add(K.GRID_PARTNAME_DIFFICULT);
             }
-            if (entry.node().parentId() != null && settings.areNetDurationsVisible()) {
+            if (entry.node().parentId() != null && settings.areNetDurationsVisible() && taskNetworkGraph.netDurationInfo().get() != null) {
                 List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().get().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
                 if (childrenExceedingDurationLimit != null && childrenExceedingDurationLimit.contains(entry.node().linkId())) {
                     partNames.add(K.GRID_PARTNAME_DURATION_LIMIT_EXCEEDED);
+                    partNames.remove(K.GRID_PARTNAME_PRIMARY);
                 }
             }
 
@@ -355,8 +361,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     protected Registration setEditorSaveListener() {
         return editor.addSaveListener(e -> controller.requestChangesAsync(List.of(
                 new MergeChange<>(e.getItem().task()),
-                new MergeChange<>(e.getItem().node())),
-                this));
+                new MergeChange<>(e.getItem().node()))));
     }
 
     @Override
@@ -521,6 +526,11 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         }
 
         return editHeaderLayout;
+    }
+
+    @Override
+    protected void onManualGridRefresh() {
+        treeGrid.expand(settings.expandedEntries());
     }
 
     @Override
