@@ -32,7 +32,7 @@ public abstract class AbstractLogger <T extends PrefixProvider> {
     protected T getPrefixProvider() {
         try {
             return SpringContext.getBean(getProviderClass());
-        } catch (ScopeNotActiveException e) {
+        } catch (ScopeNotActiveException | NullPointerException | IllegalStateException e) {
             return constructProvider();
         }
     }
