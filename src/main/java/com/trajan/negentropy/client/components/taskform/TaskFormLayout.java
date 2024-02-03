@@ -112,14 +112,16 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         taskBinder.forField(nameField)
                 .asRequired("Name must exist and be unique")
-                .bind(Task::name, Task::name);
+                .bind(task -> task.name().trim(),
+                        (task, name) -> task.name(name.trim()));
 
         taskBinder.forField(durationField)
                 .withConverter(new DurationConverter())
                 .bind(Task::duration, Task::duration);
 
         taskBinder.forField(descriptionArea)
-                .bind(Task::description, Task::description);
+                .bind(task -> task.description().trim(),
+                        (task, desc) -> task.description(desc.trim()));
 
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
                 taskBinder.getBean().tags().add(tag));

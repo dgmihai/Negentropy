@@ -112,8 +112,8 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
         binder.forField(nameField)
                 .asRequired("Name must exist and be unique")
                 .bind(
-                        node -> node.task().name(),
-                        (node, name) -> node.task().name(name));
+                        node -> node.task().name().trim(),
+                        (node, name) -> node.task().name(name.trim()));
 
         binder.forField(durationField)
                 .withConverter(new DurationConverter())
@@ -149,8 +149,8 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
 
         binder.forField(descriptionArea)
                 .bind(
-                        node -> node.task().description(),
-                        (node, description) -> node.task().description(description));
+                        node -> node.task().description().trim(),
+                        (node, description) -> node.task().description(description.trim()));
 
         tagComboBox = new CustomValueTagComboBox(controller,
                 tag -> binder.getBean().task().tags().add(tag));
