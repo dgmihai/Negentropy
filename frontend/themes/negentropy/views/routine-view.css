@@ -29,7 +29,9 @@
 
 .routine-view .bar {
   border-radius: var(--lumo-border-radius);
-  border: 1px outset;
+  border-width: 1px;
+  border-style: outset;
+  border-color: white;
   align-items: baseline;
 }
 
