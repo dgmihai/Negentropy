@@ -23,6 +23,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
 
     private Integer position;
     private Boolean positionFrozen;
+    private Boolean skipToChildren;
     private Integer importance;
 
     private Boolean completed;
@@ -37,14 +38,15 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
     @Nullable
     private Optional<LocalTime> projectEtaLimit;
 
-    public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Boolean positionFrozen, Integer importance,
-                       Boolean completed, Boolean recurring, Boolean cycleToEnd, CronExpression cron,
+    public TaskNodeDTO(TaskID parentId, TaskID childId, Integer position, Boolean positionFrozen, Boolean skipToChildren,
+                       Integer importance, Boolean completed, Boolean recurring, Boolean cycleToEnd, CronExpression cron,
                        Optional<Duration> projectDurationLimit, Optional<Integer> projectStepCountLimit,
                        Optional<LocalTime> projectEtaLimit) {
         this.parentId = parentId;
         this.childId = childId;
         this.position = position;
         this.positionFrozen = positionFrozen;
+        this.skipToChildren = skipToChildren;
         this.importance = importance;
         this.completed = completed;
         this.recurring = recurring;
@@ -60,6 +62,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         this.childId = node.childId();
         this.position = node.position();
         this.positionFrozen = node.positionFrozen();
+        this.skipToChildren = node.skipToChildren();
         this.importance = node.importance();
         this.completed = node.completed();
         this.recurring = node.recurring();
@@ -94,6 +97,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
                 null,
                 position,
                 positionFrozen,
+                skipToChildren,
                 importance,
                 null,
                 completed,
@@ -118,6 +122,7 @@ public class TaskNodeDTO implements TaskNodeDTOData<TaskNodeDTO>, HasTaskNodeDTO
         if (childId != null) result.append(", childId=").append(childId);
         if (position != null) result.append(", position=").append(position);
         if (positionFrozen != null) result.append(", positionFrozen=").append(positionFrozen);
+        if (skipToChildren != null) result.append(", skipToChildren=").append(skipToChildren);
         if (importance != null) result.append(", importance=").append(importance);
         if (completed != null) result.append(", completed=").append(completed);
         if (recurring != null) result.append(", recurring=").append(recurring);

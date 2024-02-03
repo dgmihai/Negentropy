@@ -31,6 +31,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
     private Task child;
     private Integer position;
     private Boolean positionFrozen;
+    private Boolean skipToChildren;
     private Integer importance;
 
     private LocalDateTime createdAt;
@@ -53,6 +54,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
         this.positionFrozen = taskNodeInfoData.positionFrozen();
+        this.skipToChildren = taskNodeInfoData.skipToChildren();
         this.projectDurationLimit = taskNodeInfoData.projectDurationLimit();
         this.projectStepCountLimit = taskNodeInfoData.projectStepCountLimit();
         this.projectEtaLimit = taskNodeInfoData.projectEtaLimit();
@@ -67,6 +69,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
         this.importance = taskNodeInfoData.importance();
         this.position = taskNodeInfoData.position();
         this.positionFrozen = taskNodeInfoData.positionFrozen();
+        this.skipToChildren = taskNodeInfoData.skipToChildren();
         this.projectDurationLimit = taskNodeInfoData.projectDurationLimit();
         this.projectStepCountLimit = taskNodeInfoData.projectStepCountLimit();
         this.projectEtaLimit = taskNodeInfoData.projectEtaLimit();
@@ -147,6 +150,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
                 .appendIfNotNull("child=", child)
                 .appendIfNotNull("position=", position)
                 .appendIfNotNull("positionFrozen=", positionFrozen)
+                .appendIfNotNull("skipToChildren=", skipToChildren)
                 .appendIfNotNull("importance=", importance)
                 .appendIfNotNull("createdAt=", createdAt)
                 .appendIfNotNull("completed=", completed)

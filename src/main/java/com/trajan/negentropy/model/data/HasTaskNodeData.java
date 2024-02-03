@@ -24,6 +24,8 @@ public interface HasTaskNodeData extends HasTaskData, MayHaveTaskNodeData {
     interface TaskNodeTemplateData<T extends TaskNodeTemplateData<T>> extends Data {
         T importance(Integer importance);
         Integer importance();
+        T skipToChildren(Boolean skipToChildren);
+        Boolean skipToChildren();
         T completed(Boolean completed);
         Boolean completed();
         T recurring(Boolean recurring);

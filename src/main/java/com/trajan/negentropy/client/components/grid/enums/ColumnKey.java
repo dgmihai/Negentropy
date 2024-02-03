@@ -17,6 +17,7 @@ public enum ColumnKey {
     PROJECT("Project"),
     REQUIRED("Required"),
     FROZEN("Position Frozen"),
+    START_WITH_CHILDREN("Auto Start"),
     RECURRING("Recurring"),
     CYCLE_TO_END("Cycle to End"),
     CRON("Cron"),

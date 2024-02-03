@@ -288,6 +288,23 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setTextAlign(ColumnTextAlign.CENTER);
             }
 
+            case START_WITH_CHILDREN -> {
+                Grid.Column<TaskEntry> skipToChildrenColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                                        GridUtil.inlineVaadinIconLitExpression("level-down",
+                                                "?active=\"${item.skipToChildren}\" "))
+                                .withFunction("onClick", entry ->
+                                        controller.requestChangeAsync(new MergeChange<>(
+                                                new TaskNode(entry.node().linkId())
+                                                        .skipToChildren(!entry.node().skipToChildren()))))
+                                .withProperty("skipToChildren", entry ->
+                                        entry.node().skipToChildren()))
+                        .setKey(ColumnKey.START_WITH_CHILDREN.toString())
+                        .setHeader(GridUtil.headerIcon(VaadinIcon.LEVEL_DOWN))
+                        .setWidth(GridUtil.ICON_COL_WIDTH_L)
+                        .setFlexGrow(0)
+                        .setTextAlign(ColumnTextAlign.CENTER);
+            }
+
             case DELETE -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
                                     GridUtil.inlineVaadinIconLitExpression("trash",
                                     " delete"))

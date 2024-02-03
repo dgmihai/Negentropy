@@ -80,11 +80,11 @@ public class DataContextImpl implements DataContext {
 
         taskEntity
                 .name(Objects.requireNonNullElse(
-                        task.name(), taskEntity.name()))
+                        task.name(), taskEntity.name()).trim())
                 .duration(Objects.requireNonNullElse(
                         task.duration(), taskEntity.duration()))
                 .description(Objects.requireNonNullElse(
-                        task.description(), taskEntity.description()))
+                        task.description(), taskEntity.description()).trim())
                 .project(Objects.requireNonNullElse(
                         task.project(), taskEntity.project()))
                 .required(Objects.requireNonNullElse(
@@ -167,7 +167,9 @@ public class DataContextImpl implements DataContext {
                 .completed(Objects.requireNonNullElse(
                         node.completed(), linkEntity.completed()))
                 .positionFrozen(Objects.requireNonNullElse(
-                        node.positionFrozen(), linkEntity.positionFrozen()));
+                        node.positionFrozen(), linkEntity.positionFrozen()))
+                .skipToChildren(Objects.requireNonNullElse(
+                        node.skipToChildren(), linkEntity.skipToChildren()));
 
         boolean hasCron = linkEntity.cron() != null;
 
@@ -243,6 +245,7 @@ public class DataContextImpl implements DataContext {
                     "; would create cyclical hierarchy.");
         }
 
+        boolean skipToChildren = node.skipToChildren() != null && node.skipToChildren();
         boolean positionFrozen = node.positionFrozen() != null && node.positionFrozen();
         Integer position = node.position();
 
@@ -340,6 +343,7 @@ public class DataContextImpl implements DataContext {
                 child,
                 position,
                 positionFrozen,
+                skipToChildren,
                 importance,
                 now,
                 completed ? DataContext.now() : null,
@@ -384,6 +388,7 @@ public class DataContextImpl implements DataContext {
                 this.toLazyDO(link.child()),
                 link.position(),
                 link.positionFrozen(),
+                link.skipToChildren(),
                 nodeTemplate.importance(),
                 link.createdAt(),
                 nodeTemplate.completed(),
@@ -410,6 +415,7 @@ public class DataContextImpl implements DataContext {
 
         return this.merge(tagEntity
                 .name(tag.name()));
+                .name(tag.name().trim()));
     }
 
     @Override
@@ -561,6 +567,7 @@ public class DataContextImpl implements DataContext {
                 null,
                 link.position(),
                 link.positionFrozen(),
+                link.skipToChildren(),
                 link.importance(),
                 link.createdAt(),
                 link.completed(),

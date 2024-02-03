@@ -55,6 +55,7 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
 
     private Integer position = 0;
     private Boolean positionFrozen = false;
+    private Boolean skipToChildren = false;
     private Integer importance = 0;
 
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -73,7 +74,12 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     private String projectEtaLimit;
 
     public String toString() {
-        return "LinkEntity[" + super.toString() + ", parent=" + parent + ", position=" + position + ", child=" + child + "]";
+        String parent = (this.parent != null) ? this.parent.name() : "null";
+        return "LinkEntity(" + id + ")[name=" + child.name() + ", parent=" + parent + ", position=" + position
+                + ", positionFrozen=" + positionFrozen + ", skipToChildren=" + skipToChildren + ", created at=" + createdAt
+                + ", completed=" + completed + ", recurring=" + recurring + ", cycleToEnd=" + cycleToEnd + ", cron="
+                + cron + ", scheduledFor=" + scheduledFor + ", projectDurationLimit=" + projectDurationLimit
+                + ", projectStepCountLimit=" + projectStepCountLimit + ", projectEtaLimit=" + projectEtaLimit + "]";
     }
 
     public CronExpression cron() {
@@ -119,6 +125,7 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
                 .childId(ID.of(child))
                 .position(position)
                 .positionFrozen(positionFrozen)
+                .skipToChildren(skipToChildren)
                 .importance(importance)
                 .completed(completed)
                 .recurring(recurring)
