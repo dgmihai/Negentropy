@@ -5,7 +5,7 @@ public enum ColumnKey {
     NAME("Name"),
     STATUS("Status"),
     GOTO("Go to step"),
-    EXCLUDE("Exclude/Unexclude Task"),
+    EXCLUDE("Excluded"),
     FOCUS("Focus"),
     COMPLETE("Complete"),
     DESCRIPTION("Description"),
