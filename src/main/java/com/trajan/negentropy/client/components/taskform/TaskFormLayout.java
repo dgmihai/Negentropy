@@ -112,7 +112,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         taskBinder.forField(nameField)
                 .asRequired("Name must exist and be unique")
-                .bind(task -> task.name().trim(),
+                .bind(Task::name,
                         (task, name) -> task.name(name.trim()));
 
         taskBinder.forField(durationField)
@@ -120,7 +120,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                 .bind(Task::duration, Task::duration);
 
         taskBinder.forField(descriptionArea)
-                .bind(task -> task.description().trim(),
+                .bind(Task::description,
                         (task, desc) -> task.description(desc.trim()));
 
         tagComboBox = new CustomValueTagComboBox(controller, tag ->
