@@ -414,8 +414,8 @@ public class DataContextImpl implements DataContext {
                 : new TagEntity();
 
         return this.merge(tagEntity
-                .name(tag.name()));
                 .name(tag.name().trim()));
+    }
     }
 
     @Override

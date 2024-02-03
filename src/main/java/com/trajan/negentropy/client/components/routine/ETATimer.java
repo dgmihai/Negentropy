@@ -39,7 +39,7 @@ public class ETATimer extends Component implements HasSize, HasStyle, Serializab
     public void setTimeable(RoutineStep step, Routine routine) {
         LocalDateTime now = LocalDateTime.now();
         TimeableUtil timeableUtil = SpringContext.getBean(TimeableUtil.class);
-        Duration netDuration = timeableUtil.getRemainingNetDuration(step, now);
+        Duration netDuration = timeableUtil.getRemainingNestedDuration(step, now);
         log.trace("netDuration: " + netDuration);
         boolean isActive = routine.currentStep().status().equals(TimeableStatus.ACTIVE);
         log.trace("isActive: " + isActive);

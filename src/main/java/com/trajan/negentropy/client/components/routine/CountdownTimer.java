@@ -26,7 +26,7 @@ public class CountdownTimer extends AbstractTimer<RoutineStep> {
 
         Duration remainingDuration = step.children().isEmpty()
                 ? timeableUtil.getRemainingDuration(step, LocalDateTime.now())
-                : timeableUtil.getRemainingNetDuration(step, LocalDateTime.now(), true);
+                : timeableUtil.getRemainingNestedDuration(step, LocalDateTime.now(), true);
         Number remainingSeconds = remainingDuration.negated().toSeconds();
         this.setStartTime(remainingSeconds);
 
