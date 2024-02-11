@@ -100,7 +100,7 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                     .setTextAlign(ColumnTextAlign.CENTER);
 
             case EXCLUDE -> {
-                Set<TimeableStatus> excludable = Set.of(
+                Set<TimeableStatus> grayed = Set.of(
                         TimeableStatus.NOT_STARTED,
                         TimeableStatus.SUSPENDED,
                         TimeableStatus.ACTIVE,
@@ -112,16 +112,17 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
                 );
                 treeGrid.addColumn(LitRenderer.<RoutineStep>of(
                                         GridUtil.inlineVaadinIconLitExpression("minus-circle-o",
-                                        "?active=\"${item.excludable}\" " +
+                                        "?active=\"${item.grayed}\" " +
                                                 "?hidden=\"${item.hidden}\""))
                         .withFunction("onClick", step -> {
-                            controller.setRoutineStepExcluded(step.id(), excludable.contains(step.status()),
+                            controller.setRoutineStepExcluded(step.id(), !step.status().equalsAny(
+                                    TimeableStatus.EXCLUDED,
+                                            TimeableStatus.LIMIT_EXCEEDED),
                                     response -> this.setRoutine(response.routine()),
                                     response -> NotificationMessage.error("Failed to skip/unskip routine step: "
                                             + response.message()));
-                        })
-                        .withProperty("excludable", step ->
-                                excludable.contains(step.status()))
+                        }).withProperty("grayed", step ->
+                                grayed.contains(step.status()))
                         .withProperty("hidden", step ->
                                 hidden.contains(step.status())))
                         .setKey(ColumnKey.EXCLUDE.toString())
@@ -240,6 +241,19 @@ public class RoutineStepTreeGrid extends TaskTreeGrid<RoutineStep> {
         log.debug("Setting routine: " + routine.name() + " with " + routine.countSteps() + " steps.");
         this.routine = routine;
         treeGrid.setItems(routine.children(), RoutineStep::children);
+        treeGrid.addExpandListener(e -> {
+            for (RoutineStep child : e.getItems().stream()
+                    .flatMap(
+                    step -> step.children().stream())
+                    .toList()) {
+                if (child.status().equalsAny(
+                        TimeableStatus.ACTIVE,
+                        TimeableStatus.SUSPENDED,
+                        TimeableStatus.DESCENDANT_ACTIVE)) {
+                    treeGrid.expand(child);
+                }
+            }
+        });
         treeGrid.expand(routine.children());
     }
 

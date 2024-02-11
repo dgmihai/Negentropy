@@ -46,7 +46,6 @@ public class NestedTaskTabs extends Tabs {
     private void updateGrid() {
         taskEntryTreeGrid.taskEntryDataProvider().rootEntry(currentEntry);
         taskEntryTreeGrid.settings().currentRootEntry(currentEntry);
-        taskEntryTreeGrid.treeGrid().scrollToStart();
     }
 
     public synchronized void selectNewRootEntry(TaskEntry entry) {

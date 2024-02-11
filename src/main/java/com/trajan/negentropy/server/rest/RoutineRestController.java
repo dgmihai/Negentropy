@@ -4,7 +4,7 @@ import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
-import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import lombok.extern.slf4j.Slf4j;

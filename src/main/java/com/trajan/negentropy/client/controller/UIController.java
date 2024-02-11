@@ -13,9 +13,9 @@ import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.model.id.ID.TaskOrLinkID;
 import com.trajan.negentropy.model.id.RoutineID;
-import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.server.backend.netduration.NetDurationHelperManager;
@@ -260,8 +260,8 @@ public class UIController {
 
     @Async
     public synchronized void startRoutineStep(StepID stepId,
-                                 Consumer<RoutineResponse> onSuccess,
-                                 Consumer<RoutineResponse> onFailure) {
+                                              Consumer<RoutineResponse> onSuccess,
+                                              Consumer<RoutineResponse> onFailure) {
         log.debug("Starting routine step: " + stepId);
         tryRoutineServiceCall(() -> services.routine().startStep(stepId, LocalDateTime.now()),
                 onSuccess, onFailure);

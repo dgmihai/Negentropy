@@ -5,6 +5,7 @@ import com.trajan.negentropy.model.entity.AbstractEntity;
 import com.trajan.negentropy.model.entity.TaskEntity;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.interfaces.HasTaskLinkOrTaskEntity;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import jakarta.persistence.*;
@@ -34,7 +35,8 @@ import java.util.Optional;
 @Getter
 @Setter
 @Slf4j
-public class RoutineStepEntity extends AbstractEntity implements Timeable<RoutineStepEntity>, RoutineStepData<RoutineStepEntity> {
+public class RoutineStepEntity extends AbstractEntity implements Timeable<RoutineStepEntity>, RoutineStepData<RoutineStepEntity>,
+        HasTaskLinkOrTaskEntity {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -82,6 +84,11 @@ public class RoutineStepEntity extends AbstractEntity implements Timeable<Routin
 
     private Boolean deletedLink = false;
 
+    public RoutineStepEntity(HasTaskLinkOrTaskEntity entity) {
+        if (entity.link().isPresent()) this.link = entity.link().get();
+        this.task = entity.task();
+    }
+
     public RoutineStepEntity(TaskLink link) {
         this.link = link;
         this.task = link.child();
@@ -92,11 +99,11 @@ public class RoutineStepEntity extends AbstractEntity implements Timeable<Routin
     }
 
     public String name() {
-        return task().name();
+        return task.name();
     }
 
     public String description() {
-        return task().name();
+        return task.name();
     }
 
     @Override

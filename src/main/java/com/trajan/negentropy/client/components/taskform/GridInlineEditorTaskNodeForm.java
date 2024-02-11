@@ -25,6 +25,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import lombok.Getter;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends AbstractTaskFormLayout {
@@ -118,7 +119,10 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
                 .withConverter(new DurationConverter())
                 .bind(
                         node -> node.task().duration(),
-                        (node, duration) -> node.task().duration(duration));
+                        (node, duration) ->
+                                node.task().duration((duration == null)
+                                        ? Duration.ZERO
+                                        : duration));
 
         binder.forField(cronSpan.cronField())
                 .withConverter(new ShortenedCronConverter())

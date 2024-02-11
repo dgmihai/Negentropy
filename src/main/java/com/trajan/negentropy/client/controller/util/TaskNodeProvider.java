@@ -22,6 +22,7 @@ import java.util.List;
 public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse> {
     protected UIController controller;
     protected ChangeID changeId;
+    public boolean async = true;
 
     public abstract Task getTask();
     public abstract TaskNodeInfoData<?> getNodeInfo();
@@ -80,10 +81,16 @@ public abstract class TaskNodeProvider extends SaveEventListener<DataMapResponse
 
     protected void tryChange(Change taskChange, Change referencedInsertChange) {
         if (isValid()) {
-            controller.requestChangesAsync(List.of(
-                    taskChange,
-                    referencedInsertChange),
-                    this::handleSave);
+            if (async) {
+                controller.requestChangesAsync(List.of(
+                                taskChange,
+                                referencedInsertChange),
+                        this::handleSave);
+            } else {
+                this.handleSave(controller.requestChanges(List.of(
+                                taskChange,
+                                referencedInsertChange)));
+            }
         } else {
             afterFailedSaveCallbacks.forEach(Runnable::run);
         }

@@ -6,11 +6,8 @@ import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.Data.PersistedDataDO;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
-import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.*;
 import com.trajan.negentropy.model.id.ID.ChangeID;
-import com.trajan.negentropy.model.id.LinkID;
-import com.trajan.negentropy.model.id.RoutineID;
-import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
 import org.springframework.lang.NonNull;
 import org.springframework.util.LinkedMultiValueMap;
@@ -18,6 +15,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Set;
 
 @Getter
 public abstract class Change {
@@ -214,7 +212,28 @@ public abstract class Change {
 
         @Override
         public String toString() {
-            return "MergeChange(" + template + ", " + ids + ")";
+            return "MultiMergeChange(" + template + ", " + ids + ")";
+        }
+    }
+
+    /*
+     * Updates the tags of all associated Task entities based on what to add or remove.
+     */
+    @Getter
+    public static class TagMultiMerge extends Change {
+        private final Set<TagID> tagsToAdd;
+        private final Set<TagID> tagsToRemove;
+        private final Set<TaskID> ids;
+
+        public TagMultiMerge(Set<TagID> tagsToAdd, Set<TagID> tagsToRemove, Set<TaskID> ids) {
+            this.tagsToAdd = tagsToAdd;
+            this.tagsToRemove = tagsToRemove;
+            this.ids = ids;
+        }
+
+        @Override
+        public String toString() {
+            return "TagMultiChange(" + tagsToAdd + ", " + tagsToRemove + ", " + ids + ")";
         }
     }
 

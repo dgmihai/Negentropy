@@ -85,7 +85,8 @@ public class TaskInfoBar extends Details {
             TaskInfoBarButton toTreeView = new TaskInfoBarButton(VaadinIcon.TREE_TABLE.create());
             toTreeView.addClickListener(event -> RoutineCard.toTaskTree(step::node, controller));
 
-            HorizontalLayout buttons = new HorizontalLayout(prev, close, toTreeView, skip, postpone, next);
+            HorizontalLayout buttons = new HorizontalLayout(prev, close, postpone, toTreeView, new Span(),
+                    new Span(), new Span(), skip, next);
             buttons.setWidthFull();
             buttons.setJustifyContentMode(JustifyContentMode.BETWEEN);
             lower.add(buttons);

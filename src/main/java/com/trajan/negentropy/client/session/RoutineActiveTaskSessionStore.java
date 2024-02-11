@@ -43,7 +43,8 @@ public class RoutineActiveTaskSessionStore {
     public synchronized void update(Routine routine) {
         nodesThatHaveActiveSteps.removeAll(routine.id());
         nodesThatHaveActiveSteps.putAll(routine.id(), routine.steps().values().stream()
-                .filter(step -> step.status().equals(TimeableStatus.ACTIVE) || routine.currentStep().equals(step))
+                .filter(step -> step.status().equalsAny(TimeableStatus.ACTIVE, TimeableStatus.DESCENDANT_ACTIVE)
+                        || routine.currentStep().equals(step))
                 .filter(step -> step.nodeOptional().isPresent())
                 .map(RoutineStep::node)
                 .peek(node -> logger.debug("<" + node.name() + "> - Active Step"))

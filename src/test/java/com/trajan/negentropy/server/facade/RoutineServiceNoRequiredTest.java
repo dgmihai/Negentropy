@@ -10,7 +10,7 @@ import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.filter.RoutineLimitFilter;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
-import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -488,7 +488,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 routine,
                 stepTwoTwo,
                 TWOTWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         assertEquals(
                 Duration.between(time1, time2),
@@ -693,7 +693,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepTwoTwo,
                 TWOTWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         position = routine.currentPosition();
         LocalDateTime time11 = LocalDateTime.now();
@@ -769,7 +769,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepThreeAndFive,
                 THREE_AND_FIVE,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         position = routine.currentPosition();
         LocalDateTime time1 = LocalDateTime.now();
@@ -829,7 +829,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepThreeOne,
                 THREEONE,
-                TimeableStatus.COMPLETED);
+                TimeableStatus.POSTPONED);
 
         LocalDateTime time4 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
@@ -891,7 +891,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepThreeTwo,
                 THREETWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         position = routine.currentPosition();
         LocalDateTime time6 = LocalDateTime.now();
@@ -1051,7 +1051,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 previous,
                 TWOTWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
@@ -1166,7 +1166,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 previous,
                 TWOTWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
 
         previousId = routine.currentStep().id();
         routine = doRoutine(routine.currentStep().id(),
@@ -1238,7 +1238,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 previous,
                 TWOTWO,
-                TimeableStatus.ACTIVE);
+                TimeableStatus.DESCENDANT_ACTIVE);
     }
 
     public Routine iterateCompleteStep(Routine routine, int expectedNextPosition,
@@ -1268,6 +1268,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     @Test
     void testExecuteRoutineNestedActiveStep() {
         TaskID rootId = tasks.get(TWO).id();
+        routineService.refreshRoutines(false);
 
         Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
 
@@ -1305,7 +1306,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         routine = iterateCompleteStep(routine, 1,
                 TWOONE, TimeableStatus.ACTIVE,
-                TWO, TimeableStatus.ACTIVE);
+                TWO, TimeableStatus.DESCENDANT_ACTIVE);
 
         routine = iterateCompleteStep(routine, 2,
                 TWOTWO, TimeableStatus.ACTIVE,
@@ -1313,7 +1314,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         routine = iterateCompleteStep(routine, 3,
                 TWOTWOONE, TimeableStatus.ACTIVE,
-                TWOTWO, TimeableStatus.ACTIVE);
+                TWOTWO, TimeableStatus.DESCENDANT_ACTIVE);
 
         routine = iterateCompleteStep(routine, 4,
                 TWOTWOTWO, TimeableStatus.ACTIVE,
@@ -1322,6 +1323,8 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = iterateCompleteStep(routine, 2,
                 TWOTWO, TimeableStatus.ACTIVE,
                 TWOTWOTWO, TimeableStatus.COMPLETED);
+
+        assertEquals(routine.descendants().get(0).status(), TimeableStatus.DESCENDANT_ACTIVE);
 
         iterateCompleteStep(routine, 0,
                 TWO, TimeableStatus.ACTIVE,

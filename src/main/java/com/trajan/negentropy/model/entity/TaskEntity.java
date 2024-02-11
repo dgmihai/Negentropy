@@ -3,20 +3,19 @@ package com.trajan.negentropy.model.entity;
 import com.trajan.negentropy.model.data.HasTaskData.TaskData;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
 import com.trajan.negentropy.model.interfaces.HasDuration;
-import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
+import com.trajan.negentropy.model.interfaces.HasTaskLinkOrTaskEntity;
 import com.trajan.negentropy.server.backend.sync.SyncManagerListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @EntityListeners(SyncManagerListener.class)
@@ -30,7 +29,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Slf4j
-public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, HasDuration, TaskOrTaskLinkEntity {
+public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, HasDuration, HasTaskLinkOrTaskEntity {
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -87,5 +86,15 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
         return "TaskEntity(" + id + ")[name=" + name + ", description=" + description + ", duration=" + duration
                 + ", required=" + required + ", project=" + project + ", difficult=" + difficult + ", starred="
                 + starred + ", pinned=" + pinned + ", cleanup=" + cleanup + "]";
+    }
+
+    @Override
+    public Optional<TaskLink> link() {
+        return Optional.empty();
+    }
+
+    @Override
+    public TaskEntity task() {
+        return this;
     }
 }

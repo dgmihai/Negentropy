@@ -1,4 +1,4 @@
-package com.trajan.negentropy.util;
+package com.trajan.negentropy.model.util;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;

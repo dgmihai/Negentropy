@@ -10,6 +10,8 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 
+import java.time.Duration;
+
 @Getter
 public class RoutineStepFormLayout extends AbstractTaskFormLayout {
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
@@ -68,7 +70,10 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
                 .withConverter(new DurationConverter())
                 .bind(
                         node -> node.task().duration(),
-                        (node, duration) -> node.task().duration(duration));
+                        (node, duration) ->
+                                node.task().duration((duration == null)
+                                        ? Duration.ZERO
+                                        : duration));
 
         binder.forField(requiredCheckbox)
                 .bind(

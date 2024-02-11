@@ -12,6 +12,7 @@ import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.RoutineDataProvider;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.BannerProvider;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.Routine;
 import com.trajan.negentropy.server.facade.RoutineService;
@@ -144,6 +145,7 @@ public class RoutineView extends Div {
                 controller.accessUI(() -> activeRoutineGrid.setItems(routines));
             } catch (Exception e) {
                 log.error("Error refreshing routines", e);
+                NotificationMessage.error("Error refreshing routines");
             }
         });
     }

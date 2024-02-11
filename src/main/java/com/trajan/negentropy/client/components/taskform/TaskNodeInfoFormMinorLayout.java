@@ -43,6 +43,8 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
         initTaskNodeDataProvider();
         initClearEventListener();
 
+        this.taskNodeProvider.async = false;
+
         nodeInfoBinder.setBean(new TaskNodeDTO());
         projectComboBox.setVisible(false);
         projectCheckbox.setVisible(false);

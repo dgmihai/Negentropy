@@ -3,7 +3,7 @@ package com.trajan.negentropy.model;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
-import com.trajan.negentropy.model.id.StepID;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import lombok.Getter;
 import lombok.Setter;

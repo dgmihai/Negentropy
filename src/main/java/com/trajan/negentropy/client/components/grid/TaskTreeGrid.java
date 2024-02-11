@@ -24,8 +24,11 @@ import com.trajan.negentropy.model.data.Data;
 import com.trajan.negentropy.model.data.HasTaskData;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter.NestableTaskNodeTreeFilter;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.TagID;
+import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
+import com.trajan.negentropy.model.sync.Change.TagMultiMerge;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
@@ -37,11 +40,9 @@ import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.ColumnTextAlign;
-import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.*;
 import com.vaadin.flow.component.grid.Grid.Column;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
-import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.Div;
@@ -95,6 +96,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
     protected LinkedHashMap<ColumnKey, Boolean> visibleColumns;
     protected Grid.Column<T> editColumn;
+    protected TagComboBox multiMergeTagComboBox;
 
     protected FormLayout editHeaderLayout;
     protected List<Checkbox> editCheckboxes;
@@ -201,6 +203,61 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                     }
                 }
             });
+        }
+    }
+
+    private void addMultiMergeTagComboBox() {
+        if (multiMergeTagComboBox == null && !(treeGrid.getSelectionModel() instanceof GridNoneSelectionModel<T>)) {
+            multiMergeTagComboBox = new CustomValueTagComboBox(controller);
+            multiMergeTagComboBox.setWidthFull();
+            multiMergeTagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+            multiMergeTagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
+            multiMergeTagComboBox.setPlaceholder("Tags of all selected items");
+
+            treeGrid.addSelectionListener(e -> {
+                Set<T> selectedItems = e.getAllSelectedItems();
+                if (selectedItems.isEmpty()) {
+                    multiMergeTagComboBox.clear();
+                } else {
+                    Collection<Tag> commonTags = taskNetworkGraph.taskTagMap().get(selectedItems.iterator().next()
+                            .task().id());
+                    for (T item : selectedItems) {
+                        Collection<Tag> tags = taskNetworkGraph.taskTagMap().get(item.task().id());
+                        commonTags.retainAll(tags);
+                    }
+                    multiMergeTagComboBox.setValue(commonTags);
+                }
+            });
+
+            multiMergeTagComboBox.addValueChangeListener(e -> {
+                if (e.isFromClient()) {
+                    Set<TagID> removedFromOriginal = new HashSet<>(e.getOldValue())
+                            .stream()
+                            .filter(tag -> !e.getValue().contains(tag))
+                            .map(Tag::id)
+                            .collect(Collectors.toSet());
+                    Set<TagID> addedToOriginal = new HashSet<>(e.getValue())
+                            .stream()
+                            .filter(tag -> !e.getOldValue().contains(tag))
+                            .map(Tag::id)
+                            .collect(Collectors.toSet());
+                    Set<TaskID> selectedTasks = treeGrid.getSelectedItems()
+                            .stream()
+                            .map(t -> t.task().id())
+                            .collect(Collectors.toSet());
+                    controller.requestChangeAsync(new TagMultiMerge(
+                            addedToOriginal,
+                            removedFromOriginal,
+                            selectedTasks));
+                }
+            });
+
+            editHeaderLayout.add(multiMergeTagComboBox);
+            editHeaderLayout.setColspan(multiMergeTagComboBox, 99);
+        } else if (treeGrid.getSelectionModel() instanceof GridNoneSelectionModel<T>
+                && multiMergeTagComboBox != null) {
+            editHeaderLayout.remove(multiMergeTagComboBox);
+            multiMergeTagComboBox = null;
         }
     }
 
@@ -350,33 +407,37 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             t -> t.task().id());
                 }
 
-                case TAGS_COMBO -> treeGrid.addColumn(new ComponentRenderer<>(
-                        t -> {
-                            TagComboBox tagComboBox = new CustomValueTagComboBox(controller);
-                            tagComboBox.setWidthFull();
-                            tagComboBox.setClassName("grid-combo-box");
-                            tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
-                            tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
-                            tagComboBox.setValue(taskNetworkGraph.taskTagMap().get(t.task().id()));
-                            tagComboBox.addValueChangeListener(event ->
-                                    controller.requestChangeAsync(new MergeChange<>(
-                                            new Task(t.task().id())
-                                                    .tags(event.getValue()))));
-                            return tagComboBox;
-                        }))
-                        .setKey(ColumnKey.TAGS_COMBO.toString())
-                        .setHeader(ColumnKey.TAGS_COMBO.toString())
-                        .setAutoWidth(true)
-                        .setFlexGrow(1)
-                        .setClassName("tag-column");
+                case TAGS_COMBO -> {
+                    treeGrid.addColumn(new ComponentRenderer<>(
+                                    t -> {
+                                        TagComboBox tagComboBox = new CustomValueTagComboBox(controller);
+                                        tagComboBox.setWidthFull();
+                                        tagComboBox.setClassName("grid-combo-box");
+                                        tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
+                                        tagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
+                                        tagComboBox.setValue(taskNetworkGraph.taskTagMap().get(t.task().id()));
+                                        tagComboBox.addValueChangeListener(event ->
+                                                controller.requestChangeAsync(new MergeChange<>(
+                                                        new Task(t.task().id())
+                                                                .tags(event.getValue()))));
+                                        return tagComboBox;
+                                    }))
+                            .setKey(ColumnKey.TAGS_COMBO.toString())
+                            .setHeader(ColumnKey.TAGS_COMBO.toString())
+                            .setAutoWidth(true)
+                            .setFlexGrow(1)
+                            .setClassName("tag-column");
+                }
 
-                case TAGS -> treeGrid.addColumn(
-                                t -> taskNetworkGraph.taskTagMap().get(t.task().id()).stream()
-                                        .map(Tag::name)
-                                        .collect(Collectors.joining(" | ")))
-                        .setKey(ColumnKey.TAGS.toString())
-                        .setHeader(ColumnKey.TAGS.toString())
-                        .setFlexGrow(1);
+                case TAGS -> {
+                    treeGrid.addColumn(
+                                    t -> taskNetworkGraph.taskTagMap().get(t.task().id()).stream()
+                                            .map(Tag::name)
+                                            .collect(Collectors.joining(" | ")))
+                            .setKey(ColumnKey.TAGS.toString())
+                            .setHeader(ColumnKey.TAGS.toString())
+                            .setFlexGrow(1);
+                }
 
                 case DESCRIPTION -> treeGrid.addColumn(LitRenderer.<T>of(
                                         GridUtil.inlineVaadinIconLitExpression("eye",
@@ -620,6 +681,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
         this.selectionMode = selectionMode;
         treeGrid.setSelectionMode(selectionMode);
         editHeaderLayout.setVisible(selectionMode.equals(SelectionMode.MULTI));
+
+        this.addMultiMergeTagComboBox();
     }
 
     protected Collection<Component> configureAdditionalTopBarComponents() {

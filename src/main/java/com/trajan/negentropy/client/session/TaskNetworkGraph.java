@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,15 +52,16 @@ import java.util.stream.Stream;
 @VaadinSessionScope
 @Getter
 @Benchmark(millisFloor = 1)
-public class TaskNetworkGraph {
-    private final SessionLogger log = new SessionLogger();
+public class TaskNetworkGraph implements Serializable {
+    private static final long serialVersionUID = 1L;
+     private final transient SessionLogger log = new SessionLogger();
 
-    @Autowired protected SessionServices services;
-    @Autowired protected UserSettings settings;
-    @Setter protected TaskEntryDataProvider taskEntryDataProvider;
+    @Autowired protected transient SessionServices services;
+    @Autowired protected transient UserSettings settings;
+    @Setter protected transient TaskEntryDataProvider taskEntryDataProvider;
 
     private SyncID syncId;
-    @Autowired private ServerBroadcaster serverBroadcaster;
+    @Autowired private transient ServerBroadcaster serverBroadcaster;
     @Getter(AccessLevel.NONE)
     private Registration broadcastRegistration;
     @Autowired private VaadinSession session;

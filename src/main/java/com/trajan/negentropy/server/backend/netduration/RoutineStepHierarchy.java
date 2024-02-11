@@ -6,7 +6,7 @@ import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.entity.routine.RoutineEntity;
 import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
-import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
+import com.trajan.negentropy.model.interfaces.HasTaskLinkOrTaskEntity;
 import com.trajan.negentropy.server.backend.NetDurationService;
 import com.trajan.negentropy.server.backend.netduration.RefreshHierarchy.StepRefreshHierarchy;
 import com.trajan.negentropy.util.SpringContext;
@@ -14,6 +14,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Slf4j
@@ -21,17 +22,17 @@ public abstract class RoutineStepHierarchy {
     @Setter protected Integer customIndexOfChild = null;
 
     public static RoutineEntity integrateTaskOrTaskLinkIntoRoutineStep(Integer index, TaskNodeTreeFilter filter,
-                                                              RoutineStepEntity root, TaskOrTaskLinkEntity child) {
+                                                              RoutineStepEntity root, HasTaskLinkOrTaskEntity child) {
         return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineStepEntityHierarchy(root), child);
     }
 
     public static RoutineEntity integrateTaskOrTaskLinkIntoRoutineAsRoot(Integer index, TaskNodeTreeFilter filter,
-                                                                             RoutineEntity root, TaskOrTaskLinkEntity child) {
+                                                                             RoutineEntity root, HasTaskLinkOrTaskEntity child) {
         return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineEntityHierarchy(root), child);
     }
 
     private static RoutineEntity integrateTaskOrTaskLinkIntoHierarchy(Integer index, TaskNodeTreeFilter filter,
-                                                 RoutineStepHierarchy hierarchy, TaskOrTaskLinkEntity child) {
+                                                 RoutineStepHierarchy hierarchy, HasTaskLinkOrTaskEntity child) {
         hierarchy.customIndexOfChild = index;
         NetDurationService netDurationService = SpringContext.getBean(NetDurationService.class);
         NetDurationHelper helper = netDurationService.getHelper(filter);
@@ -111,24 +112,13 @@ public abstract class RoutineStepHierarchy {
     public static class RoutineStepEntityHierarchy extends RoutineStepHierarchy {
         protected RoutineStepEntity step;
 
-        public static RoutineStepEntityHierarchy create(TaskOrTaskLinkEntity entity, RoutineEntity routine, RoutineStepHierarchy parent) {
-            RefreshHierarchy refreshHierarchy = (parent instanceof RefreshHierarchy)
-                    ? (RefreshHierarchy) parent
-                    : null;
-            if (entity instanceof TaskLink link) {
-                return (refreshHierarchy == null)
-                        ? new RoutineStepEntityHierarchy(link, routine)
-                        : new StepRefreshHierarchy(link, routine, refreshHierarchy);
-            } else if (entity instanceof TaskEntity task) {
-                return (refreshHierarchy == null)
-                        ? new RoutineStepEntityHierarchy(task, routine)
-                        : new StepRefreshHierarchy(task, routine, refreshHierarchy);
-            } else {
-                throw new IllegalArgumentException("Data entity must be a TaskEntity or TaskLink");
-            }
+        public static RoutineStepEntityHierarchy create(HasTaskLinkOrTaskEntity entity, RoutineEntity routine, RoutineStepHierarchy parent) {
+            return (entity instanceof RoutineStepEntity step)
+                    ? new StepRefreshHierarchy(step)
+                    : new RoutineStepEntityHierarchy(entity, routine);
         }
 
-        public RoutineStepEntityHierarchy(TaskOrTaskLinkEntity entity, RoutineEntity routine) {
+        public RoutineStepEntityHierarchy(HasTaskLinkOrTaskEntity entity, RoutineEntity routine) {
             if (entity instanceof TaskLink link) {
                 this.step = new RoutineStepEntity(link);
             } else if (entity instanceof TaskEntity task) {
@@ -141,10 +131,7 @@ public abstract class RoutineStepHierarchy {
 
         @Override
         public void addToHierarchy(RoutineStepEntityHierarchy child) {
-            if (step.status().equals(TimeableStatus.LIMIT_EXCEEDED)) {
-                child.setExceedsLimit();
-            }
-            log.trace("Adding to step hierarchy: " + child.step.task().name() + " with status " + child.step.status());
+            log.debug("Adding to step hierarchy: " + child.step.task().name() + " with status " + child.step.status());
             RoutineStepEntity childStep = child.step();
             finalizeStep(childStep, this);
             childStep.parentStep(step);
@@ -168,7 +155,12 @@ public abstract class RoutineStepHierarchy {
 
         @Override
         public void setExceedsLimit() {
-            step.status(TimeableStatus.LIMIT_EXCEEDED);
+            if (Set.of(
+                    TimeableStatus.NOT_STARTED,
+                    TimeableStatus.SKIPPED)
+                    .contains(step.status())) {
+                step.status(TimeableStatus.LIMIT_EXCEEDED);
+            }
         }
     }
 }

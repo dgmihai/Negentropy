@@ -15,6 +15,7 @@ import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormFullLayo
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormMinorLayout;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
+import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.model.Task;
@@ -166,8 +167,6 @@ public class ToolbarTabSheet extends TabSheet {
 
         createTaskForm.taskBinder().setBean(new Task());
 
-        createTaskForm.onClose(() -> this.setSelectedTab(closeTab));
-
         createTaskForm.addClassNames(LumoUtility.Padding.Horizontal.NONE, LumoUtility.Padding.Vertical.XSMALL,
                 LumoUtility.BoxSizing.BORDER);
 
@@ -184,7 +183,22 @@ public class ToolbarTabSheet extends TabSheet {
         Button showAndHide = new Button(VaadinIcon.CHEVRON_UP.create());
         showAndHide.setWidthFull();
         showAndHide.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        showAndHide.addClickListener(e -> createTaskForm.setVisible(!createTaskForm.isVisible()));
+        showAndHide.addClickListener(e -> {
+            boolean visible = !createTaskForm.isVisible();
+            createTaskForm.setVisible(visible);
+            showAndHide.setIcon((visible)
+                    ? VaadinIcon.CHEVRON_UP.create()
+                    : VaadinIcon.CHEVRON_DOWN.create());
+        });
+
+        createTaskForm.onClose(() -> {
+            this.setSelectedTab(closeTab);
+            if (createTaskForm.isVisible()
+                    && createTaskForm.onSaveSelect().getValue().equals(OnSuccessfulSaveActions.CLOSE.toString())) {
+                showAndHide.click();
+            }
+        });
+
         VerticalLayout layout = new VerticalLayout(createTaskForm, showAndHide);
 
         add(createNewTaskTab, layout);

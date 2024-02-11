@@ -10,12 +10,14 @@ import com.trajan.negentropy.model.id.ID;
 import com.trajan.negentropy.model.id.ID.SyncID;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
-import com.trajan.negentropy.model.interfaces.TaskOrTaskLinkEntity;
+import com.trajan.negentropy.model.interfaces.HasTaskLinkOrTaskEntity;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import com.trajan.negentropy.server.facade.QueryService;
+import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.RoutineServiceImpl.LimitedDataWrapper;
+import com.trajan.negentropy.util.SpringContext;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -71,7 +74,7 @@ public class NetDurationHelper {
                         link -> this.inner_calculateHierarchicalNetDuration(link, null, null)));
     }
 
-    public synchronized Duration getNetDuration(TaskEntity current) {
+    public synchronized Duration getNetDuration(HasTaskLinkOrTaskEntity current) {
         this.loadAdjacencyMap();
         return inner_calculateHierarchicalNetDuration(current, null, null);
     }
@@ -81,63 +84,44 @@ public class NetDurationHelper {
         return inner_calculateHierarchicalNetDuration(current, null, null);
     }
 
-    public synchronized Duration calculateHierarchicalNetDuration(TaskOrTaskLinkEntity current, RoutineStepHierarchy parent, RoutineLimiter limit) {
+    public synchronized Duration calculateHierarchicalNetDuration(HasTaskLinkOrTaskEntity current, RoutineStepHierarchy parent, RoutineLimiter limit) {
         loadAdjacencyMap();
-        if (current instanceof TaskEntity task) {
-            return inner_calculateHierarchicalNetDuration(task, parent, limit);
-        } else if (current instanceof TaskLink link) {
-            return inner_calculateHierarchicalNetDuration(link, parent, limit);
-        } else {
-            throw new RuntimeException("Unknown type of TaskOrTaskLinkEntity");
-        }
+        return inner_calculateHierarchicalNetDuration(current, parent, limit);
     }
 
-    Duration inner_calculateHierarchicalNetDuration(TaskLink current, RoutineStepHierarchy parent, RoutineLimiter limit) {
-        if (limit == null) {
-            limit = new RoutineLimiter(null, null, null, false);
-        }
+    Duration inner_calculateHierarchicalNetDuration(HasTaskLinkOrTaskEntity current, RoutineStepHierarchy parent, RoutineLimiter limit) {
+        if (current.link().isPresent()) {
+            TaskLink link = current.link().get();
+            if (limit == null) {
+                limit = new RoutineLimiter(null, null, null, false);
+            }
 
-//        if (current.child().project()) {
-//            LocalDateTime etaLimit = null;
-//            if (current.projectEtaLimit().isPresent()) {
-//                LocalDateTime notBefore = (parent != null)
-//                        ? parent.routine().creationTimestamp()
-//                        : SpringContext.getBean(RoutineService.class).now();
-//
-//                etaLimit = TimeableUtil.get().getNextFutureTimeOf(
-//                        notBefore,
-//                        current.projectEtaLimit().get());
-//
-//                if (parent instanceof RefreshHierarchy) {
-//                    etaLimit = etaLimit.minus(Duration.between(
-//                            parent.routine().creationTimestamp(),
-//                            SpringContext.getBean(RoutineService.class).now()));
-//                }
-//            }
-//
-//            limit = new RoutineLimiter(
-//                    current.projectDurationLimit().orElse(null),
-//                    current.projectStepCountLimit().orElse(null),
-//                    etaLimit,
-//                    limit.customLimit());
+            if (current.task().project() && !limit.customLimit()) {
+                LocalDateTime etaLimit = null;
 
-        if (current.child().project() && !limit.customLimit()) {
-            limit = new RoutineLimiter(
-                    current.projectDurationLimit().orElse(null),
-                    current.projectStepCountLimit().orElse(null),
-                    limit.etaLimit(), false);
-        }
+                if (link.projectEtaLimit().isPresent()) {
+                    LocalDateTime time = !(parent instanceof RefreshHierarchy)
+                            ? SpringContext.getBean(RoutineService.class).now()
+                            : parent.routine().creationTimestamp();
+                    etaLimit = link.projectEtaLimit().get().atDate(time.toLocalDate());
+                }
 
-        return (!limit.isEmpty())
-                ? linkHierarchyIterator.iterateWithLimit(current, parent, limit)
-                : linkHierarchyIterator.process(current, parent);
-    }
+                limit = new RoutineLimiter(
+                        link.projectDurationLimit().orElse(null),
+                        link.projectStepCountLimit().orElse(null),
+                        etaLimit,
+                        limit.customLimit());
+            }
 
-    Duration inner_calculateHierarchicalNetDuration(TaskEntity current, RoutineStepHierarchy parent, RoutineLimiter limit) {
-        if (limit != null && !limit.isEmpty() && (current.project() || limit.exceeded())) {
-            return linkHierarchyIterator.iterateWithLimit(current, parent, limit);
+            return (!limit.isEmpty())
+                    ? linkHierarchyIterator.iterateWithLimit(current, parent, limit)
+                    : linkHierarchyIterator.process(current, parent);
         } else {
-            return linkHierarchyIterator.process(current, parent);
+            if (limit != null && !limit.isEmpty() && (current.task().project() || limit.exceeded())) {
+                return linkHierarchyIterator.iterateWithLimit(current, parent, limit);
+            } else {
+                return linkHierarchyIterator.process(current, parent);
+            }
         }
     }
 

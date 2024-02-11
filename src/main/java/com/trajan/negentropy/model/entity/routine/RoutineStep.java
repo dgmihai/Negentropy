@@ -5,11 +5,14 @@ import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.data.*;
 import com.trajan.negentropy.model.entity.TimeableStatus;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.model.id.RoutineID;
-import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -26,7 +29,6 @@ import java.util.Optional;
 @AllArgsConstructor
 @Getter(onMethod_={@JsonProperty})
 @Setter
-@ToString
 public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepData<RoutineStep>, HasTaskData,
         MayHaveTaskNodeData {
     protected StepID id;
@@ -45,7 +47,6 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
     protected TimeableStatus status;
 
     @Override
-    @ToString.Include
     public String name() {
         return task().name();
     }
@@ -66,7 +67,13 @@ public abstract class RoutineStep implements Timeable<RoutineStep>, RoutineStepD
     abstract public TaskNode node();
     abstract public Optional<TaskNode> nodeOptional();
     abstract public RoutineStep node(TaskNode node);
-    
+
+    @Override
+    public String toString() {
+        return "RoutineStep(" + id + ")[name=" + name() + ", status=" + status + ", startTime=" + startTime
+                + ", finishTime=" + finishTime + "]";
+    }
+
     @Override
     public List<RoutineStep> descendants() {
         return DFSUtil.traverse(this);

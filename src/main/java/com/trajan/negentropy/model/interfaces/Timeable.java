@@ -46,6 +46,11 @@ public interface Timeable <T extends Timeable<T>> {
         }
     }
 
+    default void descendantsStarted(LocalDateTime time) {
+        this.status(TimeableStatus.DESCENDANT_ACTIVE);
+        this.pause(time);
+    }
+
     default void suspend(LocalDateTime time) {
         this.status(TimeableStatus.SUSPENDED);
         this.pause(time);
@@ -67,12 +72,17 @@ public interface Timeable <T extends Timeable<T>> {
     }
 
     private void finish(LocalDateTime time) {
-        if (this.finishTime() != null) this.finishTime(time);
-        if (lastSuspendedTime() != null) {
-            this.elapsedSuspendedDuration(
-                    this.elapsedSuspendedDuration() != null
-                            ? this.elapsedSuspendedDuration().plus(Duration.between(this.lastSuspendedTime(), time))
-                            : Duration.between(this.lastSuspendedTime(), time));
+        if (time != null) {
+            if (this.finishTime() != null) this.finishTime(time);
+            if (lastSuspendedTime() != null) {
+                this.elapsedSuspendedDuration(
+                        this.elapsedSuspendedDuration() != null
+                                ? this.elapsedSuspendedDuration().plus(Duration.between(this.lastSuspendedTime(), time))
+                                : Duration.between(this.lastSuspendedTime(), time));
+                this.lastSuspendedTime(null);
+            }
+        } else {
+            this.elapsedSuspendedDuration(null);
             this.lastSuspendedTime(null);
         }
     }

@@ -18,6 +18,8 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import lombok.Getter;
 
+import java.time.Duration;
+
 public class TaskFormLayout extends AbstractTaskFormLayout {
     @Getter
     protected Binder<Task> taskBinder;
@@ -117,7 +119,10 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         taskBinder.forField(durationField)
                 .withConverter(new DurationConverter())
-                .bind(Task::duration, Task::duration);
+                .bind(Task::duration, (task, duration) ->
+                        task.duration((duration == null)
+                                ? Duration.ZERO
+                                : duration));
 
         taskBinder.forField(descriptionArea)
                 .bind(Task::description,

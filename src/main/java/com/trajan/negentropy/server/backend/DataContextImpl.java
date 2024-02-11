@@ -37,9 +37,11 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @Transactional
+@Benchmark(millisFloor = 10)
 public class DataContextImpl implements DataContext {
+    @PersistenceContext private EntityManager entityManager;
+
     @Autowired private EntityQueryService entityQueryService;
-    @Autowired private NetDurationService netDurationService;
 
     @Autowired private TaskRepository taskRepository;
     @Autowired private LinkRepository linkRepository;
@@ -451,7 +453,6 @@ public class DataContextImpl implements DataContext {
     @Override
     public void deleteLink(TaskLink link) {
         TaskEntity parent = link.parent();
-        TaskEntity child = link.child();
 
         log.debug("Deleting link " + link);
 
@@ -463,26 +464,35 @@ public class DataContextImpl implements DataContext {
                     childLink.position(childLink.position() - 1);
                 }
             }
-
         }
 
+        TaskEntity child = link.child();
         child.parentLinks().remove(link);
 
+        // We need to call raw SQL to avoid eager fetching of routine steps
+        String selectQueryAllMatchingSteps = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.id = :linkId";
+        List<Long> stepIdsAllMatching = entityManager.createQuery(selectQueryAllMatchingSteps, Long.class)
+                .setParameter("linkId", link.id())
+                .getResultList();
+
+        String selectQueryStepsInReadyRoutines = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.id = :linkId AND (rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.ACTIVE OR rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.NOT_STARTED)";
+        List<Long> stepIdsInReadyRoutines = entityManager.createQuery(selectQueryStepsInReadyRoutines, Long.class)
+                .setParameter("linkId", link.id())
+                .getResultList();
+
+        if (!stepIdsAllMatching.isEmpty()) {
+            String updateQuery = "UPDATE RoutineStepEntity rs SET rs.link = null, rs.deletedLink = true WHERE rs.id IN :stepIds";
+            int updatedCount = entityManager.createQuery(updateQuery)
+                    .setParameter("stepIds", stepIdsAllMatching)
+                    .executeUpdate();
+            log.debug("Updated " + updatedCount + " routine steps to delete link and mark as deleted");
+        }
+
         List<Change> changesToNotify = new ArrayList<>();
-
-        routineStepRepository.findAll(QRoutineStepEntity.routineStepEntity.link.eq(link))
-                .forEach(step -> {
-                    if (step.routine() != null
-                            && (step.routine().status().equals(TimeableStatus.ACTIVE)
-                            || step.routine().status().equals(TimeableStatus.NOT_STARTED))) {
-                        log.debug("Deleting routine step <" + step.name() + ">");
-                        Change deleteChange = new DeleteChange<>(ID.of(step));
-                        changesToNotify.add(deleteChange);
-                    }
-
-                    step.link(null);
-                    step.deletedLink(true);
-                });
+        stepIdsInReadyRoutines.forEach(id -> {
+            Change deleteChange = new DeleteChange<>(new StepID(id));
+            changesToNotify.add(deleteChange);
+        });
 
         if (!changesToNotify.isEmpty()) {
             RoutineService routineService = SpringContext.getBean(RoutineService.class);

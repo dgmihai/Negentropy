@@ -208,11 +208,8 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
         assertEquals(TimeableStatus.EXCLUDED, twoTwoList.get(0).status());
         assertEquals(TimeableStatus.NOT_STARTED, twoTwoList.get(1).status());
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.descendants().stream()
-                .filter(step -> step.name().equals(TWOTWOONE))
-                .findFirst()
-                .get()
-                .status());
+        assertEquals(TimeableStatus.EXCLUDED, routine.descendants().get(2).status());
+        assertEquals(TimeableStatus.NOT_STARTED, routine.descendants().get(7).status());
 
         changeService.execute(Request.of(
                 new MergeChange<>(

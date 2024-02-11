@@ -2,8 +2,6 @@ package com.trajan.negentropy.util;
 
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.data.RoutineStepData;
-import com.trajan.negentropy.model.entity.TaskLink;
-import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.interfaces.Timeable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,37 +25,20 @@ public class TimeableUtil {
         return new TimeableUtil();
     }
 
-    public LocalDateTime getNextFutureTimeOf(LocalDateTime notBefore, LocalTime localTime) {
+    public static LocalDateTime getNextDateTimeAfter(LocalDateTime since, LocalTime localTime) {
         if (localTime == null) return null;
 
-        LocalDateTime result = localTime.atDate(notBefore.toLocalDate());
-        return (result.isBefore(notBefore))
-                ? result.plusDays(1)
+        LocalDateTime result = localTime.atDate(since.toLocalDate());
+        return (result.isBefore(since))
+                ? getNextDateTimeAfter(since, result.plusDays(1))
                 : result;
     }
 
-    public LocalDateTime getNextFutureTimeOf(LocalDateTime notBefore, LocalDateTime localTime) {
+    public static LocalDateTime getNextDateTimeAfter(LocalDateTime since, LocalDateTime localTime) {
         if (localTime == null) return null;
-        return (localTime.isBefore(notBefore))
-                ? localTime.plusDays(1)
+        return (localTime.isBefore(since))
+                ? getNextDateTimeAfter(since, localTime.plusDays(1))
                 : localTime;
-    }
-
-    public LocalDateTime getTimeLimit(RoutineStepEntity step) {
-        RoutineStepEntity parent = step.parentStep();
-
-        LocalDateTime timeLimitByETA = null;
-
-        if (parent != null && parent.link().isPresent()) {
-            TaskLink parentLink = parent.link().get();
-            if (parentLink.projectEtaLimit().isPresent()) {
-                timeLimitByETA = getNextFutureTimeOf(
-                        step.routine().startTime(),
-                        parentLink.projectEtaLimit().get());
-            }
-        }
-
-        return timeLimitByETA;
     }
 
     public Duration getElapsedActiveDuration(Timeable timeable, LocalDateTime time) {
@@ -78,7 +59,7 @@ public class TimeableUtil {
                             ? Duration.between(timeable.startTime(), timeable.finishTime())
                                 .minus(elapsedSuspendedDuration)
                             : Duration.ZERO;
-                case SUSPENDED, SKIPPED:
+                case SUSPENDED, SKIPPED, DESCENDANT_ACTIVE:
                     yield timeable.startTime() != null
                             ? Duration.between(timeable.startTime(), timeable.lastSuspendedTime())
                                 .minus(elapsedSuspendedDuration)
@@ -101,22 +82,33 @@ public class TimeableUtil {
     }
 
     public Duration getRemainingDuration(Timeable timeable, LocalDateTime time) {
+        return getRemainingDuration(timeable, time, false);
+    }
+
+    public Duration getRemainingDuration(Timeable timeable, LocalDateTime time, boolean nonNegative) {
         return switch (timeable.status()) {
             case NOT_STARTED:
                 yield timeable.duration();
-            case ACTIVE, SUSPENDED, SKIPPED:
-                yield timeable.duration().minus(getElapsedActiveDuration(timeable, time));
+            case ACTIVE, SUSPENDED, SKIPPED, DESCENDANT_ACTIVE:
+                Duration remainingDuration = timeable.duration().minus(getElapsedActiveDuration(timeable, time));
+                yield (nonNegative && remainingDuration.isNegative()) ? Duration.ZERO : remainingDuration;
             case COMPLETED, EXCLUDED, POSTPONED, LIMIT_EXCEEDED:
                 yield Duration.ZERO;
         };
     }
 
     public Duration getRemainingDurationIncludingLimitExceeded(Timeable timeable, LocalDateTime time) {
+        return getRemainingDurationIncludingLimitExceeded(timeable, time, false);
+    }
+
+    public Duration getRemainingDurationIncludingLimitExceeded(Timeable timeable, LocalDateTime time, boolean nonNegative) {
         return switch (timeable.status()) {
             case NOT_STARTED, LIMIT_EXCEEDED:
                 yield timeable.duration();
-            case ACTIVE, SUSPENDED, SKIPPED:
-                yield timeable.duration().minus(getElapsedActiveDuration(timeable, time));
+            case ACTIVE, SUSPENDED, SKIPPED, DESCENDANT_ACTIVE:
+                Duration elaspedActiveDuration = getElapsedActiveDuration(timeable, time);
+                elaspedActiveDuration = (nonNegative && elaspedActiveDuration.isNegative()) ? Duration.ZERO : elaspedActiveDuration;
+                yield timeable.duration().minus(elaspedActiveDuration);
             case COMPLETED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;
         };
@@ -128,7 +120,7 @@ public class TimeableUtil {
 
     public Duration getRemainingNestedDuration(RoutineStepData<?> step, LocalDateTime time, boolean allowNegative) {
         return switch (step.status()) {
-            case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED:
+            case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED, DESCENDANT_ACTIVE:
                 yield iterateToGetNestedDuration(step, time, allowNegative);
             case COMPLETED, EXCLUDED, POSTPONED, LIMIT_EXCEEDED:
                 yield Duration.ZERO;
@@ -137,7 +129,7 @@ public class TimeableUtil {
 
     public Duration getRemainingNestedDurationIncludingLimitExceeded(RoutineStepData<?> step, LocalDateTime time) {
         return switch (step.status()) {
-            case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED, LIMIT_EXCEEDED:
+            case NOT_STARTED, ACTIVE, SUSPENDED, SKIPPED, LIMIT_EXCEEDED, DESCENDANT_ACTIVE:
                 yield iterateToGetNestedDuration(step, time, true);
             case COMPLETED, EXCLUDED, POSTPONED:
                 yield Duration.ZERO;

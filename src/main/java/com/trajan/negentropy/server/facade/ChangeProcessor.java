@@ -18,6 +18,7 @@ import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.server.backend.DataContext;
 import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.NetDurationService;
+import com.trajan.negentropy.server.backend.TagService;
 import com.trajan.negentropy.server.facade.response.Request;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class ChangeProcessor {
     @Autowired private EntityQueryService entityQueryService;
     @Autowired private NetDurationService netDurationService;
     @Autowired private RoutineService routineService;
+    @Autowired private TagService tagService;
 
     @Setter
     private Consumer<Set<TaskLink>> updateSyncManagerDurations;
@@ -228,6 +230,27 @@ public class ChangeProcessor {
                     messages.add("Merged " + multiMerge.ids().size() + " task node changes.");
                 } else {
                     throw new IllegalArgumentException("Unexpected changeRelevantDataMap type");
+                }
+            } else if (change instanceof TagMultiMerge tagMultiMerge) {
+                log.debug("Merging tag multi merge for " + tagMultiMerge.ids().size() + " tasks");
+                Map<TagID, TagEntity> tagsToAdd = tagMultiMerge.tagsToAdd().stream()
+                        .collect(Collectors.toMap(
+                                tagId -> tagId,
+                                tagId -> entityQueryService.getTag(tagId)
+                        ));
+
+                for (TaskID taskId : tagMultiMerge.ids()) {
+                    TaskEntity task = entityQueryService.getTask(taskId);
+
+                    Set<TagEntity> tags = tagService.getTagsForTask(taskId)
+                                    .filter(tag -> !tagMultiMerge.tagsToRemove().contains(ID.of(tag)))
+                            .collect(Collectors.toSet());
+                    tags.addAll(tagsToAdd.values());
+                    task.tags(tags);
+                    updateDuration(durationUpdates, task);
+                    Task result = dataContext.toEagerDO(task);
+                    dataResults.add(change.id(), result);
+                    messages.add(messageSupplier.apply("Merged tag changes for", result));
                 }
             } else if (change instanceof CopyChange copyChange) {
                 switch (copyChange.copyType()) {

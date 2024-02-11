@@ -8,7 +8,7 @@ import com.trajan.negentropy.model.data.HasTaskNodeData.HasTaskNodeDTOData;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeDTOData;
 import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
-import com.trajan.negentropy.util.CronExpressionSerializer;
+import com.trajan.negentropy.model.util.CronExpressionSerializer;
 import lombok.*;
 import org.springframework.scheduling.support.CronExpression;
 

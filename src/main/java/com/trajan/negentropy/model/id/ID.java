@@ -72,6 +72,12 @@ public abstract class ID implements Serializable {
         }
     }
 
+    public static class StepID extends ID {
+        public StepID(long val) {
+            super(val);
+        }
+    }
+
     @Override
     @JsonValue
     public String toString() {

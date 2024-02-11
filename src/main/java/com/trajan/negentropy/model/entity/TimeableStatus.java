@@ -3,6 +3,7 @@ package com.trajan.negentropy.model.entity;
 public enum TimeableStatus {
     NOT_STARTED("Not Started"),
     ACTIVE("Active"),
+    DESCENDANT_ACTIVE("Subtasks Active"),
     SUSPENDED("Suspended"),
     COMPLETED("Completed"),
     SKIPPED("Skipped"),
@@ -21,11 +22,20 @@ public enum TimeableStatus {
         return text;
     }
 
-    public boolean isNotUnfinished() {
+    public boolean isFinishedOrExceeded() {
         return this == COMPLETED || this == EXCLUDED || this == POSTPONED || this == LIMIT_EXCEEDED;
     }
 
     public boolean isFinished() {
         return this == COMPLETED || this == EXCLUDED || this == POSTPONED;
+    }
+
+    public boolean equalsAny(TimeableStatus... statuses) {
+        for (TimeableStatus status : statuses) {
+            if (this == status) {
+                return true;
+            }
+        }
+        return false;
     }
 }
