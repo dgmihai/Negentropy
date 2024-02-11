@@ -437,7 +437,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                             case ON_TOP -> changeSupplier.accept(InsertLocation.CHILD);
                         }
                     } else {
-                        NotificationMessage.error("Cannot move or copy item onto itself");
+                        NotificationMessage.error("Cannot place item onto itself");
                     }
                 }
                 draggedItem = null;
@@ -584,12 +584,12 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             );
         }
 
-        private void addMoveOrCopySelectedItem(GridSubMenu<TaskEntry> copySelectedSubMenu,
-                                               GridSubMenu<TaskEntry> moveSelectedSubMenu,
-                                               Map<String, InsertLocation> moveOrCopyOptions) {
-            moveOrCopyOptions.forEach( (label, location) -> {
+        private void addMoveOrInsertSelectedItem(GridSubMenu<TaskEntry> insertSelectedSubMenu,
+                                                 GridSubMenu<TaskEntry> moveSelectedSubMenu,
+                                                 Map<String, InsertLocation> moveOrInsertOptions) {
+            moveOrInsertOptions.forEach( (label, location) -> {
                 int reverse = (location == InsertLocation.AFTER || location == InsertLocation.FIRST) ? -1 : 1;
-                List<GridSubMenu<TaskEntry>> subMenus = List.of(copySelectedSubMenu, moveSelectedSubMenu);
+                List<GridSubMenu<TaskEntry>> subMenus = List.of(insertSelectedSubMenu, moveSelectedSubMenu);
                 subMenus.forEach(menu -> menu.addItem(label, e -> {
                     controller.requestChangesAsync(grid.getSelectedItems().stream()
                             .collect(Collectors.groupingBy(
@@ -603,7 +603,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                                     .collect(Collectors.toList()))
                             )).values().stream()
                             .flatMap(List::stream)
-                            .map(entry -> menu.equals(copySelectedSubMenu)
+                            .map(entry -> menu.equals(insertSelectedSubMenu)
                                     ? new InsertAtChange(new TaskNodeDTO(entry.node()),
                                     e.getItem().get().node().id(),
                                     location)
@@ -662,16 +662,16 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
             GridMenuItem<TaskEntry> moveSelected = addItem("");
             GridSubMenu<TaskEntry> moveSelectedSubMenu = moveSelected.getSubMenu();
-            GridMenuItem<TaskEntry> copySelected = addItem("");
-            GridSubMenu<TaskEntry> copySelectedSubMenu = copySelected.getSubMenu();
+            GridMenuItem<TaskEntry> insertSelected = addItem("");
+            GridSubMenu<TaskEntry> insertSelectedSubMenu = insertSelected.getSubMenu();
 
-            Map<String, InsertLocation> moveOrCopyOptions = new HashMap<>();
-            moveOrCopyOptions.put("Before", InsertLocation.BEFORE);
-            moveOrCopyOptions.put("After", InsertLocation.AFTER);
-            moveOrCopyOptions.put("As Subtasks At Front", InsertLocation.FIRST);
-            moveOrCopyOptions.put("As Subtasks At Back", InsertLocation.LAST);
+            Map<String, InsertLocation> moveOrInsertOptions = new HashMap<>();
+            moveOrInsertOptions.put("Before", InsertLocation.BEFORE);
+            moveOrInsertOptions.put("After", InsertLocation.AFTER);
+            moveOrInsertOptions.put("As Subtasks At Front", InsertLocation.FIRST);
+            moveOrInsertOptions.put("As Subtasks At Back", InsertLocation.LAST);
 
-            addMoveOrCopySelectedItem(copySelectedSubMenu, moveSelectedSubMenu, moveOrCopyOptions);
+            addMoveOrInsertSelectedItem(insertSelectedSubMenu, moveSelectedSubMenu, moveOrInsertOptions);
 
             add(new Hr());
 
@@ -761,7 +761,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     if (selectedSize == 0) {
                         moveTarget.setVisible(true);
                         moveSelected.setVisible(false);
-                        copySelected.setVisible(false);
+                        insertSelected.setVisible(false);
                         startRoutineSelected.setVisible(false);
                         moveTarget.setText("Move " + entry.task().name());
                     } else {
@@ -771,8 +771,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 ? selected.get(0).task().name()
                                 : selected.get(0).task().name() + " (+" + (selectedSize - 1) + " more)";
                         moveSelected.setText("Move " + multiSelectText);
-                        copySelected.setVisible(true);
-                        copySelected.setText("Copy " + multiSelectText);
+                        insertSelected.setVisible(true);
+                        insertSelected.setText("Insert " + multiSelectText);
                         startRoutineSelected.setVisible(true);
                         startRoutineSelected.setText("Start Routine from " + multiSelectText);
                         multiEdit.setText("Edit " + multiSelectText);
