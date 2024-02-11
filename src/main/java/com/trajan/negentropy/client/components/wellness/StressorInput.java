@@ -27,7 +27,7 @@ public class StressorInput extends HorizontalLayout {
         this.setWidthFull();
 
         stressorsBox.addClassName("emotion-field");
-        stressorsBox.setLabel("What is your largest stressor?");
+        stressorsBox.setLabel("What is your largest stressor or fear?");
         stressorsBox.setItems(controller.services().stressor().getAll()
                 .toList());
         stressorsBox.setItemLabelGenerator(Stressor::name);
