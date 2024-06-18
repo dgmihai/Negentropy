@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @SpringComponent
 public class BannerProvider {
     @Autowired private SessionServices services;
+
     @PostConstruct
     public void showRandomTenet() {
         Tenet random = services.tenet().getRandom();

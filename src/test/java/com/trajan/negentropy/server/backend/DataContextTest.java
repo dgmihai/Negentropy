@@ -51,6 +51,7 @@ public class DataContextTest extends TaskTestTemplate {
         assertEquals(taskEntity.required(), task.required());
         assertEquals(taskEntity.project(), task.project());
         assertEquals(taskEntity.difficult(), task.difficult());
+        assertEquals(taskEntity.effort(), task.effort());
         assertEquals(taskEntity.starred(), task.starred());
         assertEquals(taskEntity.pinned(), task.pinned());
         assertEquals(taskEntity.cleanup(), task.cleanup());
@@ -65,6 +66,7 @@ public class DataContextTest extends TaskTestTemplate {
                 .required(true)
                 .project(true)
                 .difficult(true)
+                .effort(1)
                 .cleanup(false);
 
         Set<TagEntity> tagEntities = Set.of(
@@ -291,6 +293,7 @@ public class DataContextTest extends TaskTestTemplate {
                 false,
                 true,
                 false,
+                1,
                 false,
                 false,
                 false,

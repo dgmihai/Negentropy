@@ -1,13 +1,18 @@
 package com.trajan.negentropy.client.components.grid.subcomponents;
 
+import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.grid.TaskEntryTreeGrid;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
 import com.trajan.negentropy.client.logger.UILogger;
+import com.trajan.negentropy.model.TaskNode;
+import com.trajan.negentropy.model.id.LinkID;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.tabs.TabsVariant;
+import com.vaadin.flow.router.RouteConfiguration;
 
 import java.util.List;
 import java.util.Stack;
@@ -46,6 +51,27 @@ public class NestedTaskTabs extends Tabs {
     private void updateGrid() {
         taskEntryTreeGrid.taskEntryDataProvider().rootEntry(currentEntry);
         taskEntryTreeGrid.settings().currentRootEntry(currentEntry);
+
+        TaskNode rootNode = taskEntryTreeGrid.rootNode().orElse(null);
+        String parameter = (rootNode != null)
+                ? String.valueOf(rootNode.id().val())
+                : null;
+
+        String url = RouteConfiguration.forSessionScope()
+                .getUrl(TreeView.class, parameter);
+        UI.getCurrent().getPage().getHistory().replaceState(null, url);
+    }
+
+    public synchronized boolean selectNewRootNode(LinkID linkId) {
+        log.debug("Setting root entry from link: " + linkId);
+        // TODO: We just get the first for now
+        List<TaskEntry> results = taskEntryTreeGrid.taskEntryDataProvider().linkTaskEntriesMap().get(linkId);
+        if (results != null && !results.isEmpty()) {
+            this.selectNewRootEntry(results.get(0));
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public synchronized void selectNewRootEntry(TaskEntry entry) {

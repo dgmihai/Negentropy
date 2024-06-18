@@ -48,12 +48,14 @@ public class TaskTreeFilter implements Serializable {
         String includedTags = includedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String excludedTags = excludedTagIds.stream().map(TagID::toString).collect(Collectors.joining(", "));
         String opts = String.join(", ", options);
-        return this.getClass().getSimpleName() + "{" +
-                "name='" + name + '\'' +
+
+        String nameString = name == null ? "null" : "'" + name + "'";
+        return this.getClass().getSimpleName() + "(" +
+                "name=" + nameString +
                 ", includedTagIds=[" + includedTags + "]" +
                 ", excludedTagIds=[" + excludedTags + "]" +
                 ", options=[" + opts + "]" +
-                '}';
+                ')';
     }
 
     public boolean isEmpty() {

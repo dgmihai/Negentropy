@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.routinelimit;
 
+import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.RoutineView;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.Tag;
@@ -15,6 +16,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.dialog.DialogVariant;
+import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class StartRoutineDialog {
         dialog.setHeaderTitle("Start Routine");
 
         limitForm = SpringContext.getBean(RoutineLimitForm.class);
+        limitForm.setResponsiveSteps(
+                new ResponsiveStep("0", 1),
+                new ResponsiveStep(K.SHORT_SCREEN_WIDTH, 3));
 
         Shortcuts.addShortcutListener(dialog,
                 e -> dialog.close(),

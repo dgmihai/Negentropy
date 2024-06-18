@@ -90,5 +90,4 @@ public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
         private boolean nested = true;
     }
 
-
 }

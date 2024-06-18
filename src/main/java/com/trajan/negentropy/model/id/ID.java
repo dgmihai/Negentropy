@@ -76,6 +76,10 @@ public abstract class ID implements Serializable {
         public StepID(long val) {
             super(val);
         }
+
+        public static StepID nil() {
+            return new StepID(-1);
+        }
     }
 
     @Override

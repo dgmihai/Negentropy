@@ -145,6 +145,6 @@ public class TimeableUtil {
     }
 
     public LocalDateTime currentTime() {
-        return LocalDateTime.now();
+        return ServerClockService.now();
     }
 }

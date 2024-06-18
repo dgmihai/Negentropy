@@ -19,7 +19,9 @@ import com.trajan.negentropy.model.sync.Change.MultiMergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.RoutineTestTemplate;
 import com.trajan.negentropy.server.facade.response.Request;
+import com.trajan.negentropy.server.facade.response.Response;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.util.ServerClockService;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -373,7 +375,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineAndGoPreviousImmediately() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -385,7 +387,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertEquals(TimeableStatus.NOT_STARTED, routine.status());
         assertNull(routine.currentStep().parentId());
 
-        LocalDateTime time1 = LocalDateTime.now();
+        LocalDateTime time1 = ServerClockService.now();
         doRoutineFalse(routine.currentStep().id(),
                 time1,
                 routineService::previousStep);
@@ -395,7 +397,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteOnRoutineStepWhichIsNotCurrentOrParentOfCurrent() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -440,7 +442,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutine() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -736,7 +738,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineTwo() {
         TaskID rootId = tasks.get(THREE_AND_FIVE).id();
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1270,7 +1272,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         TaskID rootId = tasks.get(TWO).id();
         routineService.refreshRoutines(false);
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1335,7 +1337,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     void testExecuteRoutineSkipFirstStep() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
-        Routine routine = routineService.createRoutine(rootId, routineService.now()).routine();
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
 
         RoutineStep rootStep = routine.children().get(0);
 
@@ -1370,14 +1372,14 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         Duration originalDuration = routine.estimatedDuration();
         assertEquals(Duration.ofHours(3), originalDuration);
 
-        changeService.execute(Request.of(new PersistChange<>(
+        Response response = changeService.execute(Request.of(new PersistChange<>(
                 new TaskNodeDTO()
                         .parentId(tasks.get(TWOTWO).id())
                         .childId(tasks.get(THREEONE).id()))));
+        assertTrue(response.success());
 
         routine = routineService.fetchRoutine(routine.id());
 
-        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
         assertFreshRoutine(List.of(
                         TWOTWO,
                         TWOTWOONE,
@@ -1385,6 +1387,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOTHREE_AND_THREETWOTWO,
                         THREEONE),
                         routine);
+        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
     }
 
     @Test
@@ -1408,7 +1411,6 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         routine = routineService.fetchRoutine(routine.id());
 
-        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
         assertFreshRoutine(List.of(
                         TWOTWO,
                         THREEONE,
@@ -1416,6 +1418,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOTWO,
                         TWOTWOTHREE_AND_THREETWOTWO),
                 routine);
+        assertEquals(routine.estimatedDuration(), originalDuration.plus(Duration.ofMinutes(30)));
     }
 
     @Test

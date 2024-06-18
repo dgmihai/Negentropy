@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.broadcaster;
 import com.vaadin.flow.shared.Registration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -26,8 +27,22 @@ public class Broadcaster<T> {
         };
     }
 
-    public synchronized void broadcast(T content) {
-        log.debug(label + "Broadcasting " + content.getClass().getSimpleName() + " to " + listeners.size() + " listeners");
+    public synchronized Registration registerOnce(Consumer<T> listener) {
+        listeners.add(t -> {
+            listener.accept(t);
+            listeners.remove(listener);
+        });
+
+        return () -> {
+            synchronized (Broadcaster.class) {
+                listeners.remove(listener);
+            }
+        };
+    }
+
+    public synchronized void broadcast(@Nullable T content) {
+        String name = content == null ? "" : content.getClass().getSimpleName() + " ";
+        log.debug(label + "Broadcasting " + name + "to " + listeners.size() + " listeners");
         for (Consumer<T> listener : listeners) {
             try {
                 this.notify(listener, content);

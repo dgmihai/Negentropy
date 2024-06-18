@@ -66,10 +66,16 @@ class ETATimer extends PolymerElement {
     window.requestAnimationFrame(this._tick);
   }
 
+  _isDST(d) {
+    let jan = new Date(d.getFullYear(), 0, 1).getTimezoneOffset();
+    let jul = new Date(d.getFullYear(), 6, 1).getTimezoneOffset();
+    return Math.max(jan, jul) !== d.getTimezoneOffset();
+  }
+
   _formatTime(time, timeZone = 'default') {
-    // Hours are off by one for some reason?
-    // UPDATE: Fucking daylight savings
-    // time.setHours(time.getHours() + 1);
+    if (this._isDST(time)) {
+      time.setHours(time.getHours() + 1);
+    }
 
     const options = {
       hour: 'numeric',

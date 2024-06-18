@@ -1,7 +1,7 @@
 package com.trajan.negentropy.server.backend.netduration;
 
-import com.trajan.negentropy.server.facade.RoutineService;
-import com.trajan.negentropy.util.SpringContext;
+import com.google.common.annotations.VisibleForTesting;
+import com.trajan.negentropy.util.ServerClockService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -29,16 +29,36 @@ public class RoutineLimiter {
     @ToString.Include
     private final LocalDateTime etaLimit;
     @ToString.Include
+    private final Integer effortMaximum;
+    @ToString.Include
     private final boolean customLimit;
     @ToString.Include
     private boolean exceeded = false;
 
-    public boolean isEmpty() {
+    public boolean isEmptyWithoutEffort() {
         return durationLimit == null && countLimit == null && etaLimit == null && !exceeded;
     }
 
+    public boolean isEmptyWithEffort() {
+        return durationLimit == null && countLimit == null && etaLimit == null && effortMaximum == null && !exceeded;
+    }
+
+    public boolean exceedsEffort(Integer effort) {
+        return effortMaximum != null && effort > effortMaximum;
+    }
+
+    @VisibleForTesting
     public boolean wouldExceed(Duration duration) {
+        return wouldExceed(duration, null);
+    }
+
+    public boolean wouldExceed(Duration duration, Integer effort) {
         if (exceeded) return true;
+
+        if (effort != null && effortMaximum != null && effort > effortMaximum) {
+            log.trace("Would exceed effort maximum");
+            return true;
+        }
 
         log.trace("Potential shift: " + duration);
         Duration potential = durationSum.plus(duration);
@@ -104,8 +124,7 @@ public class RoutineLimiter {
         log.trace("Checking eta limit: " + etaLimit);
         if (etaLimit != null) {
             // Needed for testing
-            RoutineService routineService = SpringContext.getBean(RoutineService.class);
-            LocalDateTime potentialEta = routineService.now().plus(durationSum).plus(duration);
+            LocalDateTime potentialEta = ServerClockService.now().plus(durationSum).plus(duration);
             boolean result = potentialEta.isAfter(etaLimit);
             log.trace("ETA limit: " + etaLimit + " vs potential: " + potentialEta + " = " + result);
             return result;

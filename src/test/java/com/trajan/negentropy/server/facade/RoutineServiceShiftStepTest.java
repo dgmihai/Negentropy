@@ -20,8 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -247,8 +246,13 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
     }
 
     @Test
-    @Transactional
     void testPushStep() { // Not recurring
+        TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
+        TaskNode twoTwoTwo = nodes.get(Triple.of(TWOTWO, TWOTWOTWO, 1));
+
+        assertFalse(queryService.fetchNode(twoTwoTwo.id()).recurring());
+        assertEquals(3, queryService.fetchChildCount(twoTwo.childId(), null));
+
         assertRoutine(List.of(
                         TWO,
                         TWOONE,
@@ -259,7 +263,6 @@ public class RoutineServiceShiftStepTest extends RoutineTestTemplateWithRequired
                         TWOTHREE),
                 pushStepTest());
 
-        TaskNode twoTwo = nodes.get(Triple.of(TWO, TWOTWO, 1));
         assertEquals(3, queryService.fetchChildCount(twoTwo.childId(), null));
     }
 

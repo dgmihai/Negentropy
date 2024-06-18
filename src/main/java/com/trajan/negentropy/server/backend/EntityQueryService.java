@@ -1,5 +1,6 @@
 package com.trajan.negentropy.server.backend;
 
+import com.google.common.collect.ListMultimap;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.model.entity.*;
@@ -14,6 +15,7 @@ import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.TaskRepository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -273,10 +275,18 @@ public interface EntityQueryService {
 
     Stream<TagEntity> findOrphanedTags();
 
-    JPAQuery<RoutineStepEntity> findRoutinesContainingLink(LinkID linkId);
+    ListMultimap<StepID, RoutineStepEntity> findRoutineStepsDescendantMapByRoutineId(RoutineID routineId);
+
+    JPAQuery<RoutineStepEntity> findRoutineStepsContainingLink(LinkID linkId);
+    List<StepID> findRoutineStepsIdsInCurrentRoutinesContainingLink(LinkID linkId);
+
     JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLink(LinkID linkId);
+
     JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingLinks(Set<LinkID> linkIds);
+    List<StepID> findRoutineStepsIdsInCurrentRoutinesContainingTask(TaskID taskId);
+
     JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTask(TaskID taskId);
+
     JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTasks(Set<TaskID> taskIds);
 
     Stream<TaskLink> findLinksThatHaveActiveRoutineSteps();

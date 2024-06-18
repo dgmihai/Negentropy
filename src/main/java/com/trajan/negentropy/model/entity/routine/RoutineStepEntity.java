@@ -12,8 +12,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -23,6 +21,7 @@ import java.util.Optional;
 
 @Entity
 @Table(name = "routine_steps", indexes = {
+        @Index(columnList = "id", name = "idx_step_id"),
         @Index(columnList = "status", name = "idx_status"),
         @Index(columnList = "startTime, finishTime", name = "idx_time"),
         @Index(columnList = "link_id", name = "idx_step_link"),
@@ -60,7 +59,6 @@ public class RoutineStepEntity extends AbstractEntity implements Timeable<Routin
             fetch = FetchType.EAGER,
             mappedBy = "parentStep",
             cascade = CascadeType.ALL)
-    @Fetch(FetchMode.SUBSELECT)
     @OrderBy("position")
     @ToString.Exclude
     private List<RoutineStepEntity> children = new ArrayList<>();;

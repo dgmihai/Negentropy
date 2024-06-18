@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.wellness;
 
-import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Stressor;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Component
 @Scope("prototype")
 public class StressorInput extends HorizontalLayout {
-    @Autowired private UIController controller;
+    @Autowired private SessionServices services;
     @Autowired private BannerProvider bannerProvider;
 
     private final ComboBox<Stressor> stressorsBox = new ComboBox<>();
@@ -27,8 +27,8 @@ public class StressorInput extends HorizontalLayout {
         this.setWidthFull();
 
         stressorsBox.addClassName("emotion-field");
-        stressorsBox.setLabel("What is your largest stressor or fear?");
-        stressorsBox.setItems(controller.services().stressor().getAll()
+        stressorsBox.setLabel("What is on your mind, for better or worse?");
+        stressorsBox.setItems(services.stressor().getAll()
                 .toList());
         stressorsBox.setItemLabelGenerator(Stressor::name);
         stressorsBox.setAllowCustomValue(true);
@@ -36,9 +36,9 @@ public class StressorInput extends HorizontalLayout {
         stressorsBox.setSizeFull();
 
         stressorsBox.addCustomValueSetListener(event -> {
-            Stressor stressor = controller.services().stressor().persist(
+            Stressor stressor = services.stressor().persist(
                     new Stressor(event.getDetail()));
-            stressorsBox.setItems(controller.services().stressor().getAll()
+            stressorsBox.setItems(services.stressor().getAll()
                     .toList());
             save(stressor);
         });
@@ -57,7 +57,7 @@ public class StressorInput extends HorizontalLayout {
     }
 
     private void save(Stressor stressor) {
-        controller.services().stressor().record(stressor.id(), LocalDateTime.now());
+        services.stressor().record(stressor.id(), LocalDateTime.now());
         bannerProvider.showRandomTenet();
         stressorsBox.clear();
     }

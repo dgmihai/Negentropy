@@ -1,11 +1,14 @@
 package com.trajan.negentropy.server.backend.util;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.trajan.negentropy.model.entity.TaskLink;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.interfaces.Ancestor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -76,12 +79,12 @@ public class DFSUtil {
         return streamBuilder.build();
     }
 
-    public static Map<TaskLink, List<TaskLink>> traverseTaskLinksAsAdjacencyMap
+    public static ListMultimap<TaskID, TaskLink> traverseTaskLinksAsAdjacencyMap
             (TaskID rootId,
              Function<TaskLink, TaskID> getNextID,
              Function<TaskID, Stream<TaskLink>> getNextLinks,
              Consumer<TaskLink> consumer) {
-        Map<TaskLink, List<TaskLink>> adjacencyMap = new LinkedHashMap<>();
+        ListMultimap<TaskID, TaskLink> adjacencyMap = ArrayListMultimap.create();
         for (TaskLink nextLink : getNextLinks.apply(rootId).toList()) {
             recurseTaskLinks(nextLink, null, adjacencyMap, getNextID, getNextLinks, consumer);
         }
@@ -91,7 +94,7 @@ public class DFSUtil {
     private static void recurseTaskLinks(
             TaskLink currentLink,
             Stream.Builder<TaskLink> streamBuilder,
-            Map<TaskLink, List<TaskLink>> adjacencyMap,
+            ListMultimap<TaskID, TaskLink> adjacencyMap,
             Function<TaskLink, TaskID> getNextID,
             Function<TaskID, Stream<TaskLink>> getNextLinks,
             Consumer<TaskLink> consumer) {
@@ -101,17 +104,14 @@ public class DFSUtil {
         if (streamBuilder != null) {
             streamBuilder.add(currentLink);
         }
-        if (adjacencyMap != null) {
-            adjacencyMap.put(currentLink, new LinkedList<>());
-        }
 
         List<TaskLink> nextLinks = getNextLinks.apply(getNextID.apply(currentLink)).toList();
         for (TaskLink nextLink : nextLinks) {
             recurseTaskLinks(nextLink, streamBuilder, adjacencyMap, getNextID,
                     getNextLinks, consumer);
-
             if (adjacencyMap != null) {
-                adjacencyMap.get(currentLink).add(nextLink);
+                TaskID key = nextLink.parentId() != null ? nextLink.parentId() : TaskID.nil();
+                adjacencyMap.replaceValues(key, nextLinks);
             }
         }
     }

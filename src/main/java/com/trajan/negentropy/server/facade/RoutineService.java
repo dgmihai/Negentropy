@@ -14,7 +14,6 @@ import com.trajan.negentropy.model.id.RoutineID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
-import com.trajan.negentropy.util.CurrentTimeSettable;
 import com.vaadin.flow.shared.Registration;
 import org.springframework.util.MultiValueMap;
 
@@ -24,7 +23,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public interface RoutineService extends CurrentTimeSettable {
+public interface RoutineService {
     RoutineID activeRoutineId();
 
     Routine fetchRoutine(RoutineID routineID);
@@ -36,9 +35,10 @@ public interface RoutineService extends CurrentTimeSettable {
     RoutineResponse createRoutine(LinkID rootId, TaskNodeTreeFilter filter, LocalDateTime time);
     RoutineResponse createRoutine(List<TaskOrLinkID> rootIds, TaskNodeTreeFilter filter, LocalDateTime time);
 
+    void refreshActiveRoutines();
+    void setActiveRoutinesEffort(Integer effort);
     @VisibleForTesting
     Routine refreshRoutine(RoutineID routine);
-    void refreshActiveRoutines();
     void refreshRoutines(boolean refreshRoutines);
     boolean refreshRoutines();
 
@@ -75,4 +75,7 @@ public interface RoutineService extends CurrentTimeSettable {
     void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults);
 
     boolean hasFilteredOutSteps(RoutineID routineId);
+
+    Integer effortMaximum();
+    void setEffortMaximum(Integer effortMaximum);
 }

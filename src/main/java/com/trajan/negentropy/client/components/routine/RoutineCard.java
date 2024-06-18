@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.routine;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.TreeView;
 import com.trajan.negentropy.client.components.YesNoDialog;
+import com.trajan.negentropy.client.components.fields.DescriptionTextArea;
 import com.trajan.negentropy.client.components.grid.RoutineStepTreeGrid;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -28,13 +29,12 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ReadOnlyHasValue;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.wontlost.ckeditor.VaadinCKEditor;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -66,7 +66,7 @@ public class RoutineCard extends VerticalLayout {
     private RoutineCardButton toTaskTree;
     private Span currentTaskName;
     private CountdownTimer timer;
-    private TextArea description;
+    private VaadinCKEditor description;
 
     private VerticalLayout taskInfoBarLayout;
 
@@ -127,7 +127,7 @@ public class RoutineCard extends VerticalLayout {
     private void updateComponents() {
         if (routine.status().equals(TimeableStatus.COMPLETED)) {
             this.setCardCompleted();
-        } else if (routine.status().equals(TimeableStatus.SKIPPED)) {
+        } else if (routine.status().equalsAny(TimeableStatus.SKIPPED, TimeableStatus.EXCLUDED)) {
             this.setCardSkipped();
         } else {
             binder.setBean(routine.currentStep());
@@ -164,7 +164,7 @@ public class RoutineCard extends VerticalLayout {
                         DurationConverter.toPresentation(routine.children().stream()
                                 .reduce(Duration.ZERO,
                                         (duration, step) -> duration.plus(TimeableUtil.get()
-                                                .getElapsedActiveDuration(step, step.finishTime())),
+                                                .getNestedElapsedActiveDuration(step, step.finishTime())),
                                         Duration::plus))
                         + "!");
             } else {
@@ -337,11 +337,11 @@ public class RoutineCard extends VerticalLayout {
         taskInfoBarLayout = new VerticalLayout();
         this.updateComponents();
 
-        description = new TextArea();
+        description = DescriptionTextArea.inline(null);
         binder.forField(description)
                 .bind(step -> step.task().description(),
                         (step, text) -> step.task().description(text));
-        description.setValueChangeMode(ValueChangeMode.ON_CHANGE);
+//        description.setValueChangeMode(ValueChangeMode.ON_CHANGE);
         description.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 Change change = Change.update(binder.getBean().task());
@@ -428,7 +428,12 @@ public class RoutineCard extends VerticalLayout {
     private static class RoutineCardButton extends Div {
         public RoutineCardButton(Icon icon) {
             super(icon);
+            this.setIcon(icon);
+        }
 
+        public void setIcon(Icon icon) {
+            this.removeAll();
+            this.add(icon);
             icon.addClassNames(
                     LumoUtility.IconSize.MEDIUM,
                     K.COLOR_PRIMARY);
@@ -443,8 +448,7 @@ public class RoutineCard extends VerticalLayout {
         public RoutineCardBooleanButton(Icon icon) {
             super(icon);
 
-            icon.addClassNames(
-                    LumoUtility.IconSize.MEDIUM);
+            icon.addClassNames(LumoUtility.IconSize.MEDIUM);
         }
 
         public void setBoolean(boolean enabled) {
@@ -455,6 +459,13 @@ public class RoutineCard extends VerticalLayout {
                 this.removeClassName(K.COLOR_PRIMARY);
                 this.addClassName(K.COLOR_UNSELECTED);
             }
+        }
+
+        public void setIcon(Icon icon) {
+            this.removeAll();
+            this.add(icon);
+            icon.addClassNames(LumoUtility.IconSize.MEDIUM);
+            this.setBoolean(this.enabled);
         }
     }
 

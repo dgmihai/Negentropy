@@ -78,7 +78,7 @@
     "@vaadin/virtual-list": "24.1.5",
     "construct-style-sheets-polyfill": "3.1.0",
     "date-fns": "2.29.3",
-    "lit": "2.7.6",
+    "lit": "^2.6.1",
     "mobile-drag-drop": "2.3.0-rc.2",
     "proj4": "2.9.0"
   },
@@ -177,7 +177,7 @@
       "@vaadin/virtual-list": "24.1.5",
       "construct-style-sheets-polyfill": "3.1.0",
       "date-fns": "2.29.3",
-      "lit": "2.7.6",
+      "lit": "^2.6.1",
       "mobile-drag-drop": "2.3.0-rc.2",
       "proj4": "2.9.0"
     },
@@ -199,7 +199,7 @@
       "workbox-core": "7.0.0",
       "workbox-precaching": "7.0.0"
     },
-    "hash": "32c42bd4faec3edd760aedc59161bb011a63637daacc64a03013bfb587483fc2"
+    "hash": "c3100088575f2d1c96a1b12f2ba8e7078ba096ce9fb5b395ceef4e7180331208"
   },
   "overrides": {
     "@vaadin/bundles": "$@vaadin/bundles",

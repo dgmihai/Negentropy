@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.controller;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.trajan.negentropy.aop.Benchmark;
+import com.trajan.negentropy.client.components.wellness.WellnessInputScheduler;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
@@ -53,26 +54,25 @@ import java.util.function.Supplier;
 public class UIController {
     private final UILogger log = new UILogger();
 
-    @Autowired
-    private UI ui;
+    @Autowired private UI ui;
 
     @Setter
     private TaskNodeProvider activeTaskNodeProvider;
     @Setter
     private HasRootNode activeTaskNodeDisplay;
 
-    @Autowired
-    protected TaskNetworkGraph taskNetworkGraph;
-    @Autowired
-    protected TaskEntryDataProvider taskEntryDataProvider;
+    @Autowired protected TaskNetworkGraph taskNetworkGraph;
+    @Autowired protected TaskEntryDataProvider taskEntryDataProvider;
 
     @Autowired
     protected SessionServices services;
     @Autowired
     protected UserSettings settings;
+    @Autowired protected SessionServices services;
+    @Autowired protected UserSettings settings;
 
-    @Autowired
-    protected RoutineDataProvider routineDataProvider;
+    @Autowired protected RoutineDataProvider routineDataProvider;
+    @Autowired protected WellnessInputScheduler wellnessInputScheduler;
 
     @PostConstruct
     public void init() {
@@ -375,6 +375,12 @@ public class UIController {
         log.debug("Pushing routine step forward by one level: " + stepId);
         tryRoutineServiceCall(() -> services.routine().pushStepForward(stepId, LocalDateTime.now()),
                 onSuccess, onFailure);
+    }
+
+    @Async
+    public synchronized void setActiveRoutinesEffort(Integer effort) {
+        log.debug("Setting active routines effort to: " + effort);
+        services.routine().setActiveRoutinesEffort(effort);
     }
 
     //==================================================================================================================

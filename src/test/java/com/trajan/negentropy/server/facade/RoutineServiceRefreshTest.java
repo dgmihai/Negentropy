@@ -34,8 +34,8 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
     }
 
     private LocalDateTime prepareRoutineRefresh(LocalTime customTime) {
-        LocalDateTime startTime = customTime.atDate(routineService.now().toLocalDate());
-        routineService.manualTime(startTime);
+        LocalDateTime startTime = customTime.atDate(clock.time().toLocalDate());
+        clock.manualTime(startTime);
 
         changeService.execute(new MergeChange<>(nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2))
                 .projectEtaLimit(Optional.of(LocalTime.from(startTime.plus(
@@ -81,7 +81,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(THREETHREE).duration()));
+        clock.manualTime(startTime.plus(tasks.get(THREETHREE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(
@@ -98,7 +98,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plusHours(14));
+        clock.manualTime(startTime.plusHours(14));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -114,7 +114,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
+        clock.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(
@@ -131,7 +131,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -149,7 +149,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
 
         routine = iterateCompleteStep(routine, 1,
                 THREEONE, TimeableStatus.ACTIVE,
-                THREE_AND_FIVE, TimeableStatus.ACTIVE);
+                THREE_AND_FIVE, TimeableStatus.DESCENDANT_ACTIVE);
 
         assertRoutineWithExceeded(List.of(
                         THREE_AND_FIVE,
@@ -164,8 +164,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime
-                .plus(tasks.get(THREE_AND_FIVE).duration())
+        clock.manualTime(startTime
                 .plus(tasks.get(THREETHREE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
@@ -181,7 +180,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -197,7 +196,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = iterateCompleteStep(routine, 2,
                 THREETWO, TimeableStatus.ACTIVE,
                 THREEONE, TimeableStatus.COMPLETED);
@@ -251,7 +250,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(THREETHREE).duration()));
+        clock.manualTime(startTime.plus(tasks.get(THREETHREE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -267,7 +266,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plusHours(14));
+        clock.manualTime(startTime.plusHours(14));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -283,7 +282,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
+        clock.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -299,7 +298,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -315,7 +314,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plusHours(2));
+        clock.manualTime(startTime.plusHours(2));
         routine = iterateCompleteStep(routine, 1,
                 THREEONE, TimeableStatus.ACTIVE,
                 THREE_AND_FIVE, TimeableStatus.DESCENDANT_ACTIVE);
@@ -333,7 +332,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -349,7 +348,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.minusHours(12));
+        clock.manualTime(startTime.minusHours(12));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -387,7 +386,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
 
     private RoutineLimitFilter getCustomFilter(LocalTime customTime) {
         return new RoutineLimitFilter()
-                .etaLimit(LocalDateTime.of(routineService.now().toLocalDate(),
+                .etaLimit(LocalDateTime.of(clock.time().toLocalDate(),
                         customTime.plus(Duration.ofMinutes(14*60 + 30))));
     }
 
@@ -414,8 +413,8 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
     }
 
     private void testDynamicRoutineRefresh_NestedEta_Early(LocalTime customTime) {
-        LocalDateTime startTime = customTime.atDate(routineService.now().toLocalDate());
-        routineService.manualTime(startTime);
+        LocalDateTime startTime = customTime.atDate(clock.time().toLocalDate());
+        clock.manualTime(startTime);
 
         RoutineLimitFilter filter = null;
 
@@ -435,7 +434,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 .projectStepCountLimit(Optional.empty())));
 
         testDynamicRoutineRefresh_NestedEta_Early_PartOne(nestedEta, startTime, filter);
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         testDynamicRoutineRefresh_NestedEta_Early_PartTwo(nestedEta, startTime, filter);
 
         changeService.execute(new MergeChange<>(nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2))
@@ -480,7 +479,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(SIX_AND_THREETWOFOUR).duration()));
+        clock.manualTime(startTime.plus(tasks.get(SIX_AND_THREETWOFOUR).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(
@@ -497,7 +496,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plusHours(14));
+        clock.manualTime(startTime.plusHours(14));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -513,7 +512,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -529,7 +528,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -545,7 +544,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta);
         routine = iterateCompleteStep(routine, 1,
                 THREEONE, TimeableStatus.ACTIVE,
                 THREE_AND_FIVE, TimeableStatus.DESCENDANT_ACTIVE);
@@ -578,7 +577,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -594,7 +593,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta);
         routine = routineService.refreshRoutine(routine.id());
 
         routine = iterateCompleteStep(routine, 0,
@@ -709,7 +708,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 THREETWOONE_AND_THREETWOTHREE, TimeableStatus.ACTIVE,
                 TWOTWOTHREE_AND_THREETWOTWO, TimeableStatus.COMPLETED);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta.minusMinutes(30));
         routine = routineService.refreshRoutine(routine.id());
 
         assertEquals(routine.currentStep().name(), THREETWOONE_AND_THREETWOTHREE);
@@ -731,11 +730,23 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 THREETWO, TimeableStatus.ACTIVE,
                 THREETWOONE_AND_THREETWOTHREE, TimeableStatus.COMPLETED);
 
+        assertEquals(TimeableStatus.LIMIT_EXCEEDED,
+                routine.steps().values().stream()
+                        .filter(step -> step.name().equals(THREETHREE))
+                        .findFirst().get().status());
+
         routine = iterateCompleteStep(routine, 0,
                 THREE_AND_FIVE, TimeableStatus.ACTIVE,
                 THREETWO, TimeableStatus.COMPLETED);
 
-        assertEquals(routine.descendants().size() - 1,
+        // TODO: Shouldn't this go directly to ThreeThree, not up to ThreeAndFive?
+
+        assertEquals(TimeableStatus.NOT_STARTED,
+                routine.steps().values().stream()
+                        .filter(step -> step.name().equals(THREETHREE))
+                        .findFirst().get().status());
+
+        assertEquals(routine.descendants().size() - 2,
                 routine.steps().values()
                         .stream().filter(step -> step.status().isFinishedOrExceeded())
                         .count());
@@ -792,7 +803,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
 
         int position = routine.currentPosition();
         routine = doRoutine(routine.currentStep().id(),
-                routineService.now(),
+                clock.time(),
                 routineService::completeStep);
 
         assertRoutineStepExecution(
@@ -810,8 +821,8 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
     }
 
     private void testDynamicRoutineRefresh_NestedEta_Late(LocalTime customTime) {
-        LocalDateTime startTime = customTime.atDate(routineService.now().toLocalDate());
-        routineService.manualTime(startTime);
+        LocalDateTime startTime = customTime.atDate(clock.time().toLocalDate());
+        clock.manualTime(startTime);
 
         RoutineLimitFilter filter = null;
 
@@ -859,7 +870,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plus(tasks.get(SIX_AND_THREETWOFOUR).duration()));
+        clock.manualTime(startTime.plus(tasks.get(SIX_AND_THREETWOFOUR).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -875,7 +886,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime.plusHours(14));
+        clock.manualTime(startTime.plusHours(14));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -891,7 +902,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta);
 //                Stream.of(
 //                        THREETWO,
 //                                THREETWOONE_AND_THREETWOTHREE,
@@ -915,7 +926,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -931,7 +942,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(nestedEta);
+        clock.manualTime(nestedEta);
         routine = iterateCompleteStep(routine, 1,
                 THREEONE, TimeableStatus.ACTIVE,
                 THREE_AND_FIVE, TimeableStatus.DESCENDANT_ACTIVE);
@@ -981,7 +992,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 filter);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(List.of(
@@ -1018,8 +1029,8 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
     void testDynamicRoutineRefreshAcrossMultipleDays_NonOptimistic() {
         LocalTime customTime = LocalTime.of(23, 0);
 
-        LocalDateTime startTime = customTime.atDate(routineService.now().toLocalDate());
-        routineService.manualTime(startTime);
+        LocalDateTime startTime = customTime.atDate(clock.time().toLocalDate());
+        clock.manualTime(startTime);
 
         changeService.execute(new MergeChange<>(nodes.get(Triple.of(NULL, THREE_AND_FIVE, 2))
                 .projectEtaLimit(Optional.of(LocalTime.from(startTime.plus(
@@ -1063,7 +1074,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 null);
 
 
-        routineService.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
+        clock.manualTime(startTime.plus(tasks.get(THREEONE).duration()));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(
@@ -1080,7 +1091,7 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 null);
 
-        routineService.manualTime(startTime.plusHours(1));
+        clock.manualTime(startTime.plusHours(1));
         routine = routineService.refreshRoutine(routine.id());
 
         assertRoutineWithExceeded(
@@ -1097,10 +1108,10 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 routine,
                 null);
 
-        routineService.manualTime(startTime);
+        clock.manualTime(startTime);
         routine = iterateCompleteStep(routine, 1,
                 THREEONE, TimeableStatus.ACTIVE,
-                THREE_AND_FIVE, TimeableStatus.ACTIVE);
+                THREE_AND_FIVE, TimeableStatus.DESCENDANT_ACTIVE);
 
         assertRoutineWithExceeded(List.of(
                         THREE_AND_FIVE,

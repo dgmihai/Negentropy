@@ -20,10 +20,12 @@ import java.util.*;
 @Entity
 @EntityListeners(SyncManagerListener.class)
 @Table(name = "tasks", indexes = {
+        @Index(columnList = "id", name = "idx_task_id"),
         @Index(columnList = "name", name = "idx_task_name"),
         @Index(columnList = "starred", name = "idx_task_starred"),
         @Index(columnList = "pinned", name = "idx_task_pinned"),
-        @Index(columnList = "project", name = "idx_task_project")
+        @Index(columnList = "project", name = "idx_task_project"),
+        @Index(columnList = "effort", name = "idx_task_effort")
 })
 @NoArgsConstructor
 @Getter
@@ -48,6 +50,7 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
     private Boolean required = false;
     private Boolean project = false;
     private Boolean difficult = false;
+    private Integer effort = -1;
     private Boolean starred = false;
     private Boolean pinned = false;
     private Boolean cleanup = false;
@@ -84,8 +87,8 @@ public class TaskEntity extends AbstractEntity implements TaskData<TaskEntity>, 
     @Override
     public String toString() {
         return "TaskEntity(" + id + ")[name=" + name + ", description=" + description + ", duration=" + duration
-                + ", required=" + required + ", project=" + project + ", difficult=" + difficult + ", starred="
-                + starred + ", pinned=" + pinned + ", cleanup=" + cleanup + "]";
+                + ", required=" + required + ", project=" + project + ", difficult=" + difficult + ", effort=" + effort
+                + ", starred=" + starred + ", pinned=" + pinned + ", cleanup=" + cleanup + "]";
     }
 
     @Override

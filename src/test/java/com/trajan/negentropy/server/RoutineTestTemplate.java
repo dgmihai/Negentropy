@@ -242,7 +242,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                              List<String> expectedSteps,
                                                              List<String> excludedTasks) throws Exception {
         TaskNode node = nodes.get(rootLink);
-        RoutineResponse response = routineService.createRoutine(node.linkId(), filter, routineService.now());
+        RoutineResponse response = routineService.createRoutine(node.linkId(), filter, clock.time());
         assertTrue(response.success());
         assertFreshRoutine(expectedSteps, response);
         assertEquals(
@@ -333,7 +333,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                              Function<TaskID, Duration> expectedDuration,
                                                              List<String> expectedSteps) {
         TaskID rootId = tasks.get(rootTask).id();
-        RoutineResponse response = routineService.createRoutine(rootId, routineService.now());
+        RoutineResponse response = routineService.createRoutine(rootId, clock.time());
         assertTrue(response.success());
         assertFreshRoutine(expectedSteps, response);
         assertEquals(
@@ -347,7 +347,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                                       TaskNodeTreeFilter filter,
                                                                       List<String> expectedSteps) {
         TaskID rootId = tasks.get(rootTask).id();
-        RoutineResponse response = routineService.createRoutine(rootId, filter, routineService.now());
+        RoutineResponse response = routineService.createRoutine(rootId, filter, clock.time());
         assertTrue(response.success());
         assertFreshRoutine(expectedSteps, response);
         assertEquals(
@@ -362,7 +362,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                                       List<String> expectedSteps,
                                                                       List<String> excludedTasks) {
         TaskNode node = nodes.get(rootLink);
-        RoutineResponse response = routineService.createRoutine(node.linkId(), filter, routineService.now());
+        RoutineResponse response = routineService.createRoutine(node.linkId(), filter, clock.time());
         assertTrue(response.success());
         assertFreshRoutine(expectedSteps, response);
         assertEquals(
@@ -435,7 +435,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                        String expectedPreviousName, TimeableStatus expectedPreviousStatus) {
         int position = routine.currentPosition();
         routine = doRoutine(routine.currentStep().id(),
-                routineService.now(),
+                clock.time(),
                 routineService::completeStep);
 
         assertRoutineStepExecution(
@@ -460,7 +460,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                   BiFunction<StepID, LocalDateTime, RoutineResponse> operation) {
         int position = routine.currentPosition();
         routine = doRoutine(routine.currentStep().id(),
-                routineService.now(),
+                clock.time(),
                 operation);
 
         assertRoutineStepExecution(

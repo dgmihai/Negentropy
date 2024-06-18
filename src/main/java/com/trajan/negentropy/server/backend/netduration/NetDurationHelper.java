@@ -15,9 +15,8 @@ import com.trajan.negentropy.server.backend.EntityQueryService;
 import com.trajan.negentropy.server.backend.repository.LinkRepository;
 import com.trajan.negentropy.server.backend.repository.NetDurationRepository;
 import com.trajan.negentropy.server.facade.QueryService;
-import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.RoutineServiceImpl.LimitedDataWrapper;
-import com.trajan.negentropy.util.SpringContext;
+import com.trajan.negentropy.util.ServerClockService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
@@ -93,7 +92,7 @@ public class NetDurationHelper {
         if (current.link().isPresent()) {
             TaskLink link = current.link().get();
             if (limit == null) {
-                limit = new RoutineLimiter(null, null, null, false);
+                limit = new RoutineLimiter(null, null, null, null, false);
             }
 
             if (current.task().project() && !limit.customLimit()) {
@@ -101,7 +100,7 @@ public class NetDurationHelper {
 
                 if (link.projectEtaLimit().isPresent()) {
                     LocalDateTime time = !(parent instanceof RefreshHierarchy)
-                            ? SpringContext.getBean(RoutineService.class).now()
+                            ? ServerClockService.now()
                             : parent.routine().creationTimestamp();
                     etaLimit = link.projectEtaLimit().get().atDate(time.toLocalDate());
                 }
@@ -110,14 +109,15 @@ public class NetDurationHelper {
                         link.projectDurationLimit().orElse(null),
                         link.projectStepCountLimit().orElse(null),
                         etaLimit,
+                        limit.effortMaximum(),
                         limit.customLimit());
             }
 
-            return (!limit.isEmpty())
+            return (!limit.isEmptyWithEffort())
                     ? linkHierarchyIterator.iterateWithLimit(current, parent, limit)
                     : linkHierarchyIterator.process(current, parent);
         } else {
-            if (limit != null && !limit.isEmpty() && (current.task().project() || limit.exceeded())) {
+            if (limit != null && !limit.isEmptyWithEffort() && (current.task().project() || limit.exceeded())) {
                 return linkHierarchyIterator.iterateWithLimit(current, parent, limit);
             } else {
                 return linkHierarchyIterator.process(current, parent);
@@ -131,17 +131,18 @@ public class NetDurationHelper {
     }
 
     void loadAdjacencyMap() {
-            adjacencyMap = Multimaps.index(
-                    entityQueryService.findLinksGroupedHierarchically(filter).toList(),
-                    link -> Objects.requireNonNullElse(link.parentId(), TaskID.nil()));
+        adjacencyMap = Multimaps.index(
+                entityQueryService.findLinksGroupedHierarchically(filter).toList(),
+                link -> Objects.requireNonNullElse(link.parentId(), TaskID.nil()));
+        log.info("Adjacency map has " + adjacencyMap.values().size() + " values");
     }
 
     private Duration inner_calculateHierarchicalNetDuration(LimitedDataWrapper current, RoutineStepHierarchy parent, RoutineLimiter limit) {
         Integer stepCountLimit = current.stepCountLimit();
         if (limit != null) {
-            limit = new RoutineLimiter(limit.durationLimit(), stepCountLimit, limit.etaLimit(), true);
+            limit = new RoutineLimiter(limit.durationLimit(), stepCountLimit, limit.etaLimit(), limit.effortMaximum(), true);
         } else {
-            limit = new RoutineLimiter(null, stepCountLimit, null, true);
+            limit = new RoutineLimiter(null, stepCountLimit, null, null, true);
         }
 
         if (current.data() instanceof TaskEntity task) {

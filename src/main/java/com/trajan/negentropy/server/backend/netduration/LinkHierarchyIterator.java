@@ -9,8 +9,7 @@ import com.trajan.negentropy.model.id.LinkID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.interfaces.HasTaskLinkOrTaskEntity;
 import com.trajan.negentropy.server.backend.netduration.RoutineStepHierarchy.RoutineStepEntityHierarchy;
-import com.trajan.negentropy.server.facade.RoutineService;
-import com.trajan.negentropy.util.SpringContext;
+import com.trajan.negentropy.util.ServerClockService;
 import com.trajan.negentropy.util.TimeableUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,8 +37,8 @@ public class LinkHierarchyIterator {
     private Duration getDuration(HasTaskLinkOrTaskEntity entity) {
         return (entity instanceof RoutineStepEntity step)
                 ? TimeableUtil.get().getRemainingDuration(
-                step, SpringContext.getBean(RoutineService.class).now(), true)
-                : entity.duration();
+                step, ServerClockService.now(), true)
+                : entity.task().duration();
     }
 
     Duration process(HasTaskLinkOrTaskEntity current, RoutineStepHierarchy parent) {
@@ -49,6 +48,7 @@ public class LinkHierarchyIterator {
         if (parent != null) {
             child = RoutineStepEntityHierarchy.create(current, parent.routine(), parent);
             if (parent.exceedsLimit()) {
+                log.trace("Setting step <" + child.step.name() + "> as exceeds limit");
                 child.setExceedsLimit();
             }
         }
@@ -84,6 +84,7 @@ public class LinkHierarchyIterator {
 
     void iterateAsExceededLimit(HasTaskLinkOrTaskEntity entity, @NotNull RoutineStepHierarchy parent, boolean customLimit) {
         RoutineStepEntityHierarchy current = RoutineStepEntityHierarchy.create(entity, parent.routine(), parent);
+        log.trace("Iterating, setting step <" + current.step.name() + "> and all descendants as exceeds limit");
         current.setExceedsLimit();
 
         LinkID currentLinkId = (entity instanceof TaskLink link)
@@ -111,6 +112,10 @@ public class LinkHierarchyIterator {
         return false;
     }
 
+    private boolean isRequiredAndWithinEffort(HasTaskLinkOrTaskEntity entity, RoutineLimiter limit) {
+        return entity.task().required() && !limit.exceedsEffort(entity.task().effort());
+    }
+
     Duration iterateWithLimit(HasTaskLinkOrTaskEntity current, RoutineStepHierarchy parent,
                               RoutineLimiter limit) {
         log.trace("Calculating net duration with limit of <" + current.name() + ">: " + limit);
@@ -130,18 +135,24 @@ public class LinkHierarchyIterator {
 
         List<HasTaskLinkOrTaskEntity> childLinks = this.findChildLinks(current);
 
+        RoutineLimiter onlyEffortLimit = limit.effortMaximum() == null
+                ? null
+                : new RoutineLimiter(null, null, null, limit.effortMaximum(), false);
+
         Map<HasTaskLinkOrTaskEntity, Duration> requiredDurations = childLinks.stream()
-                .filter(l -> l.task().required())
-                .peek(l -> log.trace("Calculating required duration for " + l.task().name()))
-                .map(l -> netDurationHelper.inner_calculateHierarchicalNetDuration(l, null, null))
-                .collect(HashMap::new, (m, v) -> m.put(childLinks.get(m.size()), v), HashMap::putAll);
+                .filter(l -> isRequiredAndWithinEffort(l, limit))
+                .peek(l -> log.debug("Calculating required duration for " + l.task().name()))
+                .collect(HashMap::new,
+                        (m, l) -> m.put(l, netDurationHelper.inner_calculateHierarchicalNetDuration(
+                                l, null, onlyEffortLimit)),
+                        HashMap::putAll);
 
         log.trace("Required durations: " + requiredDurations);
         Duration taskDuration = getDuration(current);
         log.trace("Current task duration: " + taskDuration);
-        limit.durationSum(taskDuration);
+        limit.include(taskDuration, true);
         limit.include(requiredDurations.values(), true);
-        log.trace("Duration sum: " + limit.durationSum() + " with " + limit.count() + " children");
+        log.trace("Required & base duration sum of <" + current.name() + ">: " + limit.durationSum() + " with " + limit.count() + " children");
 
         RoutineStepEntityHierarchy currentHierarchy = null;
         if (parent != null) {
@@ -151,10 +162,12 @@ public class LinkHierarchyIterator {
         for (HasTaskLinkOrTaskEntity child : childLinks) {
             log.trace("Processing <" + child.name() + ">");
 
-            if (child.task().required()) {
+            Duration childDuration = netDurationHelper.inner_calculateHierarchicalNetDuration(child, null, onlyEffortLimit);
+            if (isRequiredAndWithinEffort(child, limit)) {
                 log.trace("<" + child.name() + "> is required");
-                netDurationHelper.inner_calculateHierarchicalNetDuration(child, currentHierarchy, null);
-            } else if (limit.exceeded()) {
+                netDurationHelper.inner_calculateHierarchicalNetDuration(child, currentHierarchy, onlyEffortLimit);
+            } else if (limit.exceeded() || limit.exceedsEffort(child.task().effort())) {
+                log.debug("Limit exceeded, excluding <" + child.name() + ">");
                 if (currentLinkId != null && !limit.customLimit() && child.link().isPresent()) {
                     projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(child.link().get()));
                 }
@@ -162,9 +175,8 @@ public class LinkHierarchyIterator {
                     iterateAsExceededLimit(child, currentHierarchy, limit.customLimit());
                 }
             } else {
-                Duration childDuration = netDurationHelper.inner_calculateHierarchicalNetDuration(child, null, null);
                 log.trace("Calculated net duration of <" + child.name() + ">: " + childDuration);
-                if (limit.wouldExceed(childDuration) && !mustInclude(child)) {
+                if (limit.wouldExceed(childDuration, child.task().effort()) && !mustInclude(child)) {
                     log.trace("<" + child.name() + "> exceeds limit");
                     limit.exceeded(true);
                     if (currentLinkId != null && !limit.customLimit()) {
@@ -178,7 +190,7 @@ public class LinkHierarchyIterator {
                     childDuration = netDurationHelper.inner_calculateHierarchicalNetDuration(
                             child,
                             currentHierarchy,
-                            null);
+                            onlyEffortLimit);
                     limit.include(childDuration, false);
                 }
             }

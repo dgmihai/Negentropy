@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.routinelimit;
 
 import com.trajan.negentropy.client.components.fields.DurationTextField;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.IndeterminateToggleButton;
@@ -10,6 +11,7 @@ import com.trajan.negentropy.model.Tag;
 import com.trajan.negentropy.model.filter.RoutineLimitFilter;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.timepicker.TimePicker;
 import jakarta.annotation.PostConstruct;
@@ -36,6 +38,7 @@ public class RoutineLimitForm extends FormLayout {
 
     private DurationTextField durationField = new DurationTextField();
     private IntegerField countField = new IntegerField();
+    private Select<String> effortSelect = new Select<>();
     private TimePicker timePicker = new TimePicker();
     private Set<Tag> tagsToExclude = new HashSet<>();
     private Set<Tag> tagsToInclude = new HashSet<>();
@@ -48,6 +51,11 @@ public class RoutineLimitForm extends FormLayout {
 
         countField.setPlaceholder("Max Step Count");
         countField.setSizeFull();
+
+        effortSelect.setPlaceholder("Effort");
+        effortSelect.setSizeFull();
+        effortSelect.setTooltipText("Effort");
+        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT, "0", "1", "2", "3", "4", "5");
 
         timePicker.setPlaceholder("Time Limit");
         timePicker.setSizeFull();
@@ -71,9 +79,9 @@ public class RoutineLimitForm extends FormLayout {
 
         innerJoinTags.setLabel("Inner Join Tags");
 
-        this.add(durationField, countField, timePicker, toggleableTags);
-        this.setColspan(durationField, 2);
-        this.setColspan(toggleableTags, 2);
+        this.add(durationField, countField, effortSelect, timePicker, toggleableTags);
+        this.setColspan(durationField, 3);
+        this.setColspan(toggleableTags, 3);
     }
 
     public void setToggleableTags(Set<Tag> tags) {
@@ -115,6 +123,14 @@ public class RoutineLimitForm extends FormLayout {
                     return new IllegalArgumentException(errorMessage);
                 });
 
+        Integer effort = EffortConverter.toModel(effortSelect.getValue()).getOrThrow(
+                string -> {
+                    String errorMessage = "Invalid effort: " + string;
+                    NotificationMessage.error(errorMessage);
+                    return new IllegalArgumentException(errorMessage);
+                });
+        if (effort == -1) effort = null;
+
         Integer count = countField.isEmpty()
                 ? null
                 : countField.getValue();
@@ -140,6 +156,7 @@ public class RoutineLimitForm extends FormLayout {
                 .durationLimit(duration)
                 .stepCountLimit(count)
                 .etaLimit(eta)
+                .effortMaximum(effort)
                 .completed(false)
                 .includedTagIds(tagsToInclude.stream()
                         .map(Tag::id).collect(Collectors.toSet()))

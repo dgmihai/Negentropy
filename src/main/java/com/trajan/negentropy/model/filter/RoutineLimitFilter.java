@@ -14,6 +14,7 @@ public class RoutineLimitFilter extends TaskNodeTreeFilter {
     protected Duration durationLimit;
     protected Integer stepCountLimit;
     protected LocalDateTime etaLimit;
+    protected Integer effortMaximum;
 
     public static RoutineLimitFilter parse(TaskNodeTreeFilter filter) {
         if (filter instanceof RoutineLimitFilter) {
@@ -35,6 +36,6 @@ public class RoutineLimitFilter extends TaskNodeTreeFilter {
     }
 
     public boolean isLimiting() {
-        return durationLimit != null || stepCountLimit != null || etaLimit != null;
+        return durationLimit != null || stepCountLimit != null || etaLimit != null || effortMaximum != null;
     }
 }

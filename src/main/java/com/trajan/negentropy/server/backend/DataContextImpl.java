@@ -2,17 +2,21 @@ package com.trajan.negentropy.server.backend;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.LinkedListMultimap;
+import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.model.*;
 import com.trajan.negentropy.model.data.HasTaskNodeData.TaskNodeTemplateData;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
-import com.trajan.negentropy.model.entity.routine.*;
+import com.trajan.negentropy.model.entity.routine.Routine;
+import com.trajan.negentropy.model.entity.routine.RoutineEntity;
+import com.trajan.negentropy.model.entity.routine.RoutineStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineNodeStep;
 import com.trajan.negentropy.model.entity.routine.RoutineStep.RoutineTaskStep;
+import com.trajan.negentropy.model.entity.routine.RoutineStepEntity;
 import com.trajan.negentropy.model.id.ID;
+import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.model.id.LinkID;
-import com.trajan.negentropy.model.id.StepID;
 import com.trajan.negentropy.model.id.TaskID;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.DeleteChange;
@@ -21,8 +25,11 @@ import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.util.SpringContext;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +59,8 @@ public class DataContextImpl implements DataContext {
 
     @Autowired private RoutineRepository routineRepository;
     @Autowired private RoutineStepRepository routineStepRepository;
+
+    @Value("${negentropy.inTesting:false}") protected boolean inTesting;
 
     @PostConstruct
     public void onStart() {
@@ -93,6 +102,8 @@ public class DataContextImpl implements DataContext {
                         task.required(), taskEntity.required()))
                 .difficult(Objects.requireNonNullElse(
                         task.difficult(), taskEntity.difficult()))
+                .effort(Objects.requireNonNullElse(
+                        task.effort(), taskEntity.effort()))
                 .starred(Objects.requireNonNullElse(
                         task.starred(), taskEntity.starred()))
                 .pinned(Objects.requireNonNullElse(
@@ -121,6 +132,7 @@ public class DataContextImpl implements DataContext {
                 template.required(),
                 template.project(),
                 template.difficult(),
+                template.effort(),
                 template.starred(),
                 template.pinned(),
                 template.cleanup(),
@@ -469,16 +481,13 @@ public class DataContextImpl implements DataContext {
         TaskEntity child = link.child();
         child.parentLinks().remove(link);
 
-        // We need to call raw SQL to avoid eager fetching of routine steps
+        // We need to call directly to SQL to avoid eager fetching of routine steps
         String selectQueryAllMatchingSteps = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.id = :linkId";
         List<Long> stepIdsAllMatching = entityManager.createQuery(selectQueryAllMatchingSteps, Long.class)
                 .setParameter("linkId", link.id())
                 .getResultList();
 
-        String selectQueryStepsInReadyRoutines = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.id = :linkId AND (rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.ACTIVE OR rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.NOT_STARTED)";
-        List<Long> stepIdsInReadyRoutines = entityManager.createQuery(selectQueryStepsInReadyRoutines, Long.class)
-                .setParameter("linkId", link.id())
-                .getResultList();
+        List<StepID> stepIdsInReadyRoutines = entityQueryService.findRoutineStepsIdsInCurrentRoutinesContainingLink(ID.of(link));
 
         if (!stepIdsAllMatching.isEmpty()) {
             String updateQuery = "UPDATE RoutineStepEntity rs SET rs.link = null, rs.deletedLink = true WHERE rs.id IN :stepIds";
@@ -487,10 +496,12 @@ public class DataContextImpl implements DataContext {
                     .executeUpdate();
             log.debug("Updated " + updatedCount + " routine steps to delete link and mark as deleted");
         }
+        entityManager.flush();
+        entityManager.clear();
 
         List<Change> changesToNotify = new ArrayList<>();
         stepIdsInReadyRoutines.forEach(id -> {
-            Change deleteChange = new DeleteChange<>(new StepID(id));
+            Change deleteChange = new DeleteChange<>(id);
             changesToNotify.add(deleteChange);
         });
 
@@ -498,7 +509,21 @@ public class DataContextImpl implements DataContext {
             RoutineService routineService = SpringContext.getBean(RoutineService.class);
             routineService.notifyChanges(Request.of(changesToNotify), new LinkedMultiValueMap<>());
         }
+
         linkRepository.delete(link);
+    }
+
+    @Override
+    @Transactional
+    public void deleteRoutineEntity(RoutineEntity routine) {
+        entityManager.createNativeQuery("DELETE FROM routines_children WHERE routine_entity_id = :id")
+                .setParameter("id", routine.id())
+                .executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM routine_steps WHERE routine_id = :id")
+                .setParameter("id", routine.id())
+                .executeUpdate();
+        routineRepository.delete(routine);
+        entityManager.detach(routine);
     }
 
     @Override
@@ -560,6 +585,7 @@ public class DataContextImpl implements DataContext {
                 taskEntity.required(),
                 taskEntity.project(),
                 taskEntity.difficult(),
+                taskEntity.effort(),
                 taskEntity.starred(),
                 taskEntity.pinned(),
                 taskEntity.cleanup(),

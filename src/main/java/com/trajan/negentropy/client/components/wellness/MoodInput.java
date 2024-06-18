@@ -1,6 +1,6 @@
 package com.trajan.negentropy.client.components.wellness;
 
-import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.Mood;
 import com.trajan.negentropy.model.entity.Emotion;
@@ -18,7 +18,7 @@ import java.util.Locale;
 @Component
 @Scope("prototype")
 public class MoodInput extends HorizontalLayout {
-    @Autowired private UIController controller;
+    @Autowired private SessionServices services;
     @Autowired private BannerProvider bannerProvider;
 
     private final ComboBox<Emotion> emotionField = new ComboBox<>();
@@ -41,7 +41,7 @@ public class MoodInput extends HorizontalLayout {
 
         emotionField.addValueChangeListener(event -> {
             if (event.isFromClient()) {
-                controller.services().mood().persist(
+                services.mood().persist(
                         new Mood(event.getValue()));
                 emotionField.setPlaceholder(event.getValue().toString());
                 bannerProvider.showRandomTenet();

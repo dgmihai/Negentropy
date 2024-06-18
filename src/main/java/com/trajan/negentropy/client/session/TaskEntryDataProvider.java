@@ -52,6 +52,8 @@ public class TaskEntryDataProvider extends AbstractBackEndHierarchicalDataProvid
         taskNetworkGraph.taskEntryDataProvider(this);
     }
 
+    public record Options(boolean refresh) {}
+
     public void refreshNodes(Map<LinkID, Boolean> linkIdMap) {
         log.debug("Refreshing nodes");
         session.access(() -> {

@@ -16,8 +16,9 @@ import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormMinorLay
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
+import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.session.enums.GridTiling;
+import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNodeDTO;
 import com.trajan.negentropy.model.entity.routine.Routine;
@@ -26,6 +27,7 @@ import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.model.sync.Change;
 import com.trajan.negentropy.model.sync.Change.InsertRoutineStepChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
+import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Key;
@@ -63,10 +65,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @SpringComponent
 @Scope("prototype")
 public class ToolbarTabSheet extends TabSheet {
+    UILogger log = new UILogger();
+
     @Autowired private UIController controller;
     @Autowired private UserSettings settings;
 
@@ -254,8 +259,8 @@ public class ToolbarTabSheet extends TabSheet {
         MenuItem additionalOptions = optionsMenu.addItem(optionsMenuText);
         SubMenu additionalOptionsSubmenu = additionalOptions.getSubMenu();
 
-        additionalOptionsSubmenu.addItem("Recalculate Net Durations",
-                e -> controller.recalculateNetDurations());
+//        additionalOptionsSubmenu.addItem("Recalculate Net Durations",
+//                e -> controller.recalculateNetDurations());
 
         additionalOptionsSubmenu.addItem("Delete All Orphan Tasks",
                 e -> controller.deleteAllOrphanedTasks());
@@ -269,14 +274,14 @@ public class ToolbarTabSheet extends TabSheet {
         additionalOptionsSubmenu.addItem("Delete All Completed Tasks",
                 e -> controller.deleteAllCompletedTaskNodes());
 
-        RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
-        gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
-        gridTilingRadioButtonGroup.setItems(Arrays.stream(GridTiling.values())
-                .map(GridTiling::value)
-                .toList());
-        gridTilingRadioButtonGroup.setValue(settings.gridTiling().value());
-        gridTilingRadioButtonGroup.addValueChangeListener(event ->
-            treeView.setGridTiling(GridTiling.get(event.getValue()).orElseThrow()));
+//        RadioButtonGroup<String> gridTilingRadioButtonGroup = new RadioButtonGroup<>("Additional Grid View");
+//        gridTilingRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+//        gridTilingRadioButtonGroup.setItems(Arrays.stream(GridTiling.values())
+//                .map(GridTiling::value)
+//                .toList());
+//        gridTilingRadioButtonGroup.setValue(settings.gridTiling().value());
+//        gridTilingRadioButtonGroup.addValueChangeListener(event ->
+//            treeView.setGridTiling(GridTiling.get(event.getValue()).orElseThrow()));
 
         RadioButtonGroup<String> sameGridDragInsertModeRadioButtonGroup = new RadioButtonGroup<>("Drag Inside Grid");
         sameGridDragInsertModeRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
@@ -288,30 +293,40 @@ public class ToolbarTabSheet extends TabSheet {
                 settings.sameGridDragInsertMode(
                         InsertMode.get(event.getValue()).orElseThrow()));
 
-        RadioButtonGroup<String> betweenGridsDragInsertModeRadioButtonGroup = new RadioButtonGroup<>("Drag Between Grids");
-        betweenGridsDragInsertModeRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
-        betweenGridsDragInsertModeRadioButtonGroup.setItems(Arrays.stream(InsertMode.values())
-                .map(InsertMode::toString)
-                .toList());
-        betweenGridsDragInsertModeRadioButtonGroup.setValue(settings.differentGridDragInsertMode().toString());
-        betweenGridsDragInsertModeRadioButtonGroup.addValueChangeListener(event ->
-                settings.differentGridDragInsertMode(
-                        InsertMode.get(event.getValue()).orElseThrow()));
+//        RadioButtonGroup<String> betweenGridsDragInsertModeRadioButtonGroup = new RadioButtonGroup<>("Drag Between Grids");
+//        betweenGridsDragInsertModeRadioButtonGroup.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
+//        betweenGridsDragInsertModeRadioButtonGroup.setItems(Arrays.stream(InsertMode.values())
+//                .map(InsertMode::toString)
+//                .toList());
+//        betweenGridsDragInsertModeRadioButtonGroup.setValue(settings.differentGridDragInsertMode().toString());
+//        betweenGridsDragInsertModeRadioButtonGroup.addValueChangeListener(event ->
+//                settings.differentGridDragInsertMode(
+//                        InsertMode.get(event.getValue()).orElseThrow()));
 
-        Checkbox disableContextMenu = new Checkbox("Disable Context Menu");
-        disableContextMenu.setValue(!settings.enableContextMenu());
-        disableContextMenu.addValueChangeListener(e -> {
-            settings.enableContextMenu(!disableContextMenu.getValue());
+        Checkbox disableContextMenuCheckbox = new Checkbox("Disable Context Menu");
+        disableContextMenuCheckbox.setValue(!settings.enableContextMenu());
+        disableContextMenuCheckbox.addValueChangeListener(e -> {
+            settings.enableContextMenu(!disableContextMenuCheckbox.getValue());
             UI.getCurrent().getPage().reload();
         });
 
-        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenu, optionsMenu);
+        Checkbox autoRefreshCheckbox = new Checkbox("Auto-refresh Routines");
+        RoutineService routineService = controller.services().routine();
+        autoRefreshCheckbox.setValue(routineService.refreshRoutines());
+        autoRefreshCheckbox.addValueChangeListener(event -> {
+            log.debug("Toggling auto-refresh to " + !routineService.refreshRoutines());
+            routineService.refreshRoutines(!routineService.refreshRoutines());
+            NotificationMessage.result("Auto-refresh " + (!routineService.refreshRoutines() ? "disabled" : "enabled"));
+            if (routineService.refreshRoutines()) CompletableFuture.runAsync(routineService::refreshActiveRoutines);
+        });
+
+        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenuCheckbox, autoRefreshCheckbox, optionsMenu);
         auxiliaryButtonLayout.setPadding(false);
         auxiliaryButtonLayout.setSpacing(false);
 
-        FormLayout layout = new FormLayout(
-                sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
-                gridTilingRadioButtonGroup, auxiliaryButtonLayout);
+        FormLayout layout = new FormLayout(sameGridDragInsertModeRadioButtonGroup,auxiliaryButtonLayout);
+//                sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
+//                gridTilingRadioButtonGroup, auxiliaryButtonLayout);
 
         layout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 2),
@@ -394,16 +409,13 @@ public class ToolbarTabSheet extends TabSheet {
         configureTaskSearchProvider(filterForm, taskSetBox);
 
         filterForm.goToCreateNewTaskFormButton().addClickListener(e -> {
-            if (createNewTaskTab != null) {
+            if (this.createTaskForm != null && this.createNewTaskTab != null) {
                 String current = filterForm.name().getValue();
                 this.setSelectedTab(createNewTaskTab);
-                createNewTaskTab.getChildren()
-                        .filter(component -> component instanceof TaskNodeInfoFormMinorLayout)
-                        .findFirst()
-                        .ifPresent(f -> {
-                            TaskNodeInfoFormFullLayout form = (TaskNodeInfoFormFullLayout) f;
-                            form.nameField().setValue(current);
-                        });
+                createTaskForm.clear();
+                createTaskForm.nameField().setValue(current);
+            } else {
+                log.error("Create New Task Form or Tab is not initialized");
             }
         });
 

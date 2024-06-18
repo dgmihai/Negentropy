@@ -1,5 +1,6 @@
 package com.trajan.negentropy.client.components.taskform;
 
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Task;
@@ -55,6 +56,10 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
 
     @Override
     public void save() {
+        binder.getBean().node().task().description(
+                descriptionArea != null
+                        ? descriptionArea.getValue().trim()
+                        : "");
         taskNodeProvider.modifyTask();
     }
 
@@ -74,6 +79,12 @@ public class RoutineStepFormLayout extends AbstractTaskFormLayout {
                                 node.task().duration((duration == null)
                                         ? Duration.ZERO
                                         : duration));
+
+        binder.forField(effortSelect)
+                .withConverter(new EffortConverter())
+                .bind(
+                        node -> node.task().effort(),
+                        (node, effort) -> node.task().effort(effort));
 
         binder.forField(requiredCheckbox)
                 .bind(

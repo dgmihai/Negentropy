@@ -22,33 +22,44 @@ public abstract class RoutineStepHierarchy {
     @Setter protected Integer customIndexOfChild = null;
 
     public static RoutineEntity integrateTaskOrTaskLinkIntoRoutineStep(Integer index, TaskNodeTreeFilter filter,
-                                                              RoutineStepEntity root, HasTaskLinkOrTaskEntity child) {
-        return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineStepEntityHierarchy(root), child);
+                                                                       RoutineStepEntity root, HasTaskLinkOrTaskEntity child,
+                                                                       Integer effort) {
+        return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineStepEntityHierarchy(root), child, effort);
     }
 
     public static RoutineEntity integrateTaskOrTaskLinkIntoRoutineAsRoot(Integer index, TaskNodeTreeFilter filter,
-                                                                             RoutineEntity root, HasTaskLinkOrTaskEntity child) {
-        return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineEntityHierarchy(root), child);
+                                                                         RoutineEntity root, HasTaskLinkOrTaskEntity child,
+                                                                         Integer effort) {
+        return integrateTaskOrTaskLinkIntoHierarchy(index, filter, new RoutineEntityHierarchy(root), child, effort);
+    }
+
+    private boolean exceedsLimitOrEffort(Integer selfEffort, Integer effortMaximum) {
+        return (selfEffort != null && effortMaximum != null && selfEffort > effortMaximum)
+                || exceedsLimit();
     }
 
     private static RoutineEntity integrateTaskOrTaskLinkIntoHierarchy(Integer index, TaskNodeTreeFilter filter,
-                                                 RoutineStepHierarchy hierarchy, HasTaskLinkOrTaskEntity child) {
+                                                 RoutineStepHierarchy hierarchy, HasTaskLinkOrTaskEntity child,
+                                                                      Integer effort) {
+        log.debug("Integrating task or task link into hierarchy: " + child + " with effort " + effort + " at index " + index);
         hierarchy.customIndexOfChild = index;
         NetDurationService netDurationService = SpringContext.getBean(NetDurationService.class);
         NetDurationHelper helper = netDurationService.getHelper(filter);
+        RoutineLimiter effortLimiter = effort == null
+                ? null
+                : new RoutineLimiter(null, null, null, effort, false);
+        helper.loadAdjacencyMap();
         if (child instanceof TaskLink link) {
-            if (hierarchy.exceedsLimit()) {
-                helper.loadAdjacencyMap();
+            if (hierarchy.exceedsLimitOrEffort(link.task().effort(), effort)) {
                 helper.linkHierarchyIterator().iterateAsExceededLimit(link, hierarchy, false);
             } else {
-                helper.calculateHierarchicalNetDuration(link, hierarchy, null);
+                helper.calculateHierarchicalNetDuration(link, hierarchy, effortLimiter);
             }
         } else if (child instanceof TaskEntity task) {
-            if (hierarchy.exceedsLimit()) {
-                helper.loadAdjacencyMap();
+            if (hierarchy.exceedsLimitOrEffort(task.effort(), effort)) {
                 helper.linkHierarchyIterator().iterateAsExceededLimit(task, hierarchy, false);
             } else {
-                helper.calculateHierarchicalNetDuration(task, hierarchy, null);
+                helper.calculateHierarchicalNetDuration(task, hierarchy, effortLimiter);
             }
         } else throw new IllegalArgumentException("Child must be a TaskEntity or TaskLink");
 
@@ -84,7 +95,8 @@ public abstract class RoutineStepHierarchy {
 
         @Override
         public void addToHierarchy(RoutineStepEntityHierarchy hierarchy) {
-            log.trace("Adding to routine hierarchy: " + hierarchy.step.task().name() + " with status " + hierarchy.step.status());
+            log.trace("Adding to routine hierarchy: " + hierarchy.step.task().name() + " with status " + hierarchy.step.status()
+                    + ", required: " + hierarchy.step.task().required(), ", effort: " + hierarchy.step.task().effort());
             RoutineStepEntity child = hierarchy.step();
             finalizeStep(child, this);
             child.routine(routine);
@@ -131,7 +143,8 @@ public abstract class RoutineStepHierarchy {
 
         @Override
         public void addToHierarchy(RoutineStepEntityHierarchy child) {
-            log.debug("Adding to step hierarchy: " + child.step.task().name() + " with status " + child.step.status());
+            log.trace("Adding to step hierarchy: " + child.step.task().name() + " with status " + child.step.status()
+                    + ", required: " + child.step.task().required(), ", effort: " + child.step.task().effort());
             RoutineStepEntity childStep = child.step();
             finalizeStep(childStep, this);
             childStep.parentStep(step);

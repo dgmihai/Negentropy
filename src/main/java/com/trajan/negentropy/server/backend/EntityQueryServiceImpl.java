@@ -1,5 +1,7 @@
 package com.trajan.negentropy.server.backend;
 
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.aop.Benchmark;
@@ -479,9 +481,36 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Autowired private EntityManager entityManager;
 
     @Override
-    public JPAQuery<RoutineStepEntity> findRoutinesContainingLink(LinkID linkId) {
+    public ListMultimap<StepID, RoutineStepEntity> findRoutineStepsDescendantMapByRoutineId(RoutineID routineId) {
+        JPAQuery<RoutineStepEntity> query = new JPAQuery<>(entityManager);
+        QRoutineStepEntity qStep = QRoutineStepEntity.routineStepEntity;
+        return Multimaps.index(query.select(qStep)
+                .from(qStep)
+                .where(qStep.routine.id.eq(routineId.val()))
+                .orderBy(qStep.position.asc())
+                .fetch(), step -> step.parentStep() != null
+                    ? ID.of(step.parentStep())
+                    : StepID.nil());
+    }
+
+    @Override
+    public JPAQuery<RoutineStepEntity> findRoutineStepsContainingLink(LinkID linkId) {
         return fromRoutines()
                 .where(QRoutineStepEntity.routineStepEntity.link.id.eq(linkId.val()));
+    }
+
+    private static final String WHERE_CURRENT_ROUTINES = "AND (rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.ACTIVE " +
+            "OR rs.routine.status = com.trajan.negentropy.model.entity.TimeableStatus.NOT_STARTED)";
+
+    @Override
+    public List<StepID> findRoutineStepsIdsInCurrentRoutinesContainingLink(LinkID linkId) {
+        String selectQueryStepsInReadyRoutines = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.id = :linkId " +
+                WHERE_CURRENT_ROUTINES;
+        return entityManager.createQuery(selectQueryStepsInReadyRoutines, Long.class)
+                .setParameter("linkId", linkId.val())
+                .getResultList().stream()
+                .map(StepID::new)
+                .toList();
     }
 
     @Override
@@ -498,6 +527,17 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                         .map(ID::val)
                         .toList()))
                 .distinct();
+    }
+
+    @Override
+    public List<StepID> findRoutineStepsIdsInCurrentRoutinesContainingTask(TaskID taskId) {
+        String selectQueryStepsInReadyRoutines = "SELECT rs.id FROM RoutineStepEntity rs WHERE rs.link.child.id = :taskId " +
+                WHERE_CURRENT_ROUTINES;
+        return entityManager.createQuery(selectQueryStepsInReadyRoutines, Long.class)
+                .setParameter("taskId", taskId.val())
+                .getResultList().stream()
+                .map(StepID::new)
+                .toList();
     }
 
     @Override

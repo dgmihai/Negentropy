@@ -1,6 +1,7 @@
 package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
@@ -59,7 +60,12 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                             TaskNode result = (TaskNode) response.changeRelevantDataMap().getFirst(changeId);
                             taskBinder.setBean(result.task());
                         }
-                        case KEEP_TEMPLATE -> nameField.clear();
+                        case KEEP_TEMPLATE -> {
+                            nameField.clear();
+                            if (taskBinder.getBean().id() != null) {
+                                taskBinder.setBean(taskBinder.getBean().copyWithoutID());
+                            }
+                        }
                         case CLOSE -> {
                             clear();
                             onClose.run();
@@ -87,8 +93,16 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
         taskBinder.setBean(task);
     }
 
+    protected void setDescription() {
+        taskBinder.getBean().description(
+                descriptionArea.getValue() != null
+                        ? descriptionArea.getValue().trim()
+                        : "");
+    }
     @Override
     public void save() {
+        this.setDescription();
+
         InsertLocation location = saveAsLastCheckbox.getValue() ?
                 InsertLocation.LAST :
                 InsertLocation.FIRST;
@@ -124,12 +138,16 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
                                 ? Duration.ZERO
                                 : duration));
 
+        taskBinder.forField(effortSelect)
+                .withConverter(new EffortConverter())
+                .bind(Task::effort, Task::effort);
+
         taskBinder.forField(descriptionArea)
                 .bind(Task::description,
-                        (task, desc) -> task.description(desc.trim()));
+                        (task, desc) -> task.description(desc != null ? desc.trim() : null));
 
-        tagComboBox = new CustomValueTagComboBox(controller, tag ->
-                taskBinder.getBean().tags().add(tag));
+        tagComboBox = new CustomValueTagComboBox(controller, (old, updated) ->
+                taskBinder.getBean().tags(updated));
 
         taskBinder.forField(projectCheckbox)
                 .bind(Task::project, Task::project);
@@ -143,7 +161,7 @@ public class TaskFormLayout extends AbstractTaskFormLayout {
 
         onSaveSelect.setValue(controller.settings().onSuccessfulSaveAction().toString());
         onSaveSelect.addValueChangeListener(event -> controller.settings().onSuccessfulSaveAction(
-                OnSuccessfulSaveActions.valueOf(onSaveSelect.getValue())));
+                OnSuccessfulSaveActions.get(onSaveSelect.getValue()).orElseThrow()));
 
         saveButton.setEnabled(taskBinder.isValid());
         taskBinder.addValueChangeListener(e ->

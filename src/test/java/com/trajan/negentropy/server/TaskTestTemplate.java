@@ -29,6 +29,7 @@ import com.trajan.negentropy.server.facade.ChangeService;
 import com.trajan.negentropy.server.facade.QueryService;
 import com.trajan.negentropy.server.facade.response.Request;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
+import com.trajan.negentropy.util.ServerClockService;
 import com.trajan.negentropy.util.TestServices;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Triple;
@@ -57,6 +58,7 @@ public class TaskTestTemplate {
     @Autowired protected NetDurationService netDurationService;
     @Autowired private DataContext dataContext;
     @Autowired protected TestServices testServices;
+    @Autowired protected ServerClockService clock;
 
     @Autowired protected TaskRepository taskRepository;
 
@@ -349,6 +351,9 @@ public class TaskTestTemplate {
                 .peek(task -> assertTrue(task == null || taskIds.containsKey(ID.of(task))))
                 .map(task -> task == null ? NULL : task.name())
                 .toList();
+
+        log.debug("EXPECTED: " + expected);
+        log.debug("ACTUAL: " + resultNameList);
 
         assertTrue(ordered ?
                 Iterables.elementsEqual(expected, resultNameList) :

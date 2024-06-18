@@ -6,8 +6,7 @@ import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class TagComboBox extends MultiSelectComboBox<Tag> {
     protected final UIController controller;
@@ -15,10 +14,17 @@ public class TagComboBox extends MultiSelectComboBox<Tag> {
     @Getter
     protected Set<Tag> items = new HashSet<>();
 
+    protected static List<TagComboBox> instances = new ArrayList<>();
+
     public TagComboBox(UIController controller) {
         super();
         this.controller = controller;
         this.init();
+        this.addAttachListener(event -> {
+            this.fetchTags();
+            instances.add(this);
+        });
+        this.addDetachListener(event -> instances.remove(this));
     }
 
     public TagComboBox(String labelText, UIController controller) {
@@ -33,7 +39,7 @@ public class TagComboBox extends MultiSelectComboBox<Tag> {
         this.setItemLabelGenerator(Tag::name);
     }
 
-    private void fetchTags() {
+    protected void fetchTags() {
         items = new HashSet<>(controller.taskNetworkGraph().tagMap().values());
         this.setItems(items);
     }

@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.components.grid.enums;
 
 public enum ColumnKey {
     DRAG_HANDLE("Drag Handle"),
+    NODE_ID("Node ID"),
     NAME("Name"),
     STATUS("Status"),
     GOTO("Go to step"),
@@ -13,7 +14,9 @@ public enum ColumnKey {
     PINNED("Pinned"),
     CLEANUP("Cleanup"),
     DIFFICULT("Difficult"),
+    EFFORT("Effort"),
     TAGS("Tags"),
+    TAGS_COMBO("Tag Combo Box"),
     PROJECT("Project"),
     REQUIRED("Required"),
     FROZEN("Position Frozen"),
@@ -24,7 +27,6 @@ public enum ColumnKey {
     RESCHEDULE_NOW("Reschedule for Now"),
     RESCHEDULE_LATER("Reschedule for Later"),
     SCHEDULED_FOR("Scheduled For"),
-    TAGS_COMBO("Tag Combo Box"),
     LIMIT("Limit"),
     DURATION("Single Step Duration"),
     NET_DURATION("Total Nested Duration"),

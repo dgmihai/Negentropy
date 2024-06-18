@@ -23,6 +23,11 @@ import java.util.*;
 public class UserSettings {
     private final List<LinkedHashMap<ColumnKey, Boolean>> treeViewColumnVisibilities = new ArrayList<>();
     private final LinkedHashMap<ColumnKey, Boolean> routineViewColumnVisibility = new LinkedHashMap<>();
+    public final Set<ColumnKey> excludedFromDefaultViewColumns = Set.of(
+            ColumnKey.NODE_ID,
+            ColumnKey.TAGS_COMBO,
+            ColumnKey.FROZEN);
+
     private final Set<TaskEntry> expandedEntries = new HashSet<>();
 
     public static final NestableTaskNodeTreeFilter DEFAULT_FILTER = (NestableTaskNodeTreeFilter) new NestableTaskNodeTreeFilter()
@@ -48,9 +53,7 @@ public class UserSettings {
 
         TaskEntryTreeGrid.possibleColumns.forEach(columnKey -> {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
-                gridColumnVisibility.put(columnKey, (!(
-                        columnKey.equals(ColumnKey.TAGS_COMBO)
-                                || columnKey.equals(ColumnKey.FROZEN))));
+                gridColumnVisibility.put(columnKey, (!(excludedFromDefaultViewColumns.contains(columnKey))));
                 if (columnKey.equals(ColumnKey.NET_DURATION)) areNetDurationsVisible(true);
             }
         });

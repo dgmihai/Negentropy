@@ -2,8 +2,10 @@ package com.trajan.negentropy.client.components.taskform;
 
 import com.trajan.negentropy.client.K;
 import com.trajan.negentropy.client.components.fields.CronSpan;
+import com.trajan.negentropy.client.components.fields.DescriptionTextArea;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.ClearEventListener;
 import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
@@ -21,6 +23,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.ComboBoxVariant;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
+import com.vaadin.flow.component.customfield.CustomFieldVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -29,11 +32,10 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.select.SelectVariant;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextAreaVariant;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.wontlost.ckeditor.VaadinCKEditor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -46,11 +48,12 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         implements HasTaskNodeProvider {
     @Getter protected TextField nameField;
     protected TextField durationField;
+    protected Select<String> effortSelect;
     protected CustomValueTagComboBox tagComboBox;
     protected Checkbox requiredCheckbox;
     protected Checkbox projectCheckbox;
     protected Checkbox cleanupCheckbox;
-    protected TextArea descriptionArea;
+    protected VaadinCKEditor descriptionArea;
     @Getter protected ComboBox<Task> projectComboBox;
     protected FormLayout buttonLayout;
     protected HorizontalLayout taskInfoLayout;
@@ -108,9 +111,14 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         this.addAttachListener(e -> nameField.focus());
 
         durationField = new DurationTextField();
+        durationField.setTooltipText("Task Duration");
         durationField.setValueChangeMode(ValueChangeMode.EAGER);
         durationField.setClearButtonVisible(true);
         durationField.setRequired(true);
+
+        effortSelect = new Select<>();
+        effortSelect.setTooltipText("Effort");
+        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT, "1", "2", "3", "4", "5");
 
         requiredCheckbox = new Checkbox();
         requiredCheckbox.setTooltipText("Required");
@@ -130,10 +138,9 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         recycleIcon.addClassName(K.ICON_COLOR_PRIMARY);
         cleanupCheckbox.setLabelComponent(recycleIcon);
 
-        descriptionArea = new TextArea();
-        descriptionArea.setPlaceholder("Description");
-        descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
-        descriptionArea.setClearButtonVisible(true);
+        descriptionArea = DescriptionTextArea.inline("Description");
+//        descriptionArea.setPlaceholder("Description");
+//        descriptionArea.setClearButtonVisible(true);
 
         saveButton = new Button();
         setSaveButtonTargetText(null);
@@ -147,7 +154,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         projectComboBox.setItems(projects);
         projectComboBox.setClearButtonVisible(true);
         projectComboBox.setItemLabelGenerator(Task::name);
-        projectComboBox.setPlaceholder("Add directly to starred task");
+        projectComboBox.setPlaceholder("Add directly to starred task?");
         projectComboBox.setVisible(false);
         projectComboBox.addValueChangeListener(e -> setSaveButtonTargetText(e.getValue()));
 
@@ -206,8 +213,9 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
     protected void configureLayout() {
         nameField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         durationField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        effortSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
         tagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
-        descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
+        descriptionArea.addThemeVariants(CustomFieldVariant.LUMO_SMALL);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
         cancelButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
         onSaveSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
@@ -225,8 +233,13 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         buttonLayout.setWidthFull();
 
         durationField.setWidthFull();
+        durationField.setMinWidth("8em");
+        effortSelect.setWidth("4em");
+        effortSelect.setClassName("effort-select");
+        descriptionArea.setClassName("grayed");
         taskInfoLayout = new HorizontalLayout(
                 durationField,
+                effortSelect,
                 requiredCheckbox,
                 projectCheckbox,
                 cleanupCheckbox);

@@ -41,6 +41,9 @@ public class RoutineActiveTaskSessionStore {
     }
 
     public synchronized void update(Routine routine) {
+        if (routine.currentPosition() < 0) {
+            routine.currentPosition(0);
+        }
         nodesThatHaveActiveSteps.removeAll(routine.id());
         nodesThatHaveActiveSteps.putAll(routine.id(), routine.steps().values().stream()
                 .filter(step -> step.status().equalsAny(TimeableStatus.ACTIVE, TimeableStatus.DESCENDANT_ACTIVE)

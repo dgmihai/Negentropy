@@ -21,6 +21,8 @@ public interface HasTaskData {
         Boolean project();
         TASK difficult(Boolean difficult);
         Boolean difficult();
+        TASK effort(Integer effort);
+        Integer effort();
     }
 
     interface TaskTemplateDataWithTags<TASK extends TaskTemplateDataWithTags<TASK, TAG>, TAG extends TagData<TAG>>

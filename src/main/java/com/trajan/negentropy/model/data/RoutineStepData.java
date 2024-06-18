@@ -9,7 +9,8 @@ import com.trajan.negentropy.util.TimeableUtil.TimeableAncestor;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-public interface RoutineStepData <T extends RoutineStepData<T>> extends Ancestor<T>, Data, HasDuration, Timeable<T>, TimeableAncestor<T> {
+public interface RoutineStepData <T extends RoutineStepData<T>> extends Ancestor<T>, Data, HasDuration, Timeable<T>,
+        TimeableAncestor<T> {
     TimeableStatus status();
     LocalDateTime lastSuspendedTime();
     Duration elapsedSuspendedDuration();

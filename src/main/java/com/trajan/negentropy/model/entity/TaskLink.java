@@ -24,6 +24,7 @@ import java.util.Optional;
 @Entity
 @EntityListeners(SyncManagerListener.class)
 @Table(name = "task_links", indexes = {
+        @Index(columnList = "id", name = "idx_link_id"),
         @Index(columnList = "parent_id", name = "idx_link_parent"),
         @Index(columnList = "scheduled_for", name = "idx_link_scheduled_for"),
         @Index(columnList = "completed", name = "idx_link_completed"),
@@ -141,21 +142,22 @@ public class TaskLink extends AbstractEntity implements Descendant<TaskEntity>, 
     @Override
     public Duration duration() {
         Duration duration = child.duration();
-        if (child.project()) {
-            if (projectDurationLimit != null && duration.compareTo(projectDurationLimit) > 0) {
-                duration = projectDurationLimit;
-            }
-            if (projectEtaLimit != null && !projectEtaLimit.isBlank()) {
-                Duration difference = Duration.between(LocalTime.now(), LocalTime.parse(projectEtaLimit));
-                if (difference.isNegative()) {
-                    difference = Duration.ZERO;
-                }
-                if (duration.compareTo(difference) > 0) {
-                    duration = difference;
-                }
-            }
-            // TODO: Project step count limit somehow?
-        }
+//        if (child.project()) {
+//            if (projectDurationLimit != null && duration.compareTo(projectDurationLimit) > 0) {
+//                duration = projectDurationLimit;
+//            }
+//            if (projectEtaLimit != null
+//                    && !projectEtaLimit.isBlank()) {
+//                Duration difference = Duration.between(LocalTime.now(), LocalTime.parse(projectEtaLimit));
+//                if (difference.isNegative()) {
+//                    difference = Duration.ZERO;
+//                }
+//                if (duration.compareTo(difference) > 0) {
+//                    duration = difference;
+//                }
+//            }
+//            // TODO: Project step count limit somehow?
+//        }
         return duration;
     }
 

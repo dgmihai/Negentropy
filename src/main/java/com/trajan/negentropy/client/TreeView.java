@@ -10,14 +10,14 @@ import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.util.BannerProvider;
+import com.trajan.negentropy.model.id.LinkID;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -31,7 +31,7 @@ import java.util.List;
 @UIScope
 @Getter
 @Benchmark(millisFloor = 10)
-public class TreeView extends Div {
+public class TreeView extends Div implements HasUrlParameter<String> {
     private final UILogger log = new UILogger();
 
     @Autowired private BannerProvider bannerProvider;
@@ -100,6 +100,50 @@ public class TreeView extends Div {
             case HORIZONTAL -> {
                 gridLayout.add(firstTaskTreeGrid, secondTaskTreeGrid);
                 gridLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
+            }
+        }
+    }
+
+    @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter String parameter) {
+        if (parameter != null) {
+            LinkID linkId = new LinkID(Long.parseLong(parameter));
+            if (!firstTaskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
+                // TODO: This loops infinitely
+                log.warn("Task node with ID " + parameter + " was not found among task entries.");
+//                log.debug("Task node with ID " + parameter + " was not found; trying the long way.");
+//                TaskNode result = networkGraph.nodeMap().get(linkId);
+//                if (result != null) {
+//                    TaskEntryDataProvider dataProvider = firstTaskTreeGrid.taskEntryDataProvider();
+//                    List<TaskNode> ancestors = SpringContext.getBean(QueryService.class).fetchAncestorNodes(
+//                                    result.task().id(), settings.filter())
+//                            .toList();
+//
+//                    Supplier<List<TaskEntry>> getMatchingEntries = () -> ancestors.stream()
+//                            .map(TaskNode::id)
+//                            .filter(id -> dataProvider.linkTaskEntriesMap().containsKey(id))
+//                            .map(dataProvider.linkTaskEntriesMap()::get)
+//                            .flatMap(List::stream)
+//                            .toList();
+//
+//                    List<TaskEntry> matchingEntries = getMatchingEntries.get();
+//                    while (!matchingEntries.isEmpty()) {
+//                        firstTaskTreeGrid.treeGrid().expand(matchingEntries);
+//                        matchingEntries = getMatchingEntries.get();
+//                        matchingEntries = matchingEntries.stream()
+//                                .filter(entry -> firstTaskTreeGrid.treeGrid().isExpanded(entry))
+//                                .toList();
+//                    }
+//                    if (!firstTaskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
+//                        UI.getCurrent().access(() -> {
+//                            NotificationMessage.error("Task node with ID " + parameter + " was not found among task entries.");
+//                        });
+//                    }
+//                } else {
+//                    UI.getCurrent().access(() -> {
+//                        NotificationMessage.error("Task node with ID " + parameter + " was not found as a task node.");
+//                    });
+//                }
             }
         }
     }

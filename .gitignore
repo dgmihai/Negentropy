@@ -21,3 +21,4 @@ error-screenshots/
 webpack.generated.js
 
 src/main/resources/application-aws.properties
+src/main/resources/credentials.json

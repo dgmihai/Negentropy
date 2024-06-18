@@ -29,6 +29,9 @@ public class TenetService implements ServiceFacade<Tenet> {
 
     public Tenet getRandom() {
         long count = tenetRepository.count();
+        if (count == 0) {
+            throw new IllegalStateException("No tenets found - is a DB properly configured?");
+        }
         int random = (int) (Math.random() * count);
         return dataContext.toDO(tenetRepository.findAll().get(random));
     }

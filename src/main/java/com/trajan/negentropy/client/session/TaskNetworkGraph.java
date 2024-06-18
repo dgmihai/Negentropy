@@ -25,6 +25,7 @@ import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
+import com.trajan.negentropy.server.broadcaster.Broadcaster;
 import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
@@ -75,6 +76,8 @@ public class TaskNetworkGraph implements Serializable {
     private MultiValueMap<TaskID, LinkID> nodesByTaskMap = new LinkedMultiValueMap<>();
 
     private AtomicReference<NetDurationInfo> netDurationInfo = new AtomicReference<>(null);
+
+    private final Broadcaster<Void> syncBroadcaster = new Broadcaster<>();
 
     public TaskNetworkGraph syncId(SyncID syncId) {
         log.trace("Previous syncId: " + this.syncId + ", new syncId: " + syncId);
@@ -368,6 +371,7 @@ public class TaskNetworkGraph implements Serializable {
                 }
             }
 
+            syncBroadcaster.broadcast(null);
             stopWatch.stop();
         } else {
             log.debug("No sync required, sync ID's match");

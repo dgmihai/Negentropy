@@ -147,3 +147,27 @@ vaadin-context-menu-item {
 .dialog-margins {
   margin: auto auto 70% auto;
 }
+
+.effort-select {
+  padding: var(--lumo-space-xs) 0 var(--lumo-space-xs) var(--lumo-space-xs);
+}
+
+vaadin-ckeditor label[part="label"] {
+  display: none;
+}
+
+vaadin-ckeditor.grayed .ck.ck-content.ck-editor__editable {
+  background-color: var(--lumo-shade-10pct);
+}
+
+vaadin-ckeditor > div > p {
+    margin: 0 !important;
+}
+
+.ck-placeholder {
+  color: var(--lumo-secondary-text-color);
+}
+
+.ck-editor__editable > p:not(.ck-placeholder) {
+  color: var(--lumo-body-text-color);
+}

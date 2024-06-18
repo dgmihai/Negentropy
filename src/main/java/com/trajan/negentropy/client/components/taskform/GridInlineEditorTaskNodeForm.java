@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.taskform;
 import com.trajan.negentropy.client.components.fields.CronSpan;
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.taskform.fields.DurationLimitField;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.components.taskform.fields.StepCountLimitField;
 import com.trajan.negentropy.client.components.taskform.fields.TimeLimitPickerField;
 import com.trajan.negentropy.client.controller.UIController;
@@ -73,8 +74,16 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
         this.taskNodeProvider.afterSuccessfulSave(this::clear);
     }
 
+    protected void updateDescription() {
+        binder.getBean().node().task().description(
+                descriptionArea.getValue() != null
+                        ? descriptionArea.getValue().trim()
+                        : "");
+    }
+
     @Override
     public void save() {
+        updateDescription();
         taskNodeProvider().modifyNode(binder.getBean().node().id());
     }
 
@@ -124,6 +133,12 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
                                         ? Duration.ZERO
                                         : duration));
 
+        binder.forField(effortSelect)
+                .withConverter(new EffortConverter())
+                .bind(
+                        node -> node.task().effort(),
+                        (node, effort) -> node.task().effort(effort));
+
         binder.forField(cronSpan.cronField())
                 .withConverter(new ShortenedCronConverter())
                 .bind(
@@ -156,7 +171,7 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
                         (node, description) -> node.task().description(description.trim()));
 
         tagComboBox = new CustomValueTagComboBox(controller,
-                tag -> binder.getBean().task().tags().add(tag));
+                (old, updated) -> binder.getBean().task().tags(updated));
 
         binder.forField(tagComboBox)
                 .bind(

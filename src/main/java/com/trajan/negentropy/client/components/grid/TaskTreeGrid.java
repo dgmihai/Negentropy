@@ -2,6 +2,7 @@ package com.trajan.negentropy.client.components.grid;
 
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.fields.DescriptionTextArea;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
@@ -9,6 +10,7 @@ import com.trajan.negentropy.client.components.grid.subcomponents.RetainOpenedMe
 import com.trajan.negentropy.client.components.tagcombobox.CustomValueTagComboBox;
 import com.trajan.negentropy.client.components.tagcombobox.TagComboBox;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.controller.util.HasRootNode;
 import com.trajan.negentropy.client.logger.UILogger;
@@ -39,13 +41,18 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBoxVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
+import com.vaadin.flow.component.customfield.CustomFieldVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.*;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.Column;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
+import com.vaadin.flow.component.grid.GridNoneSelectionModel;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -53,17 +60,17 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextAreaVariant;
+import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.select.SelectVariant;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.wontlost.ckeditor.VaadinCKEditor;
 import lombok.Getter;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +78,7 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -208,7 +216,29 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
     private void addMultiMergeTagComboBox() {
         if (multiMergeTagComboBox == null && !(treeGrid.getSelectionModel() instanceof GridNoneSelectionModel<T>)) {
-            multiMergeTagComboBox = new CustomValueTagComboBox(controller);
+
+            BiConsumer<Set<Tag>, Set<Tag>> tagMultiMerge = (old, updated) -> {
+                Set<TagID> removedFromOriginal = new HashSet<>(old)
+                        .stream()
+                        .filter(tag -> !updated.contains(tag))
+                        .map(Tag::id)
+                        .collect(Collectors.toSet());
+                Set<TagID> addedToOriginal = new HashSet<>(updated)
+                        .stream()
+                        .filter(tag -> !old.contains(tag))
+                        .map(Tag::id)
+                        .collect(Collectors.toSet());
+                Set<TaskID> selectedTasks = treeGrid.getSelectedItems()
+                        .stream()
+                        .map(t -> t.task().id())
+                        .collect(Collectors.toSet());
+                controller.requestChangeAsync(new TagMultiMerge(
+                        addedToOriginal,
+                        removedFromOriginal,
+                        selectedTasks));
+            };
+
+            multiMergeTagComboBox = new CustomValueTagComboBox(controller, tagMultiMerge);
             multiMergeTagComboBox.setWidthFull();
             multiMergeTagComboBox.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
             multiMergeTagComboBox.addClassNames(LumoUtility.Padding.NONE, LumoUtility.BoxSizing.BORDER);
@@ -231,24 +261,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
             multiMergeTagComboBox.addValueChangeListener(e -> {
                 if (e.isFromClient()) {
-                    Set<TagID> removedFromOriginal = new HashSet<>(e.getOldValue())
-                            .stream()
-                            .filter(tag -> !e.getValue().contains(tag))
-                            .map(Tag::id)
-                            .collect(Collectors.toSet());
-                    Set<TagID> addedToOriginal = new HashSet<>(e.getValue())
-                            .stream()
-                            .filter(tag -> !e.getOldValue().contains(tag))
-                            .map(Tag::id)
-                            .collect(Collectors.toSet());
-                    Set<TaskID> selectedTasks = treeGrid.getSelectedItems()
-                            .stream()
-                            .map(t -> t.task().id())
-                            .collect(Collectors.toSet());
-                    controller.requestChangeAsync(new TagMultiMerge(
-                            addedToOriginal,
-                            removedFromOriginal,
-                            selectedTasks));
+                    Set<Tag> oldTags = e.getOldValue();
+                    Set<Tag> newTags = e.getValue();
+                    tagMultiMerge.accept(oldTags, newTags);
                 }
             });
 
@@ -307,7 +322,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.STAR))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.STARRED.toString());
                 }
 
                 case PINNED -> {
@@ -324,7 +340,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.PIN))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.PINNED.toString());
                 }
 
                 case CLEANUP -> {
@@ -341,7 +358,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.RECYCLE))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.CLEANUP.toString());
                 }
 
                 case DIFFICULT -> {
@@ -358,7 +376,48 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.BOLT))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.DIFFICULT.toString());
+                }
+
+                case EFFORT -> {
+//                    Grid.Column<T> effortColumn = treeGrid.addColumn(
+//                            t -> {
+//                                Integer effort = t.task().effort();
+//                                return (effort != null && effort != -1) ? effort : "";
+//                            })
+//                            .setKey(ColumnKey.EFFORT.toString())
+//                            .setHeader(GridUtil.headerIcon(VaadinIcon.TROPHY))
+//                            .setWidth(GridUtil.ICON_COL_WIDTH_S)
+//                            .setFlexGrow(0)
+//                            .setTextAlign(ColumnTextAlign.CENTER)
+//                            .setTooltipGenerator(t -> ColumnKey.EFFORT.toString());
+
+
+                    Grid.Column<T> effortColumn = treeGrid.addComponentColumn(
+                            t -> {
+                                Integer effort = t.task().effort();
+                                Select<String> effortSelect = new Select<>();
+                                effortSelect.setItems(EffortConverter.DEFAULT_EFFORT, "1", "2", "3", "4", "5");
+                                effortSelect.setValue(EffortConverter.toPresentation(effort));
+                                effortSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
+                                effortSelect.addValueChangeListener(event -> {
+                                    if (event.isFromClient()) {
+                                        controller.requestChangeAsync(new MergeChange<>(
+                                                new Task(t.task().id())
+                                                        .effort(EffortConverter.toModel(event.getValue())
+                                                                .getOrThrow(s ->
+                                                                        new IllegalArgumentException("Invalid effort")))));
+                                    }
+                                });
+                                return effortSelect;
+                            })
+                            .setKey(ColumnKey.EFFORT.toString())
+                            .setHeader(GridUtil.headerIcon(VaadinIcon.TROPHY))
+                            .setWidth(GridUtil.ICON_COL_WIDTH_S)
+                            .setFlexGrow(0)
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.EFFORT.toString());
                 }
 
                 case REQUIRED -> {
@@ -375,7 +434,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.EXCLAMATION))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.REQUIRED.toString());
 
                     setMultiEditCheckboxHeader(requiredColumn,
                             t -> t.task().required(),
@@ -398,7 +458,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(GridUtil.headerIcon(VaadinIcon.FILE_TREE))
                             .setWidth(GridUtil.ICON_COL_WIDTH_L)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.PROJECT.toString());
 
                     setMultiEditCheckboxHeader(projectColumn,
                             t -> t.task().project(),
@@ -452,7 +513,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setHeader(GridUtil.headerIcon(VaadinIcon.CLIPBOARD_TEXT))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(t -> ColumnKey.DESCRIPTION.toString())
+                        .setClassName("description-column");
 
                 case DURATION -> treeGrid.addColumn(
                         new DurationEstimateValueProvider<>(taskNetworkGraph,
@@ -461,7 +524,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setHeader(GridUtil.headerIcon(VaadinIcon.CLOCK))
                         .setWidth(GridUtil.DURATION_COL_WIDTH)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(t -> ColumnKey.DURATION.toString())
+                        .setClassName("duration-column");
 
                 case NET_DURATION -> {
                     Button columnHeaderButton = new Button(new Span(
@@ -483,7 +548,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                             .setHeader(columnHeaderButton)
                             .setWidth(GridUtil.DURATION_COL_WIDTH)
                             .setFlexGrow(0)
-                            .setTextAlign(ColumnTextAlign.CENTER);
+                            .setTextAlign(ColumnTextAlign.CENTER)
+                            .setTooltipGenerator(t -> ColumnKey.NET_DURATION.toString());
                 }
 
                 case EDIT -> editColumn = treeGrid.addColumn(LitRenderer.<T>of(
@@ -498,7 +564,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                         .setKey(ColumnKey.EDIT.toString())
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(t -> ColumnKey.EDIT.toString());
 
                 default -> this.initAdditionalReadColumns(columnKey);
             }
@@ -516,7 +583,8 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                 .setAutoWidth(false)
                 .setWidth(GridUtil.DURATION_COL_WIDTH)
                 .setFlexGrow(0)
-                .setTextAlign(ColumnTextAlign.CENTER);
+                .setTextAlign(ColumnTextAlign.CENTER)
+                .setTooltipGenerator(t -> ColumnKey.LIMIT.toString());
     }
 
     protected abstract void initAdditionalReadColumns(ColumnKey columnKey);
@@ -558,9 +626,9 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
     protected abstract Binder<T> setEditorBinder(AbstractTaskFormLayout form);
 
     protected HorizontalLayout detailsDescription(T t) {
-        TextArea descriptionArea = new TextArea();
-        descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
-        descriptionArea.addThemeVariants(TextAreaVariant.LUMO_SMALL);
+        VaadinCKEditor descriptionArea = DescriptionTextArea.inline("Description");
+        descriptionArea.addClassName("grayed");
+        descriptionArea.addThemeVariants(CustomFieldVariant.LUMO_SMALL);
         descriptionArea.setWidthFull();
 
         InlineIconButton descriptionSaveButton = new InlineIconButton(VaadinIcon.CHECK.create());
@@ -581,7 +649,7 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
         Runnable saveDescription = () -> {
             toggleEditing.accept(false);
-            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+//            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
             controller.requestChangeAsync(new MergeChange<>(
                     new Task(t.task().id())
@@ -590,16 +658,15 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
 
         Runnable cancelEditingDescription = () -> {
             toggleEditing.accept(false);
-            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
+//            descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
 
             descriptionArea.setValue(t.task().description());
         };
 
-        descriptionArea.setValueChangeMode(ValueChangeMode.EAGER);
         descriptionArea.addValueChangeListener(e -> {
             if (e.isFromClient()) {
                 toggleEditing.accept(true);
-                descriptionArea.setValueChangeMode(ValueChangeMode.LAZY);
+//                descriptionArea.setValueChangeMode(ValueChangeMode.LAZY);
             }
         });
         descriptionArea.getElement().addEventListener("mouseup", e -> toggleEditing.accept(true));
@@ -739,10 +806,18 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
             }
         };
 
+        MenuItem simpleViewMode = visibilityMenu.getSubMenu().addItem("Simple View");
+        MenuItem defaultViewMode = visibilityMenu.getSubMenu().addItem("Default View");
+        MenuItem fullViewMode = visibilityMenu.getSubMenu().addItem("Full View");
+
+        visibilityMenu.getSubMenu().add(new Hr());
+
+        Map<ColumnKey, MenuItem> columnVisibilityMap = new HashMap<>();
         possibleColumns.forEach(
                 (columnKey) -> {
                     String columnName = columnKey.toString();
                     MenuItem menuItem = visibilityMenu.getSubMenu().addItem(columnName);
+                    columnVisibilityMap.put(columnKey, menuItem);
                     menuItem.setCheckable(true);
 
                     toggleVisibility.accept(columnKey, menuItem, this.getColumnVisibility(columnKey));
@@ -765,6 +840,38 @@ public abstract class TaskTreeGrid<T extends HasTaskData> extends Div implements
                     RetainOpenedMenuItemDecorator.keepOpenOnClick(menuItem);
                 }
         );
+
+        Set<ColumnKey> simpleViewColumns = Set.of(
+                ColumnKey.NAME,
+                ColumnKey.DESCRIPTION,
+                ColumnKey.FOCUS);
+
+        Consumer<Function<ColumnKey, Boolean>> toggleVisibilitySingle = supplier -> {
+            possibleColumns.forEach(columnKey -> {
+                boolean visible = supplier.apply(columnKey);
+                if (columnVisibilityMap.get(columnKey).isVisible() != visible) {
+                    this.setColumnVisibility(columnKey, visible);
+                    columnVisibilityMap.get(columnKey).setChecked(visible);
+                    Grid.Column<T> column = treeGrid.getColumnByKey(columnKey.toString());
+                    if (column != null) {
+                        column.setVisible(visible);
+                    } else if (visible) {
+                        this.initColumn(columnKey);
+                    }
+                }
+            });
+
+            this.setColumnSortOrder();
+        };
+
+        simpleViewMode.addClickListener(e -> toggleVisibilitySingle.accept(
+                simpleViewColumns::contains));
+
+        defaultViewMode.addClickListener(e -> toggleVisibilitySingle.accept(
+                columnKey -> !settings.excludedFromDefaultViewColumns.contains(columnKey)));
+
+        fullViewMode.addClickListener(e -> toggleVisibilitySingle.accept(
+                columnKey -> columnKey != ColumnKey.TAGS));
 
         MenuItem descriptionsView = subMenu.addItem("Descriptions");
 

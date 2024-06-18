@@ -151,7 +151,6 @@
   "@vaadin/vaadin-usage-statistics": "2.1.2",
   "@vaadin/vertical-layout": "24.1.5",
   "@vaadin/virtual-list": "24.1.5",
-  "@webcomponents/shadycss": "1.11.2",
   "construct-style-sheets-polyfill": "3.1.0",
   "cookieconsent": "3.1.1",
   "date-fns": "2.29.3",
@@ -268,11 +267,14 @@
   "Frontend/generated/jar-resources/vaadin-map/mapConnector.js",
   "Frontend/generated/jar-resources/vaadin-time-picker/timepickerConnector.js",
   "Frontend/generated/jar-resources/virtualListConnector.js",
-  "Frontend/simple-clock/simple-clock.js"
+  "Frontend/simple-clock/countdown-timer.js",
+  "Frontend/simple-clock/eta-timer.js"
  ],
  "frontendHashes": {
-  "themes/negentropy/components/grid.css": "7745f47c9c69c78ddbefba5aa18e0f1c28557051dab747f8702d88bb408bc134",
-  "simple-clock/simple-clock.js": "f720f2dd6487c1555fa8125ccabd178047840596cedf22a7635e07ef4c32b50a",
+  "themes/negentropy/components/grid.css": "e4bc7a6cbd63e50b17e3c6bfee138db6f248b2ad62643f0e73bdc2aeddc67f3e",
+  "simple-clock/abstract-timer.js": "96922640154dda0dd46ba17d88f000c64fc79db73b28ad08e7eb96fb083ed833",
+  "simple-clock/countdown-timer.js": "135a5afec49c3426d74f85f8a232f47c08ec49584c7b6f9f84ef13ff6535e662",
+  "simple-clock/eta-timer.js": "21c0c2b0d5fa9e2dbf323520590c010bb8fa6684bf56e55fcdba0c6a620e1c25",
   "buttonFunctions.js": "c852123f9b2c44eb75e555119d3e05a7dbe78b91d0ab616feb9df1654474707d",
   "comboBoxConnector.js": "1d004c3dae9c76f8bcc68678abe1b8f7bdc8b456f5c9c4c7f190df8ed25d66cd",
   "contextMenuConnector.js": "25a200f8086461635ddd92316ebeb5a868294c8650a190efbae120edb1088f4f",
@@ -298,7 +300,7 @@
   "negentropy": "{\n  \"lumoImports\" : [ \"typography\", \"color\", \"spacing\", \"badge\", \"utility\" ],\n  \"assets\" : {\n    \"@fontsource/pt-sans-narrow\" : {\n      \"*.css\" : \"@fontsource/pt-sans-narrow\",\n      \"files/**\" : \"@fontsource/pt-sans-narrow/files\"\n    }\n  }\n}"
  },
  "entryScripts": [
-  "VAADIN/build/indexhtml-e9c28ee2.js"
+  "VAADIN/build/indexhtml-e74717b3.js"
  ],
  "webComponents": [],
  "cvdlModules": {
@@ -333,6 +335,6 @@
  },
  "packageJsonHash": "32c42bd4faec3edd760aedc59161bb011a63637daacc64a03013bfb587483fc2",
  "indexHtmlGenerated": [
-  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-e9c28ee2.js\"></script>"
+  "  <script type=\"module\" crossorigin src=\"./VAADIN/build/indexhtml-e74717b3.js\"></script>"
  ]
 }

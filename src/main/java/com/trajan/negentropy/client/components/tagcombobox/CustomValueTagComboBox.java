@@ -8,24 +8,24 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class CustomValueTagComboBox extends TagComboBox {
 
-    protected Consumer<Tag> onCustomValueSet = tag -> {};
+    protected BiConsumer<Set<Tag>, Set<Tag>> onCustomValueSet = (old, updated) -> {};
 
     public CustomValueTagComboBox(UIController controller) {
         super(controller);
         init();
     }
 
-    public CustomValueTagComboBox(UIController controller, Consumer<Tag> onCustomValueSet) {
+    public CustomValueTagComboBox(UIController controller, BiConsumer<Set<Tag>, Set<Tag>> onCustomValueSet) {
         super(controller);
         this.onCustomValueSet = onCustomValueSet;
         init();
     }
 
-    public CustomValueTagComboBox(String labelText, UIController controller, Consumer<Tag> onCustomValueSet) {
+    public CustomValueTagComboBox(String labelText, UIController controller, BiConsumer<Set<Tag>, Set<Tag>> onCustomValueSet) {
         super(labelText, controller);
         this.onCustomValueSet = onCustomValueSet;
         init();
@@ -38,6 +38,7 @@ public class CustomValueTagComboBox extends TagComboBox {
         setAllowCustomValue(true);
 
         addCustomValueSetListener(event -> {
+            Set<Tag> oldValues = this.getValue();
             String name = event.getDetail().trim();
             Change persistTagChange = new PersistChange<>(
                     new Tag(null, name));
@@ -45,10 +46,12 @@ public class CustomValueTagComboBox extends TagComboBox {
             Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
             Set<Tag> tags = new HashSet<>(this.getValue());
             items.add(newTag);
-            this.setItems(items);
+            controller.taskNetworkGraph().tagMap().put(newTag.id(), newTag);
+            instances.forEach(TagComboBox::fetchTags);
             tags.add(newTag);
             this.setValue(tags);
-            onCustomValueSet.accept(newTag);
+            Set<Tag> newValues = this.getValue();
+            onCustomValueSet.accept(oldValues, newValues);
         });
     }
 }

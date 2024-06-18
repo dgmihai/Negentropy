@@ -3,14 +3,13 @@ package com.trajan.negentropy.client;
 import com.trajan.negentropy.client.components.appnav.AppNav;
 import com.trajan.negentropy.client.components.appnav.AppNavItem;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormDialog;
-import com.trajan.negentropy.client.components.wellness.MoodInput;
-import com.trajan.negentropy.client.components.wellness.StressorInput;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
+import com.trajan.negentropy.client.components.wellness.WellnessDialog;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.util.NotificationMessage;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
-import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.UI;
@@ -18,10 +17,10 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.PageTitle;
@@ -30,7 +29,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Left;
 import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Right;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class MainLayout extends AppLayout {
@@ -53,40 +52,58 @@ public class MainLayout extends AppLayout {
 
         viewTitle = new H2();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
-
-        // TODO: Broadcast state to all UIs
-        Icon refreshIcon = VaadinIcon.REFRESH.create();
-        Button autoRefresh = new Button(refreshIcon);
-        autoRefresh.addClassName(LumoUtility.FontSize.LARGE);
-        autoRefresh.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
-        RoutineService routineService = SpringContext.getBean(RoutineService.class);
-
-        Runnable setAutoRefreshButtonColor = () -> {
-            if (routineService.refreshRoutines()) {
-                refreshIcon.addClassName(K.ICON_COLOR_PRIMARY);
-                refreshIcon.removeClassName(K.ICON_COLOR_UNSELECTED);
-            } else {
-                refreshIcon.removeClassName(K.ICON_COLOR_PRIMARY);
-                refreshIcon.addClassName(K.ICON_COLOR_UNSELECTED);
-            }
-        };
-
-        setAutoRefreshButtonColor.run();
-        autoRefresh.addClickListener(event -> {
-            log.debug("Toggling auto-refresh to " + !routineService.refreshRoutines());
-            routineService.refreshRoutines(!routineService.refreshRoutines());
-            NotificationMessage.result("Auto-refresh " + (!routineService.refreshRoutines() ? "disabled" : "enabled"));
-            if (routineService.refreshRoutines()) CompletableFuture.runAsync(routineService::refreshActiveRoutines);
-            setAutoRefreshButtonColor.run();
+        getUI().ifPresent(ui -> {
+            ui.addDetachListener(e -> {
+                viewTitle.addClassNames(K.COLOR_ERROR);
+                log.info("UI detached");
+            });
+            ui.addAttachListener(e -> {
+                viewTitle.removeClassNames(K.COLOR_ERROR);
+                log.info("UI attached");
+            });
         });
+
+        Button regulation = new Button(VaadinIcon.EXCLAMATION.create());
+        regulation.addClassName(LumoUtility.FontSize.LARGE);
+        regulation.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+        regulation.addClickListener(e -> {
+            UI.getCurrent().getPage().open("https://drive.google.com/file/d/1xWa6lVNe7Kz1rabFdf6lmVPQRoXEBxyB/view?usp=sharing");
+        });
+
+        SessionServices services = SpringContext.getBean(SessionServices.class);
+
+        Button effortDropDown = new Button(
+                EffortConverter.toPresentation(
+                        services.routine().effortMaximum()),
+                VaadinIcon.TROPHY.create());
+        effortDropDown.addClassName(LumoUtility.FontSize.LARGE);
+        effortDropDown.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+
+        ContextMenu effortMenu = new ContextMenu(effortDropDown);
+        effortMenu.setOpenOnClick(true);
+
+        List.of(EffortConverter.DEFAULT_EFFORT, "0", "1", "2", "3", "4", "5")
+                .forEach(effortMenu::addItem);
+        effortMenu.getItems().forEach(item -> item.addClickListener(e -> {
+            EffortConverter.toModel(item.getText()).handle(
+                    effortValue -> {
+                        UIController controller = SpringContext.getBean(UIController.class);
+                        effortDropDown.setText(item.getText());
+                        controller.setActiveRoutinesEffort(effortValue);
+                    },
+                    log::error);
+        }));
+
+//        Button context = new Button(VaadinIcon.GLOBE_WIRE.create());
+//        context.addClassName(LumoUtility.FontSize.LARGE);
+//        context.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
+//        context.setEnabled(false);
 
         Button pinnedTasks = new Button(VaadinIcon.PIN.create());
         pinnedTasks.addClassName(LumoUtility.FontSize.LARGE);
         pinnedTasks.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
         pinnedTasks.addClickListener(event -> {
             Dialog pinnedTasksDialog = new Dialog();
-
-            SessionServices services = SpringContext.getBean(SessionServices.class);
 
             pinnedTasksDialog.setHeaderTitle("Start Routine from Pinned Task");
             FormLayout taskButtonLayout = new FormLayout();
@@ -137,26 +154,11 @@ public class MainLayout extends AppLayout {
         wellnessCheck.addClassName(LumoUtility.FontSize.LARGE);
         wellnessCheck.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
         wellnessCheck.addClickListener(event -> {
-            Dialog wellnessDialog = new Dialog();
-            String title = "How are you doing?";
-
-            try {
-                SessionServices services = SpringContext.getBean(SessionServices.class);
-                title = services.tenet().getRandom().toString();
-            } catch (Exception e) {
-                log.error("Failed to get random tenet for wellness dialog", e);
-            }
-
-            wellnessDialog.setHeaderTitle(title);
-            wellnessDialog.add(
-                    SpringContext.getBean(StressorInput.class),
-                    SpringContext.getBean(MoodInput.class));
-            wellnessDialog.setWidth("25rem");
-            wellnessDialog.open();
+            SpringContext.getBean(WellnessDialog.class).open();
         });
 
         Span buttonSpan = new Span();
-        buttonSpan.add(autoRefresh, pinnedTasks, wellnessCheck, addTask);
+        buttonSpan.add(regulation, effortDropDown, pinnedTasks, wellnessCheck, addTask);
         buttonSpan.addClassNames(Left.AUTO, Right.SMALL);
 
         addToNavbar(false, toggle, viewTitle, buttonSpan);
@@ -181,6 +183,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new AppNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
         nav.addItem(new AppNavItem("Records", RecordView.class, LineAwesomeIcon.BOOK_OPEN_SOLID.create()));
         nav.addItem(new AppNavItem("Tenets", TenetView.class, LineAwesomeIcon.COMPASS.create()));
+        nav.addItem(new AppNavItem("Tags", TagView.class, LineAwesomeIcon.TAGS_SOLID.create()));
 
 //        nav.setWidth("5em");
         return nav;

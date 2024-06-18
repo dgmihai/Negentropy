@@ -81,6 +81,9 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
                         case KEEP_TEMPLATE -> {
                             nameField.clear();
                             descriptionArea.clear();
+                            if (taskBinder.getBean().id() != null) {
+                                taskBinder.setBean(taskBinder.getBean().copyWithoutID());
+                            }
                         }
                         case CLOSE -> {
                             clear();
@@ -140,6 +143,8 @@ public class TaskNodeInfoFormMinorLayout extends TaskFormLayout {
 
     @Override
     public void save() {
+        this.setDescription();
+
         if (getMatchingTask().isPresent() && !confirmedMatchingTask) {
             showTaskAlreadyExistsDialog(this::save);
         } else {

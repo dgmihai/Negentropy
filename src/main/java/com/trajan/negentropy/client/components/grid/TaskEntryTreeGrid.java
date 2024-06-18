@@ -120,7 +120,17 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setHeader(GridUtil.headerIcon(VaadinIcon.EXPAND_SQUARE))
                     .setAutoWidth(true)
                     .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
+                    .setTextAlign(ColumnTextAlign.CENTER)
+                    .setTooltipGenerator(e -> ColumnKey.FOCUS.toString());
+
+            case NODE_ID -> treeGrid.addColumn(
+                            t -> t.node().id().val())
+                    .setKey(ColumnKey.NODE_ID.toString())
+                    .setHeader("Node ID")
+                    .setAutoWidth(true)
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.END)
+                    .setTooltipGenerator(e -> ColumnKey.NODE_ID.toString());
 
             case COMPLETE -> {
                 Grid.Column<TaskEntry> completedColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
@@ -141,7 +151,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.CHECK_SQUARE_O))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.COMPLETE.toString());
 
                 setMultiEditCheckboxHeader(completedColumn,
                         t -> t.node().completed(),
@@ -164,7 +175,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.TIME_FORWARD))
                         .setAutoWidth(true)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.RECURRING.toString());
 
                 setMultiEditCheckboxHeader(recurringColumn,
                         t -> t.node().recurring(),
@@ -192,7 +204,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.ANGLE_DOUBLE_DOWN))
                         .setAutoWidth(true)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.CYCLE_TO_END.toString());
 
                 setMultiEditCheckboxHeader(cycleToEndColumn,
                         t -> t.node().cycleToEnd(),
@@ -207,7 +220,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
                     .setWidth(GridUtil.CRON_COL_WIDTH)
                     .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
+                    .setTextAlign(ColumnTextAlign.CENTER)
+                    .setTooltipGenerator(e -> ColumnKey.CRON.toString());
 
             case SCHEDULED_FOR -> treeGrid.addColumn(entry -> {
                         if (entry.node().cron() != null) {
@@ -221,7 +235,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR))
                     .setWidth(GridUtil.DATE_COL_WIDTH)
                     .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
+                    .setTextAlign(ColumnTextAlign.CENTER)
+                    .setTooltipGenerator(e -> ColumnKey.SCHEDULED_FOR.toString());
 
             //        Grid.Column<TaskEntry> priorityColumn = treeGrid
             //                .addColumn(entry ->
@@ -242,7 +257,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.BACKWARDS))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.RESCHEDULE_NOW.toString());
 
                 // TODO: Add to multi edit header
 //                setMultiEditCheckboxHeader(rescheduleNowColumn,
@@ -265,7 +281,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.FORWARD))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.RESCHEDULE_LATER.toString());
             }
 
             case FROZEN -> {
@@ -285,7 +302,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.LOCK))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.FROZEN.toString());
             }
 
             case START_WITH_CHILDREN -> {
@@ -302,7 +320,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setHeader(GridUtil.headerIcon(VaadinIcon.LEVEL_DOWN))
                         .setWidth(GridUtil.ICON_COL_WIDTH_L)
                         .setFlexGrow(0)
-                        .setTextAlign(ColumnTextAlign.CENTER);
+                        .setTextAlign(ColumnTextAlign.CENTER)
+                        .setTooltipGenerator(e -> ColumnKey.START_WITH_CHILDREN.toString());
             }
 
             case DELETE -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
@@ -315,7 +334,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setHeader(GridUtil.headerIcon(VaadinIcon.TRASH))
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
                     .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
+                    .setTextAlign(ColumnTextAlign.CENTER)
+                    .setTooltipGenerator(e -> ColumnKey.DELETE.toString());
 
             case LIMIT -> configureLimitColumn(treeGrid.addColumn(
                             entry -> (entry.nodeOptional().isPresent())
@@ -541,8 +561,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     + " items"));
 
             editHeaderLayout.setResponsiveSteps(
-                    new FormLayout.ResponsiveStep("0", 3),
-                    new FormLayout.ResponsiveStep(K.MEDIUM_SCREEN_WIDTH, 6));
+                    new FormLayout.ResponsiveStep("0", 4),
+                    new FormLayout.ResponsiveStep(K.MEDIUM_SCREEN_WIDTH, 8));
 
             return editHeaderLayout;
         }
@@ -579,7 +599,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                         (TaskNodeDTO) controller.activeTaskNodeProvider().getNodeInfo(),
                                         entry.node().id(),
                                         location,
-                                        taskPersist.id())));
+                                        taskPersist.id())),
+                                r -> controller.activeTaskNodeProvider().handleSave(r));
                     })
             );
         }
@@ -743,7 +764,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         try {
                             Task task = controller.activeTaskNodeProvider().getTask();
                             if (task != null) {
-                                activeTask.setText("Insert " + task.name());
+                                activeTask.setText("Add " + task.name());
                                 activeTask.setVisible(true);
                                 activeTaskHr.setVisible(true);
                             }
@@ -772,7 +793,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                                 : selected.get(0).task().name() + " (+" + (selectedSize - 1) + " more)";
                         moveSelected.setText("Move " + multiSelectText);
                         insertSelected.setVisible(true);
-                        insertSelected.setText("Insert " + multiSelectText);
+                        insertSelected.setText("Add " + multiSelectText);
                         startRoutineSelected.setVisible(true);
                         startRoutineSelected.setText("Start Routine from " + multiSelectText);
                         multiEdit.setText("Edit " + multiSelectText);
