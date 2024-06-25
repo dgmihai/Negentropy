@@ -1,7 +1,5 @@
 package com.trajan.negentropy.client;
 
-import com.trajan.negentropy.client.components.appnav.AppNav;
-import com.trajan.negentropy.client.components.appnav.AppNavItem;
 import com.trajan.negentropy.client.components.taskform.TaskNodeInfoFormDialog;
 import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.components.wellness.WellnessDialog;
@@ -23,6 +21,8 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
+import com.vaadin.flow.component.sidenav.SideNav;
+import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Left;
@@ -174,16 +174,16 @@ public class MainLayout extends AppLayout {
         addToDrawer(header, scroller, createFooter());
     }
 
-    private AppNav createNavigation() {
+    private SideNav createNavigation() {
         // AppNav is not yet an official component.
         // For documentation, visit https://github.com/vaadin/vcf-nav#readme
-        AppNav nav = new AppNav();
+        SideNav nav = new SideNav();
 
-        nav.addItem(new AppNavItem("Task Tree", TreeView.class, LineAwesomeIcon.TREE_SOLID.create()));
-        nav.addItem(new AppNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
-        nav.addItem(new AppNavItem("Records", RecordView.class, LineAwesomeIcon.BOOK_OPEN_SOLID.create()));
-        nav.addItem(new AppNavItem("Tenets", TenetView.class, LineAwesomeIcon.COMPASS.create()));
-        nav.addItem(new AppNavItem("Tags", TagView.class, LineAwesomeIcon.TAGS_SOLID.create()));
+        nav.addItem(new SideNavItem("Task Tree", TreeView.class, LineAwesomeIcon.TREE_SOLID.create()));
+        nav.addItem(new SideNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
+        nav.addItem(new SideNavItem("Records", RecordView.class, LineAwesomeIcon.BOOK_OPEN_SOLID.create()));
+        nav.addItem(new SideNavItem("Tenets", TenetView.class, LineAwesomeIcon.COMPASS.create()));
+        nav.addItem(new SideNavItem("Tags", TagView.class, LineAwesomeIcon.TAGS_SOLID.create()));
 
 //        nav.setWidth("5em");
         return nav;

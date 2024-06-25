@@ -87,14 +87,30 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Override
     public RoutineEntity getRoutine(RoutineID routineId) {
         logger.trace("getRoutine");
-        return routineRepository.findById(routineId.val()).orElseThrow(
-                () -> new NoSuchElementException("Failed to get routine with ID: " + routineId));
+        return routineRepository.getReferenceById(routineId.val());
+    }
+
+    @Override
+    public RoutineEntity getActiveRoutine(RoutineID routineId) {
+        return routineRepository.findOne(
+                QRoutineEntity.routineEntity.id.eq(routineId.val())
+                        .and(QRoutineEntity.routineEntity.status.eq(TimeableStatus.ACTIVE)))
+                .orElseThrow(
+                        () -> new NoSuchElementException("Failed to get active routine with ID: " + routineId));
     }
 
     @Override
     public RoutineStepEntity getRoutineStep(StepID stepId) {
-        return stepRepository.findById(stepId.val()).orElseThrow(
-                () -> new NoSuchElementException("Failed to get step with ID: " + stepId));
+        return stepRepository.getReferenceById(stepId.val());
+    }
+
+    @Override
+    public RoutineStepEntity getActiveRoutineStep(StepID stepId) {
+        return stepRepository.findOne(
+                QRoutineStepEntity.routineStepEntity.id.eq(stepId.val())
+                        .and(QRoutineStepEntity.routineStepEntity.routine.status.eq(TimeableStatus.ACTIVE)))
+                .orElseThrow(
+                        () -> new NoSuchElementException("Failed to get active step with ID: " + stepId));
     }
     
     @Override
@@ -116,9 +132,6 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                         ? filter.availableAtTime()
                         : LocalDateTime.now()));
                 // TODO: Filter by eta limit as well
-//                builder.and(Q_LINK.projectEtaLimit.after(filter.availableAtTime() != null
-//                        ? filter.availableAtTime().toLocalTime()
-//                        : LocalTime.now()));
             }
 
             if (filter.completed() != null) {

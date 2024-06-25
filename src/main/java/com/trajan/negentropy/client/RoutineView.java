@@ -39,8 +39,8 @@ import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -115,10 +115,10 @@ public class RoutineView extends Div {
 
         activeRoutineGrid.addSelectionListener(event ->
                 event.getFirstSelectedItem().ifPresent(routine -> {
-                    CompletableFuture.runAsync(() -> {
-                        routineStepTreeGrid.setRoutine(routine.id());
-                        activeRoutineGrid.select(routine);
-                    });
+                    if (!Objects.equals(routineStepTreeGrid.routine(), routine)) {
+                        routineStepTreeGrid.setRoutine(routine);
+                    }
+                    activeRoutineGrid.select(routine);
                 })
         );
         activeRoutineGrid.setSelectionMode(Grid.SelectionMode.SINGLE);

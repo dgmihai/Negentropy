@@ -161,7 +161,7 @@ vaadin-ckeditor.grayed .ck.ck-content.ck-editor__editable {
 }
 
 vaadin-ckeditor > div > p {
-    margin: 0 !important;
+  margin: 0 !important;
 }
 
 .ck-placeholder {
@@ -170,4 +170,8 @@ vaadin-ckeditor > div > p {
 
 .ck-editor__editable > p:not(.ck-placeholder) {
   color: var(--lumo-body-text-color);
+}
+
+.top {
+  z-index: 9999;
 }

@@ -44,7 +44,6 @@ import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.server.facade.response.RoutineResponse;
 import com.trajan.negentropy.util.ServerClockService;
 import com.trajan.negentropy.util.SpringContext;
-import com.trajan.negentropy.util.TimeableUtil;
 import com.vaadin.flow.shared.Registration;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
@@ -89,8 +88,6 @@ public class RoutineServiceImpl implements RoutineService {
     @Autowired private ServerClockService clock;
 
     @Autowired private DataContext dataContext;
-
-    @Autowired private TimeableUtil timeableUtil;
 
     @Value("${negentropy.refreshRoutines:true}") @Setter @Getter protected boolean refreshRoutines;
     @Value("${negentropy.inTesting:false}") protected boolean inTesting;
@@ -440,14 +437,14 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse startStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> activateStep(step, time));
     }
 
     @Override
     public RoutineResponse jumpToStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> jumpToStep(step, time));
     }
@@ -503,8 +500,7 @@ public class RoutineServiceImpl implements RoutineService {
         return routine;
     }
 
-    private RoutineStepEntity getCachedStepOrElseFetch(StepID stepId) {
-//        Disabled for now since it is unclear how cleanly the routine persists
+    private RoutineStepEntity fetchStepFromActiveRoutine(StepID stepId) {
 //        if (cachedRoutine != null) {
 //            List<StepID> activeSteps = cachedRoutine.descendants().stream()
 //                    .map(ID::of)
@@ -521,7 +517,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public boolean completeStepWouldFinishRoutine(StepID stepId) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
         return completeStepWouldFinishRoutine(step);
     }
 
@@ -540,7 +536,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse completeStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> completeStep(step, time), stepId);
     }
@@ -572,7 +568,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public boolean stepCanBeCompleted(StepID stepId) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         TimeableStatus expectedStatus = getAggregateChildStatus(step);
         return expectedStatus.isFinishedOrExceeded();
@@ -580,7 +576,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse suspendStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> suspendStep(step, time), stepId);
     }
@@ -600,7 +596,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse skipStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> skipStep(step, time), stepId);
     }
@@ -617,7 +613,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse postponeStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> postponeStep(step, time), stepId);
     }
@@ -639,7 +635,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse previousStep(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
         return process(() -> previousStep(step, time), stepId);
     }
@@ -723,7 +719,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude) {
-        RoutineStepEntity step = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
         RoutineEntity routine = step.routine();
 
         log.debug("Setting step " + step + " in routine " + routine.id() + " as excluded: " + exclude);
@@ -772,7 +768,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse kickStepUp(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity initialStep = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity initialStep = fetchStepFromActiveRoutine(stepId);
         log.debug("Kicking step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
 
         return process(() -> {
@@ -841,7 +837,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public RoutineResponse pushStepForward(StepID stepId, LocalDateTime time) {
-        RoutineStepEntity initialStep = getCachedStepOrElseFetch(stepId);
+        RoutineStepEntity initialStep = fetchStepFromActiveRoutine(stepId);
         log.debug("Pushing step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
         
         return process(() -> {

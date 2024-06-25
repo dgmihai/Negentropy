@@ -64,10 +64,6 @@ public class UIController {
     @Autowired protected TaskNetworkGraph taskNetworkGraph;
     @Autowired protected TaskEntryDataProvider taskEntryDataProvider;
 
-    @Autowired
-    protected SessionServices services;
-    @Autowired
-    protected UserSettings settings;
     @Autowired protected SessionServices services;
     @Autowired protected UserSettings settings;
 

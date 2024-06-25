@@ -260,14 +260,14 @@ public class RoutineCard extends VerticalLayout {
         this.setNestedTaskInfoBars();
 
         next = new RoutineCardButton(VaadinIcon.CHEVRON_RIGHT.create());
-        next.addClickListener(event -> {
+        next.addClickListener(e1 -> {
             if (controller.services().routine().stepCanBeCompleted(binder.getBean().id())
                     && binder.getBean().task().cleanup()) {
                 YesNoDialog cleanupDialog = new YesNoDialog();
                 cleanupDialog.setHeaderTitle("Has everything involved been cleaned up?");
                 cleanupDialog.add("Including whatever you were holding/your drink?");
 
-                cleanupDialog.yes().addClickListener(e -> {
+                cleanupDialog.yes().addClickListener(e2 -> {
                     cleanupDialog.close();
                     this.confirmRoutineCompletion();
                 });
@@ -373,7 +373,7 @@ public class RoutineCard extends VerticalLayout {
         timer.addClassName("name-timer");
 
         HorizontalLayout header = new HorizontalLayout();
-        header.addClassName("header");
+        header.addClassNames("header", "top");
         header.setSpacing(false);
         header.getThemeList().add("spacing-s");
         header.setWidthFull();
