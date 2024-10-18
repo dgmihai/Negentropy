@@ -1,105 +1,104 @@
 package com.trajan.negentropy.client.components.routine;
 
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.grid.subcomponents.InlineIconButton;
 import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.model.entity.routine.RoutineStep;
-import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.details.DetailsVariant;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.vaadin.flow.theme.lumo.LumoUtility.Margin;
 import lombok.Getter;
 
 @Getter
-public class TaskInfoBar extends Details {
+public class TaskInfoBar extends VerticalLayout {
     private final RoutineCard parent;
     private final UIController controller;
 
     private final Span name;
     private final ETATimer timer;
-    private final Span description;
+    private Span description;
+    private InlineIconButton descriptionButton;
+    private boolean expanded;
 
     private final Binder<RoutineStep> binder = new BeanValidationBinder<>(RoutineStep.class);
 
     public TaskInfoBar(RoutineStep step, RoutineCard parent, boolean withContent) {
         super();
         this.parent = parent;
+        this.expanded = withContent;
         controller = parent.controller();
 
         this.addClassName("bar");
 
         binder.setBean(step);
 
+        descriptionButton = new InlineIconButton(VaadinIcon.COMMENT_ELLIPSIS_O.create());
+        descriptionButton.setTooltipText("Show Notes");
+
+        InlineIconButton inlineTaskViewButton = new InlineIconButton(VaadinIcon.ELLIPSIS_DOTS_V.create());
+        ContextMenu menu = new ContextMenu(inlineTaskViewButton);
+        menu.setOpenOnClick(true);
+
+        menu.addItem("Next").addClickListener(event ->
+                parent.processStep(step.id(), controller::completeRoutineStep));
+
+        menu.addItem("Previous").addClickListener(event -> parent.processStep(
+                step.id(),
+                controller::previousRoutineStep));
+
+        menu.addItem("Skip").addClickListener(event ->
+                parent.processStep(step.id(),
+                        controller::skipRoutineStep));
+
+        menu.addItem("Postpone").addClickListener(event ->
+                parent.processStep(step.id(),
+                        controller::postponeRoutineStep));
+
+        menu.addItem("Exclude").addClickListener(event ->
+                parent.processStep(step.id(),
+                        (stepID, s, f) -> controller.setRoutineStepExcluded(stepID, true, s, f)));
+
+        menu.addItem("View in Task Tree").addClickListener(event ->
+                RoutineCard.toTaskTree(step::node, controller));
+
+        menu.addItem("Jump to Step").addClickListener(event ->
+                parent.processStep(step.id(),
+                        controller::jumpToRoutineStep));
+
         name = new Span();
         name.addClassName("date");
         name.setWidthFull();
-
-        timer = new ETATimer(binder.getBean(), parent.routine());
-        timer.addClassNames("date", "timer");
 
         description = new Span();
         description.addClassName("description");
         description.setWidthFull();
 
-        HorizontalLayout upper = new HorizontalLayout(name, timer);
-        upper.addClassName("header");
-        upper.getThemeList().add("spacing-s");
-        upper.setPadding(false);
-        upper.setWidthFull();
-        upper.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        timer = new ETATimer(binder.getBean(), parent.routine());
+        timer.addClassNames("date", "timer");
 
-        if (withContent) {
-            VerticalLayout lower = new VerticalLayout(description);
-            lower.setWidthFull();
-            lower.setSpacing(false);
-            lower.addClassName(LumoUtility.Padding.Vertical.NONE);
+        HorizontalLayout summary = new HorizontalLayout(
+                new Span(descriptionButton, inlineTaskViewButton, name),
+                timer);
+        summary.addClassName("header");
+        summary.getThemeList().add("spacing-s");
+        summary.setPadding(false);
+        summary.setWidthFull();
+        summary.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
-            TaskInfoBarButton next = new TaskInfoBarButton(VaadinIcon.CHEVRON_RIGHT.create());
-            next.addClickListener(event -> parent.processStep(step.id(),
-                    controller::completeRoutineStep));
-
-            TaskInfoBarButton prev = new TaskInfoBarButton(VaadinIcon.CHEVRON_LEFT.create());
-            prev.addClickListener(event -> parent.processStep(step.id(),
-                    controller::previousRoutineStep));
-
-            TaskInfoBarButton skip = new TaskInfoBarButton(VaadinIcon.STEP_FORWARD.create());
-            skip.addClickListener(event -> parent.processStep(step.id(),
-                    controller::skipRoutineStep));
-
-            TaskInfoBarButton postpone = new TaskInfoBarButton(VaadinIcon.TIME_FORWARD.create());
-            postpone.addClickListener(event -> parent.processStep(step.id(),
-                    controller::postponeRoutineStep));
-
-            TaskInfoBarButton close = new TaskInfoBarButton(VaadinIcon.CLOSE.create());
-            close.addClickListener(event -> parent.processStep(step.id(),
-                    (stepID, s, f) -> controller.setRoutineStepExcluded(stepID, true, s, f)));
-
-            TaskInfoBarButton toTreeView = new TaskInfoBarButton(VaadinIcon.TREE_TABLE.create());
-            toTreeView.addClickListener(event -> RoutineCard.toTaskTree(step::node, controller));
-
-            HorizontalLayout buttons = new HorizontalLayout(prev, close, postpone, toTreeView, new Span(),
-                    new Span(), new Span(), skip, next);
-            buttons.setWidthFull();
-            buttons.setJustifyContentMode(JustifyContentMode.BETWEEN);
-            lower.add(buttons);
-            this.setContent(lower);
-        }
-
-        this.setSummary(upper);
+        this.add(summary);
 
         this.setWidthFull();
-
         this.setStep(step);
-        this.addThemeVariants(DetailsVariant.SMALL);
-        this.addClassName(Margin.NONE);
+        this.setPadding(false);
+        this.setMargin(false);
+        this.setSpacing(false);
     }
 
     public void setStep(RoutineStep step) {
@@ -109,10 +108,19 @@ public class TaskInfoBar extends Details {
 
         timer.setTimeable(step, parent.routine());
 
-        description.setText(step.description());
-        description.setWidthFull();
+        String descriptionText = step.description();
+        description.setText(descriptionText);
 
-        this.setWidthFull();
+        descriptionButton.addClassName(descriptionText.isBlank()
+                ? K.COLOR_TRANSPARENT : K.COLOR_PRIMARY);
+
+        descriptionButton.addClickListener(e -> {
+            if (!binder.getBean().description().isBlank()) {
+                description.setVisible(!description.isVisible());
+            }
+        });
+
+        this.add(description);
     }
 
     private static class TaskInfoBarButton extends Div {

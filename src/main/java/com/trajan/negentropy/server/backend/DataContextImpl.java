@@ -64,6 +64,7 @@ public class DataContextImpl implements DataContext {
 
     @PostConstruct
     public void onStart() {
+        log.info("Initializing DataContext");
         this.deleteAllOrphanedTags();
     }
 
@@ -204,6 +205,11 @@ public class DataContextImpl implements DataContext {
                         log.debug("Cycling to end");
                         int position = linkEntity.position();
                         List<TaskLink> childLinks = linkEntity.parent().childLinks();
+
+                        // TODO: Is this a workaround to a bug? Why would position ever be 0?
+                        if (position == -1){
+                            position = childLinks.size();
+                        }
                         childLinks.remove(linkEntity);
 
                         for (int i = childLinks.size() - 1; i > 0; i--) {
@@ -265,7 +271,7 @@ public class DataContextImpl implements DataContext {
 
         log.debug("Inserting task " + child + " as subtask of parent " + parent + " at position " + position);
 
-        List<TaskLink> childLinks = parent == null ?
+        List<TaskLink> siblings = parent == null ?
                 entityQueryService.findChildLinks(null, null).toList() :
                 parent.childLinks();
 
@@ -287,30 +293,33 @@ public class DataContextImpl implements DataContext {
                     }
                 }
 
-                for (int i = position; i < childLinks.size(); i++) {
-                    TaskLink current = childLinks.get(i);
-                    current.position(current.position() + 1);
-                }
-            } else if (position >= childLinks.size()) {
-                // Check for required tasks from the end of the list
-                for (int i = childLinks.size() - 1; i >= 0; i--) {
-                    TaskLink current = childLinks.get(i);
-                    if (current.positionFrozen()) {
-                        position--;
-                        current.position(current.position() + 1);
-                    } else {
-                        break;
-                    }
-                }
-
-                if (position < 0) {
-                    position = childLinks.size();
-                }
+        int lastPotentialUnfrozenPosition = siblings.size();
+        // Check for required tasks from the end of the list
+        for (int i = siblings.size() - 1; i >= 0; i--) {
+            TaskLink childLink = siblings.get(i);
+            if (childLink.positionFrozen()) {
+                lastPotentialUnfrozenPosition--;
             } else {
-                for (int i = position; i < childLinks.size(); i++) {
-                    TaskLink current = childLinks.get(i);
-                    current.position(current.position() + 1);
-                }
+                break;
+            }
+        }
+
+        if (position < firstPotentialUnfrozenPosition) {
+            position = firstPotentialUnfrozenPosition;
+        } else if (position > lastPotentialUnfrozenPosition) {
+            position = lastPotentialUnfrozenPosition;
+        } else if (positionFrozen) {
+            // Position frozen must be at the start or end of the task list
+            positionFrozen = false;
+        }
+
+        List<TaskLink> mutableSiblings = new ArrayList<>(siblings);
+        mutableSiblings.add(position, null);
+        for (int i=0; i<mutableSiblings.size(); i++) {
+            if (mutableSiblings.get(i) == null) {
+                position = i;
+            } else {
+                mutableSiblings.get(i).position(i);
             }
         }
 
@@ -375,11 +384,9 @@ public class DataContextImpl implements DataContext {
                 parent.childLinks().add(link.position(), link);
                 // Auto-set position to be frozen if required task added to start or end of node list
                 if (child.required() && node.positionFrozen() == null) {
-                    List<TaskLink> siblings = parent.childLinks().stream()
-                            .filter(l -> !l.positionFrozen() || l.equals(link))
-                            .toList();
-                    if (siblings.indexOf(link) == 0 || siblings.indexOf(link) == siblings.size()) {
+                    if (position == firstPotentialUnfrozenPosition || position == lastPotentialUnfrozenPosition) {
                         link.positionFrozen(true);
+                        log.debug("Auto-setting position frozen for required task at position " + position);
                     }
                 }
             } catch (IndexOutOfBoundsException e) {

@@ -17,14 +17,19 @@ public class MapBroadcaster<K, V> {
     protected final ArrayListMultimap<K, Consumer<V>> listenerMap = ArrayListMultimap.create();
     protected final ArrayList<Consumer<V>> massListeners = new ArrayList<>();
 
-    public synchronized Registration register(K key, Consumer<V> listener) {
+    public synchronized Registration register(K key, Consumer<V> listener, Runnable remove) {
         listenerMap.put(key, listener);
 
         return () -> {
             synchronized (MapBroadcaster.class) {
                 listenerMap.remove(key, listener);
+                remove.run();
             }
         };
+    }
+
+    public synchronized Registration register(K key, Consumer<V> listener) {
+        return register(key, listener, () -> {});
     }
 
     public synchronized Registration register(Consumer<V> listener) {

@@ -64,12 +64,13 @@ public class SyncManager {
         instance = this;
 
         syncRecordRepository.findAll().forEach(syncResponse -> {
+            log.debug("Clearing sync from {}", syncResponse.timestamp());
             syncResponse.changes().clear();
             syncRecordRepository.deleteAll();
         });
     }
 
-    private SyncRecordEntity getLatestSyncRecord() {
+    private SyncRecordEntity getLatestSyncRecordEntity() {
         List<SyncRecordEntity> syncRecordEntities = syncRecordRepository.findAll(Sort.by(Direction.DESC, "id"));
         if (syncRecordEntities.isEmpty()) {
             SyncRecordEntity newSyncRecord = syncRecordRepository.save(new SyncRecordEntity());
@@ -133,18 +134,19 @@ public class SyncManager {
                     QSyncRecordEntity.syncRecordEntity.id.gt(from.val()))).spliterator(), true);
             return toDO(syncRecordStream);
         } else {
-            log.warn("No sync id provided, returning empty sync record");
-            return new SyncRecord(
-                    getLatestSyncRecord().id(),
-                    getLatestSyncRecord().timestamp(),
-                    List.of());
+            log.warn("No sync id provided, returning latest sync record");
+            return toDO(Stream.of(getLatestSyncRecordEntity()));
         }
+    }
+
+    public SyncID getCurrentSyncId() {
+        return getLatestSyncRecordEntity().id();
     }
 
     private SyncRecord toDO(Stream<SyncRecordEntity> syncRecordStream) {
         List<ChangeRecordEntity> changeRecordEntities = syncRecordStream
                 .flatMap(syncRecordEntity -> syncRecordEntity.changes().stream())
-                .peek(record -> log.debug("Recorded change: {} {} {}", record.changeType(), record.dataType(), record.entityId()))
+                .peek(record -> log.trace("Recorded change: {} {} {}", record.changeType(), record.dataType(), record.entityId()))
                 .toList();
 
         Map<Long, Map<ChangeRecordDataType, Set<ChangeRecordType>>> entityChangeTypeMap = changeRecordEntities.stream()
@@ -176,7 +178,7 @@ public class SyncManager {
                 .distinct()
                 .collect(Collectors.toList());
 
-        SyncRecordEntity latestSyncRecord = this.getLatestSyncRecord();
+        SyncRecordEntity latestSyncRecord = this.getLatestSyncRecordEntity();
 
         return new SyncRecord(
                 latestSyncRecord.id(),

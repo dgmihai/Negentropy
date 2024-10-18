@@ -37,6 +37,11 @@ vaadin-scroller[slot="drawer"] {
       var(--lumo-body-text-color);
 }
 
+.transparent-color {
+    color:
+      transparent;
+}
+
 .white-color {
    color:
       var(--lumo-base-color);
@@ -158,6 +163,10 @@ vaadin-ckeditor label[part="label"] {
 
 vaadin-ckeditor.grayed .ck.ck-content.ck-editor__editable {
   background-color: var(--lumo-shade-10pct);
+}
+
+vaadin-ckeditor.bordered .ck.ck-content.ck-blurred {
+  border-color: lightgray;
 }
 
 vaadin-ckeditor > div > p {

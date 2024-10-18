@@ -8,7 +8,6 @@ import com.trajan.negentropy.client.controller.UIController;
 import com.trajan.negentropy.client.logger.UILogger;
 import com.trajan.negentropy.client.session.TaskNetworkGraph;
 import com.trajan.negentropy.client.session.UserSettings;
-import com.trajan.negentropy.client.session.enums.GridTiling;
 import com.trajan.negentropy.client.util.BannerProvider;
 import com.trajan.negentropy.model.id.LinkID;
 import com.vaadin.flow.component.dependency.Uses;
@@ -18,17 +17,13 @@ import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.*;
-import com.vaadin.flow.spring.annotation.UIScope;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.List;
-
 @PageTitle("Task Tree")
 @Route(value = "tree", layout = MainLayout.class)
 @Uses(Icon.class)
-@UIScope
 @Getter
 @Benchmark(millisFloor = 10)
 public class TreeView extends Div implements HasUrlParameter<String> {
@@ -43,17 +38,14 @@ public class TreeView extends Div implements HasUrlParameter<String> {
 
     private FlexLayout gridLayout = new FlexLayout();
 
-    @Autowired private TaskEntryTreeGrid firstTaskTreeGrid;
-    private TaskEntryTreeGrid secondTaskTreeGrid = null;
+    @Autowired private TaskEntryTreeGrid taskTreeGrid;
 
     @PostConstruct
     public void init() {
         log.info("Initializing TreeView");
         this.addClassName("tree-view");
 
-//        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid, secondTaskTreeGrid);
-        List<TaskEntryTreeGrid> grids = List.of(firstTaskTreeGrid);
-        controller.activeTaskNodeDisplay(firstTaskTreeGrid);
+        controller.activeTaskNodeDisplay(taskTreeGrid);
 
         toolbarTabSheet.init(this,
                 TabType.CLOSE_TAB,
@@ -68,15 +60,15 @@ public class TreeView extends Div implements HasUrlParameter<String> {
         dragSettings.add("Move on drag");
         dragSettings.add("Add on drag");
 
-        for (int i=0; i<grids.size(); i++) {
-            TaskEntryTreeGrid grid = grids.get(i);
-            grid.init(settings.treeViewColumnVisibilities().get(i),
+        if (taskTreeGrid.grid() == null) {
+            taskTreeGrid.init(settings.treeViewColumnVisibilities().get(0),
                     settings.gridSelectionMode());
-            grid.setWidthFull();
-            grid.setHeight("86%");
         }
+        taskTreeGrid.setWidthFull();
+//            taskTreeGrid.setHeight("86%");
 
-        setGridTiling(settings.gridTiling());
+//        setGridTiling(settings.gridTiling());
+        gridLayout.add(taskTreeGrid);
 
         VerticalLayout layout = new VerticalLayout(
                 toolbarTabSheet,
@@ -89,32 +81,34 @@ public class TreeView extends Div implements HasUrlParameter<String> {
         this.setSizeFull();
     }
 
-    public void setGridTiling(GridTiling gridTiling) {
-        gridLayout.removeAll();
-        switch (gridTiling) {
-            case NONE -> gridLayout.add(firstTaskTreeGrid);
-            case VERTICAL -> {
-                gridLayout.add(firstTaskTreeGrid, secondTaskTreeGrid);
-                gridLayout.setFlexDirection(FlexLayout.FlexDirection.ROW);
-            }
-            case HORIZONTAL -> {
-                gridLayout.add(firstTaskTreeGrid, secondTaskTreeGrid);
-                gridLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
-            }
-        }
-    }
+//    public void setGridTiling(GridTiling gridTiling) {
+//        gridLayout.removeAll();
+//        switch (gridTiling) {
+//            case NONE -> {
+//                gridLayout.add(taskTreeGrid);
+//            }
+//            case VERTICAL -> {
+//                gridLayout.add(taskTreeGrid, secondTaskTreeGrid);
+//                gridLayout.setFlexDirection(FlexLayout.FlexDirection.ROW);
+//            }
+//            case HORIZONTAL -> {
+//                gridLayout.add(taskTreeGrid, secondTaskTreeGrid);
+//                gridLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
+//            }
+//        }
+//    }
 
     @Override
     public void setParameter(BeforeEvent event, @OptionalParameter String parameter) {
         if (parameter != null) {
             LinkID linkId = new LinkID(Long.parseLong(parameter));
-            if (!firstTaskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
+            if (!taskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
                 // TODO: This loops infinitely
                 log.warn("Task node with ID " + parameter + " was not found among task entries.");
 //                log.debug("Task node with ID " + parameter + " was not found; trying the long way.");
 //                TaskNode result = networkGraph.nodeMap().get(linkId);
 //                if (result != null) {
-//                    TaskEntryDataProvider dataProvider = firstTaskTreeGrid.taskEntryDataProvider();
+//                    TaskEntryDataProvider dataProvider = taskTreeGrid.taskEntryDataProvider();
 //                    List<TaskNode> ancestors = SpringContext.getBean(QueryService.class).fetchAncestorNodes(
 //                                    result.task().id(), settings.filter())
 //                            .toList();
@@ -128,13 +122,13 @@ public class TreeView extends Div implements HasUrlParameter<String> {
 //
 //                    List<TaskEntry> matchingEntries = getMatchingEntries.get();
 //                    while (!matchingEntries.isEmpty()) {
-//                        firstTaskTreeGrid.treeGrid().expand(matchingEntries);
+//                        taskTreeGrid.grid().expand(matchingEntries);
 //                        matchingEntries = getMatchingEntries.get();
 //                        matchingEntries = matchingEntries.stream()
-//                                .filter(entry -> firstTaskTreeGrid.treeGrid().isExpanded(entry))
+//                                .filter(entry -> taskTreeGrid.grid().isExpanded(entry))
 //                                .toList();
 //                    }
-//                    if (!firstTaskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
+//                    if (!taskTreeGrid.nestedTabs().selectNewRootNode(linkId)) {
 //                        UI.getCurrent().access(() -> {
 //                            NotificationMessage.error("Task node with ID " + parameter + " was not found among task entries.");
 //                        });

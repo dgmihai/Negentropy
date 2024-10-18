@@ -895,12 +895,14 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 THREETWO,
                 TimeableStatus.DESCENDANT_ACTIVE);
 
-        position = routine.currentPosition();
+        // Exclude ThreeTwoOne
         LocalDateTime time6 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
                 time6,
-                routineService::completeStep);
-        RoutineStep stepThreeTwoOne = routine.descendants().get(position);
+                routineService::excludeStep);
+        RoutineStep stepThreeTwoOne = routine.descendants().get(3);
+        RoutineStep stepThreeTwoThree = routine.descendants().get(5);
+        RoutineStep stepThreeTwoFour = routine.descendants().get(6);
 
         assertRoutineStepExecution(
                 routine,
@@ -913,14 +915,154 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         assertRoutineStep(
                 stepThreeTwoOne,
                 THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.EXCLUDED);
+
+        assertRoutineStep(
+                stepThreeTwoThree,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(
+                stepThreeTwoFour,
+                SIX_AND_THREETWOFOUR,
+                TimeableStatus.NOT_STARTED);
+
+        // Jump to ThreeTwo
+        LocalDateTime time7 = LocalDateTime.now();
+        routine = doRoutine(stepThreeTwo.id(),
+                time7,
+                routineService::jumpToStepAndStartIfReady);
+        stepThreeTwoOne = routine.descendants().get(3);
+        RoutineStep stepThreeTwoTwo = routine.descendants().get(4);
+        stepThreeTwoThree = routine.descendants().get(5);
+        stepThreeTwoFour = routine.descendants().get(6);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        assertRoutineStep(
+                stepThreeTwoOne,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.EXCLUDED);
+
+        assertRoutineStep(
+                stepThreeTwoTwo,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.SKIPPED);
+
+        assertRoutineStep(
+                stepThreeTwoThree,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(
+                stepThreeTwoFour,
+                SIX_AND_THREETWOFOUR,
+                TimeableStatus.NOT_STARTED);
+
+        // Skip ThreeTwo
+        LocalDateTime time8 = LocalDateTime.now();
+        routine = doRoutine(stepThreeTwo.id(),
+                time8,
+                routineService::skipStep);
+        stepThreeTwo = routine.descendants().get(2);
+        stepThreeTwoOne = routine.descendants().get(3);
+        stepThreeTwoTwo = routine.descendants().get(4);
+        stepThreeTwoThree = routine.descendants().get(5);
+        stepThreeTwoFour = routine.descendants().get(6);
+        RoutineStep stepThreeThree = routine.descendants().get(7);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                THREE_AND_FIVE,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time0);
+
+        assertRoutineStep(
+                stepThreeTwo,
+                THREETWO,
+                TimeableStatus.SKIPPED);
+
+        assertRoutineStep(
+                stepThreeTwoOne,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.EXCLUDED);
+
+        assertRoutineStep(
+                stepThreeTwoTwo,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.SKIPPED);
+
+        assertRoutineStep(
+                stepThreeTwoThree,
+                THREETWOONE_AND_THREETWOTHREE,
+                TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(
+                stepThreeTwoFour,
+                SIX_AND_THREETWOFOUR,
+                TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(
+                stepThreeThree,
+                THREETHREE,
                 TimeableStatus.COMPLETED);
 
+        // Jump to ThreeTwo
         position = routine.currentPosition();
-        LocalDateTime time7 = LocalDateTime.now();
-        routine = doRoutine(routine.currentStep().id(),
-                time7,
+        LocalDateTime time9 = LocalDateTime.now();
+        routine = doRoutine(stepThreeTwo.id(),
+                time9,
+                routineService::jumpToStepAndStartIfReady);
+        RoutineStep stepThree = routine.descendants().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                2,
+                THREETWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time1);
+
+        assertRoutineStep(
+                stepThree,
+                THREE_AND_FIVE,
+                TimeableStatus.DESCENDANT_ACTIVE);
+
+        // Complete ThreeTwo
+        position = routine.currentPosition();
+        LocalDateTime time10 = LocalDateTime.now();
+        routine = doRoutine(stepThreeTwo.id(),
+                time10,
                 routineService::completeStep);
-        RoutineStep stepThreeTwoTwo = routine.descendants().get(position);
+        stepThreeTwo = routine.descendants().get(position);
+
+        assertRoutineStepExecution(
+                routine,
+                4,
+                TWOTWOTHREE_AND_THREETWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE,
+                time6);
+
+        assertRoutineStep(
+                stepThreeTwo,
+                THREETWO,
+                TimeableStatus.DESCENDANT_ACTIVE);
+
+        position = routine.currentPosition();
+        LocalDateTime time11 = LocalDateTime.now();
+        routine = doRoutine(routine.currentStep().id(),
+                time11,
+                routineService::completeStep);
+        stepThreeTwoTwo = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -928,7 +1070,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 THREETWOONE_AND_THREETWOTHREE,
                 TimeableStatus.ACTIVE,
                 TimeableStatus.ACTIVE,
-                time7);
+                time11);
 
         assertRoutineStep(
                 stepThreeTwoTwo,
@@ -936,11 +1078,11 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 TimeableStatus.COMPLETED);
 
         position = routine.currentPosition();
-        LocalDateTime time8 = LocalDateTime.now();
+        LocalDateTime time12 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
-                time8,
+                time12,
                 routineService::completeStep);
-        RoutineStep stepThreeTwoThree = routine.descendants().get(position);
+        stepThreeTwoThree = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -948,7 +1090,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                 SIX_AND_THREETWOFOUR,
                 TimeableStatus.ACTIVE,
                 TimeableStatus.ACTIVE,
-                time8);
+                time12);
 
         assertRoutineStep(
                 stepThreeTwoThree,
@@ -959,7 +1101,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
         routine = doRoutine(routine.currentStep().id(),
                 LocalDateTime.now(),
                 routineService::postponeStep);
-        RoutineStep stepThreeTwoFour = routine.descendants().get(position);
+        stepThreeTwoFour = routine.descendants().get(position);
 
         assertRoutineStepExecution(
                 routine,
@@ -1334,7 +1476,7 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
     }
 
     @Test
-    void testExecuteRoutineSkipFirstStep() {
+    void testExecuteRoutineSkipThenExcludeFirstStep() {
         TaskID rootId = tasks.get(TWOTWO).id();
 
         Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
@@ -1353,10 +1495,27 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
 
         assertNull(routine.currentStep().parentId());
 
-        LocalDateTime time1 = LocalDateTime.now();
         routine = doRoutine(routine.currentStep().id(),
-                time1,
+                LocalDateTime.now(),
                 routineService::skipStep);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.ACTIVE,
+                TimeableStatus.ACTIVE);
+
+        routine = doRoutine(routine.currentStep().id(),
+                LocalDateTime.now(),
+                routineService::excludeStep);
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWOTWO,
+                TimeableStatus.EXCLUDED,
+                TimeableStatus.EXCLUDED);
     }
 
     @Test
@@ -1718,5 +1877,51 @@ public class RoutineServiceNoRequiredTest extends RoutineTestTemplate {
                         TWOTWOTHREE_AND_THREETWOTWO,
                         TWOTHREE),
                 List.of());
+    }
+
+    @Test
+    void testSkipStepWithParentWithoutMarkingDescendantsAsSkipped() {
+        TaskID rootId = tasks.get(TWO).id();
+        routineService.refreshRoutines(false);
+
+        Routine routine = routineService.createRoutine(rootId, clock.time()).routine();
+
+        RoutineStep rootStep = routine.children().get(0);
+
+        assertEquals(rootId, rootStep.task().id());
+
+        assertRoutineStepExecution(
+                routine,
+                0,
+                TWO,
+                TimeableStatus.NOT_STARTED,
+                TimeableStatus.NOT_STARTED,
+                null);
+        assertNull(routine.currentStep().parentId());
+
+        assertRoutineStep(routine.descendants().get(5),
+                TWOTWOTHREE_AND_THREETWOTWO, TimeableStatus.LIMIT_EXCEEDED);
+
+        routine = iterateCompleteStep(routine, 1,
+                TWOONE, TimeableStatus.ACTIVE,
+                TWO, TimeableStatus.DESCENDANT_ACTIVE);
+
+        routine = iterateCompleteStep(routine, 2,
+                TWOTWO, TimeableStatus.ACTIVE,
+                TWOONE, TimeableStatus.COMPLETED);
+
+        routine = iterateStep(routine, 6,
+                TWOTHREE, TimeableStatus.ACTIVE,
+                TWOTWO, TimeableStatus.SKIPPED,
+                routineService::skipStep);
+
+        assertRoutineStep(routine.descendants().get(3),
+                TWOTWOONE, TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(routine.descendants().get(4),
+                TWOTWOTWO, TimeableStatus.NOT_STARTED);
+
+        assertRoutineStep(routine.descendants().get(5),
+                TWOTWOTHREE_AND_THREETWOTWO, TimeableStatus.LIMIT_EXCEEDED);
     }
 }

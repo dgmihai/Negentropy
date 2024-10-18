@@ -201,14 +201,20 @@ public class RoutineTestTemplate extends TaskTestTemplate {
         assertTrue(Iterables.elementsEqual(expectedSteps, actual));
     }
 
-    protected void assertRoutineWithExceeded(List<String> expectedSteps, List<String> expectedExceededSteps, Routine routine, TaskNodeTreeFilter filter) {
-        assertRoutine(expectedSteps, routine);
-        assertExcludedLinks(expectedExceededSteps, routine, filter);
+    protected void assertRoutineWithExceeded(List<String> expectedSteps, List<String> expectedStepsWithStatus,
+                                           Routine routine, TaskNodeTreeFilter filter) {
+        assertRoutineWithStatus(expectedSteps, TimeableStatus.LIMIT_EXCEEDED, expectedStepsWithStatus, routine, filter);
     }
 
-    protected void assertRefreshRoutineWithExceeded(List<String> expectedSteps, List<String> expectedExceededSteps, Routine routine) {
+    protected void assertRoutineWithStatus(List<String> expectedSteps, TimeableStatus status, List<String> expectedStepsWithStatus,
+                                           Routine routine, TaskNodeTreeFilter filter) {
         assertRoutine(expectedSteps, routine);
-        assertExcludedLinksFromRoutine(Set.copyOf(expectedExceededSteps), routine);
+        assertLinksByStatus(status, expectedStepsWithStatus, routine, filter);
+    }
+
+    protected void assertRefreshRoutineWithStatus(TimeableStatus status, List<String> expectedSteps, List<String> expectedExceededSteps, Routine routine) {
+        assertRoutine(expectedSteps, routine);
+        assertLinksFromRoutineByStatus(status, Set.copyOf(expectedExceededSteps), routine);
     }
 
     protected void assertFreshRoutine(List<String> expectedSteps, RoutineResponse response) {
@@ -232,15 +238,15 @@ public class RoutineTestTemplate extends TaskTestTemplate {
     protected Routine linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
                                                              Function<TaskID, Duration> expectedDuration,
                                                              List<String> expectedSteps,
-                                                             List<String> excludedTasks) throws Exception {
-        return linkRoutineCreationTestWithExpectedDuration(rootLink, null, expectedDuration, expectedSteps, excludedTasks);
+                                                             List<String> exceededTasks) throws Exception {
+        return linkRoutineCreationTestWithExpectedDuration(rootLink, null, expectedDuration, expectedSteps, exceededTasks);
     }
 
     protected Routine linkRoutineCreationTestWithExpectedDuration(Triple<String, String, Integer> rootLink,
                                                              TaskNodeTreeFilter filter,
                                                              Function<TaskID, Duration> expectedDuration,
                                                              List<String> expectedSteps,
-                                                             List<String> excludedTasks) throws Exception {
+                                                             List<String> exceededTasks) throws Exception {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter, clock.time());
         assertTrue(response.success());
@@ -255,77 +261,57 @@ public class RoutineTestTemplate extends TaskTestTemplate {
             assertEquals(resultFilter, RoutineLimitFilter.parse(filter));
         }
 
-        assertExcludedLinks(excludedTasks, routineEntity, filter);
+        assertLinksByStatus(TimeableStatus.LIMIT_EXCEEDED, exceededTasks, routineEntity, filter);
 
         return response.routine();
     }
 
-    protected void assertExcludedLinks(List<String> expectedExceededTasks, Routine routine, TaskNodeTreeFilter filter) {
-        Set<String> expectedExceededTaskSet = Set.copyOf(expectedExceededTasks);
-        assertExcludedLinksFromRoutine(expectedExceededTaskSet, routine);
-        assertExcludedLinksFromFilter(expectedExceededTaskSet, filter);
+    protected void assertLinksByStatus(TimeableStatus status, List<String> expectedTasks, Routine routine, TaskNodeTreeFilter filter) {
+        Set<String> expectedTaskSet = Set.copyOf(expectedTasks);
+        assertLinksFromRoutineByStatus(status, expectedTaskSet, routine);
     }
 
-    protected void assertExcludedLinks(List<String> expectedExceededTasks, RoutineEntity routineEntity, TaskNodeTreeFilter filter) {
-        Set<String> expectedExceededTaskSet = Set.copyOf(expectedExceededTasks);
-        assertExcludedLinksFromRoutine(expectedExceededTaskSet, routineEntity);
-        assertExcludedLinksFromFilter(expectedExceededTaskSet, filter);
+    protected void assertLinksByStatus(TimeableStatus status, List<String> expectedTasks, RoutineEntity routineEntity, TaskNodeTreeFilter filter) {
+        Set<String> expectedTaskSet = Set.copyOf(expectedTasks);
+        assertLinksFromRoutineByStatus(status, expectedTaskSet, routineEntity);
     }
 
-    protected void assertExcludedLinksFromRoutine(Set<String> expectedExcludedTasks, Routine routine) {
-        Set<String> exceededStepsByStatus = routine.steps().values().stream()
+    protected void assertLinksFromRoutineByStatus(TimeableStatus status, Set<String> expectedTasks, Routine routine) {
+        Set<String> actualStepsByStatus = routine.steps().values().stream()
                 .filter(step -> step.task().project())
                 .flatMap(step -> step.children().stream())
-                .filter(step -> step.status() == TimeableStatus.LIMIT_EXCEEDED)
+                .filter(step -> step.status().equals(status))
                 .map(RoutineStep::name)
                 .collect(Collectors.toSet());
 
-        assertEquals(expectedExcludedTasks, exceededStepsByStatus);
+        assertEquals(expectedTasks, actualStepsByStatus);
     }
 
-    protected void assertExcludedLinksFromRoutine(Set<String> expectedExcludedTasks, RoutineEntity routine) {
-        Set<String> exceededStepsByStatus = routine.descendants().stream()
+    protected void assertLinksFromRoutineByStatus(TimeableStatus status, Set<String> expectedTasks, RoutineEntity routine) {
+        Set<String> actualStepsByStatus = routine.descendants().stream()
                 .filter(step -> step.task().project())
                 .flatMap(step -> step.children().stream())
-                .filter(step -> step.status() == TimeableStatus.LIMIT_EXCEEDED)
+                .filter(step -> step.status().equals(status))
                 .map(RoutineStepEntity::name)
                 .collect(Collectors.toSet());
 
-        assertEquals(expectedExcludedTasks, exceededStepsByStatus);
+        assertEquals(expectedTasks, actualStepsByStatus);
     }
 
-    protected void assertExcludedLinksFromFilter(Set<String> expectedExcludedTasks, TaskNodeTreeFilter filter) {
-        if (filter instanceof RoutineLimitFilter routineLimitFilter) {
-            if (routineLimitFilter.isLimiting()) return;
-        }
-
-        Set<String> exceededStepsByNetDurationHelper = netDurationService.getHelper(filter).linkHierarchyIterator().projectChildrenOutsideDurationLimitMap()
-                .values()
-                .stream()
-                .flatMap(List::stream)
-                .map(linkId -> queryService.fetchNode(linkId))
-                .map(TaskNode::name)
-                .collect(Collectors.toSet());
-
-//        assertEquals(expectedExcludedTasks, exceededStepsByNetDurationHelper.stream()
-//                .filter(expectedExcludedTasks::contains)
-//                .collect(Collectors.toSet()));
-    }
-
-    protected void assertExcludedLinksFromRoutine(List<String> expectedExcludedTasks, List<LinkID> actualExcludedNodeIds) {
-        List<Task> actualExcludedTasks = queryService.fetchNodes(actualExcludedNodeIds)
+    protected void assertLinksFromRoutineByStatus(TimeableStatus status, List<String> expectedTasks, List<LinkID> actualNodeIds) {
+        List<Task> actualExcludedTasks = queryService.fetchNodes(actualNodeIds)
                 .map(TaskNode::task)
                 .toList();
 
-        System.out.println("EXPECTED EXCL'D: " + expectedExcludedTasks);
-        System.out.println("ACTUAL EXCLUDED: " + actualExcludedTasks
+        System.out.println("EXPECT WITH " + status.name() + ": " + expectedTasks);
+        System.out.println("ACTUAL WITH " + status.name() + ": " + actualExcludedTasks
                 .stream()
                 .map(Task::name)
                 .toList());
 
-        assertEquals(expectedExcludedTasks.size(), actualExcludedTasks.size());
+        assertEquals(expectedTasks.size(), actualExcludedTasks.size());
         for (Task task : actualExcludedTasks) {
-            assertTrue(expectedExcludedTasks.contains(task.name()));
+            assertTrue(expectedTasks.contains(task.name()));
         }
     }
 
@@ -360,7 +346,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                                                                       Function<TaskID, Duration> expectedDuration,
                                                                       TaskNodeTreeFilter filter,
                                                                       List<String> expectedSteps,
-                                                                      List<String> excludedTasks) {
+                                                                      List<String> exceededTasks) {
         TaskNode node = nodes.get(rootLink);
         RoutineResponse response = routineService.createRoutine(node.linkId(), filter, clock.time());
         assertTrue(response.success());
@@ -369,7 +355,7 @@ public class RoutineTestTemplate extends TaskTestTemplate {
                 expectedDuration.apply(node.child().id()),
                 response.routine().estimatedDuration());
 
-        assertExcludedLinks(excludedTasks, response.routine(), filter);
+        assertLinksByStatus(TimeableStatus.LIMIT_EXCEEDED, exceededTasks, response.routine(), filter);
 
         return response.routine();
     }

@@ -2,6 +2,7 @@ package com.trajan.negentropy.server.backend;
 
 import com.google.common.collect.ListMultimap;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.model.entity.*;
 import com.trajan.negentropy.model.entity.netduration.NetDuration;
@@ -64,7 +65,13 @@ public interface EntityQueryService {
 
     RoutineEntity getRoutine(RoutineID routineId);
 
+    Iterable<RoutineEntity> findRoutines(Predicate predicate);
+
+    Iterable<RoutineEntity> findActiveRoutines();
+
     RoutineStepEntity getRoutineStep(StepID stepId);
+
+    RoutineStepEntity getActiveRoutineStep(StepID stepId);
 
     /**
      * Find a tag entity from the repository by name.
@@ -290,6 +297,4 @@ public interface EntityQueryService {
     JPAQuery<RoutineStepEntity> findRoutineStepsInCurrentRoutinesContainingTasks(Set<TaskID> taskIds);
 
     Stream<TaskLink> findLinksThatHaveActiveRoutineSteps();
-
-    Iterable<RoutineEntity> findActiveRoutines();
 }

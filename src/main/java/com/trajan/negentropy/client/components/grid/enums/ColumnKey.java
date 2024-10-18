@@ -3,10 +3,12 @@ package com.trajan.negentropy.client.components.grid.enums;
 public enum ColumnKey {
     DRAG_HANDLE("Drag Handle"),
     NODE_ID("Node ID"),
+    PLAY("Activate/Suspend"),
     NAME("Name"),
     STATUS("Status"),
-    GOTO("Go to step"),
+    JUMP("Jump to step"),
     EXCLUDE("Excluded"),
+    POSTPONE("Postpone"),
     FOCUS("Focus"),
     COMPLETE("Complete"),
     DESCRIPTION("Description"),

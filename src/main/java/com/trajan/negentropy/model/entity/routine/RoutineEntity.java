@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,10 +42,11 @@ public class RoutineEntity extends AbstractEntity implements RoutineData<Routine
     @SequenceGenerator(name = "routine_seq", sequenceName = "routine_seq")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "routine_seq")
     private Long id;
-    
+
     @OneToMany(
-            fetch = FetchType.EAGER,
+            fetch = FetchType.LAZY,
             cascade = CascadeType.ALL)
+    @Fetch(FetchMode.SUBSELECT)
     @OrderColumn(name = "position")
     private List<RoutineStepEntity> children = new ArrayList<>();
 

@@ -31,6 +31,7 @@ public class TaskNodeInfoFormDialog extends TaskNodeInfoFormFullLayout {
     public TaskNodeInfoFormDialog(Dialog dialog, UIController controller) {
         super(controller);
         this.dialog = dialog;
+        dialog.setCloseOnOutsideClick(false);
 
         Page page = UI.getCurrent().getPage();
 

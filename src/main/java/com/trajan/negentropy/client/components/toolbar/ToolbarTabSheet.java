@@ -30,6 +30,7 @@ import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.facade.RoutineService;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
 import com.trajan.negentropy.util.SpringContext;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
@@ -108,6 +109,7 @@ public class ToolbarTabSheet extends TabSheet {
     private QuickCreateField quickCreateField;
     private TaskListBox taskSetBox;
 
+    private static final String HIDE_ROUTINE_INFO_BARS = "hide-routine-info-bars";
     public void init(TreeView treeView, TabType... tabsNames) {
         this.treeView = treeView;
 
@@ -320,11 +322,34 @@ public class ToolbarTabSheet extends TabSheet {
             if (routineService.refreshRoutines()) CompletableFuture.runAsync(routineService::refreshActiveRoutines);
         });
 
-        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(disableContextMenuCheckbox, autoRefreshCheckbox, optionsMenu);
+        Checkbox hideRoutineTaskBars = new Checkbox("Hide routine ancestor bars");
+        hideRoutineTaskBars.setValue(settings.hideRoutineTaskBars());
+        hideRoutineTaskBars.addValueChangeListener(e -> {
+            settings.hideRoutineTaskBars(hideRoutineTaskBars.getValue());
+            Component view = UI.getCurrent().getCurrentView();
+            if (hideRoutineTaskBars.getValue()) {
+                view.addClassName(HIDE_ROUTINE_INFO_BARS);
+                UI.getCurrent().getPage().reload();
+            } else {
+                view.removeClassName(HIDE_ROUTINE_INFO_BARS);
+            }
+            // TODO: Get CSS working, remove this
+        });
+
+        Checkbox hideFinishedRoutineSteps = new Checkbox("Hide inapplicable routine steps");
+        hideFinishedRoutineSteps.setValue(settings.hideFinishedRoutineSteps());
+        hideFinishedRoutineSteps.addValueChangeListener(e -> {
+            settings.hideFinishedRoutineSteps(hideFinishedRoutineSteps.getValue());
+            if (routineView != null) {
+                routineView.routineStepTreeGrid().setRoutine(routineView.routineStepTreeGrid().routine());
+            }
+        });
+
+        VerticalLayout auxiliaryButtonLayout = new VerticalLayout(hideFinishedRoutineSteps, hideRoutineTaskBars, disableContextMenuCheckbox, autoRefreshCheckbox, optionsMenu);
         auxiliaryButtonLayout.setPadding(false);
         auxiliaryButtonLayout.setSpacing(false);
 
-        FormLayout layout = new FormLayout(sameGridDragInsertModeRadioButtonGroup,auxiliaryButtonLayout);
+        FormLayout layout = new FormLayout(sameGridDragInsertModeRadioButtonGroup, auxiliaryButtonLayout);
 //                sameGridDragInsertModeRadioButtonGroup, betweenGridsDragInsertModeRadioButtonGroup,
 //                gridTilingRadioButtonGroup, auxiliaryButtonLayout);
 

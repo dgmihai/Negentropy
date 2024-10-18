@@ -44,6 +44,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -72,7 +73,8 @@ public class UIController {
 
     @PostConstruct
     public void init() {
-        routineCardBroadcaster.label = "Routine Card Broadcaster: ";
+        log.info("Initializing UIController");
+        uiRoutineBroadcaster.label = "UI Routine Broadcaster: ";
 
         UI currentUI = UI.getCurrent();
         Integer uiId = currentUI != null ? currentUI.getUIId() : null;
@@ -200,24 +202,25 @@ public class UIController {
     private void tryRoutineServiceCall(Supplier<RoutineResponse> serviceCall,
                                                     Consumer<RoutineResponse> onSuccess,
                                                     Consumer<RoutineResponse> onFailure) {
-        try {
-            RoutineResponse response = serviceCall.get();
+        CompletableFuture.runAsync(() -> {
+            try {
+                RoutineResponse response = serviceCall.get();
 
-            this.execute(() -> accessUI("Routine service call", () -> {
-            accessUI(() -> {
-                if (!response.success()) {
-                    NotificationMessage.error(response.message());
-                    if (onFailure != null) onFailure.accept(response);
-                } else {
-                    NotificationMessage.result(response.message());
-                    routineDataProvider.refreshAll();
-                    if (onSuccess != null) onSuccess.accept(response);
-                }
-            });
-        } catch (Throwable t) {
-            log.error("Exception while executing routine call: \n", t);
-            accessUI(() -> NotificationMessage.error(t));
-        }
+                accessUI(() -> {
+                    if (!response.success()) {
+                        NotificationMessage.error(response.message());
+                        if (onFailure != null) onFailure.accept(response);
+                    } else {
+                        NotificationMessage.result(response.message());
+                        routineDataProvider.refreshAll();
+                        if (onSuccess != null) onSuccess.accept(response);
+                    }
+                });
+            } catch (Throwable t) {
+                log.error("Exception while executing routine call: \n", t);
+                accessUI(() -> NotificationMessage.error(t));
+            }
+        });
     }
 
     @Async
@@ -260,6 +263,15 @@ public class UIController {
                                               Consumer<RoutineResponse> onFailure) {
         log.debug("Starting routine step: " + stepId);
         tryRoutineServiceCall(() -> services.routine().startStep(stepId, LocalDateTime.now()),
+                onSuccess, onFailure);
+    }
+
+    @Async
+    public synchronized void jumpToRoutineStep(StepID stepId,
+                                              Consumer<RoutineResponse> onSuccess,
+                                              Consumer<RoutineResponse> onFailure) {
+        log.debug("Jumping to routine step: " + stepId);
+        tryRoutineServiceCall(() -> services.routine().jumpToStepAndStartIfReady(stepId, LocalDateTime.now()),
                 onSuccess, onFailure);
     }
 
@@ -384,7 +396,7 @@ public class UIController {
     //==================================================================================================================
 
     @Getter (AccessLevel.NONE)
-    @Autowired private MapBroadcaster<RoutineID, Routine> routineCardBroadcaster;
+    @Autowired private MapBroadcaster<RoutineID, Routine> uiRoutineBroadcaster;
 
     @Getter (AccessLevel.NONE)
     private final Set<RoutineID> trackedRoutines = new HashSet<>();
@@ -392,17 +404,17 @@ public class UIController {
     @Getter
     private final Set<Task> tasksWithActiveSteps = new HashSet<>();
 
-    public Registration registerRoutineCard(RoutineID routineId, Consumer<Routine> listener) {
-        log.debug("Registering routine card");
+    public Registration registerRoutineListener(RoutineID routineId, Consumer<Routine> listener) {
         if (!trackedRoutines.contains(routineId)) {
-            services.routine().register(routineId, r -> routineCardBroadcaster.broadcast(routineId, r));
+            log.debug("Registering UI routine listener");
+            services.routine().register(routineId, r -> uiRoutineBroadcaster.broadcast(routineId, r));
             trackedRoutines.add(routineId);
         } else {
-            log.warn("Routine already tracked: " + routineId);
+            log.trace("Routine already tracked in this UI: " + routineId);
         }
 
-        return routineCardBroadcaster.register(routineId, r -> {
-            log.debug("Routine card update for <" + r.name() + ">");
+        return uiRoutineBroadcaster.register(routineId, r -> {
+            log.debug("Component routine listener update for <" + r.name() + ">");
             accessUI(() -> listener.accept(r));
         });
     }

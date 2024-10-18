@@ -41,7 +41,8 @@ public class UserSettings {
     @Setter private boolean routineStepsGridVisible = false;
     @Setter private OnSuccessfulSaveActions onSuccessfulSaveAction = OnSuccessfulSaveActions.CLOSE;
     @Setter private TaskEntry currentRootEntry = null;
-    @Setter private boolean areNetDurationsVisible = false;
+    @Setter private boolean hideRoutineTaskBars = false;
+    @Setter private boolean hideFinishedRoutineSteps = true;
     private final String DEFAULT_PROJECT = "Still To Plan";
 
     @Setter
@@ -54,7 +55,6 @@ public class UserSettings {
         TaskEntryTreeGrid.possibleColumns.forEach(columnKey -> {
             for (LinkedHashMap<ColumnKey, Boolean> gridColumnVisibility : treeViewColumnVisibilities) {
                 gridColumnVisibility.put(columnKey, (!(excludedFromDefaultViewColumns.contains(columnKey))));
-                if (columnKey.equals(ColumnKey.NET_DURATION)) areNetDurationsVisible(true);
             }
         });
 

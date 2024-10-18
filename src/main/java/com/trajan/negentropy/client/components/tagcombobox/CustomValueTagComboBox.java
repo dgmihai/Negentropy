@@ -38,20 +38,22 @@ public class CustomValueTagComboBox extends TagComboBox {
         setAllowCustomValue(true);
 
         addCustomValueSetListener(event -> {
-            Set<Tag> oldValues = this.getValue();
-            String name = event.getDetail().trim();
-            Change persistTagChange = new PersistChange<>(
-                    new Tag(null, name));
-            DataMapResponse response = controller.requestChange(persistTagChange);
-            Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
-            Set<Tag> tags = new HashSet<>(this.getValue());
-            items.add(newTag);
-            controller.taskNetworkGraph().tagMap().put(newTag.id(), newTag);
-            instances.forEach(TagComboBox::fetchTags);
-            tags.add(newTag);
-            this.setValue(tags);
-            Set<Tag> newValues = this.getValue();
-            onCustomValueSet.accept(oldValues, newValues);
+            if (event.isFromClient()) {
+                Set<Tag> oldValues = this.getValue();
+                String name = event.getDetail().trim();
+                Change persistTagChange = new PersistChange<>(
+                        new Tag(null, name));
+                DataMapResponse response = controller.requestChange(persistTagChange);
+                Tag newTag = (Tag) response.changeRelevantDataMap().getFirst(persistTagChange.id());
+                Set<Tag> tags = new HashSet<>(this.getValue());
+                items.add(newTag);
+                controller.taskNetworkGraph().tagMap().put(newTag.id(), newTag);
+                instances.forEach(TagComboBox::fetchTags);
+                tags.add(newTag);
+                this.setValue(tags);
+                Set<Tag> newValues = this.getValue();
+                onCustomValueSet.accept(oldValues, newValues);
+            }
         });
     }
 }

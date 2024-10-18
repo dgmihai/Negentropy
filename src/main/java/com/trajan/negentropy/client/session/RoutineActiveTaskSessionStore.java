@@ -22,15 +22,16 @@ import java.util.Collection;
 @VaadinSessionScope
 @Benchmark
 public class RoutineActiveTaskSessionStore {
-    private final SessionLogger logger = new SessionLogger();
+    private final SessionLogger log = new SessionLogger();
 
     @Autowired private SessionServices services;
 
     private Registration broadcasterRegistration;
-    private Multimap<RoutineID, TaskNode> nodesThatHaveActiveSteps = ArrayListMultimap.create();
+    private final Multimap<RoutineID, TaskNode> nodesThatHaveActiveSteps = ArrayListMultimap.create();
 
     @PostConstruct
     public void init() {
+        log.info("Initializing RoutineActiveTaskSessionStore");
         broadcasterRegistration = services.routine().register(this::update);
         services.query().fetchActiveRoutines().forEach(this::update);
     }
@@ -50,7 +51,7 @@ public class RoutineActiveTaskSessionStore {
                         || routine.currentStep().equals(step))
                 .filter(step -> step.nodeOptional().isPresent())
                 .map(RoutineStep::node)
-                .peek(node -> logger.debug("<" + node.name() + "> - Active Step"))
+                .peek(node -> log.debug("<" + node.name() + "> - Active Step"))
                 .toList());
     }
 

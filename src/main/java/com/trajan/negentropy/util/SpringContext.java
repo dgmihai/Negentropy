@@ -4,9 +4,9 @@ import lombok.Getter;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class SpringContext implements ApplicationContextAware {
 
     @Getter private static ApplicationContext context;

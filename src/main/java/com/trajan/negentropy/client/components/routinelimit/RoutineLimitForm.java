@@ -3,6 +3,7 @@ package com.trajan.negentropy.client.components.routinelimit;
 import com.trajan.negentropy.client.components.fields.DurationTextField;
 import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.UIController;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.client.session.UserSettings;
 import com.trajan.negentropy.client.util.IndeterminateToggleButton;
 import com.trajan.negentropy.client.util.NotificationMessage;
@@ -34,6 +35,7 @@ import static com.trajan.negentropy.model.filter.TaskTreeFilter.INNER_JOIN_INCLU
 @Getter
 public class RoutineLimitForm extends FormLayout {
     @Autowired private UIController controller;
+    @Autowired private SessionServices services;
     @Autowired private UserSettings settings;
 
     private DurationTextField durationField = new DurationTextField();
@@ -55,7 +57,16 @@ public class RoutineLimitForm extends FormLayout {
         effortSelect.setPlaceholder("Effort");
         effortSelect.setSizeFull();
         effortSelect.setTooltipText("Effort");
-        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT, "0", "1", "2", "3", "4", "5");
+        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT_STRING, "0", "1", "2", "3", "4", "5");
+        effortSelect.setValue(EffortConverter.toPresentation(services.routine().effortMaximum()));
+        effortSelect.addValueChangeListener(e -> {
+            services.routine().setEffortMaximum(EffortConverter.toModel(e.getValue()).getOrThrow(
+                    string -> {
+                        String errorMessage = "Invalid effort: " + string;
+                        NotificationMessage.error(errorMessage);
+                        return new IllegalArgumentException(errorMessage);
+                    }));
+        });
 
         timePicker.setPlaceholder("Time Limit");
         timePicker.setSizeFull();

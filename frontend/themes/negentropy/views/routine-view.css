@@ -12,7 +12,7 @@
 }
 
 .active-routine-grid::part(selected-row-cell) {
-  background-color: var(--lumo-complementary-color-5pct);
+  background-color: ;
 }
 
 .routine-view .card {
@@ -57,7 +57,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: var(--lumo-space-xs);
+  padding: 0px var(--lumo-space-xs) 0px var(--lumo-space-s);
 }
 
 .routine-view .card .footer {
@@ -89,10 +89,15 @@
   width: 6rem;
 }
 
+.hide-routine-info-bars .routine-view .card .bar {
+  visibility: hidden;
+  height: 0px;
+}
+
 .routine-view .card .description {
   color: var(--lumo-secondary-text-color);
   font-size: var(--lumo-font-size-m);
-  margin-bottom: var(--lumo-space-xs);
+  padding: 0px var(--lumo-space-s) 0px var(--lumo-space-s);
   --lumo-text-field-size: var(--lumo-size-s);
 }
 

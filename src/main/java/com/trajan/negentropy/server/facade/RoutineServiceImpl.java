@@ -4,6 +4,7 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
@@ -68,6 +69,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -92,49 +94,68 @@ public class RoutineServiceImpl implements RoutineService {
     @Value("${negentropy.refreshRoutines:true}") @Setter @Getter protected boolean refreshRoutines;
     @Value("${negentropy.inTesting:false}") protected boolean inTesting;
 
-    @Getter @Setter private RoutineEntity cachedRoutine = null;
-
     private final AsyncMapBroadcaster<RoutineID, Routine> routineBroadcaster = new AsyncMapBroadcaster<>();
 
     @PostConstruct
     public void init() {
-        Iterable<RoutineEntity> results = routineRepository.findAll(
+        log.info("Initializing RoutineService");
+        Iterable<RoutineEntity> results = entityQueryService.findRoutines(
                 QRoutineEntity.routineEntity.status.ne(TimeableStatus.EXCLUDED)
                         .and(QRoutineEntity.routineEntity.cleaned.isFalse()));
+        Set<RoutineEntity> cleanedRoutines = new HashSet<>();
+        log.debug("Completed routine repository search");
         for (RoutineEntity routine : results) {
+            log.debug("Checking routine {}", routine.id());
             if (routine.status().equals(TimeableStatus.COMPLETED) ||
                 routine.status().equals(TimeableStatus.SKIPPED)) {
                 if (!routine.cleaned()) {
                     this.cleanUpRoutine(routine, clock.time(), true);
                     routine.cleaned(true);
+                    cleanedRoutines.add(routine);
                 }
-            } else if (routine.status().equals(TimeableStatus.ACTIVE)) {
-               if (this.cachedRoutine == null) {
-                   this.cachedRoutine = routine;
-               } else {
-                   try {
-                       if (!cachedRoutine.currentStep().startTime().isAfter(routine.currentStep().startTime())) {
-                           this.cachedRoutine = routine;
-                       }
-                   } catch (NullPointerException e) {
-                       // Either one or the other doesn't have a proper start time; we can't compare them
-                   }
-               }
             }
         }
 
-        log.info("Cached routine: " + cachedRoutine);
+        routineRepository.saveAll(cleanedRoutines);
         effortTracker = new EffortTracker();
     }
 
     public RoutineID activeRoutineId() {
-        return ID.of(cachedRoutine);
+        Routine activeRoutine = activeRoutine();
+        return activeRoutine != null
+                ? activeRoutine().id()
+                : null;
+    }
+
+    public Routine activeRoutine() {
+        Iterator<RoutineEntity> iter = entityQueryService.findActiveRoutines().iterator();
+
+        RoutineEntity result = null;
+        while (iter.hasNext()) {
+            RoutineEntity current = iter.next();
+            if (result == null) {
+                result = current;
+            } else {
+                RoutineStepEntity currentStep = current.currentStep();
+                RoutineStepEntity lastCurrentStep = result.currentStep();
+                if (currentStep.status().equals(TimeableStatus.ACTIVE)
+                        && !lastCurrentStep.status().equals(TimeableStatus.ACTIVE)) {
+                    result = current;
+                } else if (currentStep.startTime().isAfter(lastCurrentStep.startTime())) {
+                    result = current;
+                }
+            }
+        }
+
+        return result != null
+                ? dataContext.toDO(result)
+                : null;
     }
 
     @Override
     public Routine fetchRoutine(RoutineID routineID) {
-        log.trace("fetchRoutine");
-        return dataContext.toDO(entityQueryService.getRoutine(routineID));
+        RoutineEntity entity = entityQueryService.getRoutine(routineID);
+        return dataContext.toDO(entity);
     }
 
     @Override
@@ -143,6 +164,7 @@ public class RoutineServiceImpl implements RoutineService {
         return dataContext.toDO(entityQueryService.getRoutineStep(stepID));
     }
 
+    @Deprecated
     private RoutineResponse process(Supplier<RoutineEntity> routineSupplier) {
         return this.process(routineSupplier, null);
     }
@@ -150,18 +172,19 @@ public class RoutineServiceImpl implements RoutineService {
     private synchronized RoutineResponse process(Supplier<RoutineEntity> routineSupplier, StepID focusedStepId) {
         try {
             RoutineEntity routine = routineSupplier.get();
-            if (routine.status().equals(TimeableStatus.ACTIVE)) cachedRoutine = routine;
+            Optional<String> focusedStepName = routine.descendants().stream()
+                    .filter(step -> ID.of(step).equals(focusedStepId))
+                    .map(RoutineStepEntity::name)
+                    .findFirst();
             Routine routineDO = dataContext.toDO(routine);
-            String message = (focusedStepId != null)
-                    ? routineDO.steps().get(focusedStepId).status().toString()
-                    : K.OK;
             routineBroadcaster.broadcast(ID.of(routine), routineDO);
+            String message = focusedStepName.orElse(K.OK);
             return new RoutineResponse(true, routineDO, message);
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             String exceptionAsString = sw.toString();
-            log.error("Error processing routine: " + exceptionAsString);
+            log.error("Error processing routine: {}", exceptionAsString);
             return new RoutineResponse(false, null, e.getMessage());
         }
     }
@@ -220,6 +243,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public void setActiveRoutinesEffort(Integer effort) {
+        if (effort == EffortConverter.DEFAULT_EFFORT_INT) effort = null;
         effortTracker.effort = effort;
         if (refreshRoutines) {
             entityQueryService.findActiveRoutines().forEach(routine -> {
@@ -237,7 +261,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     private synchronized RoutineEntity refreshRoutine(RoutineEntity routine, Integer effort, boolean save) {
         if (refreshRoutines) {
-            log.info("Refreshing routine : <" + routine.id() + ">");
+            log.info("Refreshing routine : <{}>", routine.id());
             List<RoutineStepEntity> descendants = routine.descendants();
 
             RoutineStepEntity current = routine.currentStep();
@@ -257,9 +281,9 @@ public class RoutineServiceImpl implements RoutineService {
                     .collect(Collectors.toCollection(ArrayList::new));
             try {
                 RoutineLimitFilter filter = (RoutineLimitFilter) SerializationUtil.deserialize(routine.serializedFilter());
-                log.debug("Deserialized filter: " + filter);
+                log.debug("Deserialized filter: {}", filter);
                 if (filter != null) {
-                    log.debug("Updating effort maximum to: " + effort);
+                    log.debug("Updating effort maximum to: {}", effort);
                     routine.serializedFilter(SerializationUtil.serialize(filter.effortMaximum(effort)));
                 }
                 RoutineRefreshHierarchy hierarchy = new RoutineRefreshHierarchy(routine);
@@ -270,14 +294,14 @@ public class RoutineServiceImpl implements RoutineService {
                 throw new RuntimeException("Could not deserialize filter: " + routine.serializedFilter(), e);
             }
         } else if (routine.status().equals(TimeableStatus.ACTIVE)) {
-            log.warn("Not refreshing routine not marked as active : <" + routine.id() + ">");
+            log.warn("Not refreshing routine marked as active : <{}>", routine.id());
         }
         log.info("Skipping refresh routine");
         return save ? routineRepository.save(routine) : routine;
     }
 
     private RoutineEntity initRoutine(List<Data> roots, RoutineLimitFilter filter, LocalDateTime time) {
-        log.debug("Populate routine with filter: " + filter);
+        log.debug("Populate routine with filter: {}", filter);
         RoutineEntity routine = new RoutineEntity().creationTimestamp(time);
 
         try {
@@ -316,7 +340,7 @@ public class RoutineServiceImpl implements RoutineService {
         boolean filterHadCustomStepCount = filter.stepCountLimit() != null;
 
         RoutineLimiter limit = createRoutineLimiter(roots, filter, time);
-        log.debug("Routine limit: " + limit);
+        log.debug("Routine limit: {}", limit);
 
         for (Data root : roots) {
             if (root instanceof TaskEntity) {
@@ -347,7 +371,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     private RoutineEntity persistRoutine(List<Data> roots, RoutineLimitFilter filter, LocalDateTime time) {
         RoutineEntity result = routineRepository.save(initRoutine(roots, filter, time));
-        log.debug("Created routine: " + result.currentStep().name() + " with " + result.countSteps() + " steps.");
+        log.debug("Created routine: {} with {} steps.", result.currentStep().name(), result.countSteps());
         return result;
     }
 
@@ -400,7 +424,7 @@ public class RoutineServiceImpl implements RoutineService {
     public Stream<Routine> fetchRoutines(Set<TimeableStatus> statusSet) {
         log.trace("fetchRoutines");
         return StreamSupport.stream(
-                routineRepository.findAll(this.filterByStatus(statusSet)).spliterator(), false)
+                        entityQueryService.findRoutines(this.filterByStatus(statusSet)).spliterator(), false)
                 .map(dataContext::toDO);
     }
 
@@ -413,9 +437,8 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void cleanUpRoutine(RoutineEntity routine, LocalDateTime time, boolean delete) {
-        log.info("Cleaning up routine: " + routineLogStatement(routine));
+        log.info("Cleaning up routine: {}", routineLogStatement(routine));
         routine.autoSync(false);
-        if (cachedRoutine != null && cachedRoutine.equals(routine)) cachedRoutine = null;
         boolean empty = true;
         List<RoutineStepEntity> descendants = routine.descendants(entityQueryService);
         for (RoutineStepEntity step : descendants) {
@@ -430,7 +453,7 @@ public class RoutineServiceImpl implements RoutineService {
             routine.status(TimeableStatus.EXCLUDED);
             if (delete) {
                 dataContext.deleteRoutineEntity(routine);
-                log.info("Deleting empty routine: " + routineLogStatement(routine));
+                log.info("Deleting empty routine: {}", routineLogStatement(routine));
             }
         }
     }
@@ -439,35 +462,36 @@ public class RoutineServiceImpl implements RoutineService {
     public RoutineResponse startStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
-        return process(() -> activateStep(step, time));
+        return process(() -> activateStep(step, time), stepId);
     }
 
     @Override
     public RoutineResponse jumpToStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
-        return process(() -> jumpToStep(step, time));
+        return process(() -> jumpToStep(step, time), stepId);
     }
 
     private RoutineEntity jumpToStep(RoutineStepEntity step, LocalDateTime time) {
         RoutineEntity routine = step.routine();
         RoutineStepEntity currentStep = routine.currentStep();
+
         if (!currentStep.equals(step)) {
             if(!currentStep.status().isFinishedOrExceeded()) {
-                markStepAsSkipped(currentStep, time);
-                resetStepLinkStatus(currentStep, time);
-                if (currentStep.parentStep() == null) {
-                    routine.children().remove(currentStep.position().intValue());
-                    routine.children().add(currentStep.position(), currentStep);
-                } else {
-                    currentStep.parentStep().children().remove(currentStep.position().intValue());
-                    currentStep.parentStep().children().add(currentStep.position(), currentStep);
+                RoutineStepEntity farthestActiveAncestor = currentStep;
+                while (farthestActiveAncestor.parentStep() != null && farthestActiveAncestor.parentStep().status().equals(TimeableStatus.DESCENDANT_ACTIVE)) {
+                    farthestActiveAncestor = farthestActiveAncestor.parentStep();
                 }
+
+                markStepAsSkipped(farthestActiveAncestor, time);
+                markAllUnfinishedDescendantsAs(TimeableStatus.SKIPPED, farthestActiveAncestor, time);
+                routine = farthestActiveAncestor.routine();
             }
 
             List<RoutineStepEntity> steps = routine.descendants();
             routine.currentPosition(steps.indexOf(step));
         }
+
         return routine;
     }
 
@@ -480,7 +504,7 @@ public class RoutineServiceImpl implements RoutineService {
         RoutineStepEntity step = routine.currentStep();
         boolean first = true;
         while (step != null) {
-            log.debug("Activating step <" + step.task().name() + "> in routine " + routine.id() + ".");
+            log.debug("Activating step <{}> in routine {}.", step.task().name(), routine.id());
 
             if (first) {
                 step.start(time);
@@ -500,19 +524,30 @@ public class RoutineServiceImpl implements RoutineService {
         return routine;
     }
 
-    private RoutineStepEntity fetchStepFromActiveRoutine(StepID stepId) {
-//        if (cachedRoutine != null) {
-//            List<StepID> activeSteps = cachedRoutine.descendants().stream()
-//                    .map(ID::of)
-//                    .toList();
-//            int match = activeSteps.indexOf(stepId);
-//            if (match != -1) {
-//                log.debug("Found step in cached routine: <" + stepId + ">");
-//                return cachedRoutine.descendants().get(match);
-//            }
-//        }
+    @Override
+    public RoutineResponse jumpToStepAndStartIfReady(StepID stepId, LocalDateTime time) {
+        RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
 
-        return entityQueryService.getRoutineStep(stepId);
+        return process(() -> jumpToStepAndStartIfReady(step, time), stepId);
+    }
+
+    private RoutineEntity jumpToStepAndStartIfReady(RoutineStepEntity step, LocalDateTime time) {
+        RoutineEntity routine = jumpToStep(step, time);
+
+        if (!step.status().equalsAny(TimeableStatus.COMPLETED, TimeableStatus.POSTPONED)) {
+            routine = activateRoutineCurrentStep(routine, time);
+        }
+
+        return routine;
+    }
+
+    private RoutineStepEntity fetchStepFromActiveRoutine(StepID stepId) {
+        try {
+            return entityQueryService.getActiveRoutineStep(stepId);
+        } catch (NoSuchElementException e) {
+            log.warn("Step <{}> not found in active routine.", stepId);
+            return entityQueryService.getRoutineStep(stepId);
+        }
     }
 
     @Override
@@ -542,7 +577,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity completeStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Completing step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
+        log.debug("Completing step <{}> in routine {}.", step.task().name(), step.routine().id());
 
         if (step.task().project()) {
             switch (getAggregateChildStatus(step)) {
@@ -563,7 +598,7 @@ public class RoutineServiceImpl implements RoutineService {
             }
         }
 
-        return refreshAndIterateToNextValidStep(step, time, true);
+        return refreshAndIterateToNextValidStep(step, time, true, true);
     }
 
     @Override
@@ -577,12 +612,11 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public RoutineResponse suspendStep(StepID stepId, LocalDateTime time) {
         RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
-
         return process(() -> suspendStep(step, time), stepId);
     }
 
     private RoutineEntity suspendStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Suspending step <" + step.task().name() + "> in routine " + step.routine().id());
+        log.debug("Suspending step <{}> in routine {}", step.task().name(), step.routine().id());
         RoutineEntity routine = step.routine();
 
         while (step != null) {
@@ -602,13 +636,13 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity skipStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Skipping step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
+        log.debug("Skipping step <{}> in routine {}.", step.task().name(), step.routine().id());
 
         markStepAsSkipped(step, time);
         resetStepLinkStatus(step, time);
         markAllUnfinishedDescendantsAs(TimeableStatus.SKIPPED, step, time);
 
-        return refreshAndIterateToNextValidStep(step, time, false);
+        return refreshAndIterateToNextValidStep(step, time, false, true);
     }
 
     @Override
@@ -624,13 +658,11 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity postponeStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Postponing step <" + step.task().name() + "> in routine " + step.routine().id() + ".");
-
-        markAllUnfinishedDescendantsAs(TimeableStatus.POSTPONED, step, time);
+        log.debug("Postponing step <{}> in routine {}.", step.task().name(), step.routine().id());
 
         markStepAsPostponed(step, time);
 
-        return refreshAndIterateToNextValidStep(step, time, false);
+        return refreshAndIterateToNextValidStep(step, time, false, true);
     }
 
     @Override
@@ -641,7 +673,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity previousStep(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Going to previous step of <" + step.task().name() + "> in routine " + step.routine().id());
+        log.debug("Going to previous step of <{}> in routine {}", step.task().name(), step.routine().id());
 
         RoutineEntity routine = step.routine();
 
@@ -649,16 +681,7 @@ public class RoutineServiceImpl implements RoutineService {
             throw new IllegalStateException("Cannot go to previous step when at the first step of a routine.");
         }
 
-        markStepAsSkipped(step, time);
-        resetStepLinkStatus(step, time);
-        while (routine.currentPosition() > 0) {
-            routine.currentPosition(routine.currentPosition() - 1);
-            if (!routine.currentStep().status().equals(TimeableStatus.EXCLUDED)) {
-                break;
-            }
-        }
-
-        return routine;
+        return jumpToStep(routine.descendants().get(routine.currentPosition() - 1), time);
     }
 
     @Override
@@ -675,7 +698,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private RoutineEntity completeRoutine(RoutineEntity routine, LocalDateTime time) {
-        log.debug("Completing routine " + routine.id() + ".");
+        log.debug("Completing routine {}.", routine.id());
         routine.currentPosition(0);
         routine.status(TimeableStatus.COMPLETED);
         cleanUpRoutine(routine, time, false);
@@ -718,23 +741,27 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude) {
+    public RoutineResponse setStepExcluded(StepID stepId, LocalDateTime time, boolean exclude)  {
         RoutineStepEntity step = fetchStepFromActiveRoutine(stepId);
         RoutineEntity routine = step.routine();
 
-        log.debug("Setting step " + step + " in routine " + routine.id() + " as excluded: " + exclude);
+        log.debug("Setting step {} in routine {} as excluded: {}", step, routine.id(), exclude);
 
         return process(() -> setStepExcluded(step, time, exclude), stepId);
     }
 
     private RoutineEntity setStepExcluded(RoutineStepEntity step, LocalDateTime time, boolean exclude) {
+        return setStepExcluded(step, time, exclude, true);
+    }
+
+    private RoutineEntity setStepExcluded(RoutineStepEntity step, LocalDateTime time, boolean exclude, boolean activateNextStep) {
         if (exclude) {
             if (step.status().equals(TimeableStatus.ACTIVE)) suspendStep(step, time);
             markStepAsExcluded(step, time);
             resetStepLinkStatus(step, time);
 
             markAllUnfinishedDescendantsAs(TimeableStatus.EXCLUDED, step, time);
-            refreshAndIterateToNextValidStep(step, time, false);
+            refreshAndIterateToNextValidStep(step, time, false, activateNextStep);
         } else {
             markStepAsSkipped(step, time);
             markAllUnfinishedDescendantsAs(TimeableStatus.SKIPPED, step, time);
@@ -769,7 +796,7 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public RoutineResponse kickStepUp(StepID stepId, LocalDateTime time) {
         RoutineStepEntity initialStep = fetchStepFromActiveRoutine(stepId);
-        log.debug("Kicking step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
+        log.debug("Kicking step {} in routine {} up.", initialStep, initialStep.routine().id());
 
         return process(() -> {
             Optional<RoutineStepEntity> parent = Optional.ofNullable(initialStep.parentStep());
@@ -800,7 +827,7 @@ public class RoutineServiceImpl implements RoutineService {
                     }
                 }
 
-                return routineRepository.getReferenceById(routine.id());
+                return entityQueryService.getRoutine(ID.of(routine));
             } else {
                 log.debug("Shifting via task");
                 HasTaskLinkOrTaskEntity entity = updatedStep.link().isPresent()
@@ -832,13 +859,13 @@ public class RoutineServiceImpl implements RoutineService {
                     throw new RuntimeException("Could not deserialize filter for routine " + routine.id(), e);
                 }
             }
-        });
+        }, stepId);
     }
 
     @Override
     public RoutineResponse pushStepForward(StepID stepId, LocalDateTime time) {
         RoutineStepEntity initialStep = fetchStepFromActiveRoutine(stepId);
-        log.debug("Pushing step" + initialStep + " in routine " + initialStep.routine().id() + " up.");
+        log.debug("Pushing step{} in routine {} up.", initialStep, initialStep.routine().id());
         
         return process(() -> {
             Optional<RoutineStepEntity> parent = Optional.ofNullable(initialStep.parentStep());
@@ -880,7 +907,7 @@ public class RoutineServiceImpl implements RoutineService {
                         }
                     }
                 }
-                return routineRepository.getReferenceById(routine.id());
+                return entityQueryService.getRoutine(ID.of(routine));
             } else {
                 HasTaskLinkOrTaskEntity entity = updatedStep.link().isPresent()
                         ? updatedStep.link().get()
@@ -911,7 +938,7 @@ public class RoutineServiceImpl implements RoutineService {
                     throw new RuntimeException("Could not deserialize filter for routine " + routine.id(), e);
                 }
             }
-        });
+        }, stepId);
     }
 
     @Override
@@ -960,7 +987,7 @@ public class RoutineServiceImpl implements RoutineService {
 
             for (TimeableStatus status : statusPriority) {
                 if (statusSet.contains(status)) {
-                    log.debug("Aggregate child status for <" + step.name() + ">  as " + status);
+                    log.debug("Aggregate child status for <{}>  as {}", step.name(), status);
                     return status;
                 }
             }
@@ -995,7 +1022,7 @@ public class RoutineServiceImpl implements RoutineService {
     // ================================
 
     private void markStepAsCompleted(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as completed.");
+        log.debug("Marking step <{}> as completed.", step.task().name());
         boolean alreadyCompleted = step.status().equals(TimeableStatus.COMPLETED);
 
         step.complete(time);
@@ -1019,7 +1046,7 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsPostponed(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as postponed.");
+        log.debug("Marking step <{}> as postponed.", step.task().name());
 
         step.postpone(time);
 
@@ -1030,36 +1057,37 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     private void markStepAsSkipped(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as skipped.");
+        log.debug("Marking step <{}> as skipped.", step.task().name());
 
         step.skip(time);
     }
 
     private void markStepAsExcluded(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as excluded.");
+        log.debug("Marking step <{}> as excluded.", step.task().name());
 
         step.exclude(time);
     }
 
     private void markStepAsExceeded(RoutineStepEntity step, LocalDateTime time) {
-        log.debug("Marking step <" + step.task().name() + "> as exceeded.");
+        log.debug("Marking step <{}> as exceeded.", step.task().name());
 
         step.exclude(time);
         step.status(TimeableStatus.LIMIT_EXCEEDED);
     }
 
-    private void markAllUnfinishedDescendantsAs(TimeableStatus status, RoutineStepEntity step, LocalDateTime time) {
-        DFSUtil.traverse(step).stream()
-                .filter(s -> Set.of(
-                            TimeableStatus.POSTPONED,
-                            TimeableStatus.SKIPPED,
-                            TimeableStatus.EXCLUDED)
-                        .contains(s.status()))
+    private void markAllUnfinishedDescendantsAs(TimeableStatus status, RoutineStepEntity ancestorStep, LocalDateTime time) {
+        Function<RoutineStepEntity, Boolean> filterStepsByStatus = switch (status) {
+            case EXCLUDED -> s -> !s.status().isFinished();
+            case SKIPPED -> s -> !s.status().isFinishedOrExceeded() && !s.status().equals(TimeableStatus.NOT_STARTED);
+            default -> throw new IllegalArgumentException("Cannot mark step as " + status);
+        };
+
+        DFSUtil.traverse(ancestorStep).stream()
+                .filter(filterStepsByStatus::apply)
                 .forEach(s -> {
                     switch (status) {
-                        case POSTPONED -> markStepAsPostponed(step, time);
-                        case SKIPPED -> markStepAsSkipped(step, time);
-                        case EXCLUDED -> markStepAsExcluded(step, time);
+                        case SKIPPED -> markStepAsSkipped(s, time);
+                        case EXCLUDED -> markStepAsExcluded(s, time);
                         default -> throw new IllegalArgumentException("Cannot mark step as " + status);
                     }
                 });
@@ -1069,12 +1097,11 @@ public class RoutineServiceImpl implements RoutineService {
     // Helper Handler Methods
     // ================================
 
-    private RoutineEntity refreshAndIterateToNextValidStep(RoutineStepEntity step, LocalDateTime time, boolean includingChildren) {
+    private RoutineEntity refreshAndIterateToNextValidStep(RoutineStepEntity step, LocalDateTime time, boolean includingChildren, boolean activateNextStep) {
         RoutineEntity routine = refreshRoutine(step.routine(), effortTracker.effort, false);
         RoutineStepEntity currentStep = routine.currentStep();
         if (!currentStep.equals(step)) {
-            log.warn("Current step is not the same as the step passed to iterateToNextValidStep. " +
-                    "Current step: <" + currentStep.name() + ">, passed step: <" + step.name() + ">");
+            log.warn("Current step is not the same as the step passed to iterateToNextValidStep. Current step: <{}>, passed step: <{}>", currentStep.name(), step.name());
             List<RoutineStepEntity> descendants = DFSUtil.traverse(step);
             if (descendants.contains(currentStep)) {
                 step.routine().currentPosition(routine.descendants().indexOf(step));
@@ -1082,7 +1109,7 @@ public class RoutineServiceImpl implements RoutineService {
                 return routine;
             }
         }
-        return goToNextValidStep(routine, time, includingChildren);
+        return goToNextValidStep(routine, time, includingChildren, activateNextStep);
     }
 
     private int getNextPosition(RoutineEntity routine, boolean includingChildren) {
@@ -1122,20 +1149,20 @@ public class RoutineServiceImpl implements RoutineService {
             If the new current is finished, iterate forward including children
             Else, activate the new current step
     */
-    private RoutineEntity goToNextValidStep(RoutineEntity routine, LocalDateTime time, boolean includingChildren) {
+    private RoutineEntity goToNextValidStep(RoutineEntity routine, LocalDateTime time, boolean includingChildren, boolean activateNextStep) {
         RoutineStepEntity current = routine.currentStep();
         String including = includingChildren ? "including" : "excluding";
-        log.debug("Going to next valid step from <" + current.name() + "> " + including + " children");
+        log.debug("Going to next valid step from <{}> {} children", current.name(), including);
         if (isLastChild(current)
                 && allChildrenFinishedOrExceeded(current)) {
-            return goUpToParentStep(routine, time);
+            return goUpToParentStep(routine, time, activateNextStep);
         } else {
             int potentialPosition = getNextPosition(routine, includingChildren);
             if (potentialPosition > routine.descendants().size() || potentialPosition == -1) {
-                return goUpToParentStep(routine, time);
+                return goUpToParentStep(routine, time, activateNextStep);
             } else {
                 routine.currentPosition(potentialPosition);
-                return checkNextStepIsValid(routine, time);
+                return checkNextStepIsValid(routine, time, activateNextStep);
             }
         }
     }
@@ -1148,49 +1175,55 @@ public class RoutineServiceImpl implements RoutineService {
         Else
             Set routine current position to parent step's position
      */
-    private RoutineEntity goUpToParentStep(RoutineEntity routine, LocalDateTime time) {
+    private RoutineEntity goUpToParentStep(RoutineEntity routine, LocalDateTime time, boolean activateNextStep) {
         RoutineStepEntity current = routine.currentStep();
-        log.debug("Going up to parent step from <" + current.name() + ">");
+        log.debug("Going up to parent step from <{}>", current.name());
         if (current.parentStep() == null) {
             if (allSiblingsAndSelfFinishedOrExceeded(routine.children().get(0))) {
                 return completeRoutine(routine, time);
             } else {
                 routine.currentPosition(0);
-                return checkNextStepIsValid(routine, time);
+                return checkNextStepIsValid(routine, time, activateNextStep);
             }
         } else {
             List<RoutineStepEntity> siblings = current.parentStep().children();
             for (RoutineStepEntity sibling : siblings.subList(current.position(), siblings.size()-1)) {
                 if (!sibling.status().isFinishedOrExceeded()) {
                     routine.currentPosition(routine.descendants().indexOf(sibling));
-                    return checkNextStepIsValid(routine, time);
+                    return checkNextStepIsValid(routine, time, activateNextStep);
                 }
             }
 
             routine.currentStep(current.parentStep());
             RoutineStepEntity parent = routine.currentStep();
             if (!parent.status().isFinishedOrExceeded()) {
-                return activateRoutineCurrentStep(routine, time);
+                if (parent.link().isPresent() && parent.link().get().skipToChildren()) {
+                    return completeStep(parent, time);
+                } else {
+                    return activateNextStep ?
+                            activateRoutineCurrentStep(routine, time)
+                            : routine;
+                }
             } else {
-                return goUpToParentStep(routine, time);
+                return goUpToParentStep(routine, time, activateNextStep);
             }
         }
     }
 
-    private RoutineEntity checkNextStepIsValid(RoutineEntity routine, LocalDateTime time) {
+    private RoutineEntity checkNextStepIsValid(RoutineEntity routine, LocalDateTime time, boolean activateNextStep) {
         if (routine.currentPosition() >= routine.descendants().size()) {
             if (allSiblingsAndSelfFinishedOrExceeded(routine.children().get(0))) {
                 return completeRoutine(routine, time);
             } else {
                 routine.currentPosition(0);
-                return checkNextStepIsValid(routine, time);
+                return checkNextStepIsValid(routine, time, activateNextStep);
             }
         }
 
         RoutineStepEntity current = routine.currentStep();
-        log.debug("Checking if next step is valid: <" + current.name() + ">");
+        log.debug("Checking if next step is valid: <{}>, {}", current.name(), current.status());
         if (current.status().isFinishedOrExceeded()) {
-            return goToNextValidStep(routine, time, false);
+            return goToNextValidStep(routine, time, false, activateNextStep);
         } else {
             if (current.link().isPresent()
                     && current.status().equals(TimeableStatus.NOT_STARTED)
@@ -1198,7 +1231,9 @@ public class RoutineServiceImpl implements RoutineService {
                     && !current.children().isEmpty()) {
                 return this.completeStep(current, time);
             } else {
-                return activateRoutineCurrentStep(routine, time);
+                return activateNextStep ?
+                        activateRoutineCurrentStep(routine, time)
+                        : routine;
             }
         }
     }
@@ -1208,14 +1243,18 @@ public class RoutineServiceImpl implements RoutineService {
     // ================================
 
     private class RoutineSynchronizer {
-        private LinkedHashMap<RoutineID, RoutineEntity> toBroadcast = new LinkedHashMap<>();
+        private final LinkedHashMap<RoutineID, RoutineEntity> toBroadcast = new LinkedHashMap<>();
+        // TODO: Use this for calculating routine positions right before broadcast
+        //  private final Map<RoutineStepEntity, RoutineEntity> currentStepMap = new HashMap<>();
 
         private void insertNewStep(TaskNode newNode) {
             entityQueryService.findRoutineStepsInCurrentRoutinesContainingTask(newNode.parentId()).stream()
                     .forEach(parent -> {
-                        RoutineEntity routine = routineRepository.getReferenceById(parent.routine().id());
-                        log.debug("Inserting new step <" + newNode.name() + "> into routine <" + routine.id() + ">");
+                        RoutineEntity routine = entityQueryService.getRoutine(ID.of(parent.routine()));
+                        log.debug("Inserting new step <{}> into routine <{}>", newNode.name(), routine.id());
                         try {
+                            RoutineStepEntity current = routine.currentStep();
+
                             TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(routine.serializedFilter());
                             Integer effort = null;
 
@@ -1233,7 +1272,7 @@ public class RoutineServiceImpl implements RoutineService {
                             boolean isSibling = linkPosition != -1;
 
                             if (isSibling) {
-                                log.debug("New step <" + newNode.name() + "> is a valid sibling.");
+                                log.debug("New step <{}> is a valid sibling.", newNode.name());
 
                                 List<TaskLink> linksInRoutineSteps = parent.children().stream()
                                         .map(RoutineStepEntity::link)
@@ -1273,14 +1312,12 @@ public class RoutineServiceImpl implements RoutineService {
                                     }
                                     parent = parent.parentStep();
                                 }
-
-                                RoutineStepEntity current = routine.currentStep();
-                                if (!current.status().equals(TimeableStatus.ACTIVE)
-                                        && Objects.equals(current.parentStep(), parent)
-                                        && current.position() > stepPosition) {
-                                    routine.currentPosition(routine.descendants().indexOf(parent) + stepPosition + 1);
-                                }
                             }
+
+                            int positionOfCurrent = routine.descendants().indexOf(current);
+                            routine.currentPosition((positionOfCurrent != -1)
+                                    ? positionOfCurrent
+                                    : 0);
 
                             toBroadcast.put(ID.of(routine), routineRepository.save(routine));
                         } catch (IOException | ClassNotFoundException e) {
@@ -1298,43 +1335,41 @@ public class RoutineServiceImpl implements RoutineService {
                     });
         }
 
-        private void goBackOneStep(RoutineStepEntity step) {
-            RoutineEntity routine = step.routine();
-
-            try {
-                routine.currentPosition(routine.currentPosition() -
-                        (1 + step.children().size()));
-                if (routine.currentStep().status().isFinishedOrExceeded() && routine.currentPosition() != 0) {
-                    goBackOneStep(routine.currentStep());
-                }
-            } catch (IllegalArgumentException e) {
-                routine.currentPosition(0);
-            }
-        }
-
         private void removeStep(RoutineStepEntity step) {
-            log.debug("Removing step <" + step.task().name() + "> from routine " + step.routine().id() + ".");
-            RoutineEntity routine = step.routine();
+            log.debug("Removing step <{}> from routine {}.", step.task().name(), step.routine().id());
 
-            if (routine.currentPosition() != 0) {
-                int removedStepIndex = routine.descendants().indexOf(step);
-                if (removedStepIndex <= routine.currentPosition()) {
-                    goBackOneStep(step);
+            RoutineEntity routine = refreshAndIterateToNextValidStep(step, clock.time(), false, false);
+            RoutineStepEntity currentStep = routine.currentStep();
+
+            Optional<RoutineStepEntity> updatedStepOptional = routine.descendants().stream()
+                    .filter(s -> s.id().equals(step.id()))
+                    .findFirst();
+
+            if (updatedStepOptional.isPresent()) {
+                RoutineStepEntity updatedStep = updatedStepOptional.get();
+                // Get parent step from updated routine
+                Ancestor<RoutineStepEntity> parent = routine.descendants().stream()
+                        .filter(s -> s.id().equals(updatedStep.parentStep().id()))
+                        .findFirst()
+                        .orElse(null);
+                if (parent == null) parent = routine;
+
+                parent.children().remove(updatedStep);
+                for (int i = updatedStep.position(); i < parent.children().size(); i++) {
+                    parent.children().get(i).position(i);
                 }
+                updatedStep.position(null);
+                updatedStep.parentStep(null);
+                updatedStep.routine(null);
             }
 
-            Ancestor<RoutineStepEntity>parent = step.parentStep() != null
-                    ? step.parentStep()
-                    : step.routine();
-            parent.children().remove(step);
-            for (int i = step.position(); i < parent.children().size(); i++) {
-                parent.children().get(i).position(i);
-            }
-            step.position(null);
-            step.parentStep(null);
-            step.routine(null);
+            int positionOfCurrent = routine.descendants().indexOf(currentStep);
+            routine.currentPosition((positionOfCurrent != -1)
+                    ? positionOfCurrent
+                    : 0);
+
             toBroadcast.put(ID.of(routine), routineRepository.save(routine));
-            routineStepRepository.save(step);
+            updatedStepOptional.ifPresent(s ->  routineStepRepository.save(s));
         }
 
         private void mergeOrRemove(RoutineStepEntity step) {
@@ -1353,7 +1388,7 @@ public class RoutineServiceImpl implements RoutineService {
             } finally {
                 if (merge) {
                     log.debug("Marking merge of step <" + step.task().name() + "> into routine <" + step.routine().id() + ">.");
-                    RoutineEntity routine = routineRepository.getReferenceById(step.routine().id());
+                    RoutineEntity routine = entityQueryService.getRoutine(ID.of(step.routine()));
                     toBroadcast.put(ID.of(step.routine()), routine);
                 } else {
                     removeStep(step);
@@ -1365,6 +1400,7 @@ public class RoutineServiceImpl implements RoutineService {
             log.debug("Recalculating routines based on " + request.changes().size() + " changes.");
             request.changes().forEach(c -> {
                 log.debug("> " + c.getClass().getSimpleName());
+
                 if (c instanceof MergeChange<?> change) {
                     Stream<RoutineStepEntity> results;
                     if (change.data() instanceof Task task) {
@@ -1389,11 +1425,6 @@ public class RoutineServiceImpl implements RoutineService {
                         this.removeStep(routineStepRepository.getReferenceById(stepId.val()));
                     } else if (change.data() instanceof LinkID linkID) {
                         // Do nothing - this should be handled by the DataContextImpl
-//                        try {
-//                            this.removeStepsContaining(linkID);
-//                        } catch (Exception e) {
-//                            log.error("Failed to remove steps containing link " + linkID, e);
-//                        }
                     }
                 } else if (c instanceof InsertChange change) {
                     dataResults.get(change.id()).stream()
@@ -1445,9 +1476,7 @@ public class RoutineServiceImpl implements RoutineService {
     public synchronized void notifyChanges(Request request, MultiValueMap<ChangeID, PersistedDataDO<?>> dataResults) {
         RoutineSynchronizer routineSynchronizer = new RoutineSynchronizer();
         routineSynchronizer.process(request, dataResults);
-
-        RoutineEntity activeRoutineMatch = routineSynchronizer.toBroadcast.get(activeRoutineId());
-        if (activeRoutineMatch != null) cachedRoutine = activeRoutineMatch;
+        routineSynchronizer.toBroadcast.get(activeRoutineId());
 
         routineSynchronizer.broadcast();
     }
@@ -1455,7 +1484,7 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     public boolean hasFilteredOutSteps(RoutineID routineId) {
         try {
-            TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(routineRepository.getReferenceById(routineId.val())
+            TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(entityQueryService.getRoutine(routineId)
                     .serializedFilter());
             if (filter instanceof RoutineLimitFilter limitFilter) {
                 return limitFilter.effortMaximum() != null && limitFilter.effortMaximum() > 0;
@@ -1474,19 +1503,7 @@ public class RoutineServiceImpl implements RoutineService {
     private class EffortTracker {
         Integer effort = null;
 
-        public EffortTracker() {
-            if (cachedRoutine != null) {
-                try {
-                    TaskNodeTreeFilter filter = (TaskNodeTreeFilter) SerializationUtil.deserialize(cachedRoutine.serializedFilter());
-                    if (filter instanceof RoutineLimitFilter limitFilter) {
-                        this.effort = limitFilter.effortMaximum();
-                        log.info("Effort tracker initialized with effort maximum: " + effort);
-                    }
-                } catch (IOException | ClassNotFoundException e) {
-                    log.error("Could not deserialize filter for routine " + cachedRoutine.id(), e);
-                }
-            }
-        }
+        public EffortTracker() {}
     }
 
     private EffortTracker effortTracker;

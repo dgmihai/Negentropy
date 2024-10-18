@@ -144,7 +144,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
 
     @Override
     public String toString() {
-        return new DecoratedStringBuilder().append("TaskNode(")
+        return "TaskNode(" + new DecoratedStringBuilder()
                 .appendIfNotNull("linkId=", linkId)
                 .appendIfNotNull("parentId=", parentId)
                 .appendIfNotNull("child=", child)
@@ -161,8 +161,7 @@ public class TaskNode implements TaskNodeDTOData<TaskNode>, HasTaskNodeData, Has
                 .appendIfNotNull("projectDurationLimit=", projectDurationLimit)
                 .appendIfNotNull("projectStepCountLimit=", projectStepCountLimit)
                 .appendIfNotNull("projectEtaLimit=", projectEtaLimit)
-                .append(")")
-                .toString();
+                .append(")");
     }
 
     @Override

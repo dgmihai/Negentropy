@@ -12,6 +12,7 @@ public class K {
     public static final String COLOR_ERROR = "error-color";
     public static final String COLOR_UNSELECTED = "unselected-color";
     public static final String COLOR_GRAYED = "grayed-color";
+    public static final String COLOR_TRANSPARENT = "transparent-color";
 
     public static final String ICON_COLOR_PRIMARY = "primary-color-icon";
     public static final String ICON_COLOR_UNSELECTED = "unselected-color-icon";

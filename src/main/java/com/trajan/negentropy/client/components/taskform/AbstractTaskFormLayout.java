@@ -12,6 +12,7 @@ import com.trajan.negentropy.client.controller.util.OnSuccessfulSaveActions;
 import com.trajan.negentropy.client.controller.util.SaveEventListener;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider;
 import com.trajan.negentropy.client.controller.util.TaskNodeProvider.HasTaskNodeProvider;
+import com.trajan.negentropy.client.session.SessionServices;
 import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.filter.TaskTreeFilter;
 import com.trajan.negentropy.server.facade.response.Response.DataMapResponse;
@@ -118,7 +119,7 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
 
         effortSelect = new Select<>();
         effortSelect.setTooltipText("Effort");
-        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT, "1", "2", "3", "4", "5");
+        effortSelect.setItems(EffortConverter.DEFAULT_EFFORT_STRING, "1", "2", "3", "4", "5");
 
         requiredCheckbox = new Checkbox();
         requiredCheckbox.setTooltipText("Required");
@@ -188,8 +189,8 @@ public abstract class AbstractTaskFormLayout extends ReadOnlySettableFormLayout
         saveButton.addClickListener(event -> this.save());
         cancelButton.addClickListener(event -> clearEventListener().clear());
 
-        Shortcuts.addShortcutListener(this,
-                this::save,
+        Shortcuts.addShortcutListener(this, () ->
+                SessionServices.ifNotMobile(this::save),
                 Key.ENTER);
 
         Shortcuts.addShortcutListener(this,

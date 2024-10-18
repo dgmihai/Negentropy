@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 public interface RoutineService {
     RoutineID activeRoutineId();
+    Routine activeRoutine();
 
     Routine fetchRoutine(RoutineID routineID);
     RoutineStep fetchRoutineStep(StepID stepID);
@@ -51,6 +52,8 @@ public interface RoutineService {
 
     RoutineResponse suspendStep(StepID stepId, LocalDateTime time);
     RoutineResponse jumpToStep(StepID stepId, LocalDateTime time);
+    RoutineResponse jumpToStepAndStartIfReady(StepID stepId, LocalDateTime time);
+
     boolean completeStepWouldFinishRoutine(StepID stepId);
     RoutineResponse completeStep(StepID stepId, LocalDateTime time);
     RoutineResponse skipStep(StepID stepId, LocalDateTime time);

@@ -12,6 +12,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -56,9 +58,10 @@ public class RoutineStepEntity extends AbstractEntity implements Timeable<Routin
     private RoutineStepEntity parentStep;
 
     @OneToMany(
-            fetch = FetchType.EAGER,
+            fetch = FetchType.LAZY,
             mappedBy = "parentStep",
             cascade = CascadeType.ALL)
+    @Fetch(FetchMode.SUBSELECT)
     @OrderBy("position")
     @ToString.Exclude
     private List<RoutineStepEntity> children = new ArrayList<>();;

@@ -3,6 +3,7 @@ package com.trajan.negentropy.server.backend;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.model.entity.*;
@@ -19,6 +20,7 @@ import com.trajan.negentropy.model.id.ID.StepID;
 import com.trajan.negentropy.server.backend.repository.*;
 import com.trajan.negentropy.server.backend.util.DFSUtil;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,16 +89,59 @@ public class EntityQueryServiceImpl implements EntityQueryService {
     @Override
     public RoutineEntity getRoutine(RoutineID routineId) {
         logger.trace("getRoutine");
-        return routineRepository.getReferenceById(routineId.val());
+
+        RoutineEntity routine = routineRepository.findById(routineId.val())
+                .orElseThrow(() -> new EntityNotFoundException("Routine not found"));
+
+        reconstructRoutineHierarchy(routine);
+
+        return routine;
     }
 
     @Override
-    public RoutineEntity getActiveRoutine(RoutineID routineId) {
-        return routineRepository.findOne(
-                QRoutineEntity.routineEntity.id.eq(routineId.val())
-                        .and(QRoutineEntity.routineEntity.status.eq(TimeableStatus.ACTIVE)))
-                .orElseThrow(
-                        () -> new NoSuchElementException("Failed to get active routine with ID: " + routineId));
+    public Iterable<RoutineEntity> findRoutines(Predicate predicate) {
+        Iterable<RoutineEntity> routines = routineRepository.findAll(predicate);
+
+        routines.forEach(this::reconstructRoutineHierarchy);
+        return routines;
+    }
+
+    @Override
+    public Iterable<RoutineEntity> findActiveRoutines() {
+        return findRoutines(QRoutineEntity.routineEntity.status.eq(TimeableStatus.ACTIVE));
+    }
+
+    private void reconstructRoutineHierarchy(RoutineEntity routine) {
+        List<RoutineStepEntity> steps = stepRepository.findAllByRoutineId(routine.id());
+
+        // Map to hold steps by their IDs for quick lookup
+        Map<Long, RoutineStepEntity> stepMap = new HashMap<>();
+        for (RoutineStepEntity step : steps) {
+            stepMap.put(step.id(), step);
+            // Initialize the children list to avoid LazyInitializationException
+            step.children(new ArrayList<>());
+        }
+
+        // Clear the routine's children to rebuild them
+        routine.children(new ArrayList<>());
+
+        // Rebuild the parent-child relationships
+        for (RoutineStepEntity step : steps) {
+            if (step.parentStep() != null) {
+                RoutineStepEntity parent = stepMap.get(step.parentStep().id());
+                if (parent != null) {
+                    while (parent.children().size() <= step.position()) {
+                        parent.children().add(null);
+                    }
+                    parent.children().set(step.position(), step);
+                }
+            } else {
+                while (routine.children().size() <= step.position()) {
+                    routine.children().add(null);
+                }
+                routine.children().set(step.position(), step);
+            }
+        }
     }
 
     @Override
@@ -140,6 +185,10 @@ public class EntityQueryServiceImpl implements EntityQueryService {
 
             if (filter.recurring() != null) {
                 builder.and(Q_LINK.recurring.eq(filter.recurring()));
+            }
+
+            if (filter.completedBefore() != null) {
+                builder.and(Q_LINK.completedAt.before(filter.completedBefore()));
             }
        }
         return builder.and(filterTaskPredicate(filter, Q_LINK.child));
@@ -611,11 +660,5 @@ public class EntityQueryServiceImpl implements EntityQueryService {
                 .stream()
                 .filter(step -> step.link().isPresent())
                 .map(step -> step.link().get());
-    }
-
-    @Override
-    public Iterable<RoutineEntity> findActiveRoutines() {
-        return routineRepository.findAll(
-                QRoutineEntity.routineEntity.status.eq(TimeableStatus.ACTIVE));
     }
 }

@@ -25,14 +25,16 @@ public class SessionPrefixProvider implements PrefixProvider {
         String additional = "";
         if (browser.contains("iPhone")) {
             additional = " (iOS)";
-        } else if (browser.contains("Android")) {
-            additional = " (Android)";
         } else if (browser.contains("Windows")) {
             additional = " (Win)";
         } else if (browser.contains("Linux")) {
             additional = " (Linux)";
         } else if (browser.contains("Mac")) {
             additional = " (Mac)";
+        } else if (browser.contains("Chrome")) {
+            additional = " (Chrome)";
+        } else if (browser.contains("Android")) {
+            additional = " (Android)";
         }
         body = address + additional;
         prefix = "[" + body + "]: ";

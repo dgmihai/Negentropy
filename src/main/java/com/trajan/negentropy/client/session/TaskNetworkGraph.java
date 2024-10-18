@@ -25,8 +25,8 @@ import com.trajan.negentropy.model.sync.Change.DeleteChange;
 import com.trajan.negentropy.model.sync.Change.MergeChange;
 import com.trajan.negentropy.model.sync.Change.PersistChange;
 import com.trajan.negentropy.server.backend.NetDurationService.NetDurationInfo;
-import com.trajan.negentropy.server.broadcaster.Broadcaster;
 import com.trajan.negentropy.server.broadcaster.ServerBroadcaster;
+import com.trajan.negentropy.util.TimeableUtil;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -37,14 +37,14 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -60,6 +60,7 @@ public class TaskNetworkGraph implements Serializable {
     @Autowired protected transient SessionServices services;
     @Autowired protected transient UserSettings settings;
     @Setter protected transient TaskEntryDataProvider taskEntryDataProvider;
+    @Autowired private TimeableUtil timeableUtil;
 
     private SyncID syncId;
     @Autowired private transient ServerBroadcaster serverBroadcaster;
@@ -77,8 +78,6 @@ public class TaskNetworkGraph implements Serializable {
 
     private AtomicReference<NetDurationInfo> netDurationInfo = new AtomicReference<>(null);
 
-    private final Broadcaster<Void> syncBroadcaster = new Broadcaster<>();
-
     public TaskNetworkGraph syncId(SyncID syncId) {
         log.trace("Previous syncId: " + this.syncId + ", new syncId: " + syncId);
         this.syncId = syncId;
@@ -87,6 +86,7 @@ public class TaskNetworkGraph implements Serializable {
 
     @PostConstruct
     public synchronized void init() {
+        log.info("Initializing TaskNetworkGraph");
         network = NetworkBuilder.directed()
                 .allowsParallelEdges(true)
                 .edgeOrder(ElementOrder.unordered())
@@ -100,9 +100,9 @@ public class TaskNetworkGraph implements Serializable {
                 .forEach(this::addTaskNode);
 
         if (settings != null) {
-            this.syncNetDurations(this.syncId, settings.filter());
+            this.getNetDurations(settings.filter());
         } else {
-            this.syncNetDurations(this.syncId, null);
+            this.getNetDurations(null);
         }
         String address = session != null ? session.getBrowser().getAddress() : null;
         String browser = session != null ? session.getBrowser().getBrowserApplication() : null;
@@ -122,8 +122,11 @@ public class TaskNetworkGraph implements Serializable {
     }
 
     public synchronized void reset() {
+        destroy();
         tagMap = new HashMap<>();
         nodesByTaskMap = new LinkedMultiValueMap<>();
+        cachedFilteredLinks = new HashMap<>();
+        lastFilterRefresh = null;
         init();
     }
 
@@ -228,42 +231,48 @@ public class TaskNetworkGraph implements Serializable {
         }
     }
 
+    private Map<NestableTaskNodeTreeFilter, List<LinkID>> cachedFilteredLinks = new HashMap<>();
+    private LocalDateTime lastFilterRefresh;
+
+    public synchronized void clearCachedFilteredLinks() {
+        log.debug("Clearing cached filtered links");
+        cachedFilteredLinks.clear();
+    }
+
     public synchronized List<LinkID> getFilteredLinks(NestableTaskNodeTreeFilter filter) {
-        log.debug("Getting filtered links with filter " + filter);
-        return (filter != null && filter.nested() && filter.name() != null && !filter.name().isBlank())
+        log.trace("Getting filtered links with filter " + filter);
+
+        if (lastFilterRefresh == null || Duration.between(lastFilterRefresh, timeableUtil.currentTime()).toMinutes() > 5) {
+            cachedFilteredLinks.clear();
+            lastFilterRefresh = timeableUtil.currentTime();
+        }
+
+        if (cachedFilteredLinks.containsKey(filter)) {
+            log.debug("Returning cached filtered links with filter " + filter);
+            return cachedFilteredLinks.get(filter);
+        }
+
+        log.debug("Fetching new filtered links with filter " + filter);
+        List<LinkID> results = (filter != null && filter.nested() && filter.name() != null && !filter.name().isBlank())
                 ? services.query().fetchAllNodesNestedAsIds(filter).toList()
                 : services.query().fetchAllNodesAsIds(filter).toList();
+        cachedFilteredLinks.put(filter, results);
+        return results;
     }
 
-    private void syncNetDurations(SyncID syncId, TaskNodeTreeFilter filter) {
-        if ((settings == null || settings.areNetDurationsVisible())
-                && (syncId != this.syncId || this.netDurationInfo.get() == null)) {
-            log.debug("Syncing net durations with filter " + filter);
-            filterMap.clear();
-            this.netDurationInfo.set(filterMap.compute(NonSpecificTaskNodeTreeFilter.parse(filter), (f, x) ->
-                    services.query().fetchNetDurationInfo(f)));
-        } else {
-            this.netDurationInfo.set(null);
-            log.debug("Not syncing net durations with filter " + filter);
-        }
-    }
-
+    @Async
     public synchronized void getNetDurations(TaskNodeTreeFilter filter) {
-        if (settings.areNetDurationsVisible()) {
-            log.debug("Getting net durations with filter " + filter);
-            this.netDurationInfo.set(filterMap.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
-                    services.query().fetchNetDurationInfo(f)));
-        } else {
-            this.netDurationInfo.set(null);
-            log.debug("Not setting net durations with filter " + filter);
-        }
+        log.debug("Getting net durations with filter " + filter);
+        this.netDurationInfo.set(netDurationFilterMapCache.computeIfAbsent(NonSpecificTaskNodeTreeFilter.parse(filter), f ->
+                services.query().fetchNetDurationInfo(f)));
+
     }
 
     public Set<Tag> getTags(TaskID task) {
         return Set.copyOf(taskTagMap.get(task));
     }
 
-    private Map<NonSpecificTaskNodeTreeFilter, NetDurationInfo> filterMap = new HashMap<>();
+    private Map<NonSpecificTaskNodeTreeFilter, NetDurationInfo> netDurationFilterMapCache = new HashMap<>();
 
     public synchronized void sync(SyncRecord aggregateSyncRecord) {
         Stopwatch stopWatch = Stopwatch.createStarted();
@@ -271,19 +280,6 @@ public class TaskNetworkGraph implements Serializable {
             List<Change> changes = aggregateSyncRecord.changes();
             log.info("Syncing with sync id {}, {} changes, current sync id: {}",
                     aggregateSyncRecord.id(), changes.size(), this.syncId);
-
-            CompletableFuture<Void> netDurationFuture;
-            if (settings != null) {
-                netDurationFuture = CompletableFuture.runAsync(() -> {
-                    this.syncNetDurations(aggregateSyncRecord.id(), settings.filter());
-                    this.refreshAll();
-                });
-            } else {
-                netDurationFuture = CompletableFuture.runAsync(() -> {
-                    this.syncNetDurations(aggregateSyncRecord.id(), null);
-                    this.refreshAll();
-                });
-            }
 
             Map<TaskID, Task> taskMap = this.taskMap;
             Map<LinkID, TaskNode> nodeMap = this.nodeMap;
@@ -293,11 +289,15 @@ public class TaskNetworkGraph implements Serializable {
             boolean refreshAll = false;
             boolean refreshTags = false;
 
+            int mergedNodesCount = 0;
+            int mergedTasksCount = 0;
+
             for (Change change : changes) {
                 if (change instanceof MergeChange<?> mergeChange) {
                     Object mergeData = mergeChange.data();
                     if (mergeData instanceof Task task) {
-                        log.debug("Got merged task {}", task);
+                        mergedTasksCount++;
+                        log.trace("Got merged task {}", task);
                         taskMap.put(task.id(), task);
                         task.tags().forEach(tag -> tagMap.put(tag.id(), tag));
                         taskTagMap.replaceValues(task.id(), task.tags());
@@ -305,7 +305,8 @@ public class TaskNetworkGraph implements Serializable {
                             pendingNodeRefresh.put(linkId, false);
                         }
                     } else if (mergeData instanceof TaskNode node) {
-                        log.debug("Got merged node {}", node);
+                        mergedNodesCount++;
+                        log.trace("Got merged node {}", node);
                         nodeMap.put(node.id(), node);
                         taskMap.put(node.task().id(), node.task());
                         pendingNodeRefresh.put(node.id(), false);
@@ -352,26 +353,23 @@ public class TaskNetworkGraph implements Serializable {
                 this.syncId(aggregateSyncRecord.id());
             }
 
-            CompletableFuture<Void> tagFuture = null;
+            if (mergedTasksCount > 0) log.debug("Merged {} tasks", mergedTasksCount);
+            if (mergedNodesCount > 0) log.debug("Merged {} nodes", mergedNodesCount);
+
+            this.refreshAll();
+
+            NestableTaskNodeTreeFilter filterFinal = settings != null ? settings.filter() : null;
             if (refreshTags) {
-                tagFuture = CompletableFuture.runAsync(this::refreshTags);
+                CompletableFuture.runAsync(this::refreshTags);
             }
+            CompletableFuture.runAsync(() -> {
+                netDurationFilterMapCache.clear();
+                CompletableFuture.runAsync(() -> {
+                    this.getNetDurations(filterFinal);
+                    this.refreshAll();
+                });
+            });
 
-            if (refreshAll) {
-                taskEntryDataProvider.refreshAll();
-                if (!((tagFuture != null && tagFuture.isDone())
-                        && netDurationFuture.isDone())) {
-                    CompletableFuture.runAsync(this::refreshAll);
-                }
-            } else {
-                taskEntryDataProvider.refreshNodes(pendingNodeRefresh);
-                if (!((tagFuture != null && tagFuture.isDone())
-                        && netDurationFuture.isDone())) {
-                    CompletableFuture.runAsync(() -> this.refreshNodes(pendingNodeRefresh));
-                }
-            }
-
-            syncBroadcaster.broadcast(null);
             stopWatch.stop();
         } else {
             log.debug("No sync required, sync ID's match");

@@ -175,7 +175,7 @@ public class GridInlineEditorTaskNodeForm<T extends HasTaskNodeData> extends Abs
 
         binder.forField(tagComboBox)
                 .bind(
-                        node -> node.task().tags(),
+                        node -> controller.taskNetworkGraph().getTags(node.task().id()),
                         (node, tags) -> node.task().tags(tags));
 
         binder.forField(projectDurationLimit)

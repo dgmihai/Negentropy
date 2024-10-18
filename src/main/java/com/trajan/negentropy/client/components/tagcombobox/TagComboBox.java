@@ -40,7 +40,9 @@ public class TagComboBox extends MultiSelectComboBox<Tag> {
     }
 
     protected void fetchTags() {
+        Set<Tag> values = this.getValue();
         items = new HashSet<>(controller.taskNetworkGraph().tagMap().values());
         this.setItems(items);
+        this.setValue(values);
     }
 }

@@ -82,7 +82,7 @@ public class MainLayout extends AppLayout {
         ContextMenu effortMenu = new ContextMenu(effortDropDown);
         effortMenu.setOpenOnClick(true);
 
-        List.of(EffortConverter.DEFAULT_EFFORT, "0", "1", "2", "3", "4", "5")
+        List.of(EffortConverter.DEFAULT_EFFORT_STRING, "0", "1", "2", "3", "4", "5")
                 .forEach(effortMenu::addItem);
         effortMenu.getItems().forEach(item -> item.addClickListener(e -> {
             EffortConverter.toModel(item.getText()).handle(
@@ -181,6 +181,7 @@ public class MainLayout extends AppLayout {
 
         nav.addItem(new SideNavItem("Task Tree", TreeView.class, LineAwesomeIcon.TREE_SOLID.create()));
         nav.addItem(new SideNavItem("Routines", RoutineView.class, LineAwesomeIcon.FIRE_ALT_SOLID.create()));
+        nav.addItem(new SideNavItem("Checklist", ChecklistView.class, LineAwesomeIcon.CHECK_SQUARE.create()));
         nav.addItem(new SideNavItem("Records", RecordView.class, LineAwesomeIcon.BOOK_OPEN_SOLID.create()));
         nav.addItem(new SideNavItem("Tenets", TenetView.class, LineAwesomeIcon.COMPASS.create()));
         nav.addItem(new SideNavItem("Tags", TagView.class, LineAwesomeIcon.TAGS_SOLID.create()));

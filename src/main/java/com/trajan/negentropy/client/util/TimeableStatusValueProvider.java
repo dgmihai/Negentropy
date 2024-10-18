@@ -8,6 +8,10 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 public class TimeableStatusValueProvider implements ValueProvider<TimeableStatus, String> {
     @Override
     public String apply(TimeableStatus timeableStatus) {
+        return toPresentation(timeableStatus);
+    }
+
+    public static String toPresentation(TimeableStatus timeableStatus) {
         return timeableStatus.toString();
     }
 }

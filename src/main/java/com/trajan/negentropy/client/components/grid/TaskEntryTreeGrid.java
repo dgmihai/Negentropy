@@ -3,12 +3,14 @@ package com.trajan.negentropy.client.components.grid;
 import com.google.common.base.Joiner;
 import com.trajan.negentropy.aop.Benchmark;
 import com.trajan.negentropy.client.K;
+import com.trajan.negentropy.client.components.YesNoDialog;
 import com.trajan.negentropy.client.components.fields.CronTextField;
 import com.trajan.negentropy.client.components.grid.enums.ColumnKey;
 import com.trajan.negentropy.client.components.grid.subcomponents.NestedTaskTabs;
 import com.trajan.negentropy.client.components.routinelimit.StartRoutineDialog;
 import com.trajan.negentropy.client.components.taskform.AbstractTaskFormLayout;
 import com.trajan.negentropy.client.components.taskform.GridInlineEditorTaskNodeForm;
+import com.trajan.negentropy.client.components.taskform.fields.EffortConverter;
 import com.trajan.negentropy.client.controller.util.InsertLocation;
 import com.trajan.negentropy.client.controller.util.InsertMode;
 import com.trajan.negentropy.client.controller.util.TaskEntry;
@@ -32,7 +34,10 @@ import com.trajan.negentropy.model.sync.Change.*;
 import com.trajan.negentropy.model.sync.Change.CopyChange.CopyType;
 import com.trajan.negentropy.util.SpringContext;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
@@ -41,17 +46,18 @@ import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.grid.contextmenu.GridSubMenu;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
 import com.vaadin.flow.component.html.Hr;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.select.SelectVariant;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.shared.Registration;
-import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoIcon;
 import elemental.json.JsonObject;
 import lombok.Getter;
@@ -67,7 +73,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @SpringComponent
-@RouteScope
+@UIScope
 @Getter
 @Benchmark
 public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
@@ -82,7 +88,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     public static final List<ColumnKey> excludedColumns = List.of(
             ColumnKey.STATUS,
             ColumnKey.EXCLUDE,
-            ColumnKey.GOTO);
+            ColumnKey.JUMP);
 
     public static final List<ColumnKey> possibleColumns = Arrays.stream(ColumnKey.values())
             .filter(columnKey -> !excludedColumns.contains(columnKey))
@@ -99,10 +105,10 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
         if (settings.enableContextMenu()) {
             log.debug("Enabled context menu");
-            new TaskTreeContextMenu(treeGrid);
+            new TaskTreeContextMenu(grid());
         }
 
-        this.treeGrid.setDataProvider(taskEntryDataProvider());
+        this.grid.setDataProvider(taskEntryDataProvider());
 
         topBar.add(gridOptionsMenu(possibleColumns));
     }
@@ -111,7 +117,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     protected void initAdditionalReadColumns(ColumnKey columnKey) {
         // TODO: Generify
         switch (columnKey) {
-            case FOCUS -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+            case FOCUS -> grid.addColumn(LitRenderer.<TaskEntry>of(
                                     GridUtil.inlineVaadinIconLitExpression("expand-full",
                             "expand "))
                                     .withFunction("onClick", t ->
@@ -123,7 +129,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setTextAlign(ColumnTextAlign.CENTER)
                     .setTooltipGenerator(e -> ColumnKey.FOCUS.toString());
 
-            case NODE_ID -> treeGrid.addColumn(
+            case NODE_ID -> grid.addColumn(
                             t -> t.node().id().val())
                     .setKey(ColumnKey.NODE_ID.toString())
                     .setHeader("Node ID")
@@ -133,7 +139,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setTooltipGenerator(e -> ColumnKey.NODE_ID.toString());
 
             case COMPLETE -> {
-                Grid.Column<TaskEntry> completedColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> completedColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("check",
                                                 "?active=\"${!item.completed}\" " +
                                                         "?hidden=\"${item.hidden}\""))
@@ -162,7 +168,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
 
             case RECURRING -> {
-                Grid.Column<TaskEntry> recurringColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> recurringColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("time-forward",
                                                 "?active=\"${item.recurring}\" "))
                                 .withFunction("onClick", entry -> controller.requestChangeAsync(
@@ -186,7 +192,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
 
             case CYCLE_TO_END -> {
-                Grid.Column<TaskEntry> cycleToEndColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> cycleToEndColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("angle-double-down",
                                                 "?active=\"${item.cycleToEnd}\" " +
                                                         "?hidden=\"${item.hidden}\""))
@@ -214,7 +220,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         t -> t.node().id());
             }
 
-            case CRON -> treeGrid.addColumn(entry ->
+            case CRON -> grid.addColumn(entry ->
                             cronValueProvider.apply(entry.node().cron()))
                     .setKey(ColumnKey.CRON.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.CALENDAR_CLOCK))
@@ -223,8 +229,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setTextAlign(ColumnTextAlign.CENTER)
                     .setTooltipGenerator(e -> ColumnKey.CRON.toString());
 
-            case SCHEDULED_FOR -> treeGrid.addColumn(entry -> {
-                        if (entry.node().cron() != null) {
+            case SCHEDULED_FOR -> grid.addColumn(entry -> {
+                        if (entry.node().cron() != null && entry.node().scheduledFor() != null) {
                             DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT);
                             return formatter.format(entry.node().scheduledFor());
                         } else {
@@ -238,7 +244,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setTextAlign(ColumnTextAlign.CENTER)
                     .setTooltipGenerator(e -> ColumnKey.SCHEDULED_FOR.toString());
 
-            //        Grid.Column<TaskEntry> priorityColumn = treeGrid
+            //        Grid.Column<TaskEntry> priorityColumn = grid
             //                .addColumn(entry ->
             //                        entry.link().getPriority())
             //                .setHeader("Priority")
@@ -246,7 +252,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             //                .setFlexGrow(0);
 
             case RESCHEDULE_NOW -> {
-                Grid.Column<TaskEntry> rescheduleNowColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> rescheduleNowColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("backwards",
                                                 "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry ->
@@ -269,7 +275,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
 
             case RESCHEDULE_LATER -> {
-                Grid.Column<TaskEntry> rescheduleLaterColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> rescheduleLaterColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("forward",
                                                 "?hidden=\"${item.hidden}\""))
                                 .withFunction("onClick", entry ->
@@ -286,7 +292,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
 
             case FROZEN -> {
-                Grid.Column<TaskEntry> positionFrozenColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> positionFrozenColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("lock",
                                                 "?active=\"${item.positionFrozen}\" " +
                                                         "?hidden=\"${!item.visible}\""))
@@ -307,7 +313,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             }
 
             case START_WITH_CHILDREN -> {
-                Grid.Column<TaskEntry> skipToChildrenColumn = treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+                Grid.Column<TaskEntry> skipToChildrenColumn = grid.addColumn(LitRenderer.<TaskEntry>of(
                                         GridUtil.inlineVaadinIconLitExpression("level-down",
                                                 "?active=\"${item.skipToChildren}\" "))
                                 .withFunction("onClick", entry ->
@@ -324,12 +330,23 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         .setTooltipGenerator(e -> ColumnKey.START_WITH_CHILDREN.toString());
             }
 
-            case DELETE -> treeGrid.addColumn(LitRenderer.<TaskEntry>of(
+            case DELETE -> grid.addColumn(LitRenderer.<TaskEntry>of(
                                     GridUtil.inlineVaadinIconLitExpression("trash",
                                     " delete"))
-                                    .withFunction("onClick", entry ->
-                                            controller.requestChangeAsync(new DeleteChange<>(
-                                                    entry.node().linkId()))))
+                                    .withFunction("onClick", entry -> {
+                                        YesNoDialog dialog = new YesNoDialog();
+                                        dialog.setHeaderTitle("Remove '" + entry.node().name() + "'?");
+                                        dialog.yes().addClickListener(e -> {
+                                            controller.requestChangeAsync(
+                                                    new DeleteChange<>(
+                                                            entry.node().linkId()),
+                                                    response -> {
+                                                        if (response.success()) grid.deselect(entry);
+                                                    });
+                                            dialog.close();
+                                        });
+                                        dialog.open();
+                                    }))
                     .setKey(ColumnKey.DELETE.toString())
                     .setHeader(GridUtil.headerIcon(VaadinIcon.TRASH))
                     .setWidth(GridUtil.ICON_COL_WIDTH_L)
@@ -337,10 +354,12 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     .setTextAlign(ColumnTextAlign.CENTER)
                     .setTooltipGenerator(e -> ColumnKey.DELETE.toString());
 
-            case LIMIT -> configureLimitColumn(treeGrid.addColumn(
+            case LIMIT -> configureLimitColumn(grid.addColumn(
                             entry -> (entry.nodeOptional().isPresent())
                                     ? limitValueProvider.apply(entry.node().limits())
                                     : ""));
+
+            default -> super.initAdditionalReadColumns(columnKey);
         }
     }
 
@@ -353,7 +372,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Override
     protected void setPartNameGenerator() {
-        treeGrid.setPartNameGenerator(entry -> {
+        grid.setPartNameGenerator(entry -> {
             List<String> partNames = new ArrayList<>();
 
             if (routineActiveTaskSessionStore.nodesThatHaveActiveSteps()
@@ -364,7 +383,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             if (entry.node().completed()) {
                 partNames.add(K.GRID_PARTNAME_COMPLETED);
             }
-            if (entry.node().scheduledFor().isAfter(LocalDateTime.now())) {
+            if (entry.node().scheduledFor() != null && entry.node().scheduledFor().isAfter(LocalDateTime.now())) {
                 partNames.add(K.GRID_PARTNAME_FUTURE);
             }
             if (entry.task().project()) {
@@ -376,7 +395,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             if (entry.task().difficult()) {
                 partNames.add(K.GRID_PARTNAME_DIFFICULT);
             }
-            if (entry.node().parentId() != null && settings.areNetDurationsVisible() && taskNetworkGraph.netDurationInfo().get() != null) {
+            if (entry.node().parentId() != null && taskNetworkGraph.netDurationInfo().get() != null) {
                 List<LinkID> childrenExceedingDurationLimit = taskNetworkGraph.netDurationInfo().get().projectChildrenOutsideDurationLimitMap().get(entry.parent().node().id());
                 if (childrenExceedingDurationLimit != null && childrenExceedingDurationLimit.contains(entry.node().linkId())) {
                     partNames.add(K.GRID_PARTNAME_DURATION_LIMIT_EXCEEDED);
@@ -408,19 +427,19 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
     @Override
     protected void configureDragAndDrop() {
-        treeGrid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
-        treeGrid.setRowsDraggable(false);
+        grid.setDropMode(GridDropMode.ON_TOP_OR_BETWEEN);
+        grid.setRowsDraggable(false);
         // Drag start is managed by the dragHandleColumn
 
         if (visibleColumns.getOrDefault(ColumnKey.DRAG_HANDLE, false)) {
-            treeGrid.addDropListener(event -> {
+            grid.addDropListener(event -> {
                 log.debug(draggedItem + " dropped onto " +
                         event.getDropTargetItem().orElseThrow().task().name());
                 if (event.getDropTargetItem().isPresent()) {
                     TaskEntry target = event.getDropTargetItem().get();
                     if (!draggedItem.task().id().equals(target.task().id())) {
                         InsertMode operation;
-                        if (event.getSource().equals(this.treeGrid)) {
+                        if (event.getSource().equals(this.grid)) {
                             operation = settings.sameGridDragInsertMode();
                         } else {
                             operation = settings.differentGridDragInsertMode();
@@ -461,17 +480,17 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     }
                 }
                 draggedItem = null;
-                treeGrid.setRowsDraggable(false);
+                grid.setRowsDraggable(false);
             });
         }
     }
 
     @Override
     protected void configureAdditionalEvents() {
-        treeGrid.addExpandListener(event ->
+        grid().addExpandListener(event ->
                 settings.expandedEntries().addAll(event.getItems()));
 
-        treeGrid.addCollapseListener(event ->
+        grid().addCollapseListener(event ->
                 settings.expandedEntries().removeAll(event.getItems()));
 
         // TODO: Needs an in-memory TreeDataProvider to actually work
@@ -480,28 +499,28 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 //                case ALL ->
 //                        controller.taskEntryDataProvider().taskTaskEntriesMap().values().forEach(set ->
 //                                set.forEach(ntry ->
-//                                        treeGrid.setDetailsVisible(ntry, true)));
+//                                        grid.setDetailsVisible(ntry, true)));
 //                case IF_PRESENT ->
 //                        controller.taskEntryDataProvider().taskTaskEntriesMap().values().forEach(set ->
 //                                set.forEach(ntry -> {
 //                            if (!entry.task().description().isBlank()) {
-//                                treeGrid.setDetailsVisible(ntry, true);
+//                                grid.setDetailsVisible(ntry, true);
 //                            }
 //                        }));
 //                case NONE ->
 //                        controller.taskEntryDataProvider().taskTaskEntriesMap().values().forEach(set ->
 //                                set.forEach(ntry ->
-//                                        treeGrid.setDetailsVisible(ntry, false)));
+//                                        grid.setDetailsVisible(ntry, false)));
 //            }
 //        };
 
-//        treeGrid.addExpandListener(event -> {
+//        grid.addExpandListener(event -> {
 //            Collection<TaskEntry> entries = event.getItems();
 //            entries.forEach(detailsVisibilitySwitch);
 //        });
 
-        treeGrid.getDataProvider().addDataProviderListener(event ->
-                treeGrid.expand(settings.expandedEntries()));
+        grid.getDataProvider().addDataProviderListener(event ->
+                grid().expand(settings.expandedEntries()));
     }
 
     protected Collection<Component> configureAdditionalTopBarComponents() {
@@ -509,7 +528,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
         if (visibleColumns.containsKey(ColumnKey.FOCUS) && visibleColumns.get(ColumnKey.FOCUS)) {
             this.nestedTabs = new NestedTaskTabs(this);
 
-            DoubleClickListenerUtil.add(treeGrid, entry ->
+            DoubleClickListenerUtil.add(grid, entry ->
                     nestedTabs.selectNewRootEntry(entry));
 
             components.add(nestedTabs);
@@ -518,9 +537,9 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
     }
 
     @Override
-    protected FormLayout configureMiddleBar() {
-        Grid.Column<TaskEntry> cronColumn = treeGrid.getColumnByKey(ColumnKey.CRON.toString());
-        Grid.Column<TaskEntry> scheduledForColumn = treeGrid.getColumnByKey(ColumnKey.SCHEDULED_FOR.toString());
+    protected Details configureMiddleBar() {
+        Grid.Column<TaskEntry> cronColumn = grid.getColumnByKey(ColumnKey.CRON.toString());
+        Grid.Column<TaskEntry> scheduledForColumn = grid.getColumnByKey(ColumnKey.SCHEDULED_FOR.toString());
 
         if (cronColumn != null || scheduledForColumn != null) {
             CronTextField cronField = new CronTextField().small();
@@ -529,7 +548,7 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             check.addClassName(K.ICON_COLOR_PRIMARY);
 
             check.addClickListener(event -> {
-                Set<TaskEntry> data = treeGrid.getSelectedItems();
+                Set<TaskEntry> data = grid.getSelectedItems();
                 try {
                     if (!cronField.getValue().isBlank()) {
                         CronExpression cron = cronConverter.convertToModel(cronField.getValue());
@@ -554,25 +573,75 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             editHeaderLayout.add(cronHeaderLayout);
         }
 
-        if (editHeaderLayout.getElement().getChildCount() > 0) {
-            Span label = new Span("Edit selected:");
-            editHeaderLayout.addComponentAsFirst(label);
-            treeGrid.addSelectionListener(e -> label.setText("Edit selected: " + treeGrid.getSelectedItems().size()
-                    + " items"));
+        Grid.Column<TaskEntry> effortColumn = grid.getColumnByKey(ColumnKey.EFFORT.toString());
 
-            editHeaderLayout.setResponsiveSteps(
-                    new FormLayout.ResponsiveStep("0", 4),
-                    new FormLayout.ResponsiveStep(K.MEDIUM_SCREEN_WIDTH, 8));
+        if (effortColumn != null) {
+            Select<String> effortSelect = new Select<>();
+            effortSelect.setItems(EffortConverter.DEFAULT_EFFORT_STRING, "1", "2", "3", "4", "5");
+            effortSelect.addThemeVariants(SelectVariant.LUMO_SMALL);
+            effortSelect.setWidth("4em");
+            effortSelect.setClassName("effort-select");
+            effortSelect.setTooltipText(ColumnKey.EFFORT.toString());
 
-            return editHeaderLayout;
+            effortSelect.addValueChangeListener(event -> {
+                Set<TaskEntry> data = grid.getSelectedItems();
+                try {
+                    Integer effort = EffortConverter.toModel(effortSelect.getValue()).getOrThrow(
+                            s -> new IllegalArgumentException("Invalid effort value: " + s));
+                    controller.requestChangeAsync(new MultiMergeChange<>(
+                            new Task()
+                                    .effort(effort),
+                            data.stream()
+                                    .map(entry -> entry.node().child().id())
+                                    .distinct()
+                                    .toList()));
+                } catch (IllegalArgumentException e) {
+                    NotificationMessage.error(e);
+                }
+            });
+
+            Icon effortIcon = VaadinIcon.TROPHY.create();
+            effortIcon.setSize(K.INLINE_ICON_SIZE);
+
+            HorizontalLayout effortHeaderLayout = new HorizontalLayout(effortSelect, effortIcon);
+            effortHeaderLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+            effortHeaderLayout.setAlignItems(Alignment.CENTER);
+//            effortHeaderLayout.setSpacing(false);
+            effortHeaderLayout.setPadding(false);
+            editHeaderLayout.add(effortHeaderLayout);
         }
 
-        return editHeaderLayout;
+        if (editHeaderLayout.getElement().getChildCount() > 0) {
+//            Span label = new Span("Edit selected:");
+//            editHeaderLayout.addComponentAsFirst(label);
+//            grid.addSelectionListener(e -> label.setText("Edit selected: " + grid.getSelectedItems().size()
+//                    + " items"));
+
+            editHeaderLayout.setResponsiveSteps(
+                    new FormLayout.ResponsiveStep("0", 3),
+                    new ResponsiveStep(K.SHORT_SCREEN_WIDTH, 4),
+                    new FormLayout.ResponsiveStep(K.MEDIUM_SCREEN_WIDTH, 7));
+        } else {
+            return null;
+        }
+
+        Details middleBarDetails = new Details("Edit Selected", editHeaderLayout);
+        middleBarDetails.addThemeVariants(DetailsVariant.REVERSE);
+        grid.addSelectionListener(e -> middleBarDetails.setSummaryText("Edit selected: " + grid.getSelectedItems().size()
+                + " items"));
+
+        middleBarDetails.addOpenedChangeListener(e -> {
+            grid.setHeightFull();
+        });
+
+        middleBarDetails.setWidthFull();
+        editHeaderLayout.setWidthFull();
+        return middleBarDetails;
     }
 
     @Override
     protected void onManualGridRefresh() {
-        treeGrid.expand(settings.expandedEntries());
+        grid().expand(settings.expandedEntries());
     }
 
     @Override
@@ -650,12 +719,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                     e -> e.getItem().ifPresent(entry -> SpringContext.getBean(StartRoutineDialog.class)
                             .open(List.of(entry.node()))));
 
-            GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
-                    e -> SpringContext.getBean(StartRoutineDialog.class).open(
-                            treeGrid.getSelectedItems().stream()
-                                    .map(entry -> (PersistedDataDO) entry.node())
-                                    .toList()));
-
             GridMenuItem<TaskEntry> resetSchedule = addItem("Reset Schedule", e -> e.getItem().ifPresent(
                     entry -> controller.requestChangeAsync(new OverrideScheduledForChange(
                             entry.node().linkId(), LocalDateTime.now()))));
@@ -664,8 +727,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             addInsertItem(activeTaskSubMenu, "After", InsertLocation.AFTER);
             addInsertItem(activeTaskSubMenu, "As First Subtask", InsertLocation.FIRST);
             addInsertItem(activeTaskSubMenu, "As Last Subtask", InsertLocation.LAST);
-
-            add(new Hr());
 
             GridMenuItem<TaskEntry> moveTarget = addItem("");
             GridSubMenu<TaskEntry> moveTargetSubMenu = moveTarget.getSubMenu();
@@ -681,10 +742,38 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             addMoveTargetItem.accept("To Top", InsertLocation.FIRST);
             addMoveTargetItem.accept("To Bottom", InsertLocation.LAST);
 
+            GridMenuItem<TaskEntry> remove = addItem("Remove");
+            GridMenuItem<TaskEntry> confirmRemove = remove.getSubMenu().addItem("Confirm?", e -> e.getItem().ifPresent(
+                    entry -> controller.requestChangeAsync(new DeleteChange<>(entry.node().linkId()), response -> {
+                        if (response.success()) grid.deselect(entry);
+                    })));
+            confirmRemove.addClassName(K.COLOR_ERROR);
+            remove.addClassName(K.COLOR_ERROR);
+
+            add(new Hr());
+
+            GridMenuItem<TaskEntry> startRoutineSelected = addItem("Start Routine from selected",
+                    e -> SpringContext.getBean(StartRoutineDialog.class).open(
+                            TaskEntryTreeGrid.this.grid.getSelectedItems().stream()
+                                    .map(entry -> (PersistedDataDO) entry.node())
+                                    .toList()));
+
             GridMenuItem<TaskEntry> moveSelected = addItem("");
             GridSubMenu<TaskEntry> moveSelectedSubMenu = moveSelected.getSubMenu();
             GridMenuItem<TaskEntry> insertSelected = addItem("");
             GridSubMenu<TaskEntry> insertSelectedSubMenu = insertSelected.getSubMenu();
+            GridMenuItem<TaskEntry> removeSelected = addItem("");
+            GridSubMenu<TaskEntry> removeSelectedSubMenu = removeSelected.getSubMenu();
+
+            GridMenuItem<TaskEntry> confirmRemoveSelected = removeSelectedSubMenu.addItem("Confirm?", e -> controller.requestChangesAsync(
+                    TaskEntryTreeGrid.this.grid.getSelectedItems().stream()
+                            .map(entry -> (Change) new DeleteChange<>(entry.node().linkId()))
+                            .toList(),
+                    response -> {
+                        if (response.success()) grid.deselectAll();
+                    }));
+            confirmRemoveSelected.addClassName(K.COLOR_ERROR);
+            removeSelected.addClassName(K.COLOR_ERROR);
 
             Map<String, InsertLocation> moveOrInsertOptions = new HashMap<>();
             moveOrInsertOptions.put("Before", InsertLocation.BEFORE);
@@ -693,63 +782,6 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
             moveOrInsertOptions.put("As Subtasks At Back", InsertLocation.LAST);
 
             addMoveOrInsertSelectedItem(insertSelectedSubMenu, moveSelectedSubMenu, moveOrInsertOptions);
-
-            add(new Hr());
-
-            GridMenuItem<TaskEntry> remove = addItem("Remove");
-
-            GridMenuItem<TaskEntry> confirmRemove = remove.getSubMenu().addItem("Confirm?", e -> e.getItem().ifPresent(
-                    entry -> controller.requestChangeAsync(new DeleteChange<>(entry.node().linkId()))));
-            confirmRemove.addClassName(K.COLOR_ERROR);
-            remove.addClassName(K.COLOR_ERROR);
-
-            add(new Hr());
-
-            GridMenuItem<TaskEntry> multiEdit = addItem("");
-            GridSubMenu<TaskEntry> multiEditSubMenu = multiEdit.getSubMenu();
-
-            GridMenuItem<TaskEntry> completed = multiEditSubMenu.addItem("Set Completed To");
-            GridMenuItem<TaskEntry> recurring = multiEditSubMenu.addItem("Set Recurring To");
-            GridMenuItem<TaskEntry> required = multiEditSubMenu.addItem("Set Required To");
-            GridMenuItem<TaskEntry> delete = multiEditSubMenu.addItem("Delete?");
-
-            Consumer<Boolean> requestCompletedChange = isCompleted -> {
-                controller.requestChangeAsync(new MultiMergeChange<>(
-                        new TaskNodeDTO().completed(isCompleted),
-                        treeGrid.getSelectedItems().stream()
-                                .map(entry -> entry.node().id())
-                                .toList()));
-            };
-
-            completed.getSubMenu().addItem("True", e -> requestCompletedChange.accept(true));
-            completed.getSubMenu().addItem("False", e -> requestCompletedChange.accept(false));
-
-            Consumer<Boolean> requestRecurringChange = isRecurring -> {
-                controller.requestChangeAsync(new MultiMergeChange<>(
-                        new TaskNodeDTO().recurring(isRecurring),
-                        treeGrid.getSelectedItems().stream()
-                                .map(entry -> entry.node().id())
-                                .toList()));
-            };
-
-            recurring.getSubMenu().addItem("True", e -> requestRecurringChange.accept(true));
-            recurring.getSubMenu().addItem("False", e -> requestRecurringChange.accept(false));
-
-            Consumer<Boolean> requestRequiredChange = isRequired -> {
-                controller.requestChangeAsync(new MultiMergeChange<>(
-                        new Task().required(isRequired),
-                        treeGrid.getSelectedItems().stream()
-                                .map(entry -> entry.task().id())
-                                .toList()));
-            };
-
-            required.getSubMenu().addItem("True", e -> requestRequiredChange.accept(true));
-            required.getSubMenu().addItem("False", e -> requestRequiredChange.accept(false));
-            
-            delete.getSubMenu().addItem("Confirm", e -> controller.requestChangesAsync(
-                    treeGrid.getSelectedItems().stream()
-                            .map(entry -> (Change) new DeleteChange<>(entry.node().linkId()))
-                            .toList()));
 
             // Do not show context menu when header is clicked
             setDynamicContentHandler(entry -> {
@@ -778,12 +810,13 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
 
                     List<TaskEntry> selected = List.copyOf(grid.getSelectedItems());
                     int selectedSize = selected.size();
-                    multiEdit.setVisible(selectedSize > 1);
-                    if (selectedSize == 0) {
+                    boolean selectedIsAlsoFocused = selectedSize == 1 && selected.get(0).equals(entry);
+                    if (selectedSize == 0 || selectedIsAlsoFocused) {
                         moveTarget.setVisible(true);
                         moveSelected.setVisible(false);
                         insertSelected.setVisible(false);
                         startRoutineSelected.setVisible(false);
+                        removeSelected.setVisible(false);
                         moveTarget.setText("Move " + entry.task().name());
                     } else {
                         moveTarget.setVisible(false);
@@ -796,7 +829,8 @@ public class TaskEntryTreeGrid extends TaskTreeGrid<TaskEntry> {
                         insertSelected.setText("Add " + multiSelectText);
                         startRoutineSelected.setVisible(true);
                         startRoutineSelected.setText("Start Routine from " + multiSelectText);
-                        multiEdit.setText("Edit " + multiSelectText);
+                        removeSelected.setVisible(true);
+                        removeSelected.setText("Remove " + multiSelectText);
                     }
 
                     activeTaskSubMenu.getItems().forEach(menuItem -> menuItem.setEnabled(hasActiveTaskProvider));

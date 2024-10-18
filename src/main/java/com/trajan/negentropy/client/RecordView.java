@@ -7,6 +7,7 @@ import com.trajan.negentropy.client.util.duration.DurationConverter;
 import com.trajan.negentropy.model.Record;
 import com.trajan.negentropy.model.RecordSpan;
 import com.trajan.negentropy.model.RecordSpan.RecordSpanEntry;
+import com.trajan.negentropy.model.Task;
 import com.trajan.negentropy.model.TaskNode;
 import com.trajan.negentropy.model.entity.TimeableStatus;
 import com.trajan.negentropy.model.filter.TaskNodeTreeFilter;
@@ -52,6 +53,7 @@ public class RecordView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
+        log.info("Initializing RecordView");
         this.addClassName("record-view");
         this.setSizeFull();
 
@@ -139,7 +141,7 @@ public class RecordView extends VerticalLayout {
 
     private String percentColumnText(int count, int totalCount) {
         return count != 0
-                ? count + " (" + Math.round(((float) count / totalCount)*100) + "%)"
+                ? Math.round(((float) count / totalCount)*100) + "%" + " (" + count + ")"
                 : "-";
     }
 
@@ -169,8 +171,11 @@ public class RecordView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setSortable(true);
 
-        chronologicalGrid.addColumn(record -> DurationConverter.toPresentation(
-                taskNetworkGraph.taskMap().get(record.taskId()).duration()))
+        chronologicalGrid.addColumn(record -> {
+            Task task = taskNetworkGraph.taskMap().get(record.taskId());
+            if (task == null) return "";
+            return DurationConverter.toPresentation(task.duration());
+        })
                 .setHeader("Est. Duration")
                 .setAutoWidth(true);
 
@@ -178,9 +183,12 @@ public class RecordView extends VerticalLayout {
                 .setHeader("Elapsed")
                 .setAutoWidth(true);
 
-        chronologicalGrid.addColumn(record -> DurationConverter.toPresentation(
-                taskNetworkGraph.taskMap().get(record.taskId()).duration()
-                        .minus(record.elapsedTime())))
+        chronologicalGrid.addColumn(record -> {
+            Task task = taskNetworkGraph.taskMap().get(record.taskId());
+            if (task == null) return "";
+            return DurationConverter.toPresentation(task.duration()
+                    .minus(record.elapsedTime()));
+        })
                 .setHeader("Difference")
                 .setAutoWidth(true);
 

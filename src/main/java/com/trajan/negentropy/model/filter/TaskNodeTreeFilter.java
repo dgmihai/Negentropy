@@ -16,6 +16,7 @@ import java.util.Set;
 public class TaskNodeTreeFilter extends TaskTreeFilter implements Serializable {
     private static final long serialVersionUID = 2L;
 
+    protected LocalDateTime completedBefore;
     protected Boolean completed;
     protected Boolean recurring;
     protected LocalDateTime availableAtTime;

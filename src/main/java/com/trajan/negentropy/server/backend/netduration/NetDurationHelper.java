@@ -53,6 +53,7 @@ public class NetDurationHelper {
 
     @PostConstruct
     public void init() {
+        log.debug("Initializing NetDurationHelper");
         linkHierarchyIterator.netDurationHelper(this);
         loadAdjacencyMap();
     }

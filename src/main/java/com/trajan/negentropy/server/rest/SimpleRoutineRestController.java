@@ -29,7 +29,7 @@ public class SimpleRoutineRestController {
 
     private ResponseEntity<RoutineStep> makeCall(Function<StepID, RoutineResponse> call) {
         if (routineService.activeRoutineId() != null) {
-            StepID currentStepId = routineService.fetchRoutine(routineService.activeRoutineId()).currentStep().id();
+            StepID currentStepId = routineService.activeRoutine().currentStep().id();
             RoutineStep resultStep = call.apply(currentStepId).routine().currentStep();
             Routine resultRoutine = routineService.fetchRoutine(resultStep.routineId());
             if (!resultRoutine.status().equals(TimeableStatus.ACTIVE)) {
@@ -51,7 +51,7 @@ public class SimpleRoutineRestController {
     @GetMapping("")
     public ResponseEntity<Routine> currentRoutine() {
         if (routineService.activeRoutineId() != null) {
-            return ResponseEntity.ok(routineService.fetchRoutine(routineService.activeRoutineId()));
+            return ResponseEntity.ok(routineService.activeRoutine());
         } else {
             return ResponseEntity.notFound()
                     .build();
@@ -61,7 +61,7 @@ public class SimpleRoutineRestController {
     @GetMapping("/step")
     public ResponseEntity<RoutineStep> current() {
         if (routineService.activeRoutineId() != null) {
-            StepID currentStepId = routineService.fetchRoutine(routineService.activeRoutineId()).currentStep().id();
+            StepID currentStepId = routineService.activeRoutine().currentStep().id();
             RoutineStep resultStep = routineService.fetchRoutineStep(currentStepId);
             return ResponseEntity.ok(resultStep);
         } else {

@@ -35,10 +35,14 @@ public class LinkHierarchyIterator {
     private MultiValueMap<LinkID, LinkID> projectChildrenOutsideDurationLimitMap = new LinkedMultiValueMap<>();
 
     private Duration getDuration(HasTaskLinkOrTaskEntity entity) {
-        return (entity instanceof RoutineStepEntity step)
-                ? TimeableUtil.get().getRemainingDuration(
-                step, ServerClockService.now(), true)
-                : entity.task().duration();
+        if (entity instanceof RoutineStepEntity step) {
+            Duration duration = TimeableUtil.get().getRemainingDuration(
+                    step, ServerClockService.now(), true);
+            log.trace("Duration of <{}> is {}", step.name(), duration);
+            return duration;
+        } else {
+            return entity.task().duration();
+        }
     }
 
     Duration process(HasTaskLinkOrTaskEntity current, RoutineStepHierarchy parent) {
@@ -70,7 +74,8 @@ public class LinkHierarchyIterator {
         for (HasTaskLinkOrTaskEntity childEntity : this.findChildLinks(entity)) {
             Duration result = netDurationHelper.inner_calculateHierarchicalNetDuration(childEntity, child, null);
             if (result != null) {
-                netDurations.put(ID.of(childEntity.link().orElseThrow()), result);
+                childEntity.link().ifPresent(link ->
+                        netDurations.put(ID.of(link), result));
                 durationSum = durationSum.plus(result);
             }
         }
@@ -141,7 +146,7 @@ public class LinkHierarchyIterator {
 
         Map<HasTaskLinkOrTaskEntity, Duration> requiredDurations = childLinks.stream()
                 .filter(l -> isRequiredAndWithinEffort(l, limit))
-                .peek(l -> log.debug("Calculating required duration for " + l.task().name()))
+                .peek(l -> log.trace("Calculating required duration for " + l.task().name()))
                 .collect(HashMap::new,
                         (m, l) -> m.put(l, netDurationHelper.inner_calculateHierarchicalNetDuration(
                                 l, null, onlyEffortLimit)),
@@ -167,7 +172,7 @@ public class LinkHierarchyIterator {
                 log.trace("<" + child.name() + "> is required");
                 netDurationHelper.inner_calculateHierarchicalNetDuration(child, currentHierarchy, onlyEffortLimit);
             } else if (limit.exceeded() || limit.exceedsEffort(child.task().effort())) {
-                log.debug("Limit exceeded, excluding <" + child.name() + ">");
+                log.trace("Limit exceeded, excluding <" + child.name() + ">");
                 if (currentLinkId != null && !limit.customLimit() && child.link().isPresent()) {
                     projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(child.link().get()));
                 }
@@ -179,7 +184,7 @@ public class LinkHierarchyIterator {
                 if (limit.wouldExceed(childDuration, child.task().effort()) && !mustInclude(child)) {
                     log.trace("<" + child.name() + "> exceeds limit");
                     limit.exceeded(true);
-                    if (currentLinkId != null && !limit.customLimit()) {
+                    if (currentLinkId != null && !limit.customLimit() && child.link().isPresent()) {
                         projectChildrenOutsideDurationLimitMap.add(currentLinkId, ID.of(child.link().get()));
                     }
                     if (currentHierarchy != null) {

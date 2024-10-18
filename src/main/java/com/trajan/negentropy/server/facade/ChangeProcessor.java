@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 @Component
 @Slf4j
 @Transactional(rollbackFor = Exception.class)
+@Getter
 public class ChangeProcessor {
     @Autowired private DataContext dataContext;
     @Autowired private EntityQueryService entityQueryService;
@@ -60,6 +61,7 @@ public class ChangeProcessor {
                 str + " " + body;
 
         Set<TaskLink> durationUpdates = new HashSet<>();
+        Set<TaskLink> ancestorsRequireDurationUpdate = new HashSet<>();
 
         for (Change change : request.changes()) {
             String prefix;
@@ -197,11 +199,13 @@ public class ChangeProcessor {
                         setPositionBasedOnLocation(dto, reference, location);
                         TaskLink resultLink = dataContext.merge(dto);
                         resultLink.scheduledFor(original.scheduledFor());
+                        ancestorsRequireDurationUpdate.add(resultLink);
                         updateDuration(durationUpdates, resultLink);
                         TaskNode result = dataContext.toEagerDO(resultLink);
                         dataResults.add(moveChange.id(), result);
                         messages.add(messageSupplier.apply(prefix, result));
                         updateDuration(durationUpdates, resultLink);
+                        ancestorsRequireDurationUpdate.add(resultLink);
                         dataContext.deleteLink(original);
                     }
                 }
@@ -368,6 +372,7 @@ public class ChangeProcessor {
 
     // TODO: This takes a long while!
     private void updateDuration(Set<TaskLink> durationUpdates, TaskLink link) {
+        log.debug("Updating duration for " + link.child().name() + " and its ancestors");
         durationUpdates.add(link);
         durationUpdates.addAll(entityQueryService.findAncestorLinks(
                 ID.of(link.child()), null)

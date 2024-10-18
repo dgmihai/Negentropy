@@ -635,22 +635,26 @@ public class RoutineServiceRefreshTest extends RoutineTestTemplateWithRequiredTa
                 THREETWO, TimeableStatus.EXCLUDED,
                 routineService::excludeStep);
 
-        assertRoutineWithExceeded(List.of(
+        assertRoutineWithStatus(List.of(
                         THREE_AND_FIVE,
                         THREEONE,
                         THREETWO,
-                        TWOTWOTHREE_AND_THREETWOTWO),
+                        THREETWOONE_AND_THREETWOTHREE,
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        THREETWOONE_AND_THREETWOTHREE,
+                        SIX_AND_THREETWOFOUR),
+                TimeableStatus.EXCLUDED,
                 List.of(
+                        THREETWO,
                         THREETWOONE_AND_THREETWOTHREE,
-                        THREETWOONE_AND_THREETWOTHREE,
-                        SIX_AND_THREETWOFOUR,
-                        THREETHREE),
+                        TWOTWOTHREE_AND_THREETWOTWO,
+                        SIX_AND_THREETWOFOUR),
                 routine,
                 filter);
 
-        assertEquals(TimeableStatus.EXCLUDED, routine.steps().values()
+        assertEquals(TimeableStatus.LIMIT_EXCEEDED, routine.steps().values()
                 .stream()
-                .filter(step -> step.name().equals(THREETWO))
+                .filter(step -> step.name().equals(THREETHREE))
                 .findFirst().get().status());
     }
 

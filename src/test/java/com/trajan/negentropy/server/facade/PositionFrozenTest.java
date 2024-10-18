@@ -15,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -112,5 +111,37 @@ public class PositionFrozenTest extends TaskTestTemplate {
 
         // Assert that the position is frozen, since that's implied when adding a new required link
         assertTrue(freshNode.positionFrozen());
+    }
+
+    @Test
+    @Transactional
+    void testDisallowPositionFrozenInMiddle() {
+        Task parent = tasks.get(TWO);
+        TaskNode twoThree = nodes.get(Triple.of(TWO, TWOTHREE, 2));
+        changeService.execute(Request.of(new MergeChange<>(
+                twoThree.positionFrozen(false))));
+
+        Task fresh = createTask("Fresh");
+
+        TaskNode freshNode = persistTaskNode(new TaskNodeDTO()
+                .childId(fresh.id())
+                .parentId(parent.id())
+                .positionFrozen(true)
+                .position(2));
+
+        assertEquals(parent.id(), freshNode.parentId());
+        fresh = freshNode.child();
+
+        List<Object> expectedTasks = List.of(
+                TWOONE,
+                TWOTWO,
+                fresh,
+                TWOTHREE);
+
+        validateNodes(
+                queryService.fetchChildNodes(parent.id()),
+                expectedTasks);
+
+        assertFalse(freshNode.positionFrozen());
     }
 }
